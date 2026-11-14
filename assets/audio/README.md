@@ -51,7 +51,7 @@
 | `miss_meow` | MISS |
 | `glitch_meow` | 卡顿喵：风格切换、FRENZY 开始 |
 | `meow_long_NN_<音>` / `meow_short_NN_<音>` | 调在第 1 关和弦音（G、Bb、D、F）上的长喵 / 短喵，事件触发时按当前和弦挑。每只猫在自己的音区唱（八度跟着猫走，文件名里写着），不会被硬拉低到不像喵 |
-| `hit_meow_perfect_*` / `hit_meow_good_*` | 打中反馈喵，队员自己录的三声喵（a、b = 第一段录音，c = 第二段）。Perfect 0.24 秒，原音高和高 3、5 个半音；Good 0.16 秒，更低更轻。游戏里用 `hit_meow_perfect.tres` / `hit_meow_good.tres`（AudioStreamRandomizer：随机挑、不连着重复、随机一点音高音量），由 main.tscn 的 HitMeow 节点播放 |
+| `hit_meow_perfect_a/b/c` / `hit_meow_good_a/b/c` | 打中反馈喵，队员自己录的三声喵（a、b = 第一段录音，c = 第二段），都是原音高。Perfect 0.24 秒；Good 0.16 秒、轻一点。由 main.tscn 的 HitMeow 节点播放：每次随机挑一个（不连着重复），音高轻微随机 ±3%、音量 ±1 dB（检查器里可调） |
 | `meow_natural_NN` | 长音组猫的原声 |
 | `kitten_mi`、`seal_bark`、`orch_hit_Bb`、`laser_zap` | 点缀 |
 | `riser_1b`、`crash` | 第 20 小节上升、下一小节首拍的镲 |

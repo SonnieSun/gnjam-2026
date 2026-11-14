@@ -1,13 +1,11 @@
 """The hit feedback meows: the team's own recorded meows, short and punchy, played when a hit lands.
 
-  hit_meow_perfect_<cat>_<shift>.wav   a whole 'miao' squeezed to 0.24 s (pitch kept), at its own
-                                       pitch and a little higher: bright, for a Perfect
-  hit_meow_good_<cat>_<shift>.wav      a shorter, lower 0.16 s 'mi(ao)': for a Good
+  hit_meow_perfect_<cat>.wav   a whole 'miao' squeezed to 0.24 s (pitch kept), at its own pitch: for a Perfect
+  hit_meow_good_<cat>.wav      a shorter 0.16 s 'mi(ao)', a little quieter: for a Good
 
 <cat> is which recorded meow: a = recording 1 long, b = recording 1 short, c = recording 2 long.
-Every file has the same loudness (RMS), so a randomizer can pick any of them. In Godot they are
-grouped into two AudioStreamRandomizer resources (assets/audio/sfx/hit_meow_perfect.tres and
-hit_meow_good.tres) that also add a little random pitch and volume, never the same file twice in a row.
+Every file has the same loudness (RMS). In the game the HitMeow node (scripts/music/hit_meow.gd)
+picks one at random (never the same twice in a row) and varies its pitch and volume a little.
 
 usage: python -I make_hit_meows.py <samples dir> <out dir>
 """
@@ -81,8 +79,6 @@ for key, (f, start) in SOURCES.items():
     m = cut(os.path.join(REC, f), start)
     p = own_pitch(m)
     print(f'meow {key}: {len(m) / SR:.2f} s, own pitch {p:.1f}')
-    for shift in (0, 3, 5):
-        save(f'hit_meow_perfect_{key}_{shift:+d}', finish(sing_miao(m, p + shift, 0.24, keep=0.7)))
-    for shift in (-2, 0):
-        save(f'hit_meow_good_{key}_{shift:+d}', finish(sing_miao(m, p + shift, 0.16, keep=0.5), rms=0.09))
+    save(f'hit_meow_perfect_{key}', finish(sing_miao(m, p, 0.24, keep=0.7)))
+    save(f'hit_meow_good_{key}', finish(sing_miao(m, p, 0.16, keep=0.5), rms=0.09))
 print('hit meows done ->', OUT)
