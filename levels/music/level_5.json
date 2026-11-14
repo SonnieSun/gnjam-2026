@@ -3,130 +3,144 @@
  "bpm": 160,
  "use_in_game": false,
  "quantize_beats": 4,
- "tracks": [
+ "lanes": [
   {
-   "id": "groove",
-   "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav",
-   "group": "groove",
-   "gain_db": 0.0
+   "id": "beat",
+   "name": "节奏",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "groove",
+     "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav"
+    }
+   ]
   },
   {
-   "id": "cc_keys",
-   "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav",
-   "group": "bed",
-   "gain_db": 0.0
+   "id": "bass",
+   "name": "低音",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cc_bass",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav"
+    },
+    {
+     "id": "cc_cat_bass",
+     "file": "res://assets/audio/music/classics/can_can/can_can_C_bass_8b.wav"
+    }
+   ]
   },
   {
-   "id": "cc_bass",
-   "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav",
-   "group": "bass",
-   "gain_db": 0.0
+   "id": "bed",
+   "name": "和声",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cc_keys",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav"
+    },
+    {
+     "id": "cc_cat_stabs",
+     "file": "res://assets/audio/music/classics/can_can/can_can_C_stabs_8b.wav"
+    }
+   ]
   },
   {
-   "id": "cc_peak",
-   "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav",
-   "group": "peak",
-   "gain_db": 0.0
+   "id": "lead",
+   "name": "旋律",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cc_pluck",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav"
+    },
+    {
+     "id": "cc_cat_flow",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_flow_8b.wav"
+    },
+    {
+     "id": "cc_cat",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_8b.wav"
+    }
+   ]
   },
   {
-   "id": "cc_pluck",
-   "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav",
-   "group": "hook",
-   "gain_db": 0.0
+   "id": "peak",
+   "name": "高潮",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cc_peak",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav"
+    }
+   ]
   },
   {
-   "id": "cc_cat_flow",
-   "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_flow_8b.wav",
-   "group": "hook",
-   "gain_db": 0.0
-  },
-  {
-   "id": "cc_cat",
-   "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_8b.wav",
-   "group": "hook",
-   "gain_db": 0.0
-  },
-  {
-   "id": "cc_cat_drums",
-   "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav",
-   "group": "cat",
-   "gain_db": 0.0
-  },
-  {
-   "id": "cc_cat_stabs",
-   "file": "res://assets/audio/music/classics/can_can/can_can_C_stabs_8b.wav",
-   "group": "bed",
-   "gain_db": 0.0
-  },
-  {
-   "id": "cc_cat_bass",
-   "file": "res://assets/audio/music/classics/can_can/can_can_C_bass_8b.wav",
-   "group": "bass",
-   "gain_db": 0.0
+   "id": "meow",
+   "name": "猫鼓",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cc_cat_drums",
+     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav"
+    }
+   ]
   }
  ],
  "sections": [
   {
    "title": "PIZZA CAT",
-   "rules": {
-    "groove": [
+   "cues": {
+    "beat": [
      [
-      0,
-      1
+      0.0,
+      "groove"
      ]
     ],
-    "cc_keys": [
-     [
-      0,
-      0.6
-     ]
-    ],
-    "cc_cat_stabs": [
-     [
-      0.6,
-      1
-     ]
-    ],
-    "cc_bass": [
+    "bass": [
      [
       0.15,
-      0.85
-     ]
-    ],
-    "cc_cat_bass": [
+      "cc_bass"
+     ],
      [
       0.85,
-      1
+      "cc_cat_bass"
      ]
     ],
-    "cc_pluck": [
+    "bed": [
+     [
+      0.0,
+      "cc_keys"
+     ],
+     [
+      0.6,
+      "cc_cat_stabs"
+     ]
+    ],
+    "lead": [
      [
       0.3,
-      0.55
-     ]
-    ],
-    "cc_cat_flow": [
+      "cc_pluck"
+     ],
      [
       0.55,
-      0.8
-     ]
-    ],
-    "cc_cat": [
+      "cc_cat_flow"
+     ],
      [
       0.8,
-      1
+      "cc_cat"
      ]
     ],
-    "cc_peak": [
+    "peak": [
      [
       0.5,
-      1
+      "cc_peak"
      ]
     ],
-    "cc_cat_drums": [
+    "meow": [
      [
       0.2,
-      1
+      "cc_cat_drums"
      ]
     ]
    }

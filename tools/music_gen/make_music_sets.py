@@ -1,12 +1,17 @@
 """Writes the starting music set of every level to levels/music/level_<n>.json (the file the Music
 autoload plays and the Music Director panel edits). Run once; after that edit in the panel.
 
-A set is: the tracks (each a looping WAV, all started together) and, per section of the level, which
-tracks sound at which gauge progress (0 = section just started, 1 = gauge full):
+A set is a few tracks ("lanes": rhythm, bass, chords, melody, ...), each holding clips (looping WAVs,
+all started together); only one clip of a lane sounds at a time. Per section of the level, each lane
+has cues: at this gauge progress (0 = section just started, 1 = gauge full) switch to this clip
+("" = silence). The clip of the last cue at or below the current progress is the one that sounds.
 
   {"title", "bpm", "use_in_game", "quantize_beats",
-   "tracks":   [{"id", "file", "group", "gain_db"}],
-   "sections": [{"title", "rules": {track id: [[from, to], ...]}}]}
+   "lanes":    [{"id", "name", "gain_db", "clips": [{"id", "file"}]}],
+   "sections": [{"title", "cues": {lane id: [[progress, clip id], ...]}}]}
+
+The sets below are written as overlapping on/off ranges per clip (easier to write by hand) and turned
+into lanes and cues at the end.
 
 usage: python -I make_music_sets.py <godot project dir> [--force]
 """
@@ -123,6 +128,35 @@ SETS[5] = {'title': 'LEVEL 5',
                'cc_cat_bass': [[0.85, 1]], 'cc_pluck': [[0.3, 0.55]], 'cc_cat_flow': [[0.55, 0.8]], 'cc_cat': [[0.8, 1]],
                'cc_peak': [[0.5, 1]], 'cc_cat_drums': [[0.2, 1]]}}]}
 
+LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
+         ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('fx', '事件', 'event')]
+
+
+def to_lanes(s):
+    lanes, cues_of = [], []
+    for lane_id, name, group in LANES:
+        clips = [{'id': tr['id'], 'file': tr['file']} for tr in s['tracks'] if tr['group'] == group]
+        if clips:
+            lanes.append({'id': lane_id, 'name': name, 'gain_db': 0.0, 'clips': clips})
+    sections = []
+    for sec in s['sections']:
+        cues = {}
+        for lane in lanes:
+            ids = [c['id'] for c in lane['clips']]
+            points = sorted({0.0} | {float(e) for i in ids for r in sec['rules'].get(i, []) for e in r if e < 1.0})
+            seq, last = [], None
+            for p in points:
+                on = next((i for i in ids for r in sec['rules'].get(i, []) if r[0] <= p + 1e-9 < r[1]), '')
+                if on != last:
+                    if not (on == '' and last is None):
+                        seq.append([round(p, 3), on])
+                    last = on
+            if seq:
+                cues[lane['id']] = seq
+        sections.append({'title': sec['title'], 'cues': cues})
+    return lanes, sections
+
+
 for n, s in SETS.items():
     path = os.path.join(OUT, f'level_{n}.json')
     if os.path.exists(path) and not FORCE:
@@ -132,7 +166,9 @@ for n, s in SETS.items():
     ids = {tr['id'] for tr in s['tracks']}
     for sec in s['sections']:
         assert set(sec['rules']) <= ids, (n, set(sec['rules']) - ids)
+    lanes, sections = to_lanes(s)
     body = {'title': s['title'], 'bpm': 160, 'use_in_game': False, 'quantize_beats': 4,
-            'tracks': s['tracks'], 'sections': s['sections']}
-    json.dump(body, open(path, 'w', encoding='utf-8'), indent=1, ensure_ascii=False)
-    print('wrote', path, len(s['tracks']), 'tracks,', len(s['sections']), 'sections')
+            'lanes': lanes, 'sections': sections}
+    with open(path, 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(body, f, indent=1, ensure_ascii=False)
+    print('wrote', path, len(lanes), 'lanes,', sum(len(l['clips']) for l in lanes), 'clips,', len(sections), 'sections')
