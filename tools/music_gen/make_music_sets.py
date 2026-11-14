@@ -152,7 +152,8 @@ SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
                       t120('half', 'Rhalf_L1_groove', 'groove'),
                       t120('bass', 'L2_bass', 'bass'), t120('club_bass', 'Rclub_L2_bass', 'bass'), t120('cat_bass', 'C_bass', 'bass'),
                       t120('disco_keys', 'B_L0_keys', 'bed'), t120('fb_keys', 'fb_L0_keys', 'bed'), t120('cat_stabs', 'C_stabs', 'bed'),
-                      t120('disco_hook', 'B_L3_hook', 'hook'), t120('fb_hook', 'fb_L3_hook', 'hook'), t120('cat_lead', 'C_lead', 'hook'),
+                      t120('disco_hook', 'B_L3_hook', 'hook'), t120('fb_hook', 'fb_L3_hook', 'hook'),
+                      t120('cat_flow', 'C_lead_flow', 'hook'), t120('cat_kichiku', 'C_lead_kichiku', 'hook'), t120('cat_lead', 'C_lead', 'hook'),
                       t120('disco_peak', 'B_L4_peak', 'peak'), t120('fb_peak', 'fb_L4_peak', 'peak'),
                       t120('cat_drums', 'C_drums', 'cat'), t120('ev_meow', 'X_meow', 'event'), t120('ev_seal', 'X_seal', 'event')],
            'sections': [
@@ -165,11 +166,13 @@ SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
                    'jazz_piano': [[E[0], E[4]]], 'fb_keys': [[E[4], E[7]]], 'cat_stabs': [[E[7], 1]],   # 1 stars: piano
                    'jazz_shout': [[E[1], E[4]]], 'fb_peak': [[E[6], 1]],                          # 2 ball: brass; 7 grid
                    'cat_drums': [[E[2], 1]],                                                      # 3 dancers: meow drums
-                   'cat_lead': [[E[3], E[4]], [E[5], 1]], 'fb_hook': [[E[4], E[5]]],              # 4 drift and 6 dance floor: cats sing
+                   # the cat lead is the 'flow' one (every meow rings out); the kichiku one takes the plaza
+                   'cat_flow': [[E[3], E[4]], [E[5], E[7]]], 'fb_hook': [[E[4], E[5]]],           # 4 drift and 6 dance floor: cats sing
+                   'cat_kichiku': [[E[7], 1]],
                    'ev_meow': [[E[8], 1]]}},                                                      # 9 UFO
                {'title': 'ABDUCTION', 'rules': {
                    'half': [[0, 1]], 'bass': [[0, 1]], 'fb_keys': [[0, 1]], 'cat_drums': [[0, 1]],
-                   'cat_lead': [[1 / 3, 1]], 'ev_seal': [[2 / 3, 1]]}}]}
+                   'cat_kichiku': [[1 / 3, 1]], 'ev_seal': [[2 / 3, 1]]}}]}
 # levels 7-9 at 160 with three different songs, to try the new music on them
 SETS[7] = {'title': 'SPACESHIP', 'use': True, 'tracks': SKELETON + style('euro', 'style_eurobeat', 'A') + CATS[:1] + CATS[2:3] + EVENTS[:1],
            'sections': [{'title': 'SPACESHIP', 'rules': stack('euro', {

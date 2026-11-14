@@ -91,6 +91,14 @@
      "file": "res://assets/audio/music/scene1_120/s120_fb_L3_hook_4b.wav"
     },
     {
+     "id": "cat_flow",
+     "file": "res://assets/audio/music/scene1_120/s120_C_lead_flow_4b.wav"
+    },
+    {
+     "id": "cat_kichiku",
+     "file": "res://assets/audio/music/scene1_120/s120_C_lead_kichiku_4b.wav"
+    },
+    {
      "id": "cat_lead",
      "file": "res://assets/audio/music/scene1_120/s120_C_lead_4b.wav"
     }
@@ -187,7 +195,7 @@
     "lead": [
      [
       0.254,
-      "cat_lead"
+      "cat_flow"
      ],
      [
       0.349,
@@ -195,7 +203,11 @@
      ],
      [
       0.476,
-      "cat_lead"
+      "cat_flow"
+     ],
+     [
+      0.73,
+      "cat_kichiku"
      ]
     ],
     "peak": [
@@ -250,7 +262,7 @@
     "lead": [
      [
       0.333,
-      "cat_lead"
+      "cat_kichiku"
      ]
     ],
     "meow": [

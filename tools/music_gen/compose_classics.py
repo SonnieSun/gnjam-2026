@@ -363,34 +363,10 @@ def halves(song):
     return [(i * 8, *chord(c)) for i, c in enumerate(song['chords'])]
 
 
-def build(song):
-    bars = len(song['chords']) // 2
-    H = halves(song)
+def cat_leads(song, bars, last_in_phrase):
+    """The cat versions of a tune: {'L3_cat', 'L3_cat_flow', 'L3_cat_pool', 'L3_cat_classic',
+    'L3_cat_kichiku'}. song needs 'melody' [(16th step, note name, length in 16ths)] and 'cat_octave'."""
     L = {}
-    # bed: pumping supersaw chords
-    x = blank(bars)
-    for s, notes, _ in H:
-        n = t2n(2 * BEAT)
-        c = lowpass(sum(saw_stack(mtof(m + 12), n, voices=7, detune=0.4) for m in notes) / len(notes), 5000)
-        c[-t2n(0.01):] *= np.linspace(1, 0, t2n(0.01))[:, None]
-        place(x, c * 0.6, t2n(s * STEP))
-    x = x * pump(len(x))[:, None]
-    L['fb_L0_keys'] = match_rms(finish(reverb(highpass(x, 180), 1.0, 0.3, mix=0.12)[: len(x)], bars), 0.079)
-    # bass: octave 8ths
-    x = blank(bars)
-    for s, _, root in H:
-        f = mtof(root + 12)
-        for e in range(4):
-            place(x, pan(bass_note(f * (2 if e % 2 else 1), t2n(STEP * 1.6)), 0.0), t2n((s + e * 2) * STEP))
-    L['L2_bass'] = match_rms(finish(softclip(x * 1.8, 2.2), bars), 0.386)
-    # leads
-    last_in_phrase = {max(i for i, (s, _, _) in enumerate(song['melody']) if s // 16 == b)
-                      for b in range(3, bars, 4) if any(s // 16 == b for s, _, _ in song['melody'])}
-    for name, voice in (('L3_pluck', pluck), ('L3_square', square)):
-        x = blank(bars)
-        for s, p, ln in song['melody']:
-            place(x, voice(nm(p), ln * STEP), t2n(s * STEP))
-        L[name] = match_rms(finish(reverb(highpass(x, 200), 0.6, 0.2, mix=0.06)[: len(x)], bars), 0.123)
     # three cat leads, so the game can vary the cats between rounds (same notes, other cats). Each has
     # a little pitch FX and bite so the tune reads; the phrase-ending MIAO is the loudest note, with a
     # second meow an octave below under it.
@@ -434,6 +410,38 @@ def build(song):
             if end:
                 place(x, stereo(resonate(hit(sample, own, m - 12, ln * STEP * 0.95), m - 12, even=True)), t2n(s * STEP), 0.6)
     L['L3_cat_kichiku'] = match_rms(finish(reverb(punch(highpass(x, 120)), 0.6, 0.2, mix=0.06)[: len(x)], bars), 0.135)
+    return L
+
+
+def build(song):
+    bars = len(song['chords']) // 2
+    H = halves(song)
+    L = {}
+    # bed: pumping supersaw chords
+    x = blank(bars)
+    for s, notes, _ in H:
+        n = t2n(2 * BEAT)
+        c = lowpass(sum(saw_stack(mtof(m + 12), n, voices=7, detune=0.4) for m in notes) / len(notes), 5000)
+        c[-t2n(0.01):] *= np.linspace(1, 0, t2n(0.01))[:, None]
+        place(x, c * 0.6, t2n(s * STEP))
+    x = x * pump(len(x))[:, None]
+    L['fb_L0_keys'] = match_rms(finish(reverb(highpass(x, 180), 1.0, 0.3, mix=0.12)[: len(x)], bars), 0.079)
+    # bass: octave 8ths
+    x = blank(bars)
+    for s, _, root in H:
+        f = mtof(root + 12)
+        for e in range(4):
+            place(x, pan(bass_note(f * (2 if e % 2 else 1), t2n(STEP * 1.6)), 0.0), t2n((s + e * 2) * STEP))
+    L['L2_bass'] = match_rms(finish(softclip(x * 1.8, 2.2), bars), 0.386)
+    # leads
+    last_in_phrase = {max(i for i, (s, _, _) in enumerate(song['melody']) if s // 16 == b)
+                      for b in range(3, bars, 4) if any(s // 16 == b for s, _, _ in song['melody'])}
+    for name, voice in (('L3_pluck', pluck), ('L3_square', square)):
+        x = blank(bars)
+        for s, p, ln in song['melody']:
+            place(x, voice(nm(p), ln * STEP), t2n(s * STEP))
+        L[name] = match_rms(finish(reverb(highpass(x, 200), 0.6, 0.2, mix=0.06)[: len(x)], bars), 0.123)
+    L.update(cat_leads(song, bars, last_in_phrase))
     # peak: gated chord chops and sweeps
     x = blank(bars)
     for s, notes, _ in H:

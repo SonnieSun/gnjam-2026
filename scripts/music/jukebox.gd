@@ -173,7 +173,9 @@ func _songs() -> Array:
 		for k in range(1, st.size()):
 			stems.append(_t(["鼓", "低音", "和声", "旋律", "高潮"][k - 1], "%s%s_4b.wav" % [s120, st[k]]))
 		stems.append(_t("猫鼓", s120 + "C_drums_4b.wav", false))
-		stems.append(_t("猫旋律", s120 + "C_lead_4b.wav", false))
+		stems.append(_t("猫旋律 连着唱", s120 + "C_lead_flow_4b.wav", false))
+		stems.append(_t("猫旋律 鬼畜", s120 + "C_lead_kichiku_4b.wav", false))
+		stems.append(_t("猫旋律 旧版（切短）", s120 + "C_lead_4b.wav", false))
 		out.append({"name": "120 · " + st[0], "bpm": 120.0, "stems": stems})
 	for c in [["康康舞曲", "can_can", 8], ["土耳其进行曲", "turkish_march", 16], ["山魔王", "mountain_king", 4],
 			["欢乐颂", "ode_to_joy", 8], ["致爱丽丝", "fur_elise", 4]]:
