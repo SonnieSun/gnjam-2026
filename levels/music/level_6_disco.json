@@ -93,14 +93,6 @@
     {
      "id": "cat_flow",
      "file": "res://assets/audio/music/scene1_120/s120_C_lead_flow_4b.wav"
-    },
-    {
-     "id": "cat_kichiku",
-     "file": "res://assets/audio/music/scene1_120/s120_C_lead_kichiku_4b.wav"
-    },
-    {
-     "id": "cat_lead",
-     "file": "res://assets/audio/music/scene1_120/s120_C_lead_4b.wav"
     }
    ]
   },
@@ -131,6 +123,17 @@
     {
      "id": "cat_drums",
      "file": "res://assets/audio/music/scene1_120/s120_C_drums_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "kiai",
+   "name": "KIAI 鬼畜",
+   "gain_db": -2.0,
+   "clips": [
+    {
+     "id": "cat_kichiku",
+     "file": "res://assets/audio/music/scene1_120/s120_C_lead_kichiku_4b.wav"
     }
    ]
   },
@@ -204,10 +207,6 @@
      [
       0.476,
       "cat_flow"
-     ],
-     [
-      0.73,
-      "cat_kichiku"
      ]
     ],
     "peak": [
@@ -228,6 +227,12 @@
      [
       0.19,
       "cat_drums"
+     ]
+    ],
+    "kiai": [
+     [
+      0.952,
+      "cat_kichiku"
      ]
     ],
     "fx": [
@@ -262,13 +267,19 @@
     "lead": [
      [
       0.333,
-      "cat_kichiku"
+      "cat_flow"
      ]
     ],
     "meow": [
      [
       0.0,
       "cat_drums"
+     ]
+    ],
+    "kiai": [
+     [
+      0.85,
+      "cat_kichiku"
      ]
     ],
     "fx": [

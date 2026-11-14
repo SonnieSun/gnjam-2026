@@ -47,10 +47,6 @@
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_pluck_4b.wav"
     },
     {
-     "id": "mk_kichiku",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
-    },
-    {
      "id": "mk_cat_flow",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_flow_4b.wav"
     }
@@ -75,6 +71,17 @@
     {
      "id": "mk_cat_drums",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_C_drums_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "kiai",
+   "name": "KIAI 鬼畜",
+   "gain_db": -2.0,
+   "clips": [
+    {
+     "id": "mk_kichiku",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
     }
    ]
   }
@@ -109,10 +116,6 @@
      [
       0.333,
       "mk_cat_flow"
-     ],
-     [
-      0.667,
-      "mk_kichiku"
      ]
     ],
     "peak": [
@@ -125,6 +128,12 @@
      [
       0.15,
       "mk_cat_drums"
+     ]
+    ],
+    "kiai": [
+     [
+      0.9,
+      "mk_kichiku"
      ]
     ]
    }

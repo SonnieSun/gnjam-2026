@@ -43,8 +43,10 @@ def style(key, folder, prefix):
 
 CATS = [t('cat_drums', S1 + 'cat_band/s1_C_drums_4b.wav', 'cat'),
         t('cat_stabs', S1 + 'cat_band/s1_C_stabs_4b.wav', 'bed'),
-        t('cat_lead', S1 + 'cat_band/s1_C_lead_4b.wav', 'hook'),
+        t('cat_lead', S1 + 'cat_band/s1_C_lead_flow_4b.wav', 'hook'),      # every meow rings out
         t('cat_bass', S1 + 'cat_band/s1_C_bass_4b.wav', 'bass')]
+# KIAI: the kichiku lead in its own lane, so it can sound on top of the cat lead at the very peak
+KIAI = [t('cat_kichiku', S1 + 'cat_band/s1_C_lead_kichiku_4b.wav', 'kiai')]
 EVENTS = [t('ev_meow', S1 + 'events/s1_X_meow_4b.wav', 'event'),
           t('ev_seal', S1 + 'events/s1_X_seal_4b.wav', 'event')]
 JAZZ = [t('jazz_piano', S1 + 'style_jazz/s1_J_L0_piano_4b.wav', 'bed'),
@@ -153,7 +155,7 @@ SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
                       t120('bass', 'L2_bass', 'bass'), t120('club_bass', 'Rclub_L2_bass', 'bass'), t120('cat_bass', 'C_bass', 'bass'),
                       t120('disco_keys', 'B_L0_keys', 'bed'), t120('fb_keys', 'fb_L0_keys', 'bed'), t120('cat_stabs', 'C_stabs', 'bed'),
                       t120('disco_hook', 'B_L3_hook', 'hook'), t120('fb_hook', 'fb_L3_hook', 'hook'),
-                      t120('cat_flow', 'C_lead_flow', 'hook'), t120('cat_kichiku', 'C_lead_kichiku', 'hook'), t120('cat_lead', 'C_lead', 'hook'),
+                      t120('cat_flow', 'C_lead_flow', 'hook'), t120('cat_kichiku', 'C_lead_kichiku', 'kiai'),
                       t120('disco_peak', 'B_L4_peak', 'peak'), t120('fb_peak', 'fb_L4_peak', 'peak'),
                       t120('cat_drums', 'C_drums', 'cat'), t120('ev_meow', 'X_meow', 'event'), t120('ev_seal', 'X_seal', 'event')],
            'sections': [
@@ -166,35 +168,37 @@ SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
                    'jazz_piano': [[E[0], E[4]]], 'fb_keys': [[E[4], E[7]]], 'cat_stabs': [[E[7], 1]],   # 1 stars: piano
                    'jazz_shout': [[E[1], E[4]]], 'fb_peak': [[E[6], 1]],                          # 2 ball: brass; 7 grid
                    'cat_drums': [[E[2], 1]],                                                      # 3 dancers: meow drums
-                   # the cat lead is the 'flow' one (every meow rings out); the kichiku one takes the plaza
-                   'cat_flow': [[E[3], E[4]], [E[5], E[7]]], 'fb_hook': [[E[4], E[5]]],           # 4 drift and 6 dance floor: cats sing
-                   'cat_kichiku': [[E[7], 1]],
+                   # the cat lead is the 'flow' one (every meow rings out). KIAI: for the finale only (the
+                   # UFO, the last 5%), the kichiku lead comes in on top of it.
+                   'cat_flow': [[E[3], E[4]], [E[5], 1]], 'fb_hook': [[E[4], E[5]]],              # 4 drift and 6 dance floor: cats sing
+                   'cat_kichiku': [[E[8], 1]],                                                    # 9 UFO: kiai
                    'ev_meow': [[E[8], 1]]}},                                                      # 9 UFO
                {'title': 'ABDUCTION', 'rules': {
                    'half': [[0, 1]], 'bass': [[0, 1]], 'fb_keys': [[0, 1]], 'cat_drums': [[0, 1]],
-                   'cat_kichiku': [[1 / 3, 1]], 'ev_seal': [[2 / 3, 1]]}}]}
+                   'cat_flow': [[1 / 3, 1]], 'cat_kichiku': [[0.85, 1]], 'ev_seal': [[2 / 3, 1]]}}]}
 # levels 7-9 at 160 with three different songs, to try the new music on them
-SETS[7] = {'title': 'SPACESHIP', 'use': True, 'tracks': SKELETON + style('euro', 'style_eurobeat', 'A') + CATS[:1] + CATS[2:3] + EVENTS[:1],
+SETS[7] = {'title': 'SPACESHIP', 'use': True, 'tracks': SKELETON + style('euro', 'style_eurobeat', 'A') + CATS[:1] + CATS[2:3] + KIAI + EVENTS[:1],
            'sections': [{'title': 'SPACESHIP', 'rules': stack('euro', {
-               'euro_hook': [[0.25, 0.5]], 'cat_drums': [[0.25, 1]], 'cat_lead': [[0.5, 1]], 'bass': [[0.15, 1]], 'ev_meow': [[0.9, 1]]})}]}
+               'euro_hook': [[0.25, 0.5]], 'cat_drums': [[0.25, 1]], 'cat_lead': [[0.5, 1]], 'cat_kichiku': [[0.9, 1]], 'bass': [[0.15, 1]], 'ev_meow': [[0.9, 1]]})}]}
 MK = M + 'classics/mountain_king/mountain_king_'
 SETS[8] = {'title': 'ABDUCTION', 'use': True,
            'tracks': [SKELETON[0], t('mk_keys', MK + 'fb_L0_keys_4b.wav', 'bed'), t('mk_bass', MK + 'L2_bass_4b.wav', 'bass'),
-                      t('mk_pluck', MK + 'L3_pluck_4b.wav', 'hook'), t('mk_kichiku', MK + 'L3_cat_kichiku_4b.wav', 'hook'),
+                      t('mk_pluck', MK + 'L3_pluck_4b.wav', 'hook'), t('mk_kichiku', MK + 'L3_cat_kichiku_4b.wav', 'kiai'),
                       t('mk_cat_flow', MK + 'L3_cat_flow_4b.wav', 'hook'), t('mk_peak', MK + 'fb_L4_peak_4b.wav', 'peak'),
                       t('mk_cat_drums', MK + 'C_drums_4b.wav', 'cat')],
            'sections': [{'title': 'ABDUCTION', 'rules': {
                'groove': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0.15, 1]], 'mk_pluck': [[0.15, 1 / 3]], 'mk_cat_drums': [[0.15, 1]],
-               'mk_cat_flow': [[1 / 3, 2 / 3]], 'mk_kichiku': [[2 / 3, 1]], 'mk_peak': [[0.8, 1]]}}]}
-SETS[9] = {'title': 'TV WALL', 'use': True, 'tracks': SKELETON + style('chip', 'style_chip', 'chip') + CATS[:1] + CATS[2:3],
+               'mk_cat_flow': [[1 / 3, 1]], 'mk_kichiku': [[0.9, 1]], 'mk_peak': [[0.8, 1]]}}]}
+SETS[9] = {'title': 'TV WALL', 'use': True, 'tracks': SKELETON + style('chip', 'style_chip', 'chip') + CATS[:1] + CATS[2:3] + KIAI,
            'sections': [{'title': 'TV WALL', 'rules': stack('chip', {
-               'chip_hook': [[0.25, 0.5]], 'cat_drums': [[0.25, 1]], 'cat_lead': [[0.5, 1]], 'bass': [[0.15, 1]]})}]}
+               'chip_hook': [[0.25, 0.5]], 'cat_drums': [[0.25, 1]], 'cat_lead': [[0.5, 1]], 'cat_kichiku': [[0.9, 1]], 'bass': [[0.15, 1]]})}]}
 
 # file = the level file it goes with (levels/<name>.tres)
 NAMES = {n: f'level_{n}' for n in range(1, 6)}
 NAMES.update({6: 'level_6_disco', 7: 'level_7_spaceship', 8: 'level_8_abduction', 9: 'level_9_tv_wall'})
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
-         ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('fx', '事件', 'event')]
+         ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('fx', '事件', 'event')]
+LANE_GAIN = {'kiai': -2.0}   # stacked on the cat lead, so a little under it
 
 
 def to_lanes(s):
@@ -202,7 +206,7 @@ def to_lanes(s):
     for lane_id, name, group in LANES:
         clips = [{'id': tr['id'], 'file': tr['file']} for tr in s['tracks'] if tr['group'] == group]
         if clips:
-            lanes.append({'id': lane_id, 'name': name, 'gain_db': 0.0, 'clips': clips})
+            lanes.append({'id': lane_id, 'name': name, 'gain_db': LANE_GAIN.get(lane_id, 0.0), 'clips': clips})
     sections = []
     for sec in s['sections']:
         cues = {}

@@ -48,7 +48,7 @@
     },
     {
      "id": "cat_lead",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_4b.wav"
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
     }
    ]
   },
@@ -71,6 +71,17 @@
     {
      "id": "cat_drums",
      "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "kiai",
+   "name": "KIAI 鬼畜",
+   "gain_db": -2.0,
+   "clips": [
+    {
+     "id": "cat_kichiku",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_kichiku_4b.wav"
     }
    ]
   },
@@ -128,6 +139,12 @@
      [
       0.25,
       "cat_drums"
+     ]
+    ],
+    "kiai": [
+     [
+      0.9,
+      "cat_kichiku"
      ]
     ],
     "fx": [

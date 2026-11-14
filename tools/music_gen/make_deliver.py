@@ -22,7 +22,7 @@ GROUPS = {
     'style_futurebass': ['fb_L0_keys', 'fb_L3_hook', 'fb_L4_peak'],
     'style_chip': ['chip_L0_keys', 'chip_L3_hook', 'chip_L4_peak'],
     'style_jazz': ['J_L0_piano', 'J_L1_groove', 'J_L2_bass', 'J_L3_sax', 'J_L4_shout'],
-    'cat_band': ['C_drums', 'C_stabs', 'C_lead', 'C_bass'],
+    'cat_band': ['C_drums', 'C_stabs', 'C_lead', 'C_lead_flow', 'C_lead_kichiku', 'C_bass'],
     'events': ['X_meow', 'X_seal', 'X_vox'],
     'rhythm_variants': ['Rhalf_L1_groove', 'Rhalf_L2_bass', 'Rbreak_L1_groove', 'Rbreak_L2_bass', 'Rclub_L1_groove', 'Rclub_L2_bass'],
     'entertainer_leads': ['ent_fb_L3_lead', 'ent_cat_L3_lead', 'ent_A_L3_lead'],
@@ -31,7 +31,7 @@ n = 0
 for group, names in GROUPS.items():
     os.makedirs(os.path.join(D, 'scene1', group), exist_ok=True)
     for name in names:
-        src = glob.glob(os.path.join(S1, f's1_disc_{name}_*b.wav'))
+        src = glob.glob(os.path.join(S1, f's1_disc_{name}_[0-9]*b.wav'))
         assert len(src) == 1, name
         shutil.copy(src[0], os.path.join(D, 'scene1', group, os.path.basename(src[0]).replace('s1_disc_', 's1_')))
         n += 1

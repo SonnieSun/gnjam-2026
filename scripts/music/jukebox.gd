@@ -120,7 +120,7 @@ func _rhythm(name: String, key: String) -> Dictionary:
 		_t("低音", "%srhythm_variants/s1_R%s_L2_bass_4b.wav" % [S1, key]),
 		_t("和声", S1 + "style_futurebass/s1_fb_L0_keys_4b.wav"),
 		_t("旋律", S1 + "style_futurebass/s1_fb_L3_hook_4b.wav"),
-		_t("猫旋律", S1 + "cat_band/s1_C_lead_4b.wav", false)]}
+		_t("猫旋律", S1 + "cat_band/s1_C_lead_flow_4b.wav", false)]}
 
 
 ## 经典曲：version 0 = 普通版，1 = 猫版（喵连着唱旋律），2 = 鬼畜版（每 4 小节一只猫，变速变调，硬切）。
@@ -148,7 +148,8 @@ func _songs() -> Array:
 		{"name": "全猫乐队", "stems": [
 			_t("鼓", S1 + "skeleton/s1_L1_groove_4b.wav"), _t("猫鼓", S1 + "cat_band/s1_C_drums_4b.wav"),
 			_t("猫和声", S1 + "cat_band/s1_C_stabs_4b.wav"), _t("猫低音", S1 + "cat_band/s1_C_bass_4b.wav"),
-			_t("猫旋律", S1 + "cat_band/s1_C_lead_4b.wav"), _t("事件：喵", S1 + "events/s1_X_meow_4b.wav", false)]},
+			_t("猫旋律", S1 + "cat_band/s1_C_lead_flow_4b.wav"), _t("猫旋律 鬼畜", S1 + "cat_band/s1_C_lead_kichiku_4b.wav", false),
+			_t("事件：喵", S1 + "events/s1_X_meow_4b.wav", false)]},
 		{"name": "Jazz", "stems": [
 			_t("鼓", S1 + "style_jazz/s1_J_L1_groove_4b.wav"), _t("低音", S1 + "style_jazz/s1_J_L2_bass_4b.wav"),
 			_t("钢琴", S1 + "style_jazz/s1_J_L0_piano_4b.wav"), _t("萨克斯", S1 + "style_jazz/s1_J_L3_sax_4b.wav"),
@@ -168,7 +169,7 @@ func _songs() -> Array:
 			["Club + Future Bass", "Rclub_L1_groove", "Rclub_L2_bass", "fb_L0_keys", "fb_L3_hook", "fb_L4_peak"],
 			["Eurobeat", "L1_groove", "L2_bass", "A_L0_keys", "A_L3_hook", "A_L4_peak"],
 			["Chip", "L1_groove", "L2_bass", "chip_L0_keys", "chip_L3_hook", "chip_L4_peak"],
-			["全猫乐队", "Rhalf_L1_groove", "C_bass", "C_stabs", "C_lead", "C_drums"]]:
+			["全猫乐队", "Rhalf_L1_groove", "C_bass", "C_stabs", "C_lead_flow", "C_drums"]]:
 		var stems: Array = []
 		for k in range(1, st.size()):
 			stems.append(_t(["鼓", "低音", "和声", "旋律", "高潮"][k - 1], "%s%s_4b.wav" % [s120, st[k]]))
