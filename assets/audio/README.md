@@ -50,7 +50,7 @@
 | `catness_up` / `catness_down` | 猫化层换进来 / 退出去 |
 | `miss_meow` | MISS |
 | `glitch_meow` | 卡顿喵：风格切换、FRENZY 开始 |
-| `meow_long_NN_<音>` / `meow_short_NN_<音>` | 调在第 1 关和弦音上的长喵 / 短喵，事件触发时按当前和弦挑 |
+| `meow_long_NN_<音>` / `meow_short_NN_<音>` | 调在第 1 关和弦音（G、Bb、D、F）上的长喵 / 短喵，事件触发时按当前和弦挑。每只猫在自己的音区唱（八度跟着猫走，文件名里写着），不会被硬拉低到不像喵 |
 | `meow_natural_NN` | 长音组猫的原声 |
 | `kitten_mi`、`seal_bark`、`orch_hit_Bb`、`laser_zap` | 点缀 |
 | `riser_1b`、`crash` | 第 20 小节上升、下一小节首拍的镲 |
