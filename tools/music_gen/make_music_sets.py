@@ -132,8 +132,10 @@ SETS[5] = {'title': 'LEVEL 5',
 # --- Kisa's levels -------------------------------------------------------------------------------
 # level 6, the disco litter box, stays at its own 120 BPM: the 120 render of scene 1 (scene1_120).
 # One layer per stage event, the way its own music did it (gauge 315, lines at 20 40 60 80 | 110 150
-# 190 230 | 300): in the room the disco style builds up; when the house comes apart the beat turns
-# into the club groove and the cats take over part by part; the UFO brings the meow event track.
+# 190 230 | 300). The room is the jazz style, like its own swing-jazz room set (stars = piano, ball =
+# brass shout, dancers = sax + meow drums, drift = pad); when the house comes apart the beat turns
+# into the club groove with future bass, and the cats take over part by part; the UFO brings the meow
+# event track. The disco style stems are in the lanes too, to swap in from the panel.
 # Then the abduction section is the all-cat band over the half-time beat.
 S120 = M + 'scene1_120/s120_'
 
@@ -144,7 +146,9 @@ def t120(id_, key, group):
 
 E = [v / 315 for v in (20, 40, 60, 80, 110, 150, 190, 230, 300)]
 SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
-           'tracks': [t120('groove', 'L1_groove', 'groove'), t120('club', 'Rclub_L1_groove', 'groove'),
+           'tracks': [t120('jazz_groove', 'J_L1_groove', 'groove'), t120('jazz_bass', 'J_L2_bass', 'bass'),
+                      t120('jazz_piano', 'J_L0_piano', 'bed'), t120('jazz_sax', 'J_L3_sax', 'hook'), t120('jazz_shout', 'J_L4_shout', 'peak'),
+                      t120('groove', 'L1_groove', 'groove'), t120('club', 'Rclub_L1_groove', 'groove'),
                       t120('half', 'Rhalf_L1_groove', 'groove'),
                       t120('bass', 'L2_bass', 'bass'), t120('club_bass', 'Rclub_L2_bass', 'bass'), t120('cat_bass', 'C_bass', 'bass'),
                       t120('disco_keys', 'B_L0_keys', 'bed'), t120('fb_keys', 'fb_L0_keys', 'bed'), t120('cat_stabs', 'C_stabs', 'bed'),
@@ -153,12 +157,12 @@ SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
                       t120('cat_drums', 'C_drums', 'cat'), t120('ev_meow', 'X_meow', 'event'), t120('ev_seal', 'X_seal', 'event')],
            'sections': [
                {'title': 'DISCO', 'rules': {
-                   'groove': [[0, E[4]]], 'club': [[E[4], 1]],                                    # 5 road: club beat
-                   'bass': [[0, E[4]]], 'club_bass': [[E[4], E[7]]], 'cat_bass': [[E[7], 1]],     # 8 plaza: cats
-                   'disco_keys': [[E[0], E[4]]], 'fb_keys': [[E[4], E[7]]], 'cat_stabs': [[E[7], 1]],   # 1 stars
-                   'disco_hook': [[E[1], E[4]]], 'fb_hook': [[E[4], E[5]]], 'cat_lead': [[E[5], 1]],    # 2 ball, 6 dance floor
+                   'jazz_groove': [[0, E[4]]], 'club': [[E[4], 1]],                               # 5 road: club beat
+                   'jazz_bass': [[0, E[4]]], 'club_bass': [[E[4], E[7]]], 'cat_bass': [[E[7], 1]],   # 8 plaza: cats
+                   'jazz_piano': [[E[0], E[4]]], 'fb_keys': [[E[4], E[7]]], 'cat_stabs': [[E[7], 1]],   # 1 stars: piano
+                   'jazz_sax': [[E[2], E[4]]], 'fb_hook': [[E[4], E[5]]], 'cat_lead': [[E[5], 1]],      # 3 dancers: sax; 6 dance floor
                    'cat_drums': [[E[2], 1]],                                                      # 3 dancers
-                   'disco_peak': [[E[3], E[4]]], 'fb_peak': [[E[6], 1]],                          # 4 drift, 7 grid
+                   'jazz_shout': [[E[1], E[4]]], 'fb_peak': [[E[6], 1]],                          # 2 ball: brass; 7 grid
                    'ev_meow': [[E[8], 1]]}},                                                      # 9 UFO
                {'title': 'ABDUCTION', 'rules': {
                    'half': [[0, 1]], 'cat_bass': [[0, 1]], 'cat_stabs': [[0, 1]], 'cat_drums': [[1 / 3, 1]],

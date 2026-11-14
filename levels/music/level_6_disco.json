@@ -10,6 +10,10 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "jazz_groove",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L1_groove_4b.wav"
+    },
+    {
      "id": "groove",
      "file": "res://assets/audio/music/scene1_120/s120_L1_groove_4b.wav"
     },
@@ -28,6 +32,10 @@
    "name": "低音",
    "gain_db": 0.0,
    "clips": [
+    {
+     "id": "jazz_bass",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L2_bass_4b.wav"
+    },
     {
      "id": "bass",
      "file": "res://assets/audio/music/scene1_120/s120_L2_bass_4b.wav"
@@ -48,6 +56,10 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "jazz_piano",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L0_piano_4b.wav"
+    },
+    {
      "id": "disco_keys",
      "file": "res://assets/audio/music/scene1_120/s120_B_L0_keys_4b.wav"
     },
@@ -67,6 +79,10 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "jazz_sax",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L3_sax_4b.wav"
+    },
+    {
      "id": "disco_hook",
      "file": "res://assets/audio/music/scene1_120/s120_B_L3_hook_4b.wav"
     },
@@ -85,6 +101,10 @@
    "name": "高潮",
    "gain_db": 0.0,
    "clips": [
+    {
+     "id": "jazz_shout",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L4_shout_4b.wav"
+    },
     {
      "id": "disco_peak",
      "file": "res://assets/audio/music/scene1_120/s120_B_L4_peak_4b.wav"
@@ -129,7 +149,7 @@
     "beat": [
      [
       0.0,
-      "groove"
+      "jazz_groove"
      ],
      [
       0.349,
@@ -139,7 +159,7 @@
     "bass": [
      [
       0.0,
-      "bass"
+      "jazz_bass"
      ],
      [
       0.349,
@@ -153,7 +173,7 @@
     "bed": [
      [
       0.063,
-      "disco_keys"
+      "jazz_piano"
      ],
      [
       0.349,
@@ -166,8 +186,8 @@
     ],
     "lead": [
      [
-      0.127,
-      "disco_hook"
+      0.19,
+      "jazz_sax"
      ],
      [
       0.349,
@@ -180,8 +200,8 @@
     ],
     "peak": [
      [
-      0.254,
-      "disco_peak"
+      0.127,
+      "jazz_shout"
      ],
      [
       0.349,

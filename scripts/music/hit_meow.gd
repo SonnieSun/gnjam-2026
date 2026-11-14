@@ -16,7 +16,7 @@ extends Node
 	preload("res://assets/audio/sfx/hit_meow_good_b.wav"),
 	preload("res://assets/audio/sfx/hit_meow_good_c.wav"),
 ]
-@export_range(-30.0, 6.0) var volume_db := -6.0
+@export_range(-30.0, 6.0) var volume_db := -1.0
 ## 音高随机上下多少（0.03 = ±3%，大约半个半音；0 = 不变）
 @export_range(0.0, 0.2, 0.005) var pitch_random := 0.03
 ## 音量随机上下多少 dB

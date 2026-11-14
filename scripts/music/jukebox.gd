@@ -159,6 +159,21 @@ func _songs() -> Array:
 			_t("旋律", S1 + "entertainer_leads/s1_ent_fb_L3_lead_16b.wav"),
 			_t("猫旋律", S1 + "entertainer_leads/s1_ent_cat_L3_lead_16b.wav", false)]},
 	]
+	# 120 BPM 版（Kisa 的迪斯科关用）：同样的东西放慢重渲染的，拿来对比哪种风格在 120 下好听
+	var s120 := M + "scene1_120/s120_"
+	for st in [["Jazz", "J_L1_groove", "J_L2_bass", "J_L0_piano", "J_L3_sax", "J_L4_shout"],
+			["Disco", "L1_groove", "L2_bass", "B_L0_keys", "B_L3_hook", "B_L4_peak"],
+			["Future Bass", "L1_groove", "L2_bass", "fb_L0_keys", "fb_L3_hook", "fb_L4_peak"],
+			["Club + Future Bass", "Rclub_L1_groove", "Rclub_L2_bass", "fb_L0_keys", "fb_L3_hook", "fb_L4_peak"],
+			["Eurobeat", "L1_groove", "L2_bass", "A_L0_keys", "A_L3_hook", "A_L4_peak"],
+			["Chip", "L1_groove", "L2_bass", "chip_L0_keys", "chip_L3_hook", "chip_L4_peak"],
+			["全猫乐队", "Rhalf_L1_groove", "C_bass", "C_stabs", "C_lead", "C_drums"]]:
+		var stems: Array = []
+		for k in range(1, st.size()):
+			stems.append(_t(["鼓", "低音", "和声", "旋律", "高潮"][k - 1], "%s%s_4b.wav" % [s120, st[k]]))
+		stems.append(_t("猫鼓", s120 + "C_drums_4b.wav", false))
+		stems.append(_t("猫旋律", s120 + "C_lead_4b.wav", false))
+		out.append({"name": "120 · " + st[0], "bpm": 120.0, "stems": stems})
 	for c in [["康康舞曲", "can_can", 8], ["土耳其进行曲", "turkish_march", 16], ["山魔王", "mountain_king", 4],
 			["欢乐颂", "ode_to_joy", 8], ["致爱丽丝", "fur_elise", 4]]:
 		for version in 3:
@@ -222,5 +237,5 @@ func _play_shot(path: String) -> void:
 
 func _process(_delta: float) -> void:
 	if _player.playing:
-		var beat := _player.get_playback_position() * BPM / 60.0
+		var beat: float = _player.get_playback_position() * _songs_list[_song].get("bpm", BPM) / 60.0
 		_lcd.text = "BAR %3d  BEAT %d" % [int(beat / 4.0) + 1, int(beat) % 4 + 1]
