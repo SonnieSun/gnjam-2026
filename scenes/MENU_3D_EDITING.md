@@ -29,3 +29,12 @@ F6 可以预览当前 3D 场景；F5 测试完整菜单与切关交互。
 
 原始 `assets/art/CATS_Scratch.fbx` 和 `cat_basecolor_512.png` 均保留。
 原生模型网格和动画已写入 `.tscn`，不是 `.godot` 缓存文件。
+
+## 暗场聚光灯
+
+- `WorldEnvironment → Environment → Ambient Light → Energy` 控制环境底光。
+- `FillLight` 是场景补光，`Cat/CatFill` 是猫脸补光，调各自的 Light → Energy。
+- `BeamLight2` 是暖色顶部聚光灯，控制照射方向、亮度、范围和软阴影。
+- `BeamLight2/LightBeam` 是可编辑的 3D 光束外形，跟随聚光灯移动和旋转；材质的 `Opacity` 控制空气中光束的可见度。这使光束在透明菜单中也能正常显示。
+- 原来的 `Beam` 和 `BeamLight` 已隐藏，保留供以后切换风格。
+- 背景图片的明暗在 `menu.tscn → BackgroundLayer/Background/TextureRect → Self Modulate` 调整。
