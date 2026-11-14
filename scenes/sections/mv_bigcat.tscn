@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/sections/mv_bigcat_section.gd" id="1"]
+
+[node name="MvBigcatSection" type="Node2D"]
+script = ExtResource("1")
+bg_color = Color(0.961, 0.894, 0.816, 1)
+ring_radius_ratio = 0.27

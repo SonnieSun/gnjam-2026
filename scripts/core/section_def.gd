@@ -3,6 +3,9 @@ class_name SectionDef
 extends Resource
 ## 一个旋转段落（关卡）的定义：用哪个场景、转一圈几拍、谱面。
 
+## 切到这一段时的转场：ZOOM = 旧的放大淡出、新的从中心长出来；CUT = 硬切 + 白闪
+enum Transition { ZOOM, CUT }
+
 @export var title := ""
 @export var scene: PackedScene
 ## 转一整圈需要多少拍。旋转角度 = 段内拍数 / beats_per_rev * TAU
@@ -13,8 +16,12 @@ extends Resource
 ## 段落长度 = 小节数。
 @export var bars: PackedStringArray = []
 
+@export var transition: Transition = Transition.ZOOM
+
 ## 由 SongChart.recompute() 填入
 var start_beat := 0.0
+## 这一段总共多少拍（由 SongChart.recompute() 填入）
+var length := 0.0
 
 
 func length_beats(beats_per_bar: int) -> float:

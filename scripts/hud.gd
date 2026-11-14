@@ -8,6 +8,23 @@ extends CanvasLayer
 @onready var milestone_label: Label = $MilestoneLabel
 
 var _judge_tween: Tween
+var _flash_rect: ColorRect
+
+
+func _ready() -> void:
+	# 全屏闪光用的色块（硬切镜头时白闪一下）
+	_flash_rect = ColorRect.new()
+	_flash_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_flash_rect.color = Color(1, 1, 1, 0)
+	add_child(_flash_rect)
+	move_child(_flash_rect, 0)  # 垫在文字下面
+
+
+## 全屏闪一下
+func flash(color: Color = Color.WHITE, strength: float = 0.8, seconds: float = 0.12) -> void:
+	_flash_rect.color = Color(color, strength)
+	create_tween().tween_property(_flash_rect, "color:a", 0.0, seconds)
 var _milestone_tween: Tween
 
 

@@ -10,6 +10,9 @@ extends Node2D
 ## 预览只发生在编辑器里，不会改动场景文件，也不影响正式运行。
 ## 新写的关卡脚本第一行也要加 @tool 才会有预览。
 
+@export_group("击中手感")
+## 每打中一下，step_rot 往前转多少（弧度）。漏打不转。
+@export var step_angle := PI / 4
 @export_group("编辑器预览")
 ## 勾上 = 预览自动循环播放；取消 = 停在下面指定的那一拍
 @export var preview_playing := true
@@ -30,6 +33,18 @@ var def: SectionDef
 ## 本段的音符（绝对拍数，已按时间排序）
 var notes: Array[NoteData] = []
 var active := false
+
+# ---- 由击中驱动的共用状态（基类自动更新，关卡脚本直接读）----
+## 距离上一次打中 / 漏打 / 按键过了多少秒
+var hit_age := 99.0
+var miss_age := 99.0
+var tap_age := 99.0
+## “打中才转一格”的转角：每次打中目标值加 step_angle，实际值平滑追上去；漏打不动
+var step_rot := 0.0
+var step_rot_target := 0.0
+## 一直慢慢自转、打中时被推一把的转角（适合地球这类一直在转的东西）
+var free_spin := 0.0
+var free_spin_vel := 0.3
 
 
 func setup(section_def: SectionDef, section_notes: Array[NoteData]) -> void:
@@ -60,6 +75,38 @@ func local_beat() -> float:
 ## 当前旋转角度（弧度），转一圈 = def.beats_per_rev 拍
 func spin_angle() -> float:
 	return local_beat() / def.beats_per_rev * TAU
+
+
+## 这一段播到哪了：0 = 刚开始，1 = 结束（运镜之类用）
+func progress() -> float:
+	return clampf(local_beat() / maxf(def.length, 0.001), 0.0, 1.0)
+
+
+## 打中后的脉冲：打中瞬间是 1，很快衰减到 0
+func pulse() -> float:
+	return exp(-hit_age * 8.0)
+
+
+# ---- Main 通过这三个入口通知关卡；它们先更新共用状态，再调对应的钩子 ----
+
+func notify_beat(beat_in_section: int) -> void:
+	_on_beat(beat_in_section)
+
+
+func notify_judged(note: NoteData, result: int) -> void:
+	if result == NoteData.Result.MISS:
+		miss_age = 0.0
+	else:
+		hit_age = 0.0
+		tap_age = 0.0
+		step_rot_target += step_angle
+		free_spin_vel += 6.0 if result == NoteData.Result.PERFECT else 3.5
+	_on_note_judged(note, result)
+
+
+func notify_empty_hit() -> void:
+	tap_age = 0.0
+	_on_empty_hit()
 
 
 ## 距离这个音符还有几拍（负数 = 已经过了）
@@ -93,6 +140,27 @@ static func result_color(result: int) -> Color:
 	return Color(0.6, 0.6, 0.6)
 
 
+## 通用的缩圈音符画法：在 center 画一个半径 radius 的判定圈，
+## 每个快到的音符画一个从外面收缩过来的圆环，和判定圈重合时就是该按的时候。
+## ci 是画在哪个节点上（一般传 self）；travel 是圆环最远离判定圈多少像素。
+func draw_approach_rings(ci: CanvasItem, center: Vector2, radius: float,
+		approach_beats: float, travel: float) -> void:
+	ci.draw_arc(center, radius, 0.0, TAU, 64, Color(1, 1, 1, 0.9), 3.0)
+	for n in notes:
+		if n.judged:
+			continue
+		var ahead := beats_until(n)
+		if ahead > approach_beats:
+			break
+		var k := clampf(ahead / approach_beats, 0.0, 1.0)
+		var c := sound_color(n)
+		c.a = 1.0 - k * 0.6
+		ci.draw_arc(center, radius + k * travel, 0.0, TAU, 96, c, 6.0)
+	if tap_age < 0.15:  # 每次按键都闪一圈
+		ci.draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64,
+				Color(1, 1, 1, 1.0 - tap_age / 0.15), 8.0)
+
+
 ## 游戏画面的大小。编辑器里返回项目设置的基准尺寸。
 func screen_size() -> Vector2:
 	if Engine.is_editor_hint():
@@ -118,6 +186,13 @@ func draw_title() -> void:
 func _process(delta: float) -> void:
 	if _previewing():
 		_preview_tick(delta)
+	# 更新击中驱动的共用状态
+	hit_age += delta
+	miss_age += delta
+	tap_age += delta
+	free_spin_vel += (0.3 - free_spin_vel) * minf(1.0, delta * 2.5)
+	free_spin += free_spin_vel * delta
+	step_rot += (step_rot_target - step_rot) * minf(1.0, delta * 18.0)
 	if def:
 		_update_spin(local_beat(), spin_angle())
 
@@ -139,6 +214,7 @@ func _preview_tick(delta: float) -> void:
 		def = SectionDef.new()
 		def.title = String(name)
 		def.bars = PackedStringArray(PREVIEW_BARS)
+		def.length = PREVIEW_BEATS
 		notes = []
 		for d in def.parse_notes(4):
 			var n := NoteData.new()
@@ -159,9 +235,9 @@ func _preview_tick(delta: float) -> void:
 		var was_judged := n.judged
 		n.judged = n.beat < _preview_now - 0.02
 		if n.judged and not was_judged and moving_forward:
-			_on_note_judged(n, NoteData.Result.PERFECT)
+			notify_judged(n, NoteData.Result.PERFECT)
 	if moving_forward and floori(_preview_now) != floori(before):
-		_on_beat(floori(_preview_now))
+		notify_beat(floori(_preview_now))
 
 
 func _notification(what: int) -> void:
