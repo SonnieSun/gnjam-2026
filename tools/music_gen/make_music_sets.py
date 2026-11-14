@@ -157,19 +157,23 @@ SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
                       t120('cat_drums', 'C_drums', 'cat'), t120('ev_meow', 'X_meow', 'event'), t120('ev_seal', 'X_seal', 'event')],
            'sections': [
                {'title': 'DISCO', 'rules': {
+                   # The usual sound is the music with meow drums and the cats singing the tune: the meow
+                   # drums come in first, then the cat lead. Cat chords and cat bass are rare: only the
+                   # last stretch (the plaza).
                    'jazz_groove': [[0, E[4]]], 'club': [[E[4], 1]],                               # 5 road: club beat
-                   'jazz_bass': [[0, E[4]]], 'club_bass': [[E[4], E[7]]], 'cat_bass': [[E[7], 1]],   # 8 plaza: cats
+                   'jazz_bass': [[0, E[4]]], 'club_bass': [[E[4], E[7]]], 'cat_bass': [[E[7], 1]],   # 8 plaza: all cats
                    'jazz_piano': [[E[0], E[4]]], 'fb_keys': [[E[4], E[7]]], 'cat_stabs': [[E[7], 1]],   # 1 stars: piano
-                   'jazz_sax': [[E[2], E[4]]], 'fb_hook': [[E[4], E[5]]], 'cat_lead': [[E[5], 1]],      # 3 dancers: sax; 6 dance floor
-                   'cat_drums': [[E[2], 1]],                                                      # 3 dancers
                    'jazz_shout': [[E[1], E[4]]], 'fb_peak': [[E[6], 1]],                          # 2 ball: brass; 7 grid
+                   'cat_drums': [[E[2], 1]],                                                      # 3 dancers: meow drums
+                   'cat_lead': [[E[3], E[4]], [E[5], 1]], 'fb_hook': [[E[4], E[5]]],              # 4 drift and 6 dance floor: cats sing
                    'ev_meow': [[E[8], 1]]}},                                                      # 9 UFO
                {'title': 'ABDUCTION', 'rules': {
-                   'half': [[0, 1]], 'cat_bass': [[0, 1]], 'cat_stabs': [[0, 1]], 'cat_drums': [[1 / 3, 1]],
-                   'cat_lead': [[2 / 3, 1]], 'ev_seal': [[2 / 3, 1]]}}]}
+                   'half': [[0, 1]], 'bass': [[0, 1]], 'fb_keys': [[0, 1]], 'cat_drums': [[0, 1]],
+                   'cat_lead': [[1 / 3, 1]], 'ev_seal': [[2 / 3, 1]]}}]}
 # levels 7-9 at 160 with three different songs, to try the new music on them
-SETS[7] = {'title': 'SPACESHIP', 'use': True, 'tracks': SKELETON + style('euro', 'style_eurobeat', 'A') + CATS[:1] + EVENTS[:1],
-           'sections': [{'title': 'SPACESHIP', 'rules': stack('euro', {'cat_drums': [[0.5, 1]], 'ev_meow': [[0.9, 1]]})}]}
+SETS[7] = {'title': 'SPACESHIP', 'use': True, 'tracks': SKELETON + style('euro', 'style_eurobeat', 'A') + CATS[:1] + CATS[2:3] + EVENTS[:1],
+           'sections': [{'title': 'SPACESHIP', 'rules': stack('euro', {
+               'euro_hook': [[0.25, 0.5]], 'cat_drums': [[0.25, 1]], 'cat_lead': [[0.5, 1]], 'bass': [[0.15, 1]], 'ev_meow': [[0.9, 1]]})}]}
 MK = M + 'classics/mountain_king/mountain_king_'
 SETS[8] = {'title': 'ABDUCTION', 'use': True,
            'tracks': [SKELETON[0], t('mk_keys', MK + 'fb_L0_keys_4b.wav', 'bed'), t('mk_bass', MK + 'L2_bass_4b.wav', 'bass'),
@@ -177,11 +181,11 @@ SETS[8] = {'title': 'ABDUCTION', 'use': True,
                       t('mk_cat_flow', MK + 'L3_cat_flow_4b.wav', 'hook'), t('mk_peak', MK + 'fb_L4_peak_4b.wav', 'peak'),
                       t('mk_cat_drums', MK + 'C_drums_4b.wav', 'cat')],
            'sections': [{'title': 'ABDUCTION', 'rules': {
-               'groove': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0.15, 1]], 'mk_pluck': [[1 / 3, 2 / 3]],
-               'mk_kichiku': [[2 / 3, 1]], 'mk_cat_drums': [[1 / 3, 1]], 'mk_peak': [[0.8, 1]]}}]}
+               'groove': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0.15, 1]], 'mk_pluck': [[0.15, 1 / 3]], 'mk_cat_drums': [[0.15, 1]],
+               'mk_cat_flow': [[1 / 3, 2 / 3]], 'mk_kichiku': [[2 / 3, 1]], 'mk_peak': [[0.8, 1]]}}]}
 SETS[9] = {'title': 'TV WALL', 'use': True, 'tracks': SKELETON + style('chip', 'style_chip', 'chip') + CATS[:1] + CATS[2:3],
            'sections': [{'title': 'TV WALL', 'rules': stack('chip', {
-               'chip_hook': [[0.5, 0.75]], 'cat_lead': [[0.75, 1]], 'cat_drums': [[0.5, 1]]})}]}
+               'chip_hook': [[0.25, 0.5]], 'cat_drums': [[0.25, 1]], 'cat_lead': [[0.5, 1]], 'bass': [[0.15, 1]]})}]}
 
 # file = the level file it goes with (levels/<name>.tres)
 NAMES = {n: f'level_{n}' for n in range(1, 6)}

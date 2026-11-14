@@ -45,6 +45,10 @@
     {
      "id": "euro_hook",
      "file": "res://assets/audio/music/scene1/style_eurobeat/s1_A_L3_hook_4b.wav"
+    },
+    {
+     "id": "cat_lead",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_4b.wav"
     }
    ]
   },
@@ -94,7 +98,7 @@
     ],
     "bass": [
      [
-      0.25,
+      0.15,
       "bass"
      ]
     ],
@@ -106,8 +110,12 @@
     ],
     "lead": [
      [
-      0.5,
+      0.25,
       "euro_hook"
+     ],
+     [
+      0.5,
+      "cat_lead"
      ]
     ],
     "peak": [
@@ -118,7 +126,7 @@
     ],
     "meow": [
      [
-      0.5,
+      0.25,
       "cat_drums"
      ]
     ],

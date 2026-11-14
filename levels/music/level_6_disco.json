@@ -186,8 +186,8 @@
     ],
     "lead": [
      [
-      0.19,
-      "jazz_sax"
+      0.254,
+      "cat_lead"
      ],
      [
       0.349,
@@ -238,24 +238,24 @@
     "bass": [
      [
       0.0,
-      "cat_bass"
+      "bass"
      ]
     ],
     "bed": [
      [
       0.0,
-      "cat_stabs"
+      "fb_keys"
      ]
     ],
     "lead": [
      [
-      0.667,
+      0.333,
       "cat_lead"
      ]
     ],
     "meow": [
      [
-      0.333,
+      0.0,
       "cat_drums"
      ]
     ],
