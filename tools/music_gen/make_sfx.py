@@ -23,7 +23,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from audio import (BAR, SR, bandpass, bitcrush, highpass, mtof, nm, noise, osc_saw, osc_sine,  # noqa: E402
                    osc_supersaw, pan, place, read_wav, resample, reverb, softclip, svf_lowpass, t2n, write_wav)
-from psola import sing, sing_miao  # noqa: E402
+from psola import midi_contour, sing, sing_miao  # noqa: E402
 from slicer import slices  # noqa: E402
 
 S, LOOPS, OUT = sys.argv[1:4]
@@ -41,8 +41,8 @@ def cut(path, start, min_len=0.3):
     w = int(0.01 * SR)
     env = np.sqrt(np.convolve(m ** 2, np.ones(w) / w, mode='same'))
     keep = np.nonzero(env > env.max() * 10 ** (-26 / 20))[0]
-    loud = np.nonzero(env > env.max() * 10 ** (-18 / 20))[0]
-    sl = sl[max(0, loud[0] - int(0.015 * SR)): min(len(sl), keep[-1] + int(0.03 * SR))].copy()
+    loud = np.nonzero(env > env.max() * 10 ** (-12 / 20))[0]     # 5 ms before -12 dB: lands on the beat
+    sl = sl[max(0, loud[0] - int(0.005 * SR)): min(len(sl), keep[-1] + int(0.03 * SR))].copy()
     sl[: int(0.005 * SR)] *= np.linspace(0, 1, int(0.005 * SR))[:, None]
     sl[-int(0.02 * SR):] *= np.linspace(1, 0, int(0.02 * SR))[:, None]
     return sl / np.max(np.abs(sl))
@@ -89,12 +89,31 @@ TABLE = {i: (f, s, ml) for i, (f, s, ml) in {
 for i in ROSTER['long'] + ROSTER['accent'] + ROSTER['short']:
     if i not in CAT:
         CAT[i] = cut(*TABLE[i])
+
+
+def own_pitch(audio):
+    pc = midi_contour(audio.mean(axis=1) if audio.ndim == 2 else audio)
+    return float(np.median(pc)) if pc is not None else 72.0
+
+
+def near_cat(name, audio):
+    """The chord tone `name` ('Bb', 'D') in the octave nearest the cat's own pitch: a meow pitched far
+    down stops sounding like a cat, so each cat sings in its own register."""
+    base = nm(name + '4')
+    own = own_pitch(audio)
+    octave = min(range(-2, 4), key=lambda k: abs(base + 12 * k - own - 1))
+    m = base + 12 * octave
+    return m, f'{name}{4 + octave}'
+
+
 for i in ROSTER['accent']:
-    for note in ('G4', 'Bb4', 'D5'):
-        save(f'meow_long_{i:02d}_{note}', st(sing_miao(CAT[i], nm(note), 0.8)))
+    for name in ('G', 'Bb', 'D'):
+        m, note = near_cat(name, CAT[i])
+        save(f'meow_long_{i:02d}_{note}', st(sing_miao(CAT[i], m, 0.8)))
 for i in ROSTER['short']:
-    for note in ('Bb4', 'D5', 'F5'):
-        save(f'meow_short_{i:02d}_{note}', st(sing_miao(CAT[i], nm(note), 0.3, keep=0.3)))
+    for name in ('Bb', 'D', 'F'):
+        m, note = near_cat(name, CAT[i])
+        save(f'meow_short_{i:02d}_{note}', st(sing_miao(CAT[i], m, 0.3, keep=0.3)))
 for i in ROSTER['long']:
     save(f'meow_natural_{i:02d}', st(CAT[i].mean(axis=1)))
 save('kitten_mi', st(KITTEN.mean(axis=1)))

@@ -16,6 +16,13 @@ beats_per_rev = 8.0
 bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
 transition = 1
 gauge_events = PackedInt32Array()
+meme_cues = [{
+"at": 0.8500000000000001,
+"meme": "apple",
+"size": 0.36,
+"x": -0.34,
+"y": -0.21
+}]
 
 [resource]
 script = ExtResource("4_c4l1d")

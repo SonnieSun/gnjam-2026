@@ -1,5 +1,10 @@
 # 叠轨音乐播放管理（设计）
 
+> **已经做了的（2026-11-15）**：`Music` autoload（`scripts/music/music.gd`）和 Music Director 面板
+> （`scenes/tools/music_director.tscn`，F6 运行）。每个大关的配置在 `levels/music/<大关文件名>.json`（如 `level_1.json`）。
+> 下面"运行时"一节写的四个旋钮，第一版统一成了更简单的东西：**几条轨道，每条放几段 loop，同一时刻
+> 只响一段；每个小关里写"积累条进度到哪儿换成哪段"**。详见文末"Music Director"。
+
 目标：一关的音乐由几层 loop 叠起来，玩法推进时在小节线上加层、换层、换风格，节拍时钟不受影响。
 素材见 `assets/audio/README.md`。下面是第一版要做的东西，先简单能用。
 
@@ -116,3 +121,61 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 6. 实测：长时间播放会不会漂（开 10 分钟看 `song_beat` 和各层是否还对齐）。
 
 还没定的：猫化由什么驱动（连击，还是关卡进度）；六个 MV 场景各用哪个风格、哪首经典曲；谱面要改成 160 BPM。
+
+## Music Director（已做）
+
+编辑器顶部工具栏点"音乐"按钮（或打开 `scenes/tools/music_director.tscn` 按 F6）。面板有两页：
+
+- **曲库**：只是听。列出现在所有做好的曲子（四种风格、全猫乐队、Jazz、三种节奏、Entertainer、五首经典曲和它们的猫版、鬼畜版），
+  点一首就循环放，下面的按钮开关它的每条音轨；最下面是所有一次性音效（喵、打中喵、SFX），点一下听一声。
+  加了新曲子在 `scripts/music/jukebox.gd` 的 `_songs()` 里加一行。
+- **编辑**：给每个大关配音乐，下面说的都是这一页。
+
+一关的音乐是几条**轨道**（默认按乐器分：节奏、低音、和声、旋律、高潮、猫鼓、事件），每条轨道里放几段
+**片段**（loop），同一时刻每条轨道只响一段。
+
+- **点一段** = 从当前进度起，这条轨道换成它；再点正在响的那段 = 从这里起这条轨道静音。正在响的那段是粉色的。
+- **PROGRESS** 就是积累条有多满：先拖到某个进度再点，就是"进度到这里时换成它"。
+  SNAP 开着时等到下一个小节线才换（和游戏里一样）；AUTO 让进度随音乐在 N 小节里从 0 走到 100%。
+- 每条轨道下的**细条**：颜色是每段进度里响的片段，白色小竖条是切换点，粉线是积累条事件线。
+  拖切换点改位置（吸附 5% 和事件线），右键删掉。
+- **+ 片段** 往轨道里放 WAV（从 `assets/audio/music` 里选），右键一段 = 拿掉；**+ 轨道** 加一条，`×` 删一条；
+  轨道名字可以直接改；M 静音（只在面板里）；dB 是这条轨道的音量。一大关最多 32 段。
+- 上面：选大关、选小关（名字和积累条事件线取自谱面）、PLAY、当前小节、USE IN GAME、SAVE、
+  **EXPORT MIX**（录一遍 AUTO，也就是这个小关从 0% 到 100%，存成 `levels/music/exports/level_<n>_<小关>.wav`，不进 git）。
+- 快捷键：Space 播放 / 停止，← → 进度 ±5%，↑ ↓ 换小关，Ctrl+S 保存。
+
+配置和大关文件同名：`levels/level_1.tres` 的音乐是 `levels/music/level_1.json`，以此类推。
+新加一个大关，面板里打开它就会新建一份空配置。第 3、4 关都是 MV：`level_3.json` 是 future bass 版，`level_4.json` 是 eurobeat 版。
+
+配置格式：
+
+```json
+{
+  "title": "LEVEL 1", "bpm": 160, "use_in_game": false, "quantize_beats": 4,
+  "lanes": [{"id": "bed", "name": "和声", "gain_db": 0,
+             "clips": [{"id": "fb_keys", "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L0_keys_4b.wav"},
+                       {"id": "cat_stabs", "file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav"}]}],
+  "sections": [{"title": "DISCO", "cues": {"bed": [[0, "fb_keys"], [0.5, "cat_stabs"]]}}]
+}
+```
+
+`cues` 里每条轨道是一串 `[进度, 片段]`：进度到这里换成这段（`""` = 静音）；当前进度之前最后一个切换点说了算，
+一个切换点都没到 = 静音。初始配置由 `tools/music_gen/make_music_sets.py` 生成（第 1 关：future bass 越来越猫；
+第 2 关：16 个小关轮流换风格，第二轮加猫；第 3、4 关：六个 MV 小关一关比一关猫；第 5 关：康康舞曲）。之后都在面板里改。
+
+游戏里（`scripts/main.gd`）：配置开了 `use_in_game` 的大关，谱面的伴奏换成这套同步流、BPM 换成配置的；
+进小关时（`section_entered`）`Music.set_section(i)`，积累条变化时（`gauge.changed`）`Music.set_progress(值 / 满条值)`。
+没开的大关完全不变。注意现在的谱面是按 120 BPM 写的，开了之后整关会变成 160。
+
+## 速度（BPM）
+
+每个大关的速度写在它的音乐配置里（`levels/music/level_N.json` 的 `"bpm"`），游戏开了 USE IN GAME 就按它走，所以不同大关可以是不同速度。
+现在所有素材都是 160。有些曲子（目前是致爱丽丝）更适合 120：还没渲染，只留了占位（`compose_classics.py` 的 `TEMPO`）；
+要做的时候需要一套 120 的鼓和低音，再把那个大关的 `"bpm"` 改成 120。同一个大关里中途变速现在不支持。
+
+## 以后：运行时猫旋律（还没做）
+
+想法：鬼畜版猫旋律不预渲染，旋律存成音符数据，游戏里按拍触发喵（每只猫一个采样，`pitch_scale` 变速变调，到点停掉 = 硬切，
+共鸣提前烤进采样）。好处是变速不用重渲染、可以做成"打中才唱出这个音"。做好后和预渲染的 `L3_cat_kichiku` 对比，一样好再替换它。
+普通猫版（拉长的 Miiiiao、互相叠）运行时做不了，继续用预渲染的音轨。

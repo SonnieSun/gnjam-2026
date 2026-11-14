@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 Registry="*res://levelkit/core/registry.gd"
 Sfx="*res://levelkit/core/sfx.gd"
 Conductor="*res://scripts/core/conductor.gd"
+Music="*res://scripts/music/music.gd"
 
 [display]
 
@@ -28,7 +29,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/level_editor/plugin.cfg")
+enabled=PackedStringArray("res://addons/level_editor/plugin.cfg", "res://addons/music_director/plugin.cfg")
 
 [gnjam]
 

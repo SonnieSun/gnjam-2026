@@ -31,6 +31,9 @@
 只借旋律，每首自己的调和和弦，是独立的一关，不和第 1 关互切。每首都有：`fb_L0_keys` 铺底、`L2_bass`、
 `fb_L4_peak` 高潮层、`C_drums` / `C_stabs` / `C_bass` 猫化层，主旋律有 `L3_pluck`（拨弦）和三种猫版本：
 `L3_cat_flow`（每声喵叠着放完）、`L3_cat`（压到音符长度，更鬼畜）、`L3_cat_pool`（长音组轮流）。
+这三条都带一点点音高共鸣和咬字（让旋律听得出来），乐句结尾的"MIAO"按原音高唱、是全句最响的音，下面叠一声低八度。
+`L3_cat_kichiku` 是鬼畜版：每 4 小节固定一只猫（原本音高离这句最近的），每个音从喵的开头重新触发、变速变调、到音符结束硬切，共鸣全量。
+所有曲子现在都是 160 BPM；致爱丽丝更适合 120，以后单独渲染（`tools/music_gen/compose_classics.py` 里的 `TEMPO` 是占位，还没用上）。
 律动用第 1 关的 `skeleton/s1_L1_groove_4b.wav`。
 
 | 曲子 | 调 | loop | 速度 |
@@ -50,7 +53,8 @@
 | `catness_up` / `catness_down` | 猫化层换进来 / 退出去 |
 | `miss_meow` | MISS |
 | `glitch_meow` | 卡顿喵：风格切换、FRENZY 开始 |
-| `meow_long_NN_<音>` / `meow_short_NN_<音>` | 调在第 1 关和弦音上的长喵 / 短喵，事件触发时按当前和弦挑 |
+| `meow_long_NN_<音>` / `meow_short_NN_<音>` | 调在第 1 关和弦音（G、Bb、D、F）上的长喵 / 短喵，事件触发时按当前和弦挑。每只猫在自己的音区唱（八度跟着猫走，文件名里写着），不会被硬拉低到不像喵 |
+| `hit_meow_perfect_a/b/c` / `hit_meow_good_a/b/c` | 打中反馈喵，队员自己录的三声喵（a、b = 第一段录音，c = 第二段），都是原音高。Perfect 0.24 秒；Good 0.16 秒、轻一点。由 main.tscn 的 HitMeow 节点播放：每次随机挑一个（不连着重复），音高轻微随机 ±3%、音量 ±1 dB（检查器里可调） |
 | `meow_natural_NN` | 长音组猫的原声 |
 | `kitten_mi`、`seal_bark`、`orch_hit_Bb`、`laser_zap` | 点缀 |
 | `riser_1b`、`crash` | 第 20 小节上升、下一小节首拍的镲 |
@@ -62,7 +66,7 @@
 ## `meows/`：在用的猫
 
 按分工和喵选秀编号命名：`miao_long_NN`（长音组）、`miao_accent_NN`（E5 以下的长音、句尾喊）、
-`miao_short_NN`（短音、喵鼓、猫和声）。13、14 是团队自己录的。
+`miao_short_NN`（短音、喵鼓、猫和声）。13、14、15 是团队自己录的（13、14 来自第一段录音，15 来自第二段）。现在的阵容：长音 1、6、10、13、14、15；重音 6、13；短音 8、11、14、15（#12 效果不好，不用了）。
 
 ## 署名（游戏里必须写）
 

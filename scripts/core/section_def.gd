@@ -30,6 +30,12 @@ enum Transition { ZOOM, CUT }
 @export var gauge_events := PackedInt32Array()
 @export var use_gauge_events := false
 
+## 镜头特效的切换点：[[进度 0-1, 特效名], ...]。积累条涨到那个进度就换成那个特效（"" = 原样）。
+## 特效名见 scripts/fx/screen_fx.gd 的 EFFECTS。在游戏里按 Tab 调出的面板上编辑最方便。
+@export var fx_cues: Array = []
+## 跟着积累条冒出来的猫图：[{at 进度, meme 素材名, x, y, size}, ...]，见 scripts/fx/meme_cues.gd。
+@export var meme_cues: Array = []
+
 ## 这个小关是从全曲第几拍开始的（进入这个小关时由 Main 填入）
 var start_beat := 0.0
 ## 鼓谱循环一遍多少拍（由 SongChart.recompute() 填入）

@@ -1,0 +1,583 @@
+extends CanvasLayer
+## 游戏里的编辑面板：进了关卡按 Tab 调出来，再按 Tab 收起。只在编辑器里运行游戏时有（导出的游戏里没有）。
+## 它把“关卡编辑器”和“Music Director”两个插件里和当前小关有关的功能合到了一起，直接看着画面改：
+##
+##   最上面一根“积累条”进度条：拖它 = 假装玩家把积累条打到了这么满，画面、镜头特效、猫图、音乐都会跟着变。
+##   面板开着的时候，打中 / 漏打不再改积累条。
+##
+##   镜头和猫图   点一个特效 = 从当前进度起切到它（再点一次 = 从这里起回到原样）；
+##                细条上的白线是切换点，拖动改位置，右键删掉。
+##                “+ 猫图”在当前进度加一只，选中后在画面上拖动摆位置。
+##   音乐         每条轨道点一段 = 从当前进度起换成它（和 Music Director 里一样）。
+##   谱子         点格子写这个小关循环的鼓谱。
+##
+## 改动先只在这次运行里生效，点“保存”才写进文件：镜头 / 猫图 / 谱子 / 满条值写进大关的 .tres，
+## 音乐写进 levels/music/ 里对应的 .json。
+
+const Grid := preload("res://addons/level_editor/pattern_grid.gd")
+const CueStrip := preload("res://scripts/music/cue_strip.gd")
+const THEME := preload("res://assets/ui/theme.tres")
+const PALETTE := [Color("ffd23f"), Color("ff5d8f"), Color("7fd1ff"), Color("86ffa3"), Color("b38cff"),
+		Color("ff9a3c"), Color("5ee6d0"), Color("f2f2f2")]
+const PANEL_HEIGHT := 330.0
+const SNAP := 0.05
+
+var main: Node
+var dirty := false
+
+var _panel: PanelContainer
+var _title: Label
+var _status: Label
+var _gauge_max: SpinBox
+var _progress: HSlider
+var _progress_lcd: Label
+var _fx_strip: Control
+var _fx_buttons := {}
+var _meme_chips: HFlowContainer
+var _meme_pick: OptionButton
+var _meme_box: HBoxContainer
+var _meme_at: SpinBox
+var _meme_size: HSlider
+var _meme_sel := -1
+var _dragging := false
+var _music_box: VBoxContainer
+var _music_strips := {}
+var _music_chips := {}
+var _grid: Control
+var _loading := false
+
+
+func setup(game: Node) -> void:
+	main = game
+	layer = 10
+	_build_ui()
+	main.section_entered.connect(func(_i: int) -> void: _load_section())
+	_load_section()
+
+
+func set_open(on: bool) -> void:
+	main.editing = on
+	_panel.visible = on
+	main.screen_fx.latched = not on
+	main.memes.latched = not on
+	if on:
+		_load_section()
+
+
+func _def() -> SectionDef:
+	return main.chart.sections[main._index]
+
+
+func _p() -> float:
+	return _progress.value / 100.0
+
+
+# ---------------------------------------------------------------- 界面
+
+func _build_ui() -> void:
+	_panel = PanelContainer.new()
+	_panel.theme = THEME
+	_panel.anchor_top = 1.0
+	_panel.anchor_right = 1.0
+	_panel.anchor_bottom = 1.0
+	_panel.offset_top = -PANEL_HEIGHT
+	_panel.self_modulate.a = 0.94
+	add_child(_panel)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 6)
+	_panel.add_child(root)
+
+	# 小关信息
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	root.add_child(head)
+	_btn(head, "◀", func() -> void: _go(-1), "上一个小关")
+	_btn(head, "▶", func() -> void: _go(1), "下一个小关")
+	_title = Label.new()
+	head.add_child(_title)
+	head.add_child(_lbl("   满条值"))
+	_gauge_max = SpinBox.new()
+	_gauge_max.min_value = 5
+	_gauge_max.max_value = 2000
+	_gauge_max.step = 5
+	_gauge_max.tooltip_text = "这个小关的积累条要打多少分才满（全中每个音符 +5）"
+	_gauge_max.value_changed.connect(_on_gauge_max)
+	head.add_child(_gauge_max)
+	_status = _lbl("")
+	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	head.add_child(_status)
+	_btn(head, "保存", save, "把所有小关的改动写进文件")
+	_btn(head, "收起 (Tab)", func() -> void: main.toggle_editor())
+
+	# 积累条
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 8)
+	root.add_child(bar)
+	bar.add_child(_lbl("积累条"))
+	_progress = HSlider.new()
+	_progress.max_value = 100
+	_progress.step = 1
+	_progress.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_progress.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_progress.focus_mode = Control.FOCUS_NONE
+	_progress.value_changed.connect(_on_progress)
+	bar.add_child(_progress)
+	_progress_lcd = _lbl("0%")
+	_progress_lcd.custom_minimum_size.x = 48
+	bar.add_child(_progress_lcd)
+
+	var tabs := TabContainer.new()
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(tabs)
+	tabs.add_child(_build_fx_tab())
+	tabs.add_child(_build_music_tab())
+	tabs.add_child(_build_pattern_tab())
+
+
+func _build_fx_tab() -> Control:
+	var v := VBoxContainer.new()
+	v.name = "镜头和猫图"
+	v.add_theme_constant_override("separation", 6)
+	var row := HFlowContainer.new()
+	v.add_child(row)
+	row.add_child(_lbl("镜头  "))
+	for id: String in ScreenFx.EFFECTS:
+		var info: Dictionary = ScreenFx.EFFECTS[id]
+		var b := _btn(row, info.label, func() -> void: _cue_fx(id),
+				"从当前进度起切到“%s”（已经是它的话，再点 = 从这里起回到原样）" % info.label)
+		b.add_theme_color_override("font_color", info.color.lightened(0.3))
+		_fx_buttons[id] = b
+	_fx_strip = CueStrip.new()
+	_fx_strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_fx_strip.custom_minimum_size.y = 18
+	for id: String in ScreenFx.EFFECTS:
+		_fx_strip.colors[id] = ScreenFx.EFFECTS[id].color
+	_fx_strip.changed.connect(func() -> void:
+		_tidy(_def().fx_cues)
+		main.screen_fx.refresh()
+		_mark_dirty())
+	v.add_child(_fx_strip)
+
+	v.add_child(HSeparator.new())
+	var add := HBoxContainer.new()
+	v.add_child(add)
+	add.add_child(_lbl("猫图  "))
+	_meme_pick = OptionButton.new()
+	_meme_pick.custom_minimum_size.x = 180
+	_meme_pick.focus_mode = Control.FOCUS_NONE
+	for key in MemeLib.keys():
+		_meme_pick.add_item(key)
+	add.add_child(_meme_pick)
+	_btn(add, "+ 在当前进度加一只", _add_meme, "积累条涨到现在这个进度时，这只猫蹦出来")
+	_meme_box = HBoxContainer.new()
+	_meme_box.add_theme_constant_override("separation", 6)
+	add.add_child(_meme_box)
+	_meme_box.add_child(_lbl("    选中的：出现在"))
+	_meme_at = SpinBox.new()
+	_meme_at.max_value = 100
+	_meme_at.step = 5
+	_meme_at.suffix = "%"
+	_meme_at.value_changed.connect(func(val: float) -> void: _edit_meme("at", val / 100.0))
+	_meme_box.add_child(_meme_at)
+	_meme_box.add_child(_lbl("大小"))
+	_meme_size = HSlider.new()
+	_meme_size.min_value = 0.05
+	_meme_size.max_value = 1.0
+	_meme_size.step = 0.01
+	_meme_size.custom_minimum_size.x = 140
+	_meme_size.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_meme_size.focus_mode = Control.FOCUS_NONE
+	_meme_size.value_changed.connect(func(val: float) -> void: _edit_meme("size", val))
+	_meme_box.add_child(_meme_size)
+	_btn(_meme_box, "删掉", _remove_meme)
+	var hint := _lbl("  在画面上按住拖动 = 摆位置")
+	hint.modulate.a = 0.6
+	_meme_box.add_child(hint)
+	_meme_chips = HFlowContainer.new()
+	v.add_child(_meme_chips)
+	return v
+
+
+func _build_music_tab() -> Control:
+	var scroll := ScrollContainer.new()
+	scroll.name = "音乐"
+	_music_box = VBoxContainer.new()
+	_music_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_music_box.add_theme_constant_override("separation", 4)
+	scroll.add_child(_music_box)
+	return scroll
+
+
+func _build_pattern_tab() -> Control:
+	var v := VBoxContainer.new()
+	v.name = "谱子"
+	var tools := HBoxContainer.new()
+	v.add_child(tools)
+	tools.add_child(_lbl("画笔  "))
+	var group := ButtonGroup.new()
+	var names := ["底鼓 K", "军鼓 S", "踩镲 H", "橡皮"]
+	for i in names.size():
+		var b := _btn(tools, names[i], func() -> void: _grid.brush = i if i < 3 else -1)
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = i == 0
+		if i < 3:
+			b.add_theme_color_override("font_color", Grid.COLORS[i])
+			b.add_theme_color_override("font_pressed_color", Grid.COLORS[i])
+	tools.add_child(VSeparator.new())
+	_btn(tools, "＋ 小节", func() -> void: _resize_bars(1))
+	_btn(tools, "－ 小节", func() -> void: _resize_bars(-1))
+	_btn(tools, "用新谱子重进这个小关", func() -> void: main.start_from(main._index),
+			"谱子改完要重进小关才会按新的出音符（成绩清零，音乐从头放）")
+	var hint := _lbl("   左键涂 / 再点一下擦掉，右键擦。这几小节一直循环到积累条满")
+	hint.modulate.a = 0.6
+	tools.add_child(hint)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(scroll)
+	_grid = Grid.new()
+	_grid.edited.connect(func() -> void:
+		_def().bars = _grid.bars.duplicate()
+		_mark_dirty())
+	scroll.add_child(_grid)
+	return v
+
+
+func _lbl(text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	return l
+
+
+func _btn(parent: Control, text: String, action: Callable, tip: String = "") -> Button:
+	var b := Button.new()
+	b.text = text
+	b.tooltip_text = tip
+	b.focus_mode = Control.FOCUS_NONE
+	b.pressed.connect(action)
+	parent.add_child(b)
+	return b
+
+
+# ---------------------------------------------------------------- 小关
+
+func _go(by: int) -> void:
+	var to: int = main._index + by
+	if to >= 0 and to < main.chart.sections.size():
+		main.start_from(to)
+
+
+## 把当前小关的数据填进面板
+func _load_section() -> void:
+	if _panel == null or main.chart == null or main._index < 0:
+		return
+	var def := _def()
+	_loading = true
+	var file: String = def.get("scene_file")
+	_title.text = "小关 %d / %d   %s   ·   %s" % [main._index + 1, main.chart.sections.size(), def.title, file]
+	_gauge_max.value = main.gauge.max_value
+	_progress.value = roundf(100.0 * main.gauge.value / maxi(main.gauge.max_value, 1))
+	_progress_lcd.text = "%d%%" % int(_progress.value)
+	_fx_strip.cues = def.fx_cues
+	_fx_strip.markers = _markers()
+	_grid.beats_per_bar = main.chart.beats_per_bar
+	_grid.set_bars(def.bars)
+	_loading = false
+	_meme_sel = -1
+	_fill_memes()
+	_fill_music()
+	_refresh()
+
+
+## 积累条的事件分数线在进度条上的位置（细条上的粉色竖线，拖切换点时会吸附过去）
+func _markers() -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	for v in main.gauge.events:
+		out.append(float(v) / maxi(main.gauge.max_value, 1))
+	return out
+
+
+func _on_gauge_max(v: float) -> void:
+	if _loading:
+		return
+	_def().gauge_max = int(v)
+	main.gauge.max_value = int(v)
+	_on_progress(_progress.value)
+	_mark_dirty()
+
+
+func _on_progress(v: float) -> void:
+	if _loading:
+		return
+	_progress_lcd.text = "%d%%" % int(v)
+	main.gauge.set_value(roundi(v / 100.0 * main.gauge.max_value))
+	_refresh()
+
+
+## 进度条位置变了 / 数据变了之后，更新细条和按钮的高亮
+func _refresh() -> void:
+	var p := _p()
+	_fx_strip.playhead = p
+	_fx_strip.queue_redraw()
+	var now := ScreenFx.effect_at(_def().fx_cues, p)
+	for id: String in _fx_buttons:
+		_fx_buttons[id].modulate = Color.WHITE if id == now else Color(1, 1, 1, 0.55)
+	for lid: String in _music_strips:
+		_music_strips[lid].playhead = p
+		_music_strips[lid].queue_redraw()
+		var playing := Music.clip_at(main._index, lid, p)
+		for cid: String in _music_chips[lid]:
+			_music_chips[lid][cid].modulate = Color.WHITE if cid == playing else Color(1, 1, 1, 0.55)
+	for i in _meme_chips.get_child_count():
+		var cue: Dictionary = _def().meme_cues[i]
+		_meme_chips.get_child(i).modulate.a = 1.0 if float(cue.at) <= p + 0.0001 else 0.55
+
+
+## 切换点排好序，去掉“换成和之前一样的”那种多余的点
+func _tidy(list: Array) -> void:
+	list.sort_custom(func(a, b): return a[0] < b[0])
+	var out := []
+	var last := ""
+	for c in list:
+		if c[1] != last:
+			out.append(c)
+			last = c[1]
+	list.clear()
+	list.append_array(out)
+
+
+## 在当前进度放一个切换点：换成 id；如果那里本来就是 id，就改成 ""（原样 / 静音）
+func _put_cue(list: Array, now: String, id: String) -> void:
+	var p := snappedf(_p(), SNAP)
+	for i in range(list.size() - 1, -1, -1):
+		if absf(list[i][0] - p) < 0.001:
+			list.remove_at(i)
+	list.append([p, "" if now == id else id])
+	_tidy(list)
+
+
+func _mark_dirty() -> void:
+	dirty = true
+	_status.text = "● 有改动还没保存"
+
+
+# ---------------------------------------------------------------- 镜头
+
+func _cue_fx(id: String) -> void:
+	var list := _def().fx_cues
+	_put_cue(list, ScreenFx.effect_at(list, snappedf(_p(), SNAP)), id)
+	main.screen_fx.refresh()
+	main.screen_fx.set_progress(_p())
+	_mark_dirty()
+	_refresh()
+
+
+# ---------------------------------------------------------------- 猫图
+
+func _fill_memes() -> void:
+	for c in _meme_chips.get_children():
+		_meme_chips.remove_child(c)
+		c.queue_free()
+	var list := _def().meme_cues
+	for i in list.size():
+		var cue: Dictionary = list[i]
+		var b := _btn(_meme_chips, "%d%%  %s" % [roundi(float(cue.at) * 100.0), cue.meme], func() -> void: _select_meme(i),
+				"点一下选中，然后在画面上拖动摆位置")
+		b.toggle_mode = true
+		b.button_pressed = i == _meme_sel
+	_meme_box.visible = _meme_sel >= 0 and _meme_sel < list.size()
+	if _meme_box.visible:
+		_loading = true
+		_meme_at.value = roundf(float(list[_meme_sel].at) * 100.0)
+		_meme_size.value = list[_meme_sel].get("size", 0.25)
+		_loading = false
+
+
+func _select_meme(i: int) -> void:
+	_meme_sel = -1 if i == _meme_sel else i
+	_fill_memes()
+	_refresh()
+
+
+func _add_meme() -> void:
+	var list := _def().meme_cues
+	# 新加的先错开一点放，免得叠在一起
+	var n := list.size()
+	list.append({"at": snappedf(_p(), SNAP), "meme": _meme_pick.get_item_text(_meme_pick.selected),
+			"x": -0.3 + 0.15 * (n % 5), "y": -0.25 + 0.12 * ((n / 5) % 3), "size": 0.25})
+	_meme_sel = n
+	_memes_changed(true)
+
+
+func _remove_meme() -> void:
+	if _meme_sel >= 0 and _meme_sel < _def().meme_cues.size():
+		_def().meme_cues.remove_at(_meme_sel)
+		_meme_sel = -1
+		_memes_changed(true)
+
+
+func _edit_meme(key: String, value: float) -> void:
+	if _loading or _meme_sel < 0:
+		return
+	_def().meme_cues[_meme_sel][key] = value
+	_memes_changed(key == "at")
+
+
+func _memes_changed(rebuild: bool) -> void:
+	if rebuild:
+		main.memes.rebuild()
+		main.memes.set_progress(_p())
+		_fill_memes()
+	else:
+		main.memes.layout()
+	_mark_dirty()
+	_refresh()
+
+
+## 面板开着、选中了一只猫图时，在画面上按住拖动 = 摆它的位置
+func _unhandled_input(event: InputEvent) -> void:
+	if not _panel.visible or _meme_sel < 0 or _meme_sel >= _def().meme_cues.size():
+		return
+	var mb := event as InputEventMouseButton
+	if mb and mb.button_index == MOUSE_BUTTON_LEFT:
+		_dragging = mb.pressed
+		if mb.pressed:
+			_drag_to(mb.position)
+		get_viewport().set_input_as_handled()
+	var mm := event as InputEventMouseMotion
+	if mm and _dragging:
+		_drag_to(mm.position)
+
+
+func _drag_to(pos: Vector2) -> void:
+	var size := get_viewport().get_visible_rect().size
+	var cue: Dictionary = _def().meme_cues[_meme_sel]
+	cue.x = snappedf(clampf(pos.x / size.x - 0.5, -0.5, 0.5), 0.005)
+	cue.y = snappedf(clampf(pos.y / size.y - 0.5, -0.5, 0.5), 0.005)
+	main.memes.layout()
+	_mark_dirty()
+
+
+# ---------------------------------------------------------------- 音乐
+
+## 这个小关的音乐切换点（Music 的配置里），没有就建一份空的
+func _music_cues() -> Dictionary:
+	if not Music.data.has("sections"):
+		Music.data["sections"] = []
+	var secs: Array = Music.data.sections
+	while secs.size() <= main._index:
+		secs.append({"title": main.chart.sections[secs.size()].title, "cues": {}})
+	if not secs[main._index].has("cues"):
+		secs[main._index]["cues"] = {}
+	return secs[main._index].cues
+
+
+func _fill_music() -> void:
+	for c in _music_box.get_children():
+		_music_box.remove_child(c)
+		c.queue_free()
+	_music_strips.clear()
+	_music_chips.clear()
+	if not Music.enabled_for(Levels.selected) or Music.stream == null:
+		var note := _lbl("这个大关没有开叠轨音乐（用的是谱面里的一整首伴奏），没有可以按进度切换的轨道。\n要用的话，先在 Music Director 里给这个大关配好轨道并勾上 USE IN GAME。")
+		note.modulate.a = 0.7
+		_music_box.add_child(note)
+		return
+	var cues := _music_cues()
+	for lane: Dictionary in Music.data.get("lanes", []):
+		var lid: String = lane.id
+		var row := HBoxContainer.new()
+		_music_box.add_child(row)
+		var name_label := _lbl(lane.get("name", lid))
+		name_label.custom_minimum_size.x = 70
+		row.add_child(name_label)
+		var right := VBoxContainer.new()
+		right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		right.add_theme_constant_override("separation", 2)
+		row.add_child(right)
+		var chips := HFlowContainer.new()
+		right.add_child(chips)
+		var strip := CueStrip.new()
+		strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if not cues.has(lid):
+			cues[lid] = []
+		strip.cues = cues[lid]
+		strip.markers = _markers()
+		_music_chips[lid] = {}
+		var clips: Array = lane.get("clips", [])
+		for i in clips.size():
+			var cid: String = clips[i].id
+			var color: Color = PALETTE[i % PALETTE.size()]
+			strip.colors[cid] = color
+			var b := _btn(chips, cid, func() -> void: _cue_music(lid, cid),
+					"从当前进度起，这条轨道换成这段（已经是它的话，再点 = 从这里起静音）")
+			b.add_theme_color_override("font_color", color)
+			_music_chips[lid][cid] = b
+		strip.changed.connect(func() -> void:
+			_tidy(cues[lid])
+			Music.apply_now()
+			_mark_dirty())
+		right.add_child(strip)
+		_music_strips[lid] = strip
+
+
+func _cue_music(lid: String, cid: String) -> void:
+	var list: Array = _music_cues()[lid]
+	_put_cue(list, Music.clip_at(main._index, lid, snappedf(_p(), SNAP)), cid)
+	Music.progress = _p()
+	Music.apply_now()
+	_mark_dirty()
+	_refresh()
+
+
+# ---------------------------------------------------------------- 谱子
+
+func _resize_bars(by: int) -> void:
+	var bars := _def().bars.duplicate()
+	if by > 0:
+		bars.append(".".repeat(bars[-1].length() if bars.size() > 0 and bars[-1] != "" else 16))
+	elif bars.size() > 1:
+		bars.remove_at(bars.size() - 1)
+	_def().bars = bars
+	_grid.set_bars(bars)
+	_mark_dirty()
+
+
+# ---------------------------------------------------------------- 保存
+
+## 游戏里用的谱面是文件的一份副本，这里把每个小关改过的东西抄回文件里那一份再存
+func save() -> void:
+	var path: String = Levels.paths()[Levels.selected]
+	var src := load(path) as SongChart
+	var err := OK
+	if src.sections.size() != main.chart.sections.size():
+		err = ERR_INVALID_DATA
+	else:
+		for i in src.sections.size():
+			var from: SectionDef = main.chart.sections[i]
+			src.sections[i].fx_cues = from.fx_cues.duplicate(true)
+			src.sections[i].meme_cues = from.meme_cues.duplicate(true)
+			src.sections[i].bars = from.bars.duplicate()
+			src.sections[i].gauge_max = from.gauge_max
+		err = ResourceSaver.save(src, path)
+	var saved := path.get_file()
+	if err == OK and Music.enabled_for(Levels.selected) and Music.stream != null:
+		var out: Dictionary = Music.data.duplicate(true)
+		for sec: Dictionary in out.get("sections", []):
+			var cues: Dictionary = sec.get("cues", {})
+			for lid in cues.keys():
+				if cues[lid].is_empty():
+					cues.erase(lid)
+		err = Music.write(Music.path_for(Levels.selected), out)
+		saved += " 和 " + Music.path_for(Levels.selected).get_file()
+	dirty = err != OK
+	_status.text = ("已保存 " + saved) if err == OK else ("保存失败：" + error_string(err))
+
+
+func _input(event: InputEvent) -> void:
+	# 面板开着时 Tab 会被输入框拿去切焦点，所以在这里先接住
+	var key := event as InputEventKey
+	if _panel.visible and key and key.pressed and not key.echo and key.physical_keycode == KEY_TAB:
+		main.toggle_editor()
+		get_viewport().set_input_as_handled()

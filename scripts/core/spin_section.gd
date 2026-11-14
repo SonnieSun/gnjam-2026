@@ -63,6 +63,8 @@ var gauge_events_fired := 0
 ## 这一关实际生效的事件分数线（从小到大）
 var gauge_event_values := PackedInt32Array()
 var _gauge_smooth := 0.0
+## 现在套着哪种全屏镜头特效（"" = 没有；"grid3" 九宫格、"kaleido" 万花筒……）
+var screen_fx := ""
 
 
 func setup(section_def: SectionDef, section_notes: Array[NoteData]) -> void:
@@ -135,6 +137,12 @@ func notify_gauge(value: int, max_value: int) -> void:
 func notify_gauge_event(index: int, value: int) -> void:
 	gauge_events_fired = index
 	_on_gauge_event(index, value)
+
+
+## 全屏镜头特效换了（id 见 scripts/fx/screen_fx.gd 的 EFFECTS，"" = 原样）
+func notify_screen_fx(id: String) -> void:
+	screen_fx = id
+	_on_screen_fx(id)
 
 
 ## 积累条满了（马上要切到下一关）
@@ -372,6 +380,11 @@ func _on_note_judged(_note: NoteData, _result: int) -> void:
 ## 有几条线、各在多少分，在场景根节点检查器的“积累条”一栏里填。
 ## 留给关卡自己发挥：多放几个物体、加特效之类。现在默认什么都不做。
 func _on_gauge_event(_index: int, _value: int) -> void:
+	pass
+
+
+## 全屏镜头特效换了时调用（比如万花筒里想把自己的 3D 音符藏起来）
+func _on_screen_fx(_id: String) -> void:
 	pass
 
 

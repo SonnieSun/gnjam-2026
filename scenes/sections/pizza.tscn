@@ -1,22 +1,10 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/sections/pizza_section.gd" id="1_5mc53"]
-[ext_resource type="Shader" path="res://assets/shaders/dream/mosaic_kaleido.gdshader" id="2_qcgn0"]
 [ext_resource type="Shader" path="res://assets/shaders/dream/sky_grid.gdshader" id="3_w4es4"]
 [ext_resource type="Shader" path="res://assets/shaders/dream/water.gdshader" id="4_0oh7q"]
 [ext_resource type="PackedScene" path="res://assets/art/CATS_Scratch.fbx" id="5_tqi40"]
 [ext_resource type="Shader" path="res://assets/shaders/dream/glass_ring.gdshader" id="6_gkwt3"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_hes1m"]
-shader = ExtResource("2_qcgn0")
-shader_parameter/tiles = 1.0
-shader_parameter/kaleido = 0.0
-shader_parameter/segments = 6.0
-shader_parameter/ring_spacing = null
-shader_parameter/spin = null
-shader_parameter/kaleido_zoom = null
-shader_parameter/flash = null
-shader_parameter/gap = null
 
 [sub_resource type="Environment" id="Environment_707xp"]
 background_mode = 1
@@ -773,7 +761,6 @@ custom_gauge_events = true
 gauge_events = PackedInt32Array(100, 150)
 
 [node name="View" type="SubViewportContainer" parent="." unique_id=1450494098]
-material = SubResource("ShaderMaterial_hes1m")
 offset_left = -576.0
 offset_top = -324.0
 offset_right = 576.0

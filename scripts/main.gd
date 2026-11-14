@@ -27,7 +27,16 @@ signal level_cleared
 @onready var judge: Judge = $Judge
 @onready var gauge: Gauge = $Gauge
 @onready var drum_kit: DrumKit = $DrumKit
+@onready var hit_meow: HitMeow = $HitMeow  # 打中时喵一声（Perfect / Good 各一组，随机挑）
 @onready var hud = $HUD
+@onready var screen_fx: ScreenFx = $ScreenFx
+@onready var memes: MemeCues = $Memes
+
+const GameEditor := preload("res://scripts/tools/game_editor.gd")
+
+## 游戏里的编辑面板开着（Tab）：这时积累条由面板上的进度条控制，打中 / 漏打不再改它
+var editing := false
+var _editor: CanvasLayer
 
 var chart: SongChart
 var _index := -1
@@ -42,6 +51,14 @@ func _ready() -> void:
 	if requested >= 0:
 		start_section = requested
 	chart = Levels.build_chart()
+	# 叠轨音乐：这一大关的音乐配置（Music Director 里编辑）开了“在游戏里用”，就用它代替谱面里的伴奏，
+	# BPM 也跟着配置走；进度 = 积累条，小关 = 当前小关。没开的大关完全不受影响。
+	if Music.enabled_for(Levels.selected):
+		chart.stream = Music.build(Music.read(Music.path_for(Levels.selected)))
+		chart.bpm = Music.bpm()
+		chart.first_beat_offset_sec = 0.0
+		section_entered.connect(Music.set_section)
+		gauge.changed.connect(func(v: int, m: int) -> void: Music.set_progress(float(v) / maxi(m, 1)))
 	ComicStyle.set_by_name(Levels.look())
 	drum_kit.use_chart(chart)
 	Conductor.load_chart(chart)
@@ -81,7 +98,7 @@ func _process(_delta: float) -> void:
 			_enter(_index + 1, at, true)
 		else:
 			_clear_level()
-	hud.set_debug("%s  |  bar %d  beat %.2f  |  gauge %d/%d  |  [1-%d] jump  [N] next  [C] look  [R] restart  [Esc] menu" % [
+	hud.set_debug("%s  |  bar %d  beat %.2f  |  gauge %d/%d  |  [1-%d] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu" % [
 		chart.sections[_index].title,
 		int(Conductor.song_beat / chart.beats_per_bar) + 1,
 		Conductor.song_beat,
@@ -108,6 +125,8 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 		g_events = def.gauge_events
 	elif _current.custom_gauge_events:
 		g_events = _current.gauge_events
+	screen_fx.begin(def.fx_cues, _current)
+	memes.begin(def.meme_cues)
 	gauge.begin(g_max, g_events)
 	_current.gauge_event_values = gauge.events
 	section_entered.emit(index)
@@ -147,6 +166,9 @@ func _on_gauge_changed(value: int, max_value: int) -> void:
 	hud.set_gauge(value, max_value)
 	if _current:
 		_current.notify_gauge(value, max_value)
+	var p := float(value) / maxi(max_value, 1)
+	screen_fx.set_progress(p)
+	memes.set_progress(p)
 
 
 func _on_gauge_event(index: int, value: int) -> void:
@@ -174,8 +196,10 @@ func _on_beat(beat_index: int) -> void:
 func _on_note_judged(note: NoteData, result: int, diff_sec: float) -> void:
 	hud.show_judgement(result, diff_sec)
 	if _current and note.section_index == _index:
-		gauge.apply(result)
+		if not editing:
+			gauge.apply(result)
 		_current.notify_judged(note, result)
+		hit_meow.play(result)
 		if result == NoteData.Result.PERFECT or result == NoteData.Result.GOOD:
 			var fx := StarBurst.create(result == NoteData.Result.PERFECT)
 			fx_layer.add_child(fx)
@@ -188,6 +212,15 @@ func _on_empty_hit() -> void:
 		_current.notify_empty_hit()
 
 
+## 打开 / 关上游戏里的编辑面板（scripts/tools/game_editor.gd）
+func toggle_editor() -> void:
+	if _editor == null:
+		_editor = GameEditor.new()
+		add_child(_editor)
+		_editor.setup(self)
+	_editor.set_open(not editing)
+
+
 ## 回主菜单
 func back_to_menu() -> void:
 	Conductor.stop()
@@ -198,7 +231,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
-	if key.physical_keycode == KEY_R:
+	if key.physical_keycode == KEY_TAB and OS.is_debug_build():
+		toggle_editor()
+	elif key.physical_keycode == KEY_R:
 		start_from(0)
 	elif key.physical_keycode == KEY_C:
 		# 试验：轮流切换 3D 关卡的漫画 shader 风格（见 scripts/fx/comic_style.gd）
