@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/sections/mv_disc_section.gd" id="1"]
+
+[node name="MvDiscSection" type="Node2D"]
+script = ExtResource("1")
+bg_color = Color(0.165, 0.094, 0.251, 1)
+ring_radius_ratio = 0.12

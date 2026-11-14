@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/sections/mv_tail_section.gd" id="1"]
+
+[node name="MvTailSection" type="Node2D"]
+script = ExtResource("1")
+bg_color = Color(0.965, 0.906, 0.776, 1)
+ring_radius_ratio = 0.28

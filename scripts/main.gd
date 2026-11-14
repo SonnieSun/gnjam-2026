@@ -5,7 +5,7 @@ extends Node2D
 ## 调试用：从第几段开始（0 起）
 @export var start_section := 0
 ## 开始前的预备拍数。从中间某段开始时，会从该段之前这么多拍的地方放起。
-@export var lead_in_beats := 8.0
+@export var lead_in_beats := 4.0
 
 @onready var section_host: Node2D = $SectionHost
 @onready var fx_layer: Node2D = $FxLayer
@@ -20,8 +20,10 @@ var _current: SpinSection
 
 
 func _ready() -> void:
-	# 谱面：所有关卡画法轮流展示，每关约 6 秒。以后有别的谱面就换这一行。
-	chart = ShowcaseChart.build()
+	# 换谱面改这一行：
+	#   MvChart       猫咪 MV 原型的歌和镜头（3D 关卡）
+	#   ShowcaseChart 八种 2D 关卡画法轮流展示，每关约 6 秒
+	chart = MvChart.build()
 	drum_kit.use_chart(chart)
 	Conductor.load_chart(chart)
 	judge.load_chart(chart)
@@ -77,6 +79,12 @@ func _switch_to(index: int, animate: bool) -> void:
 		if old:
 			old.queue_free()
 		return
+	if def.transition == SectionDef.Transition.CUT:
+		# 硬切 + 白闪
+		if old:
+			old.queue_free()
+		hud.flash()
+		return
 	# 圆对圆转场：旧的放大淡出，新的从中心长出来
 	if old:
 		var t_old := old.create_tween().set_parallel()
@@ -90,13 +98,13 @@ func _switch_to(index: int, animate: bool) -> void:
 
 func _on_beat(beat_index: int) -> void:
 	if _current:
-		_current._on_beat(beat_index - int(_current.def.start_beat))
+		_current.notify_beat(beat_index - int(_current.def.start_beat))
 
 
 func _on_note_judged(note: NoteData, result: int, diff_sec: float) -> void:
 	hud.show_judgement(result, diff_sec)
 	if _current and note.section_index == _index:
-		_current._on_note_judged(note, result)
+		_current.notify_judged(note, result)
 		if result == NoteData.Result.PERFECT or result == NoteData.Result.GOOD:
 			var fx := StarBurst.create(result == NoteData.Result.PERFECT)
 			fx_layer.add_child(fx)
@@ -106,7 +114,7 @@ func _on_note_judged(note: NoteData, result: int, diff_sec: float) -> void:
 
 func _on_empty_hit() -> void:
 	if _current:
-		_current._on_empty_hit()
+		_current.notify_empty_hit()
 
 
 func _on_song_finished() -> void:

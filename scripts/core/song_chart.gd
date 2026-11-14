@@ -21,7 +21,8 @@ func recompute() -> void:
 	var b := 0.0
 	for s in sections:
 		s.start_beat = b
-		b += s.length_beats(beats_per_bar)
+		s.length = s.length_beats(beats_per_bar)
+		b += s.length
 
 
 func total_beats() -> float:
