@@ -1,4 +1,4 @@
-"""Writes the starting music set of every level to levels/music/<chart>.json (the file the Music
+"""Writes the starting music set of every level to levels/music/level_<n>.json (the file the Music
 autoload plays and the Music Director panel edits). Run once; after that edit in the panel.
 
 A set is a few tracks ("lanes": rhythm, bass, chords, melody, ...), each holding clips (looping WAVs,
@@ -128,7 +128,7 @@ SETS[5] = {'title': 'LEVEL 5',
                'cc_cat_bass': [[0.85, 1]], 'cc_pluck': [[0.3, 0.55]], 'cc_cat_flow': [[0.55, 0.8]], 'cc_cat': [[0.8, 1]],
                'cc_peak': [[0.5, 1]], 'cc_cat_drums': [[0.2, 1]]}}]}
 
-NAMES = {1: 'disco', 2: 'showcase', 3: 'mv', 4: 'mv_eurobeat', 5: 'pizza'}   # file = the chart it goes with
+NAMES = {n: f'level_{n}' for n in range(1, 6)}   # file = the level file it goes with (levels/level_<n>.tres)
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('fx', '事件', 'event')]
 

@@ -6,7 +6,7 @@ extends Node
 ## 改音量，所以永远对齐。
 ##
 ## 每个小关里，每条轨道有一串"切换点"：积累条进度到 X（0 = 刚进小关，1 = 满）时换成某段
-## （"" = 静音）。当前进度之前最后一个切换点决定这条轨道响哪段。配置在 levels/music/<谱面名>.json（如 disco.json），
+## （"" = 静音）。当前进度之前最后一个切换点决定这条轨道响哪段。配置在 levels/music/<大关文件名>.json（如 level_1.json），
 ## 用 Music Director 面板（scenes/tools/music_director.tscn）编辑。
 ##
 ## 进度和小关的变化排队到下一个边界（默认 4 拍 = 一小节）才生效。时钟仍然是 Conductor：
@@ -41,11 +41,9 @@ func _ready() -> void:
 	Conductor.beat.connect(_on_beat)
 
 
-## 第 level_index 个大关（0 起）的音乐配置：按它用的谱面命名（disco_chart.gd -> disco.json），
-## 所以用同一个谱面的大关共用一套音乐，各分支的大关顺序不同也对得上。
+## 第 level_index 个大关（0 起）的音乐配置：和大关文件同名（levels/level_1.tres -> levels/music/level_1.json）
 func path_for(level_index: int) -> String:
-	var chart: String = Levels.LIST[level_index].chart
-	return MUSIC_DIR + chart.get_file().get_basename().trim_suffix("_chart") + ".json"
+	return MUSIC_DIR + Levels.paths()[level_index].get_file().get_basename() + ".json"
 
 
 func enabled_for(level_index: int) -> bool:

@@ -22,6 +22,10 @@ var _player: AudioStreamPlayer
 var _raw_time := 0.0
 var _last_beat := -1
 var _end_beat := 0.0
+## 音乐循环播放（小关不限时，歌放完了从头接着放）。song_time / song_beat 不会跟着归零，一直往上涨。
+var looping := true
+var _loop_len := 0.0   # 音乐文件一遍多长（秒）
+var _loop_base := 0.0  # 已经放完的整遍加起来多长
 # 预备拍：从负的时间开始时，先用系统时钟走，到 0 再真正开始放音乐
 var _waiting := false
 var _wait_from := 0.0
@@ -43,6 +47,9 @@ func load_chart(c: SongChart) -> void:
 		_player.stream = c.stream
 	else:
 		_player.stream = MetronomeStream.build(c.bpm, _end_beat, c.beats_per_bar)
+	_loop_len = _player.stream.get_length()
+	if looping:
+		_set_stream_loop(_player.stream)
 
 
 ## 从指定拍开始播放（也用作 seek：调试时直接跳到某一段）。
@@ -57,6 +64,7 @@ func play(from_beat: float = 0.0) -> void:
 	else:
 		_player.play(t)
 	_raw_time = t
+	_loop_base = 0.0
 	_update_clock()
 	_last_beat = ceili(from_beat) - 1
 	playing = true
@@ -88,9 +96,13 @@ func _process(_delta: float) -> void:
 			_waiting = false
 			_player.play(0.0)
 	else:
-		var t := _player.get_playback_position() \
+		var t := _loop_base + _player.get_playback_position() \
 				+ AudioServer.get_time_since_last_mix() \
 				- AudioServer.get_output_latency()
+		if looping and _loop_len > 0.0 and t < _raw_time - _loop_len * 0.5:
+			# 播放位置突然掉回开头 = 音乐绕回去了，时间接着往上数
+			_loop_base += _loop_len
+			t += _loop_len
 		_raw_time = maxf(_raw_time, t)  # 保证单调不回退
 	_update_clock()
 
@@ -101,8 +113,17 @@ func _process(_delta: float) -> void:
 		if _last_beat % chart.beats_per_bar == 0:
 			bar.emit(_last_beat / chart.beats_per_bar)
 
-	if song_beat >= _end_beat:
+	if not looping and song_beat >= _end_beat:
 		_finish()
+
+
+## 让音乐文件循环播放。注意：文件长度要正好是整数个小节，否则绕回去之后节拍会对不上。
+func _set_stream_loop(stream: AudioStream) -> void:
+	if stream is AudioStreamWAV:
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_end = int(stream.get_length() * stream.mix_rate)
+	elif "loop" in stream:
+		stream.set("loop", true)
 
 
 func _update_clock() -> void:

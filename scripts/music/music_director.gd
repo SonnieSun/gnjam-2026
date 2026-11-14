@@ -7,7 +7,7 @@ extends Control
 ##   · 每条轨道下的细条是切换点：拖动改位置，右键删掉。
 ##   · + 片段 往轨道里放 WAV，+ 轨道 加一条新轨道，右键一段 = 从轨道里拿掉。
 ## 快捷键：Space 播放 / 停止，← → 进度 ±5%，↑ ↓ 换小关，Ctrl+S 保存。
-## 配置存在 levels/music/<谱面名>.json；游戏里由 Music autoload 读（打开 USE IN GAME 之后）。
+## 配置存在 levels/music/<大关文件名>.json（如 level_1.json）；游戏里由 Music autoload 读（打开 USE IN GAME 之后）。
 
 const THEME := preload("res://assets/ui/theme.tres")
 const CueStrip := preload("res://scripts/music/cue_strip.gd")
@@ -72,8 +72,9 @@ func _build_ui() -> void:
 	title.theme_type_variation = "Header"
 	top.add_child(title)
 	_level_pick = OptionButton.new()
-	for l in Levels.LIST:
-		_level_pick.add_item(l.title)
+	for i in Levels.count():
+		var t: String = _level_chart(i).title
+		_level_pick.add_item(t if t != "" else "LEVEL %d" % (i + 1))
 	_level_pick.item_selected.connect(_load_level)
 	top.add_child(_level_pick)
 	_section_pick = OptionButton.new()
@@ -271,6 +272,13 @@ func _refresh() -> void:
 
 # ---------------------------------------------------------------- data
 
+## 第 index 个大关的谱面（levels/ 里的 .tres），算好每个小关的位置
+func _level_chart(index: int) -> SongChart:
+	var c := (load(Levels.paths()[index]) as SongChart).duplicate(true) as SongChart
+	c.recompute()
+	return c
+
+
 func _load_level(index: int) -> void:
 	if Conductor.playing:
 		_stop()
@@ -278,11 +286,11 @@ func _load_level(index: int) -> void:
 	_level_pick.selected = index
 	data = Music.read(Music.path_for(index))
 	if data.is_empty():
-		data = {"title": Levels.LIST[index].title, "bpm": 160, "use_in_game": false, "quantize_beats": 4,
+		data = {"title": _level_pick.get_item_text(index), "bpm": 160, "use_in_game": false, "quantize_beats": 4,
 			"lanes": [{"id": "lane1", "name": "轨道1", "gain_db": 0.0, "clips": []}], "sections": []}
 	section_titles = PackedStringArray()
 	section_markers = []
-	var chart: SongChart = load(Levels.LIST[index].chart).build()
+	var chart := _level_chart(index)
 	for def in chart.sections:
 		section_titles.append(def.title)
 		var marks := DEFAULT_MARKERS.duplicate()
