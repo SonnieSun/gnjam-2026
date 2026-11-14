@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 Registry="*res://levelkit/core/registry.gd"
 Sfx="*res://levelkit/core/sfx.gd"
 Conductor="*res://scripts/core/conductor.gd"
+Music="*res://scripts/music/music.gd"
 
 [display]
 

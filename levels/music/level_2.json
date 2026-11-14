@@ -1,0 +1,780 @@
+{
+ "title": "LEVEL 2",
+ "bpm": 160,
+ "use_in_game": false,
+ "quantize_beats": 4,
+ "tracks": [
+  {
+   "id": "groove",
+   "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav",
+   "group": "groove",
+   "gain_db": 0.0
+  },
+  {
+   "id": "bass",
+   "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav",
+   "group": "bass",
+   "gain_db": 0.0
+  },
+  {
+   "id": "fb_keys",
+   "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L0_keys_4b.wav",
+   "group": "bed",
+   "gain_db": 0.0
+  },
+  {
+   "id": "fb_hook",
+   "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L3_hook_4b.wav",
+   "group": "hook",
+   "gain_db": 0.0
+  },
+  {
+   "id": "fb_peak",
+   "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L4_peak_4b.wav",
+   "group": "peak",
+   "gain_db": 0.0
+  },
+  {
+   "id": "euro_keys",
+   "file": "res://assets/audio/music/scene1/style_eurobeat/s1_A_L0_keys_4b.wav",
+   "group": "bed",
+   "gain_db": 0.0
+  },
+  {
+   "id": "euro_hook",
+   "file": "res://assets/audio/music/scene1/style_eurobeat/s1_A_L3_hook_4b.wav",
+   "group": "hook",
+   "gain_db": 0.0
+  },
+  {
+   "id": "euro_peak",
+   "file": "res://assets/audio/music/scene1/style_eurobeat/s1_A_L4_peak_4b.wav",
+   "group": "peak",
+   "gain_db": 0.0
+  },
+  {
+   "id": "chip_keys",
+   "file": "res://assets/audio/music/scene1/style_chip/s1_chip_L0_keys_4b.wav",
+   "group": "bed",
+   "gain_db": 0.0
+  },
+  {
+   "id": "chip_hook",
+   "file": "res://assets/audio/music/scene1/style_chip/s1_chip_L3_hook_4b.wav",
+   "group": "hook",
+   "gain_db": 0.0
+  },
+  {
+   "id": "chip_peak",
+   "file": "res://assets/audio/music/scene1/style_chip/s1_chip_L4_peak_4b.wav",
+   "group": "peak",
+   "gain_db": 0.0
+  },
+  {
+   "id": "disco_keys",
+   "file": "res://assets/audio/music/scene1/style_disco/s1_B_L0_keys_4b.wav",
+   "group": "bed",
+   "gain_db": 0.0
+  },
+  {
+   "id": "disco_hook",
+   "file": "res://assets/audio/music/scene1/style_disco/s1_B_L3_hook_4b.wav",
+   "group": "hook",
+   "gain_db": 0.0
+  },
+  {
+   "id": "disco_peak",
+   "file": "res://assets/audio/music/scene1/style_disco/s1_B_L4_peak_4b.wav",
+   "group": "peak",
+   "gain_db": 0.0
+  },
+  {
+   "id": "jazz_piano",
+   "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L0_piano_4b.wav",
+   "group": "bed",
+   "gain_db": 0.0
+  },
+  {
+   "id": "jazz_groove",
+   "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L1_groove_4b.wav",
+   "group": "groove",
+   "gain_db": 0.0
+  },
+  {
+   "id": "jazz_bass",
+   "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L2_bass_4b.wav",
+   "group": "bass",
+   "gain_db": 0.0
+  },
+  {
+   "id": "jazz_sax",
+   "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L3_sax_4b.wav",
+   "group": "hook",
+   "gain_db": 0.0
+  },
+  {
+   "id": "jazz_shout",
+   "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L4_shout_4b.wav",
+   "group": "peak",
+   "gain_db": 0.0
+  },
+  {
+   "id": "cat_drums",
+   "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav",
+   "group": "cat",
+   "gain_db": 0.0
+  },
+  {
+   "id": "cat_lead",
+   "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_4b.wav",
+   "group": "hook",
+   "gain_db": 0.0
+  }
+ ],
+ "sections": [
+  {
+   "title": "1 LICK",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "fb_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "fb_hook": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "fb_peak": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "2 SHRINK",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "euro_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "euro_hook": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "euro_peak": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "3 TRIPLE",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "chip_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "chip_hook": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "chip_peak": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "4 ORBIT",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "disco_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "disco_hook": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "disco_peak": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "5 CLOCK",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "fb_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "fb_hook": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "fb_peak": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "6 RIPPLE",
+   "rules": {
+    "jazz_groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "jazz_piano": [
+     [
+      0,
+      1
+     ]
+    ],
+    "jazz_bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "jazz_sax": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "jazz_shout": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "7 RINGS",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "euro_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "euro_hook": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "euro_peak": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "8 MOON",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "chip_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "chip_hook": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "chip_peak": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "1 LICK",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "fb_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "fb_hook": [
+     [
+      0.5,
+      0.75
+     ]
+    ],
+    "fb_peak": [
+     [
+      0.75,
+      1
+     ]
+    ],
+    "cat_drums": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "cat_lead": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "2 SHRINK",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "euro_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "euro_hook": [
+     [
+      0.5,
+      0.75
+     ]
+    ],
+    "euro_peak": [
+     [
+      0.75,
+      1
+     ]
+    ],
+    "cat_drums": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "cat_lead": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "3 TRIPLE",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "chip_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "chip_hook": [
+     [
+      0.5,
+      0.75
+     ]
+    ],
+    "chip_peak": [
+     [
+      0.75,
+      1
+     ]
+    ],
+    "cat_drums": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "cat_lead": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "4 ORBIT",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "disco_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "disco_hook": [
+     [
+      0.5,
+      0.75
+     ]
+    ],
+    "disco_peak": [
+     [
+      0.75,
+      1
+     ]
+    ],
+    "cat_drums": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "cat_lead": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "5 CLOCK",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "fb_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "fb_hook": [
+     [
+      0.5,
+      0.75
+     ]
+    ],
+    "fb_peak": [
+     [
+      0.75,
+      1
+     ]
+    ],
+    "cat_drums": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "cat_lead": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "6 RIPPLE",
+   "rules": {
+    "jazz_groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "jazz_piano": [
+     [
+      0,
+      1
+     ]
+    ],
+    "jazz_bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "jazz_sax": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "jazz_shout": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "7 RINGS",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "euro_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "euro_hook": [
+     [
+      0.5,
+      0.75
+     ]
+    ],
+    "euro_peak": [
+     [
+      0.75,
+      1
+     ]
+    ],
+    "cat_drums": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "cat_lead": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  },
+  {
+   "title": "8 MOON",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "chip_keys": [
+     [
+      0,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.25,
+      1
+     ]
+    ],
+    "chip_hook": [
+     [
+      0.5,
+      0.75
+     ]
+    ],
+    "chip_peak": [
+     [
+      0.75,
+      1
+     ]
+    ],
+    "cat_drums": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "cat_lead": [
+     [
+      0.75,
+      1
+     ]
+    ]
+   }
+  }
+ ]
+}

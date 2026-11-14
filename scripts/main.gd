@@ -17,11 +17,20 @@ var chart: SongChart
 var _index := -1
 var _min_index := 0  # 预备拍期间不要切回前一段
 var _current: SpinSection
+## 这一大关用叠轨音乐（Music Director 里开了 USE IN GAME）
+var _music := false
 
 
 func _ready() -> void:
 	# 谱面由主菜单选中的大关决定（见 scripts/core/levels.gd）；直接运行本场景时是第 1 大关
 	chart = Levels.build_chart()
+	# 叠轨音乐：这一大关的音乐配置（Music Director 里编辑）开了“在游戏里用”，就用它代替谱面里的伴奏，
+	# BPM 也跟着配置走；小关 = 当前段落，进度 = 在这一段里走了多少（0-1）。没开的大关完全不受影响。
+	if Music.enabled_for(Levels.selected):
+		chart.stream = Music.build(Music.read(Music.path_for(Levels.selected)))
+		chart.bpm = Music.bpm()
+		chart.first_beat_offset_sec = 0.0
+		_music = true
 	drum_kit.use_chart(chart)
 	Conductor.load_chart(chart)
 	judge.load_chart(chart)
@@ -54,6 +63,9 @@ func _process(_delta: float) -> void:
 	var i := maxi(chart.section_index_at(Conductor.song_beat), _min_index)
 	if i != _index:
 		_switch_to(i, true)
+	if _music:
+		var sec := chart.sections[_index]
+		Music.set_progress((Conductor.song_beat - sec.start_beat) / maxf(sec.length, 1.0))
 	hud.set_debug("%s  |  bar %d  beat %.2f  |  [1-%d] jump  [R] restart  [Esc] menu" % [
 		chart.sections[_index].title,
 		int(Conductor.song_beat / chart.beats_per_bar) + 1,
@@ -65,6 +77,8 @@ func _process(_delta: float) -> void:
 func _switch_to(index: int, animate: bool) -> void:
 	var old := _current
 	_index = index
+	if _music:
+		Music.set_section(index)
 	var def := chart.sections[index]
 	_current = def.scene.instantiate() as SpinSection
 	_current.setup(def, judge.notes_for_section(index))
