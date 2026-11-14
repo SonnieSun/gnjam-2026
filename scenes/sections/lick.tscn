@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://yfiv7qjmuv1t"]
+
+[ext_resource type="Script" uid="uid://bb5ntvkj5mkev" path="res://scripts/sections/lick_section.gd" id="1"]
+
+[node name="LickSection" type="Node2D" unique_id=772433394]
+script = ExtResource("1")

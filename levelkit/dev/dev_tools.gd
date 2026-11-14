@@ -152,7 +152,7 @@ func _test_judge() -> void:
 	l.add_note(2.0, 0) # t = 1.0
 	l.add_note(3.0, 1) # t = 1.5
 	l.add_note(4.0, 0) # t = 2.0
-	var j := Judge.new(l)
+	var j := LevelKitJudge.new(l)
 	j.reset()
 	_check(j.press(0, 1.02).judge == "perfect", "judge perfect")
 	_check(j.press(1, 1.5 + 0.08).judge == "good", "judge good")

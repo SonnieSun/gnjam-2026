@@ -6,7 +6,7 @@ Godot 4.7。一份关卡就是一个 JSON 文件，里面有两样东西：谱�
 
 ## 打开
 
-- 在 Godot 里打开 `levelkit/level_editor.tscn`，按 **F6**（运行当前场景）。主场景还是原来的 `node_2d.tscn`，没有动。
+- 在 Godot 里打开 `levelkit/level_editor.tscn`，按 **F6**（运行当前场景）。按 **F5** 则运行节奏游戏主场景 `main.tscn`。
 - 命令行（`G` 是 Godot 可执行文件的路径）：
 
 ```bash
@@ -77,7 +77,7 @@ clock.note_passed.connect(func(n): ...)  # 每个音符到达时触发
 clock.beat                               # 当前拍子（float）
 clock.hits(lane)                         # x = 已经过的次数，y = 距上一次多少拍
 
-var judge := Judge.new(level)            # 判定：press(lane, clock.time) / expire(clock.time)
+var judge := LevelKitJudge.new(level)    # 判定：press(lane, clock.time) / expire(clock.time)
 ```
 
 世界坐标和时间是绑定的：`x = beat * meta.px_per_beat`。所以按拍子摆的东西在游戏里天然就踩在节拍上。
@@ -91,7 +91,7 @@ var judge := Judge.new(level)            # 判定：press(lane, clock.time) / ex
 | 改轨道数、名字、按键、音色 | `Registry.LANES` |
 | 换生成规则 | `core/chart_gen.gd`：`PATTERNS` 节奏型库（越多越不重复）、`_assign_lanes` 轨道规则、`place_runner` 世界规则 |
 | 判定窗口 | `core/judge.gd` 顶部的三个常量 |
-| 真正的玩法 | 自己写一个场景，用上面的 `SongClock` + `Judge` + `LevelBuilder`。`play/playtest.gd` 是一个可以参考的最小例子 |
+| 真正的玩法 | 自己写一个场景，用上面的 `SongClock` + `LevelKitJudge` + `LevelBuilder`。`play/playtest.gd` 是一个可以参考的最小例子 |
 
 ## 结构
 

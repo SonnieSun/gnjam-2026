@@ -3,7 +3,7 @@ extends Control
 ## Tab in the editor: play the chart with the lane keys, judged. A generic
 ## four-lane highway so a chart can be tested before the real game exists;
 ## the jam game replaces this with its own player, using the same SongClock
-## and Judge.
+## and LevelKitJudge.
 
 signal finished
 
@@ -14,7 +14,7 @@ const LOOKAHEAD := 4.0
 
 var doc: LevelDoc
 var clock: SongClock
-var judge: Judge
+var judge: LevelKitJudge
 var active := false
 
 var _flash: Array[float] = []
@@ -30,7 +30,7 @@ var _hitsounds_before := true
 func setup(d: LevelDoc, c: SongClock) -> void:
 	doc = d
 	clock = c
-	judge = Judge.new(d.level)
+	judge = LevelKitJudge.new(d.level)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false

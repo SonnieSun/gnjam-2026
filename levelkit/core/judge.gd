@@ -1,4 +1,4 @@
-class_name Judge
+class_name LevelKitJudge
 extends RefCounted
 ## Timing judgement against a level's chart, in song seconds. Knows nothing
 ## about input or drawing: press() when a lane is pressed, expire() every

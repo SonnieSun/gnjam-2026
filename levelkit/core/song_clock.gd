@@ -165,7 +165,7 @@ func hits(lane: int) -> Vector2:
 	return Vector2(_count[lane], maxf(0.0, beat - _last[lane]))
 
 
-## The player pressed a lane by hand (judging is Judge's business).
+## The player pressed a lane by hand (judging is LevelKitJudge's business).
 func tap(lane: int) -> void:
 	_fire(lane, beat, true)
 
