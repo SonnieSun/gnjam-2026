@@ -1,5 +1,10 @@
 # 叠轨音乐播放管理（设计）
 
+> **已经做了的（2026-11-15）**：`Music` autoload（`scripts/music/music.gd`）和 Music Director 面板
+> （`scenes/tools/music_director.tscn`，F6 运行）。每个大关的配置在 `levels/music/level_<n>.json`。
+> 下面"运行时"一节写的四个旋钮，第一版统一成了一个更灵活的东西：**每条 track 在积累条进度上的区间**。
+> 详见文末"Music Director"。
+
 目标：一关的音乐由几层 loop 叠起来，玩法推进时在小节线上加层、换层、换风格，节拍时钟不受影响。
 素材见 `assets/audio/README.md`。下面是第一版要做的东西，先简单能用。
 
@@ -116,3 +121,37 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 6. 实测：长时间播放会不会漂（开 10 分钟看 `song_beat` 和各层是否还对齐）。
 
 还没定的：猫化由什么驱动（连击，还是关卡进度）；六个 MV 场景各用哪个风格、哪首经典曲；谱面要改成 160 BPM。
+
+## Music Director（已做）
+
+打开 `scenes/tools/music_director.tscn` 按 F6。
+
+- **上面**：选大关、选小关（名字和积累条事件线直接取自这一关的谱面）、PLAY、当前小节、
+  USE IN GAME（打开后游戏里这一大关用这套音乐，BPM 也改成它的）、SAVE、EXPORT MIX。
+- **中间**：每条 track 一行：静音 M / 独奏 S（只在面板里，不存）、增益、它在积累条进度 0-100% 上响的区间。
+  - 空白处拖 = 画一段新区间；拖两头 = 改起止；拖中间 = 平移；右键 = 删；双击 = 铺满 / 清空。
+  - 吸附到 5% 网格和积累条事件线（粉色虚线）；白线是当前进度；行尾小方块是这条 track 现在的音量。
+  - `×` 从这一大关拿掉这条 track；`+ TRACK` 从 `assets/audio/music` 里选 WAV 加进来（一大关最多 32 条）。
+- **下面**：PROGRESS 滑条 = 积累条有多满。SNAP 开着时变化排到下一个小节线生效（和游戏里一样）；
+  AUTO 让进度随音乐在 N 小节里从 0 走到 100%，模拟玩一遍这个小关；COPY PREV SECTION 复制上一个小关的区间。
+- **EXPORT MIX**：录一遍 AUTO（这个小关从 0% 叠到 100%）存成 `levels/music/exports/level_<n>_<小关>.wav`，
+  方便发给别人听（这个文件夹不进 git）。
+- 快捷键：Space 播放 / 停止，← → 进度 ±5%，↑ ↓ 换小关，Ctrl+S 保存。
+
+配置格式（`levels/music/level_<n>.json`）：
+
+```json
+{
+  "title": "LEVEL 1", "bpm": 160, "use_in_game": false, "quantize_beats": 4,
+  "tracks": [{"id": "groove", "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav", "group": "groove", "gain_db": 0}],
+  "sections": [{"title": "DISCO", "rules": {"groove": [[0, 1]], "bass": [[0.15, 0.8]]}}]
+}
+```
+
+`rules` 里每条 track 是一组 `[从, 到]` 区间（进度 0-1），在区间里就响。初始配置由
+`tools/music_gen/make_music_sets.py` 生成（第 1 关：future bass 越来越猫；第 2 关：16 个小关轮流换风格，
+第二轮加猫；第 3、4 关：六个 MV 小关一关比一关猫；第 5 关：康康舞曲）。之后都在面板里改。
+
+游戏里（`scripts/main.gd` 开头那几行）：配置开了 `use_in_game` 的大关，谱面的伴奏换成这套同步流、
+BPM 换成配置的；进小关时 `Music.set_section(i)`，积累条变化时 `Music.set_progress(值 / 满条值)`。
+没开的大关完全不变。注意现在的谱面是按 120 BPM 写的，开了之后整关会变成 160。

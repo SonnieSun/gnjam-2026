@@ -1,0 +1,135 @@
+{
+ "title": "LEVEL 1",
+ "bpm": 160,
+ "use_in_game": false,
+ "quantize_beats": 4,
+ "tracks": [
+  {
+   "id": "groove",
+   "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav",
+   "group": "groove",
+   "gain_db": 0.0
+  },
+  {
+   "id": "bass",
+   "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav",
+   "group": "bass",
+   "gain_db": 0.0
+  },
+  {
+   "id": "fb_keys",
+   "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L0_keys_4b.wav",
+   "group": "bed",
+   "gain_db": 0.0
+  },
+  {
+   "id": "fb_hook",
+   "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L3_hook_4b.wav",
+   "group": "hook",
+   "gain_db": 0.0
+  },
+  {
+   "id": "fb_peak",
+   "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L4_peak_4b.wav",
+   "group": "peak",
+   "gain_db": 0.0
+  },
+  {
+   "id": "cat_drums",
+   "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav",
+   "group": "cat",
+   "gain_db": 0.0
+  },
+  {
+   "id": "cat_stabs",
+   "file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav",
+   "group": "bed",
+   "gain_db": 0.0
+  },
+  {
+   "id": "cat_lead",
+   "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_4b.wav",
+   "group": "hook",
+   "gain_db": 0.0
+  },
+  {
+   "id": "cat_bass",
+   "file": "res://assets/audio/music/scene1/cat_band/s1_C_bass_4b.wav",
+   "group": "bass",
+   "gain_db": 0.0
+  },
+  {
+   "id": "ev_meow",
+   "file": "res://assets/audio/music/scene1/events/s1_X_meow_4b.wav",
+   "group": "event",
+   "gain_db": 0.0
+  }
+ ],
+ "sections": [
+  {
+   "title": "DISCO",
+   "rules": {
+    "groove": [
+     [
+      0,
+      1
+     ]
+    ],
+    "fb_keys": [
+     [
+      0,
+      0.5
+     ]
+    ],
+    "cat_stabs": [
+     [
+      0.5,
+      1
+     ]
+    ],
+    "bass": [
+     [
+      0.15,
+      0.8
+     ]
+    ],
+    "cat_bass": [
+     [
+      0.8,
+      1
+     ]
+    ],
+    "fb_hook": [
+     [
+      0.3,
+      0.65
+     ]
+    ],
+    "cat_lead": [
+     [
+      0.65,
+      1
+     ]
+    ],
+    "fb_peak": [
+     [
+      0.45,
+      1
+     ]
+    ],
+    "cat_drums": [
+     [
+      0.15,
+      1
+     ]
+    ],
+    "ev_meow": [
+     [
+      0.9,
+      1
+     ]
+    ]
+   }
+  }
+ ]
+}

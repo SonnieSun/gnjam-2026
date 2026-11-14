@@ -39,6 +39,14 @@ var _cleared := false
 func _ready() -> void:
 	# 谱面由主菜单选中的大关决定（见 scripts/core/levels.gd）；直接运行本场景时是第 1 大关
 	chart = Levels.build_chart()
+	# 叠轨音乐：这一大关的音乐配置（Music Director 里编辑）开了“在游戏里用”，就用它代替谱面里的伴奏，
+	# BPM 也跟着配置走；进度 = 积累条，小关 = 当前小关。没开的大关完全不受影响。
+	if Music.enabled_for(Levels.selected):
+		chart.stream = Music.build(Music.read(Music.path_for(Levels.selected)))
+		chart.bpm = Music.bpm()
+		chart.first_beat_offset_sec = 0.0
+		section_entered.connect(Music.set_section)
+		gauge.changed.connect(func(v: int, m: int) -> void: Music.set_progress(float(v) / maxi(m, 1)))
 	ComicStyle.set_by_name(Levels.look())
 	drum_kit.use_chart(chart)
 	Conductor.load_chart(chart)
