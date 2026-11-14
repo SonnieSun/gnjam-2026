@@ -53,6 +53,13 @@ func begin(new_max: int = 0, new_events: Variant = null) -> void:
 	changed.emit(value, max_value)
 
 
+## 直接把积累条拨到某个数（游戏里的编辑面板拖进度条时用）。不触发事件，也不会过关。
+func set_value(new_value: int) -> void:
+	value = clampi(new_value, 0, max_value)
+	full = false
+	changed.emit(value, max_value)
+
+
 ## 按判定结果加减分。满条之后不再变化。
 func apply(result: int) -> void:
 	if full:

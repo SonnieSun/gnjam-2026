@@ -8,6 +8,9 @@
 [ext_resource type="Script" uid="uid://c5yy16mrvvyv4" path="res://scripts/core/background_manager.gd" id="5_bg"]
 [ext_resource type="Script" uid="uid://b0wa8vfrokbey" path="res://scripts/core/gauge.gd" id="6_gauge"]
 
+[ext_resource type="Script" path="res://scripts/fx/screen_fx.gd" id="7_sfx"]
+[ext_resource type="Script" path="res://scripts/fx/meme_cues.gd" id="8_memes"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_border"]
 draw_center = false
 border_width_left = 12
@@ -67,6 +70,12 @@ stretch_mode = 6
 
 [node name="FxLayer" type="Node2D" parent="." unique_id=1410506904]
 
+[node name="Memes" type="Node2D" parent="."]
+script = ExtResource("8_memes")
+
+[node name="ScreenFx" type="CanvasLayer" parent="."]
+script = ExtResource("7_sfx")
+
 [node name="Judge" type="Node" parent="." unique_id=91772685]
 script = ExtResource("2")
 
@@ -77,6 +86,7 @@ script = ExtResource("6_gauge")
 script = ExtResource("4")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1679597583]
+layer = 2
 script = ExtResource("3")
 
 [node name="Border" type="Panel" parent="HUD" unique_id=1452004365]
