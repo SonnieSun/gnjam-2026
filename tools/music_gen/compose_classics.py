@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from audio import (BAR, SR, adsr, bandpass, highpass, lowpass, mtof, nm, noise, osc_fm, osc_pulse,  # noqa: E402
                    osc_saw, osc_sine, osc_supersaw, pan, place, read_wav, reverb, softclip, svf_lowpass,
                    t2n, write_wav)
-from psola import sing, sing_miao  # noqa: E402
+from psola import midi_contour, sing, sing_miao  # noqa: E402
 from slicer import slices  # noqa: E402
 
 loops = sys.argv[1]
@@ -79,6 +79,7 @@ def stereo(v, side=0.0):
 #   accent  the low long notes (at or below E5, so they are never pushed up into a squeal) and the
 #           'MIAO' that ends each phrase
 #   short   take turns on short notes, the meow drums, the cat chords and the 'mi-mi-mi' stutter
+# Within a role, each note goes only to the cats whose own pitch is near it (see turn()).
 # Numbers are the 喵选秀 candidates (the miao_score.py ranking); #1-3 are CC BY 4.0, the rest CC0.
 SAMPLES = os.path.join(os.path.dirname(loops), 'samples')
 _B = os.path.join(SAMPLES, 'bigsoundbank_cats')
@@ -111,10 +112,10 @@ def trim_tail(sl, floor_db=-26):
     env = np.sqrt(np.convolve(m ** 2, np.ones(w) / w, mode='same'))
     keep = np.nonzero(env > env.max() * 10 ** (floor_db / 20))[0]
     end = min(len(sl), keep[-1] + int(0.03 * SR)) if len(keep) else len(sl)
-    # and a quiet start (a hummed 'm', a breath) would land the meow late on its beat: start 15 ms
-    # before it reaches -18 dB of its peak
-    loud = np.nonzero(env > env.max() * 10 ** (-18 / 20))[0]
-    start = max(0, loud[0] - int(0.015 * SR)) if len(loud) else 0
+    # and a quiet start (a hummed 'm', a murmur, a breath) would land the meow late on its beat:
+    # start 5 ms before it reaches -12 dB of its peak (#8 murmurs for 0.8 s before its meow)
+    loud = np.nonzero(env > env.max() * 10 ** (-12 / 20))[0]
+    start = max(0, loud[0] - int(0.005 * SR)) if len(loud) else 0
     out = sl[start:end].copy()
     g = min(int(0.005 * SR), len(out) // 4)
     out[:g] *= (np.linspace(0, 1, g)[:, None] if out.ndim == 2 else np.linspace(0, 1, g))
@@ -150,10 +151,39 @@ for _role in ('long', 'accent', 'short'):
     for _i in ROSTER[_role]:
         write_wav(os.path.join(_kdir, f'miao_{_role}_{_i:02d}.wav'), cat_sample(_i), peak=0.9)
 _turns = {}
+# each cat's own pitch (the median of its meow), so a note goes to a cat that is already near it
+_native = {}
 
 
-def turn(pool, key):
-    """The next cat of a pool, taking turns."""
+def native(sample):
+    if id(sample) not in _native:
+        pc = midi_contour(sample.mean(axis=1) if sample.ndim == 2 else sample)
+        _native[id(sample)] = float(np.median(pc)) if pc is not None else 72.0
+    return _native[id(sample)]
+
+
+# A meow pitched far down stops sounding like a cat (a high kitten sung 20 semitones lower is a
+# growl), so a cat only sings notes from DOWN semitones below its own pitch to UP above it.
+DOWN, UP = 5, 7
+
+
+def lift(midi):
+    """A note lower than every cat can sing goes up an octave (the tune stays, the meow stays a meow)."""
+    lowest = min(native(x) for x in LONG + ACCENT + SHORT) - DOWN
+    while midi < lowest:
+        midi += 12
+    return midi
+
+
+def turn(pool, key, midi=None):
+    """The next cat of a pool, taking turns; with a note, only among the cats near that note. None
+    near: a cat from the other roles that is near (a short note borrows a long cat, sped up), else
+    the one that needs the smallest shift, a shift down counting double."""
+    if midi is not None:
+        def near(cats):
+            return [s for s in cats if -DOWN <= midi - native(s) <= UP]
+        everyone = LONG + ACCENT + SHORT
+        pool = near(pool) or near(everyone) or [min(everyone, key=lambda s: 2 * (native(s) - midi) if midi < native(s) else midi - native(s))]
     _turns[key] = _turns.get(key, -1) + 1
     return pool[_turns[key] % len(pool)]
 
@@ -168,15 +198,16 @@ def miao(midi, seconds, style='mix', flow=False):
     next note (the caller fades that tail) instead of being squeezed and cut."""
     def fit(sample, sec):
         return max(sec, 0.8 * len(sample) / SR) if flow else sec
+    midi = lift(midi)
     if seconds < 0.33:                 # an 8th or shorter; a quarter note already gets a whole 'Miiiiao'
-        s = turn(SHORT, 'short')
+        s = turn(SHORT, 'short', midi)
         return sing_miao(s, midi, fit(s, max(seconds * 0.95, 0.12)), keep=0.3)
     if style == 'mix' and midi <= nm('E5'):
-        s = turn(ACCENT, 'accent')
+        s = turn(ACCENT, 'accent', midi)
     elif style == 'classic':
         s = LONG[0]
     else:
-        s = turn(LONG, 'long')
+        s = turn(LONG, 'long', midi)
     return sing_miao(s, midi, fit(s, seconds * 0.97), keep=0.4)
 
 
@@ -194,12 +225,14 @@ def shout(midi, seconds):
     """An accent cat's 'MIAO' that ends a phrase, an octave down when the note is above C5."""
     while midi > nm('C5'):
         midi -= 12
-    return sing_miao(turn(ACCENT, 'shout'), midi, max(seconds, 0.3), keep=0.4)
+    midi = lift(midi)
+    return sing_miao(turn(ACCENT, 'shout', midi), midi, max(seconds, 0.3), keep=0.4)
 
 
 def mi(midi, seconds=0.05):
     """Just the 'mi' at the front of a short cat's meow: for stutters and off-beat ticks."""
-    v = sing_miao(turn(SHORT, 'mi'), midi, 0.3, keep=0.2)
+    midi = lift(midi)
+    v = sing_miao(turn(SHORT, 'mi', midi), midi, 0.3, keep=0.2)
     n = int(seconds * SR)
     v = v[:n].copy()
     v[-int(0.008 * SR):] *= np.linspace(1, 0, int(0.008 * SR))
