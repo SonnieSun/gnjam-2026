@@ -1,0 +1,264 @@
+[gd_scene format=3 uid="uid://cbjolnk0d75p0"]
+
+[ext_resource type="Shader" uid="uid://b0bbypebhrfj8" path="res://assets/menu/vinyl.gdshader" id="2_vinyl"]
+[ext_resource type="Shader" uid="uid://djb0rorlq822y" path="res://assets/menu/beam.gdshader" id="3_beam"]
+[ext_resource type="PackedScene" path="res://scenes/menu_cat_3d.tscn" id="4_cat"]
+
+[sub_resource type="Environment" id="Environment_disc"]
+ambient_light_source = 2
+ambient_light_color = Color(0.35, 0.3, 0.55, 1)
+ambient_light_energy = 0.15
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 1.0
+glow_bloom = 0.08
+glow_hdr_threshold = 0.9
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vinyl"]
+render_priority = 0
+shader = ExtResource("2_vinyl")
+shader_parameter/vinyl_color = Color(0.045, 0.04, 0.065, 1)
+shader_parameter/groove_color = Color(0.17, 0.16, 0.22, 1)
+shader_parameter/groove_density = 14.0
+shader_parameter/groove_strength = 0.55
+shader_parameter/label_radius = 2.6
+shader_parameter/label_color = Color(1, 0.36, 0.56, 1)
+shader_parameter/speck_color = Color(1, 0.85, 0.4, 1)
+shader_parameter/speck_density = 2.2
+shader_parameter/speck_amount = 0.12
+shader_parameter/speck_energy = 1.4
+shader_parameter/sheen_color = Color(0.6, 0.62, 1, 1)
+shader_parameter/sheen_strength = 0.1
+shader_parameter/sheen_sharpness = 30.0
+shader_parameter/sheen_angle = 0.7
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_disc"]
+material = SubResource("ShaderMaterial_vinyl")
+top_radius = 10.0
+bottom_radius = 10.0
+height = 0.3
+radial_segments = 160
+rings = 1
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_beam"]
+render_priority = 0
+shader = ExtResource("3_beam")
+shader_parameter/color = Color(1, 0.48, 0.16, 1)
+shader_parameter/core_color = Color(1, 0.8, 0.55, 1)
+shader_parameter/intensity = 0.85
+shader_parameter/half_angle_deg = 17.0
+shader_parameter/edge_softness = 0.45
+shader_parameter/core_width = 0.25
+shader_parameter/beam_length = 22.0
+shader_parameter/falloff = 0.9
+shader_parameter/start_radius = 1.5
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_beam"]
+material = SubResource("ShaderMaterial_beam")
+size = Vector2(44, 22)
+center_offset = Vector3(0, 0, -11)
+
+[node name="MenuDisc3D" type="Node3D" unique_id=905347381]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=288171575]
+environment = SubResource("Environment_disc")
+
+[node name="FillLight" type="DirectionalLight3D" parent="." unique_id=89840150]
+transform = Transform3D(0.8660254, -0.38302222, 0.32139382, 0, 0.64278764, 0.76604444, -0.5, -0.66341394, 0.5566704, 0, 0, 0)
+light_color = Color(0.7, 0.72, 1, 1)
+light_energy = 0.15
+
+[node name="Camera" type="Camera3D" parent="." unique_id=1089948856]
+transform = Transform3D(1, 0, 0, 0, 0.8660254, 0.5, 0, -0.5, 0.8660254, 0, 3.2, -2)
+current = true
+fov = 40.0
+
+[node name="Record" type="Node3D" parent="." unique_id=1536617729]
+
+[node name="DiscMesh" type="MeshInstance3D" parent="Record" unique_id=1107874015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
+mesh = SubResource("CylinderMesh_disc")
+
+[node name="Labels" type="Node3D" parent="." unique_id=1236214958]
+
+[node name="Item1" type="Node3D" parent="Labels" unique_id=1766153650]
+
+[node name="Anchor" type="Node3D" parent="Labels/Item1" unique_id=975275861]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
+
+[node name="Title" type="Label3D" parent="Labels/Item1/Anchor" unique_id=248771300]
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "LEVEL 1"
+font_size = 110
+outline_size = 10
+
+[node name="Sub" type="Label3D" parent="Labels/Item1/Anchor" unique_id=346351501]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "6 STAGES"
+font_size = 40
+outline_size = 10
+
+[node name="Item2" type="Node3D" parent="Labels" unique_id=38264407]
+transform = Transform3D(0.30901697, 0, -0.95105654, 0, 1, 0, 0.95105654, 0, 0.30901697, 0, 0, 0)
+
+[node name="Anchor" type="Node3D" parent="Labels/Item2" unique_id=980666026]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
+
+[node name="Title" type="Label3D" parent="Labels/Item2/Anchor" unique_id=1265630260]
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "LEVEL 2"
+font_size = 110
+outline_size = 10
+
+[node name="Sub" type="Label3D" parent="Labels/Item2/Anchor" unique_id=2039808061]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "6 STAGES"
+font_size = 40
+outline_size = 10
+
+[node name="Item3" type="Node3D" parent="Labels" unique_id=1211890959]
+transform = Transform3D(-0.80901706, 0, -0.5877852, 0, 1, 0, 0.5877852, 0, -0.80901706, 0, 0, 0)
+
+[node name="Anchor" type="Node3D" parent="Labels/Item3" unique_id=2125977670]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
+
+[node name="Title" type="Label3D" parent="Labels/Item3/Anchor" unique_id=462537424]
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "LEVEL 3"
+font_size = 110
+outline_size = 10
+
+[node name="Sub" type="Label3D" parent="Labels/Item3/Anchor" unique_id=1564973456]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "6 STAGES"
+font_size = 40
+outline_size = 10
+
+[node name="Item4" type="Node3D" parent="Labels" unique_id=1205487882]
+transform = Transform3D(-0.80901694, 0, 0.58778536, 0, 1, 0, -0.58778536, 0, -0.80901694, 0, 0, 0)
+
+[node name="Anchor" type="Node3D" parent="Labels/Item4" unique_id=919195903]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
+
+[node name="Title" type="Label3D" parent="Labels/Item4/Anchor" unique_id=1787542818]
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "LEVEL 4"
+font_size = 110
+outline_size = 10
+
+[node name="Sub" type="Label3D" parent="Labels/Item4/Anchor" unique_id=1966322400]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "6 STAGES"
+font_size = 40
+outline_size = 10
+
+[node name="Item5" type="Node3D" parent="Labels" unique_id=769085911]
+transform = Transform3D(0.30901712, 0, 0.9510565, 0, 1, 0, -0.9510565, 0, 0.30901712, 0, 0, 0)
+
+[node name="Anchor" type="Node3D" parent="Labels/Item5" unique_id=582635542]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
+
+[node name="Title" type="Label3D" parent="Labels/Item5/Anchor" unique_id=296482875]
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "LEVEL 5"
+font_size = 110
+outline_size = 10
+
+[node name="Sub" type="Label3D" parent="Labels/Item5/Anchor" unique_id=1419769442]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
+double_sided = false
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
+text = "6 STAGES"
+font_size = 40
+outline_size = 10
+
+[node name="ScratchContact" type="Marker3D" parent="." unique_id=436002702]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.03, -8)
+
+[node name="SupportContact" type="Marker3D" parent="." unique_id=1814123800]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0.03, -9.4)
+
+[node name="Cat" parent="." unique_id=180647467 node_paths=PackedStringArray("scratch_contact", "support_contact") instance=ExtResource("4_cat")]
+transform = Transform3D(0.6, 0, 0, 0, 0.2052121, -0.5638156, 0, 0.5638156, 0.2052121, -0.1, 0, -10)
+scratch_contact = NodePath("../ScratchContact")
+support_contact = NodePath("../SupportContact")
+
+[node name="Model" parent="Cat" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.37957, 0, 0)
+
+[node name="Skeleton3D" parent="Cat/Model/ARM-CATS-Scratch" index="0" unique_id=617405450]
+bones/0/scale = Vector3(1, 0.9999998, 0.9999998)
+bones/3/rotation = Quaternion(0.9508961, 0, 0, -0.30951044)
+bones/3/scale = Vector3(1, 0.99999994, 0.99999994)
+bones/5/position = Vector3(0.0036, 0.0029597613, 0.005092131)
+bones/5/rotation = Quaternion(-0.22615762, 0.172817, -0.14718542, 0.9472716)
+bones/5/scale = Vector3(0.9999999, 1.891698, 0.99999994)
+bones/6/position = Vector3(0, 0.0064536855, -2.7939677e-09)
+bones/6/rotation = Quaternion(-0.013720887, 0.0951838, 0.1647007, 0.9816443)
+bones/6/scale = Vector3(0.94694924, 1.439069, 1.035745)
+bones/7/position = Vector3(-0.00089393277, 0.005364137, -1.3969839e-09)
+bones/7/rotation = Quaternion(0.54947644, -0.3072078, 0.18145347, 0.75549567)
+bones/7/scale = Vector3(1.0159168, 0.8654218, 0.49268603)
+bones/9/position = Vector3(-0.0036000002, 0.0029597613, 0.005092131)
+bones/9/rotation = Quaternion(0.3989298, -0.1912893, 0.23064905, 0.86663973)
+bones/9/scale = Vector3(0.9999998, 0.80410826, 0.99999994)
+bones/10/position = Vector3(9.313226e-10, 0.006453683, 1.3969839e-09)
+bones/10/rotation = Quaternion(-0.09083738, 0.14397442, -0.21708524, 0.96119404)
+bones/10/scale = Vector3(0.9033369, 1.3760133, 0.9810373)
+bones/11/position = Vector3(0.00010614144, 0.005395842, 9.313226e-10)
+bones/11/rotation = Quaternion(-0.042236954, -0.02967326, -0.117152035, 0.99177164)
+bones/11/scale = Vector3(1.1959733, 0.903234, 1.0345867)
+bones/13/rotation = Quaternion(0.9418938, 0, 0, -0.33591074)
+bones/13/scale = Vector3(1, 0.9999998, 0.9999995)
+bones/15/rotation = Quaternion(0.23866822, 0, 0, 0.97110116)
+bones/17/rotation = Quaternion(0.7915045, 0.05275076, 0.010652544, 0.6087893)
+bones/17/scale = Vector3(0.9999997, 0.99999994, 0.99999994)
+bones/18/scale = Vector3(1.0000001, 0.9999998, 1.0000002)
+bones/21/rotation = Quaternion(0.79150456, -0.052750755, -0.010652535, 0.6087893)
+bones/21/scale = Vector3(0.9999997, 0.99999994, 0.99999994)
+bones/22/rotation = Quaternion(0.016293768, -0.009761706, 0.007327055, 0.99979275)
+bones/22/scale = Vector3(1.0000001, 0.9999998, 1.0000002)
+
+[node name="AnimationPlayer" parent="Cat/Model" index="1" unique_id=277897374]
+callback_mode_process = 2
+
+[node name="CatFill" parent="Cat" index="1"]
+transform = Transform3D(0.9659258, 0.10938165, -0.23456971, 0, 0.90630776, 0.42261827, 0.25881904, -0.4082179, 0.87542605, 0, 0, 0)
+
+[node name="Beam" type="MeshInstance3D" parent="." unique_id=569907341]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.015, 0)
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_beam")
+
+[node name="BeamLight" type="SpotLight3D" parent="." unique_id=439089409]
+transform = Transform3D(1, 0, 0, 0, 0.9945219, 0.104528464, 0, -0.104528464, 0.9945219, 0, 1.2, 0)
+light_color = Color(1, 0.55, 0.22, 1)
+light_energy = 6.0
+spot_range = 16.0
+spot_angle = 20.0
+
+[editable path="Cat"]
+[editable path="Cat/Model"]
