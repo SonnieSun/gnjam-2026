@@ -1,8 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c3ual6vu1jfdr"]
 
-[ext_resource type="Script" path="res://scripts/sections/clock_section.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/memes/grumpy.png" id="2_5pf0x"]
-[ext_resource type="Script" path="res://scripts/fx/meme_sprite.gd" id="3_0xlre"]
+[ext_resource type="Script" uid="uid://bkdxkykv0y2q8" path="res://scripts/sections/clock_section.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://c8ai5m8v2f6r8" path="res://assets/memes/grumpy.png" id="2_5pf0x"]
+[ext_resource type="Script" uid="uid://qjfvui8dkb7m" path="res://scripts/fx/meme_sprite.gd" id="3_0xlre"]
 
 [node name="ClockSection" type="Node2D" unique_id=1191080350]
 script = ExtResource("1")
