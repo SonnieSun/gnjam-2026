@@ -1,0 +1,81 @@
+{
+  "bpm": 120,
+  "beats_per_bar": 4,
+  "loop_bars": 8,
+  "loop_sec": 16.0,
+  "loop_samples": 705600,
+  "sample_rate": 44100,
+  "first_beat_offset_sec": 0.0,
+  "sets": {
+    "room": [
+      {
+        "file": "loops/room_00_base.ogg",
+        "track": "00_base",
+        "element": "固定背景节拍，一直放",
+        "instruments": "摇摆鼓 + 低音提琴 walking bass"
+      },
+      {
+        "file": "loops/room_01_stars.ogg",
+        "track": "01_stars",
+        "element": "星星灯",
+        "instruments": "Charleston 节奏钢琴"
+      },
+      {
+        "file": "loops/room_02_ball.ogg",
+        "track": "02_ball",
+        "element": "灯球",
+        "instruments": "铜管和弦短奏"
+      },
+      {
+        "file": "loops/room_03_dancers.ogg",
+        "track": "03_dancers",
+        "element": "2D 跳舞猫",
+        "instruments": "单簧管主旋律 + 喵喵合唱"
+      },
+      {
+        "file": "loops/room_04_drift.ogg",
+        "track": "04_drift",
+        "element": "猫漂移",
+        "instruments": "pad + 高音琶音"
+      }
+    ],
+    "road": [
+      {
+        "file": "loops/road_00_base.ogg",
+        "track": "00_base",
+        "element": "固定背景节拍，一直放",
+        "instruments": "house 鼓 + 失真贝斯/sub（带侧链）"
+      },
+      {
+        "file": "loops/road_05_road.ogg",
+        "track": "05_road",
+        "element": "拆房子上路",
+        "instruments": "反拍 house 钢琴"
+      },
+      {
+        "file": "loops/road_06_dance_floor.ogg",
+        "track": "06_dance_floor",
+        "element": "舞池地板",
+        "instruments": "单簧管 + 铜管齐奏副歌"
+      },
+      {
+        "file": "loops/road_07_grid.ogg",
+        "track": "07_grid",
+        "element": "霓虹网格",
+        "instruments": "方波琶音 + 合成器 pad"
+      },
+      {
+        "file": "loops/road_08_plaza.ogg",
+        "track": "08_plaza",
+        "element": "圆台",
+        "instruments": "合成器主音（高八度副歌）+ 喵"
+      },
+      {
+        "file": "loops/road_09_ufo.ogg",
+        "track": "09_ufo",
+        "element": "飞碟吸猫（可选）",
+        "instruments": "特雷门琴长音"
+      }
+    ]
+  }
+}

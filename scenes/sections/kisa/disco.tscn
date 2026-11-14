@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/sections/kisa/disco_section.gd" id="1"]
+[ext_resource type="Script" path="res://stages/disco/disco_stage.gd" id="2"]
+[ext_resource type="Script" path="res://stages/shared/y2k_fx/y2k_hit_fx_swap.gd" id="y2k_swap"]
+[ext_resource type="Texture2D" path="res://assets/memes/popcat.png" id="2_pop"]
+[ext_resource type="Script" path="res://scripts/fx/meme_sprite.gd" id="3_meme"]
+
+[node name="DiscoSection" type="Node2D"]
+script = ExtResource("1")
+disc_color = Color(0, 0, 0, 0)
+target_radius = 110.0
+approach_beats = 3.0
+custom_gauge_events = true
+gauge_max_override = 300
+gauge_events = PackedInt32Array(20, 40, 60, 80, 110, 150, 190, 230, 285)
+
+[node name="Targets" type="Node2D" parent="."]
+
+[node name="Cat1" type="Sprite2D" parent="Targets"]
+scale = Vector2(1.4609375, 1.4609375)
+texture = ExtResource("2_pop")
+hframes = 2
+script = ExtResource("3_meme")
+meme = "popcat"
+
+[node name="Stage" type="Node2D" parent="."]
+script = ExtResource("2")
+
+[node name="Y2kHitFxSwap" type="Node" parent="."]
+script = ExtResource("y2k_swap")
