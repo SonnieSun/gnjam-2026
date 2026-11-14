@@ -10,6 +10,8 @@ var style: Y2kBurstStyle = DEFAULT_STYLE
 var strong := true
 ## 形状从离中心多远的地方出发（判定圈的半径附近）
 var start_radius := 22.0
+## 竖向压扁比例：判定圈画成透视扁椭圆时，粒子也沿同样的椭圆扩散（1 = 正圆）
+var squash := 1.0
 
 var _age := 0.0
 var _lifetime := 0.6
@@ -54,8 +56,8 @@ func _ready() -> void:
 		var content := tex.get_size() - Vector2.ONE * style.texture_pad * 2.0
 		_parts.append({
 			"tex": tex,
-			# 像 Unity 粒子的 Start Color：从颜色表里随机挑一个附上
-			"color": style.colors.pick_random() if not style.colors.is_empty() else Color.WHITE,
+			# 像 Unity 粒子的 Start Color：从颜色表里随机挑一组（本体浅色 + 光晕深色）
+			"color_index": randi() % maxi(1, style.colors.size()),
 			"glow": _glow_for(tex),
 			"dir": Vector2.from_angle(a),
 			"speed": randf_range(speed_range.x, speed_range.y),
@@ -84,15 +86,20 @@ func _draw_layer(is_glow: bool) -> void:
 	var shrink := lerpf(1.0, style.end_scale, t)
 	for p in _parts:
 		var tex: Texture2D = p.glow if is_glow else p.tex
-		# 形状图是白的：本体 = 附上的颜色，外发光 = 同一颜色压暗
-		var c: Color = p.color * (style.glow_brightness if is_glow else 1.0)
+		# 形状图是白的：本体 = 浅色，光晕 = 同一组里更深更饱和的颜色
+		var c := _color_at(style.glow_colors if is_glow else style.colors, p.color_index)
 		c.a = (style.glow_strength if is_glow else style.core_alpha) * fade
 		if tex == null:
 			continue
 		var pos: Vector2 = p.dir * (start_radius + p.speed * _lifetime * travel)
+		pos.y *= squash
 		var s: float = p.scale * shrink * (style.glow_scale if is_glow else 1.0)
 		layer.draw_set_transform(pos, p.rot + p.spin * _age, Vector2.ONE * s)
 		layer.draw_texture(tex, -tex.get_size() * 0.5, c)
+
+
+static func _color_at(list: Array[Color], i: int) -> Color:
+	return list[i % list.size()] if not list.is_empty() else Color.WHITE
 
 
 ## 找本体图旁边的 xxx_glow.png

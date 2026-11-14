@@ -115,7 +115,9 @@ func _on_gauge_event(index: int, _value: int) -> void:
 	if index <= 4:
 		_stage.enter_stage(index)
 	elif index == 5:
-		_road.start(song_beat())
+		# 拆房子转镜头这段不出音符，让玩家歇一下；上路的第一个水果落在歇完那个小节的第 1 拍
+		var resume := _rest_until(song_beat() + _road.unfold_beats)
+		_road.start(song_beat(), resume)
 	elif index == 6 or index == 7:
 		_road.set_floor(index - 5)
 	elif index == 9:
@@ -154,6 +156,8 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 	super(note, result)
 	if _stage == null:
 		return
+	if _road and result == NoteData.Result.PERFECT:
+		_road.plaza_perfect()
 	if _road and _road.uses_fruit(note):
 		_road.fruit_judged(note, result)
 	if result == NoteData.Result.MISS:
@@ -352,3 +356,18 @@ func _leave_crossfade() -> void:
 	var t := layer.create_tween()
 	t.tween_property(rect, "modulate:a", 0.0, crossfade_seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	t.tween_callback(layer.queue_free)
+
+
+## 歇一会儿：从现在到 until_beat 之后的第一个小节线都不出音符，那个小节线起鼓谱从头接着来。
+## 返回恢复出音符的那一拍。做法是让 Judge 把这一小关的鼓谱从那一拍重新开始（调它现成的 begin_section）。
+func _rest_until(until_beat: float) -> float:
+	var main := get_parent().get_parent()
+	var bpb: int = Conductor.chart.beats_per_bar
+	var resume := ceilf(until_beat / bpb) * bpb
+	if main == null or not main.get("judge"):
+		return resume
+	var index: int = main.get("_index") if main.get("_index") != null else 0
+	notes = main.judge.begin_section(index, def, bpb, song_beat(), resume)
+	_hold_ends.clear()
+	_holding = null
+	return resume

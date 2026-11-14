@@ -75,6 +75,21 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 @export var saucer_beam_color := Color(0.45, 1.0, 0.45)
 @export var saucer_scale := 1.0
 
+@export_group("圆台上的猫 meme")
+## MemeLib 里的名字，按出现的先后
+@export var plaza_memes := PackedStringArray(["banana", "apple", "oiia", "nyan", "flower", "popcat", "nyanrun"])
+## 每只出现在屏幕上哪里（相对屏幕中心，像素）和多高（像素），和 plaza_memes 一一对应
+@export var plaza_meme_positions := PackedVector2Array([
+	Vector2(-431, -74), Vector2(396, -4), Vector2(-167, -191), Vector2(113, -138),
+	Vector2(-243, 213), Vector2(194, 238), Vector2(6, 256),
+])
+@export var plaza_meme_heights := PackedFloat32Array([160, 235, 130, 125, 170, 150, 130])
+## 在圆台上打出第几个 Perfect 时出现第一只；之后每个 Perfect 再出一只
+@export var plaza_meme_first_perfect := 2
+## 每拍跳起来多高（像素）、动图放一遍用几拍
+@export var plaza_meme_hop := 18.0
+@export var plaza_meme_loop_beats := 2.0
+
 const FRUITS: Array[PackedScene] = [
 	preload("res://stages/disco/model/fruit_apple.glb"),
 	preload("res://stages/disco/model/fruit_orange.glb"),
@@ -114,6 +129,8 @@ var _fallers: Array = []  # [节点, 原来的全局变换, 铰链点, 轴]
 var _fall := 0.0       # 后墙倒了多少（0~1）
 var _fall_left := 0.0  # 左墙倒了多少
 var _saucer_node: Node3D
+var _plaza_perfects := 0
+var _plaza_cats: Array[MemeSprite] = []
 var _ball_scale := 1.0
 
 
@@ -148,13 +165,13 @@ func rings_visible(beat: float) -> bool:
 	return phase == Phase.ROOM or beat < _fruit_from - 0.5 or beat > _fruit_until - 3.0
 
 
-## 拆房子，然后上路
-func start(beat: float) -> void:
+## 拆房子，然后上路。first_fruit_beat = 第一个水果到猫身上是第几拍（不给就是拆完那一拍）
+func start(beat: float, first_fruit_beat: float = -1.0) -> void:
 	if phase != Phase.ROOM:
 		return
 	phase = Phase.UNFOLD
 	_phase_beat = beat
-	_fruit_from = ceilf(beat + unfold_beats)
+	_fruit_from = first_fruit_beat if first_fruit_beat > beat else ceilf(beat + unfold_beats)
 	_stage.takeover = true
 	_stage.dismiss_dancers()
 	_stage.raise_stars()
@@ -244,6 +261,7 @@ func finale(seconds: float = 8.0) -> void:
 	for fruit: Node3D in _fruits.values():
 		fruit.queue_free()
 	_fruits.clear()
+	_dismiss_plaza_cats()
 	# 猫：转一圈，转到一半换成站立的模型
 	_cat.spin()
 	var tcat := create_tween()
@@ -379,6 +397,7 @@ func update(beat: float, notes: Array[NoteData]) -> void:
 	_floor_mat.set_shader_parameter("grid", _grid)
 	_floor_mat.set_shader_parameter("plaza", _plaza)
 	_floor_mat.set_shader_parameter("plaza_dist", _plaza_travel - _travel if _plaza_travel < INF else 100000.0)
+	_update_plaza_cats(beat)
 	_apply_camera(pulse)
 
 
@@ -570,3 +589,43 @@ func _swap_to_standing_cat() -> void:
 	holder.scale = Vector3.ONE * k
 	holder.position = Vector3(-box.get_center().x, -box.position.y, -box.get_center().z) * k
 	_cat.pose_tilt = Vector2.ZERO
+
+
+## 在圆台上打出一个 Perfect：攒够了就多出来一只猫 meme，站在周围跟着一起跳
+func plaza_perfect() -> void:
+	if phase != Phase.PLAZA:
+		return
+	_plaza_perfects += 1
+	var i := _plaza_cats.size()
+	if _plaza_perfects < plaza_meme_first_perfect + i or i >= plaza_memes.size():
+		return
+	if not MemeLib.has(plaza_memes[i]):
+		return
+	var h := plaza_meme_heights[i] if i < plaza_meme_heights.size() else 150.0
+	var cat := MemeSprite.create(plaza_memes[i], h)
+	cat.position = plaza_meme_positions[i] if i < plaza_meme_positions.size() else Vector2.ZERO
+	cat.flip_h = cat.position.x > 0.0
+	var full := cat.scale
+	cat.scale = Vector2.ZERO
+	_stage.add_child(cat)  # 舞台节点是 2D 的，原点在屏幕中心
+	_plaza_cats.append(cat)
+	cat.create_tween().tween_property(cat, "scale", full, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## 圆台上的猫 meme 跟拍跳（每帧调）
+func _update_plaza_cats(beat: float) -> void:
+	for i in _plaza_cats.size():
+		var cat := _plaza_cats[i]
+		cat.set_progress(beat / plaza_meme_loop_beats + i * 0.3)
+		cat.offset.y = -absf(sin((beat + i * 0.5) * PI)) * plaza_meme_hop / maxf(cat.scale.y, 0.01)
+
+
+## 结尾镜头开始时，猫 meme 缩小淡出
+func _dismiss_plaza_cats() -> void:
+	for i in _plaza_cats.size():
+		var cat := _plaza_cats[i]
+		var t := cat.create_tween().set_parallel()
+		t.tween_property(cat, "scale", Vector2.ZERO, 0.6).set_delay(i * 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		t.tween_property(cat, "modulate:a", 0.0, 0.6).set_delay(i * 0.08)
+		t.chain().tween_callback(cat.queue_free)
+	_plaza_cats.clear()

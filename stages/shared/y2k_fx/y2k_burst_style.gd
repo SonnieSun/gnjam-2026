@@ -9,35 +9,40 @@ extends Resource
 @export var texture_pad := 28.0
 
 @export_group("颜色")
-## 形状图是纯白的，每个形状从这里随机挑一个颜色附上（像 Unity 粒子的 Start Color）
+## 形状图是纯白的，每个形状从这里随机挑一组颜色附上（像 Unity 粒子的 Start Color）
+## 本体颜色：浅、亮
 @export var colors: Array[Color] = [
-	Color(1.0, 0.1, 0.62),   # 粉
-	Color(1.0, 0.72, 0.5),   # 桃
-	Color(0.3, 0.78, 1.0),   # 天蓝
-	Color(0.4, 1.0, 1.0),    # 青
-	Color(0.1, 0.5, 1.0),    # 蓝
-	Color(0.55, 0.55, 1.0),  # 紫
+	Color(1.0, 0.8, 0.9),    # 浅粉
+	Color(0.78, 1.0, 0.98),  # 浅青
+	Color(0.86, 0.8, 1.0),   # 淡紫
+	Color(1.0, 0.95, 0.74),  # 奶油黄
+]
+## 光晕颜色：和上面同一行配对，更深、更饱和
+@export var glow_colors: Array[Color] = [
+	Color(1.0, 0.12, 0.5),   # 桃红
+	Color(0.0, 0.78, 0.68),  # 蓝绿
+	Color(0.5, 0.2, 1.0),    # 紫
+	Color(1.0, 0.55, 0.05),  # 橙黄
 ]
 
 @export_group("外发光")
-## 外发光亮度（叠加混合）
-@export_range(0.0, 3.0) var glow_strength := 1.4
-## 外发光 = 附上的颜色 × 这个值（1 = 和本体一样亮，越小越暗）
-@export_range(0.0, 1.0) var glow_brightness := 0.5
-## 外发光比本体大多少
-@export_range(1.0, 2.0) var glow_scale := 1.15
+## 光晕浓度（叠加混合，太高会烧成白色）
+@export_range(0.0, 3.0) var glow_strength := 1.0
+## 光晕整体放大（光晕图已经自带大范围淡出，一般保持 1）
+@export_range(0.5, 2.0) var glow_scale := 1.0
 @export_group("本体")
-## 本体不透明度（半透明感）
-@export_range(0.0, 1.0) var core_alpha := 0.95
+## 本体不透明度（略带半透明）
+@export_range(0.0, 1.0) var core_alpha := 0.85
 
 @export_group("Perfect")
 @export var perfect_count := 10
-@export var perfect_size := Vector2(34.0, 68.0)
+## 每个形状各自在这个区间里随机抽最长边大小（像素）
+@export var perfect_size := Vector2(16.0, 84.0)
 @export var perfect_speed := Vector2(200.0, 380.0)
 @export var perfect_lifetime := 0.6
 @export_group("Good")
 @export var good_count := 5
-@export var good_size := Vector2(20.0, 36.0)
+@export var good_size := Vector2(10.0, 42.0)
 @export var good_speed := Vector2(90.0, 170.0)
 @export var good_lifetime := 0.45
 ## Good 整体再淡一点

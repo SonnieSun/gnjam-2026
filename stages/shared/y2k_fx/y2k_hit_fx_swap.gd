@@ -34,6 +34,27 @@ func _swap(old: StarBurst) -> void:
 	# StarBurst.create(true) 是 14 颗，create(false) 是 6 颗
 	var fx := Y2kBurst.create(old.count > 6)
 	_fx_layer.add_child(fx)
-	fx.start_radius = old.start_radius
+	fx.start_radius = old.start_radius * _judge_scale()
+	fx.squash = _ring_squash()
 	fx.global_position = old.global_position
 	old.queue_free()
+
+
+## 关卡把判定圈画成透视扁椭圆时（迪斯科），粒子也按同样比例压扁扩散。
+## 只读：关卡节点下有带 ring_squash() 的子节点（迪斯科的 Stage）就用它，没有就是正圆。
+func _ring_squash() -> float:
+	var section := get_parent()
+	if section == null:
+		return 1.0
+	for child in section.get_children():
+		if child.has_method("ring_squash"):
+			return child.ring_squash()
+	return 1.0
+
+
+## 判定圈画大了多少倍（迪斯科的 judge_scale），粒子从同样大的圈上出发
+func _judge_scale() -> float:
+	var section := get_parent()
+	if section and "judge_scale" in section:
+		return section.judge_scale
+	return 1.0
