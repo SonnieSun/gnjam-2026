@@ -1,21 +1,18 @@
 extends Control
-## Music Director：看、听、编辑每个大关的叠轨音乐。打开 scenes/tools/music_director.tscn 按 F6。
+## Music Director：给每个大关配叠轨音乐。打开 scenes/tools/music_director.tscn 按 F6。
 ##
-##   上面：选大关、选小关、PLAY、当前小节、SAVE、EXPORT MIX、“在游戏里用”。
-##   中间：每条 track 一行：静音 / 独奏 / 增益，右边是它在积累条进度 0-100% 上的响的区间（可以拖着改，
-##         见 range_lane.gd）。粉色虚线是积累条事件分数线，白线是当前进度。
-##   下面：进度滑条（= 积累条有多满）；AUTO 让进度随音乐在 N 小节里从 0 走到 100%，模拟玩一遍这个小关；
-##         SNAP 开着时进度变化排到下一个小节线生效（和游戏里一样），关掉则马上生效。
-##
+## 一关的音乐是几条轨道（节奏、低音、和声、旋律……），每条轨道里放几段 loop，同一时刻只响一段。
+##   · 点一段 = 从当前进度起，这条轨道换成它；再点正在响的那段 = 从这里起静音。
+##   · 下面的 PROGRESS 就是积累条有多满：先拖到某个进度再点，就是"进度到这里时换成它"。
+##   · 每条轨道下的细条是切换点：拖动改位置，右键删掉。
+##   · + 片段 往轨道里放 WAV，+ 轨道 加一条新轨道，右键一段 = 从轨道里拿掉。
 ## 快捷键：Space 播放 / 停止，← → 进度 ±5%，↑ ↓ 换小关，Ctrl+S 保存。
-## 配置存在 levels/music/level_<n>.json；游戏里由 Music autoload 读（打开“在游戏里用”之后）。
+## 配置存在 levels/music/level_<n>.json；游戏里由 Music autoload 读（打开 USE IN GAME 之后）。
 
 const THEME := preload("res://assets/ui/theme.tres")
-const RangeLane := preload("res://scripts/music/range_lane.gd")
-const GROUP_COLORS := {
-	"groove": Color("7fd1ff"), "bass": Color("b38cff"), "bed": Color("ffd23f"), "hook": Color("ff5d8f"),
-	"peak": Color("ff9f43"), "cat": Color("86ffa3"), "event": Color("ffffff"),
-}
+const CueStrip := preload("res://scripts/music/cue_strip.gd")
+const PALETTE := [Color("ffd23f"), Color("ff5d8f"), Color("7fd1ff"), Color("86ffa3"), Color("b38cff"),
+	Color("ff9f43"), Color("f8f4e3"), Color("5ce1e6")]
 const DEFAULT_MARKERS := [20.0 / 60.0, 40.0 / 60.0]
 
 var level := 0
@@ -30,15 +27,14 @@ var _play_btn: Button
 var _lcd: Label
 var _status: Label
 var _use_in_game: CheckBox
-var _rows: VBoxContainer
+var _lanes_box: VBoxContainer
 var _progress: HSlider
 var _progress_lcd: Label
 var _auto: CheckBox
 var _auto_bars: SpinBox
 var _snap: CheckBox
-var _lanes := {}       # id -> RangeLane
-var _meters := {}      # id -> ColorRect (level bar)
-var _dirty := false
+var _chips := {}       # lane id -> {clip id: Button}
+var _strips := {}      # lane id -> CueStrip
 var _recording := false
 var _rec_end_beat := 0.0
 var _rec: AudioEffectRecord
@@ -48,7 +44,7 @@ func _ready() -> void:
 	theme = THEME
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_build_ui()
-	Music.track_toggled.connect(func(_id, _on): _refresh_lanes())
+	Music.lane_switched.connect(func(_lane, _clip): _refresh())
 	_load_level(0)
 
 
@@ -94,7 +90,7 @@ func _build_ui() -> void:
 	top.add_child(spacer)
 	_use_in_game = CheckBox.new()
 	_use_in_game.text = "USE IN GAME"
-	_use_in_game.tooltip_text = "打开后，游戏里这一大关用这套叠轨音乐（并改成它的 BPM）"
+	_use_in_game.tooltip_text = "打开后，游戏里这一大关用这套音乐（BPM 也改成它的）"
 	_use_in_game.toggled.connect(_on_use_in_game)
 	top.add_child(_use_in_game)
 	_button(top, "SAVE", _save, "Big")
@@ -104,40 +100,19 @@ func _build_ui() -> void:
 	_status.theme_type_variation = "Hint"
 	root.add_child(_status)
 
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 6)
-	root.add_child(header)
-	var hl := Label.new()
-	hl.text = "TRACK"
-	hl.custom_minimum_size.x = 430
-	hl.theme_type_variation = "Hint"
-	header.add_child(hl)
-	var ruler := HBoxContainer.new()
-	ruler.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(ruler)
-	for k in 5:
-		var s := Label.new()
-		s.text = "%d%%" % (k * 25)
-		s.theme_type_variation = "Hint"
-		s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		s.horizontal_alignment = [HORIZONTAL_ALIGNMENT_LEFT, HORIZONTAL_ALIGNMENT_CENTER, HORIZONTAL_ALIGNMENT_CENTER, HORIZONTAL_ALIGNMENT_CENTER, HORIZONTAL_ALIGNMENT_RIGHT][k]
-		ruler.add_child(s)
-	var pad := Control.new()
-	pad.custom_minimum_size.x = 30
-	header.add_child(pad)
-
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root.add_child(scroll)
-	_rows = VBoxContainer.new()
-	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_rows.add_theme_constant_override("separation", 4)
-	scroll.add_child(_rows)
+	_lanes_box = VBoxContainer.new()
+	_lanes_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_lanes_box.add_theme_constant_override("separation", 8)
+	scroll.add_child(_lanes_box)
 
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 10)
 	root.add_child(bottom)
+	_button(bottom, "+ 轨道", _add_lane, "Big")
 	var pl := Label.new()
 	pl.text = "PROGRESS"
 	pl.theme_type_variation = "Header"
@@ -157,7 +132,7 @@ func _build_ui() -> void:
 	_snap = CheckBox.new()
 	_snap.text = "SNAP"
 	_snap.button_pressed = true
-	_snap.tooltip_text = "进度变化排到下一个小节线才生效（游戏里就是这样）"
+	_snap.tooltip_text = "变化等到下一个小节线才生效（游戏里就是这样）"
 	bottom.add_child(_snap)
 	_auto = CheckBox.new()
 	_auto.text = "AUTO"
@@ -170,8 +145,6 @@ func _build_ui() -> void:
 	_auto_bars.value = 16
 	_auto_bars.suffix = "bars"
 	bottom.add_child(_auto_bars)
-	_button(bottom, "+ TRACK", _add_track_dialog)
-	_button(bottom, "COPY PREV SECTION", _copy_prev_section)
 
 
 func _button(parent: Control, text: String, on_press: Callable, variation := "") -> Button:
@@ -185,96 +158,115 @@ func _button(parent: Control, text: String, on_press: Callable, variation := "")
 	return b
 
 
-func _rebuild_rows() -> void:
-	for c in _rows.get_children():
+func _clip_color(lane: Dictionary, clip_id: String) -> Color:
+	var ids := []
+	for c in lane.clips:
+		ids.append(c.id)
+	return PALETTE[maxi(ids.find(clip_id), 0) % PALETTE.size()]
+
+
+func _rebuild() -> void:
+	for c in _lanes_box.get_children():
 		c.queue_free()
-	_lanes.clear()
-	_meters.clear()
-	var rules := _rules()
-	for t in data.get("tracks", []):
-		var id: String = t.id
+	_chips.clear()
+	_strips.clear()
+	var cues := _cues()
+	for lane in data.get("lanes", []):
+		var lid: String = lane.id
+		var card := PanelContainer.new()
+		card.theme_type_variation = "Card"
+		_lanes_box.add_child(card)
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 4)
+		card.add_child(v)
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
-		_rows.add_child(row)
-		var col: Color = GROUP_COLORS.get(t.get("group", ""), Color.GRAY)
-		var sw := ColorRect.new()
-		sw.color = col
-		sw.custom_minimum_size = Vector2(8, 26)
-		row.add_child(sw)
-		var lbl := Label.new()
-		lbl.text = id
-		lbl.tooltip_text = t.file
-		lbl.custom_minimum_size.x = 150
-		lbl.clip_text = true
-		row.add_child(lbl)
-		var grp := Label.new()
-		grp.text = t.get("group", "")
-		grp.theme_type_variation = "Hint"
-		grp.custom_minimum_size.x = 56
-		row.add_child(grp)
-		var m := _toggle(row, "M", Music.muted.get(id, false), func(on: bool) -> void:
-			Music.muted[id] = on
+		v.add_child(row)
+		var name_edit := LineEdit.new()
+		name_edit.text = lane.get("name", lid)
+		name_edit.custom_minimum_size.x = 90
+		name_edit.text_changed.connect(func(t: String) -> void:
+			lane["name"] = t
+			_mark_dirty())
+		row.add_child(name_edit)
+		var mute := Button.new()
+		mute.text = "M"
+		mute.toggle_mode = true
+		mute.button_pressed = Music.muted.get(lid, false)
+		mute.focus_mode = Control.FOCUS_NONE
+		mute.tooltip_text = "静音这条轨道（只在面板里，不存）"
+		mute.toggled.connect(func(on: bool) -> void:
+			Music.muted[lid] = on
 			Music.apply_now())
-		m.tooltip_text = "静音（只在面板里，不存）"
-		var s := _toggle(row, "S", Music.soloed.get(id, false), func(on: bool) -> void:
-			Music.soloed[id] = on
-			Music.apply_now())
-		s.tooltip_text = "独奏（只在面板里，不存）"
+		row.add_child(mute)
 		var gain := SpinBox.new()
 		gain.min_value = -24
 		gain.max_value = 6
 		gain.step = 0.5
-		gain.value = t.get("gain_db", 0.0)
+		gain.value = lane.get("gain_db", 0.0)
 		gain.suffix = "dB"
 		gain.custom_minimum_size.x = 92
-		gain.value_changed.connect(func(v: float) -> void:
-			t["gain_db"] = v
-			Music.set_track_gain(id, v)
+		gain.value_changed.connect(func(db: float) -> void:
+			lane["gain_db"] = db
+			Music.set_lane_gain(lid, db)
 			_mark_dirty())
 		row.add_child(gain)
-		var lane := RangeLane.new()
-		lane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lane.color = col
-		if not rules.has(id):
-			rules[id] = []
-		lane.ranges = rules[id]
-		lane.markers = PackedFloat32Array(section_markers[section] if section < section_markers.size() else DEFAULT_MARKERS)
-		lane.changed.connect(_on_lane_changed)
-		row.add_child(lane)
-		_lanes[id] = lane
-		var meter := ColorRect.new()
-		meter.custom_minimum_size = Vector2(10, 26)
-		meter.color = Color(0.2, 0.2, 0.2)
-		row.add_child(meter)
-		_meters[id] = meter
+		var chips := HFlowContainer.new()
+		chips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		chips.add_theme_constant_override("h_separation", 6)
+		row.add_child(chips)
+		_chips[lid] = {}
+		for clip in lane.clips:
+			var cid: String = clip.id
+			var b := Button.new()
+			b.text = cid
+			b.tooltip_text = clip.file + "\n左键：从当前进度起换成这段（再点一次 = 静音）\n右键：从轨道里拿掉"
+			b.focus_mode = Control.FOCUS_NONE
+			b.add_theme_color_override("font_color", _clip_color(lane, cid))
+			b.pressed.connect(func() -> void: _cue(lid, cid))
+			b.gui_input.connect(func(e: InputEvent) -> void:
+				if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_RIGHT:
+					_remove_clip(lid, cid))
+			chips.add_child(b)
+			_chips[lid][cid] = b
+		var add := Button.new()
+		add.text = "+ 片段"
+		add.focus_mode = Control.FOCUS_NONE
+		add.pressed.connect(func() -> void: _add_clip_dialog(lid))
+		chips.add_child(add)
 		var del := Button.new()
 		del.text = "×"
 		del.focus_mode = Control.FOCUS_NONE
-		del.tooltip_text = "从这一大关拿掉这条 track"
-		del.pressed.connect(func(): _remove_track(id))
+		del.tooltip_text = "删掉这条轨道"
+		del.pressed.connect(func() -> void: _remove_lane(lid))
 		row.add_child(del)
-	_refresh_lanes()
+		var strip := CueStrip.new()
+		strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if not cues.has(lid):
+			cues[lid] = []
+		strip.cues = cues[lid]
+		for clip in lane.clips:
+			strip.colors[clip.id] = _clip_color(lane, clip.id)
+		strip.markers = PackedFloat32Array(section_markers[section] if section < section_markers.size() else DEFAULT_MARKERS)
+		strip.changed.connect(func() -> void:
+			_tidy(lid)
+			_mark_dirty()
+			_reapply())
+		v.add_child(strip)
+		_strips[lid] = strip
+	_refresh()
 
 
-func _toggle(parent: Control, text: String, on: bool, cb: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.toggle_mode = true
-	b.button_pressed = on
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size.x = 30
-	b.toggled.connect(cb)
-	parent.add_child(b)
-	return b
-
-
-func _refresh_lanes() -> void:
-	var p := _progress.value / 100.0 if _progress else 0.0
-	for id in _lanes:
-		var lane = _lanes[id]
-		lane.playhead = p
-		lane.sounding = Music.rule_on(section, id, Music.progress)
-		lane.queue_redraw()
+func _refresh() -> void:
+	var p := _progress.value / 100.0
+	for lid in _chips:
+		var on := Music.playing_clip(lid)
+		for cid in _chips[lid]:
+			var b: Button = _chips[lid][cid]
+			b.theme_type_variation = "Hot" if cid == on else ""
+		if _strips.has(lid):
+			_strips[lid].playhead = p
+			_strips[lid].queue_redraw()
 
 
 # ---------------------------------------------------------------- data
@@ -286,8 +278,8 @@ func _load_level(index: int) -> void:
 	_level_pick.selected = index
 	data = Music.read(Music.path_for(index))
 	if data.is_empty():
-		data = {"title": Levels.LIST[index].title, "bpm": 160, "use_in_game": false, "quantize_beats": 4, "tracks": [], "sections": []}
-	# section names and gauge lines come from the level's own chart
+		data = {"title": Levels.LIST[index].title, "bpm": 160, "use_in_game": false, "quantize_beats": 4,
+			"lanes": [{"id": "lane1", "name": "轨道1", "gain_db": 0.0, "clips": []}], "sections": []}
 	section_titles = PackedStringArray()
 	section_markers = []
 	var chart: SongChart = load(Levels.LIST[index].chart).build()
@@ -296,40 +288,83 @@ func _load_level(index: int) -> void:
 		var marks := DEFAULT_MARKERS.duplicate()
 		if def.use_gauge_events and def.gauge_max > 0:
 			marks = []
-			for v in def.gauge_events:
-				marks.append(float(v) / def.gauge_max)
+			for g in def.gauge_events:
+				marks.append(float(g) / def.gauge_max)
 		section_markers.append(marks)
 	var secs: Array = data.get("sections", [])
 	while secs.size() < section_titles.size():
-		secs.append({"title": section_titles[secs.size()], "rules": {}})
+		secs.append({"title": section_titles[secs.size()], "cues": {}})
 	data["sections"] = secs
 	_section_pick.clear()
 	for i in section_titles.size():
 		_section_pick.add_item("%d  %s" % [i + 1, section_titles[i]])
 	_use_in_game.set_pressed_no_signal(data.get("use_in_game", false))
 	Music.muted.clear()
-	Music.soloed.clear()
 	Music.build(data)
-	_dirty = false
 	_select_section(0)
-	_set_status("%s：%d 条 track，%d 个小关。%s" % [data.title, data.tracks.size(), section_titles.size(), Music.path_for(index)])
+	_set_status("%s：%d 条轨道，%d 个小关。点一段 = 从当前进度起换成它。%s" % [data.title, data.lanes.size(), section_titles.size(), Music.path_for(index)])
 
 
 func _select_section(i: int) -> void:
 	section = clampi(i, 0, maxi(section_titles.size() - 1, 0))
 	_section_pick.selected = section
 	Music.section = section
-	_rebuild_rows()
+	_rebuild()
 	_on_progress(_progress.value)
 
 
-func _rules() -> Dictionary:
+func _cues() -> Dictionary:
 	var secs: Array = data.get("sections", [])
 	if section >= secs.size():
 		return {}
-	if not secs[section].has("rules"):
-		secs[section]["rules"] = {}
-	return secs[section]["rules"]
+	if not secs[section].has("cues"):
+		secs[section]["cues"] = {}
+	return secs[section]["cues"]
+
+
+func _lane(lid: String) -> Dictionary:
+	for lane in data.lanes:
+		if lane.id == lid:
+			return lane
+	return {}
+
+
+## Clicking a clip: from the current progress on, this lane plays it (or goes quiet, if it is
+## already the one playing there).
+func _cue(lid: String, cid: String) -> void:
+	var p := snappedf(_progress.value / 100.0, 0.05)
+	var now := Music.clip_at(section, lid, p)
+	var list: Array = _cues()[lid]
+	for i in range(list.size() - 1, -1, -1):
+		if absf(list[i][0] - p) < 0.001:
+			list.remove_at(i)
+	list.append([p, "" if now == cid else cid])
+	_tidy(lid)
+	_mark_dirty()
+	_reapply()
+	_strips[lid].queue_redraw()
+
+
+## Sorted, and no cue that repeats what was already playing.
+func _tidy(lid: String) -> void:
+	var list: Array = _cues()[lid]
+	list.sort_custom(func(a, b): return a[0] < b[0])
+	var out := []
+	var last := ""
+	for c in list:
+		if c[1] != last:
+			out.append(c)
+			last = c[1]
+	list.clear()
+	list.append_array(out)
+
+
+func _reapply() -> void:
+	if Conductor.playing and _snap.button_pressed:
+		Music.set_progress(_progress.value / 100.0)
+	else:
+		Music.apply_now()
+	_refresh()
 
 
 func _on_use_in_game(on: bool) -> void:
@@ -337,106 +372,103 @@ func _on_use_in_game(on: bool) -> void:
 	_mark_dirty()
 
 
-func _on_lane_changed() -> void:
-	# empty range lists stay until SAVE drops them (the lanes hold these very arrays)
-	_mark_dirty()
-	if Conductor.playing and _snap.button_pressed:
-		Music.set_progress(_progress.value / 100.0)
-	else:
-		Music.apply_now()
-	_refresh_lanes()
-
-
 func _mark_dirty() -> void:
-	_dirty = true
 	_set_status("有改动，记得 SAVE（Ctrl+S）")
 
 
 func _save() -> void:
 	var out := data.duplicate(true)
 	for sec in out.sections:
-		var rules: Dictionary = sec.get("rules", {})
-		for id in rules.keys():
-			if rules[id].is_empty():
-				rules.erase(id)
-			else:
-				for r in rules[id]:
-					r[0] = snappedf(r[0], 0.001)
-					r[1] = snappedf(r[1], 0.001)
+		var cues: Dictionary = sec.get("cues", {})
+		for lid in cues.keys():
+			if cues[lid].is_empty():
+				cues.erase(lid)
 	var err := Music.write(Music.path_for(level), out)
-	_dirty = err != OK
 	_set_status("已保存 %s" % Music.path_for(level) if err == OK else "保存失败：%s" % error_string(err))
 
 
-func _add_track_dialog() -> void:
+func _clip_count() -> int:
+	var n := 0
+	for lane in data.lanes:
+		n += lane.clips.size()
+	return n
+
+
+func _add_lane() -> void:
+	var n: int = data.lanes.size() + 1
+	var lid := "lane%d" % n
+	while not _lane(lid).is_empty():
+		n += 1
+		lid = "lane%d" % n
+	data.lanes.append({"id": lid, "name": "轨道%d" % n, "gain_db": 0.0, "clips": []})
+	_structure_changed()
+
+
+func _remove_lane(lid: String) -> void:
+	for i in data.lanes.size():
+		if data.lanes[i].id == lid:
+			data.lanes.remove_at(i)
+			break
+	for sec in data.sections:
+		sec.get("cues", {}).erase(lid)
+	_structure_changed()
+
+
+func _add_clip_dialog(lid: String) -> void:
 	var fd := FileDialog.new()
 	fd.file_mode = FileDialog.FILE_MODE_OPEN_FILES
 	fd.access = FileDialog.ACCESS_RESOURCES
 	fd.current_dir = "res://assets/audio/music"
 	fd.filters = PackedStringArray(["*.wav ; WAV loops"])
-	fd.files_selected.connect(func(paths: PackedStringArray):
-		for p in paths:
-			_add_track(p)
+	fd.files_selected.connect(func(paths: PackedStringArray) -> void:
+		for path in paths:
+			_add_clip(lid, path)
 		fd.queue_free())
 	fd.canceled.connect(fd.queue_free)
 	add_child(fd)
 	fd.popup_centered_ratio(0.6)
 
 
-func _add_track(path: String) -> void:
-	var tracks: Array = data.tracks
-	if tracks.size() >= AudioStreamSynchronized.MAX_STREAMS:
-		_set_status("一大关最多 %d 条 track" % AudioStreamSynchronized.MAX_STREAMS)
+func _add_clip(lid: String, path: String) -> void:
+	if _clip_count() >= AudioStreamSynchronized.MAX_STREAMS:
+		_set_status("一大关最多 %d 段" % AudioStreamSynchronized.MAX_STREAMS)
 		return
-	var id := path.get_file().get_basename()
-	for t in tracks:
-		if t.id == id:
-			_set_status("已经有 %s 了" % id)
+	var lane := _lane(lid)
+	var cid := path.get_file().get_basename()
+	for c in lane.clips:
+		if c.id == cid:
+			_set_status("这条轨道里已经有 %s 了" % cid)
 			return
-	tracks.append({"id": id, "file": path, "group": _guess_group(id), "gain_db": 0.0})
-	_after_tracks_changed()
+	lane.clips.append({"id": cid, "file": path})
+	_structure_changed()
 
 
-func _guess_group(id: String) -> String:
-	for key in [["L1", "groove"], ["groove", "groove"], ["L2", "bass"], ["bass", "bass"], ["L0", "bed"], ["keys", "bed"],
-			["stabs", "bed"], ["L3", "hook"], ["lead", "hook"], ["hook", "hook"], ["L4", "peak"], ["peak", "peak"],
-			["drums", "cat"], ["X_", "event"]]:
-		if key[0] in id:
-			return key[1]
-	return "bed"
-
-
-func _remove_track(id: String) -> void:
-	var tracks: Array = data.tracks
-	for i in tracks.size():
-		if tracks[i].id == id:
-			tracks.remove_at(i)
+func _remove_clip(lid: String, cid: String) -> void:
+	var lane := _lane(lid)
+	for i in lane.clips.size():
+		if lane.clips[i].id == cid:
+			lane.clips.remove_at(i)
 			break
 	for sec in data.sections:
-		sec.get("rules", {}).erase(id)
-	_after_tracks_changed()
+		var list: Array = sec.get("cues", {}).get(lid, [])
+		for i in range(list.size() - 1, -1, -1):
+			if list[i][1] == cid:
+				list.remove_at(i)
+	_structure_changed()
 
 
-func _after_tracks_changed() -> void:
+func _structure_changed() -> void:
 	var was_playing := Conductor.playing
 	if was_playing:
 		_stop()
 	Music.build(data)
 	Music.section = section
-	_rebuild_rows()
+	Music.progress = _progress.value / 100.0
+	Music.apply_now()
+	_rebuild()
 	_mark_dirty()
 	if was_playing:
 		_play()
-
-
-func _copy_prev_section() -> void:
-	if section == 0:
-		return
-	var src: Dictionary = data.sections[section - 1].get("rules", {})
-	data.sections[section]["rules"] = src.duplicate(true)
-	_rebuild_rows()
-	_mark_dirty()
-	Music.apply_now()
 
 
 # ---------------------------------------------------------------- playback
@@ -460,6 +492,7 @@ func _play() -> void:
 	Music.apply_now()
 	Conductor.play(0.0)
 	_play_btn.text = "STOP"
+	_refresh()
 
 
 func _stop() -> void:
@@ -475,7 +508,7 @@ func _on_progress(v: float) -> void:
 	else:
 		Music.progress = v / 100.0
 		Music.apply_now()
-	_refresh_lanes()
+	_refresh()
 
 
 func _process(_delta: float) -> void:
@@ -489,18 +522,14 @@ func _process(_delta: float) -> void:
 		var p := fmod(maxf(b, 0.0), span) / span * 100.0
 		if absf(p - _progress.value) >= 1.0:
 			_progress.value = p
-	for id in _meters:
-		var i := Music.track_ids.find(id)
-		var lv := Music.level_of(i)
-		_meters[id].color = Color(0.2, 0.2, 0.2).lerp(Color("86ffa3"), lv)
 	if _recording and b >= _rec_end_beat:
 		_finish_export()
 
 
 # ---------------------------------------------------------------- export mix
 
-## Records the master bus for one AUTO sweep (the section built up from 0 to 100%) into
-## res://levels/music/exports/<level>_<section>.wav, so a build-up can be shared and listened to.
+## Records one AUTO sweep (this section building up from 0 to 100%) into
+## res://levels/music/exports/level_<n>_<section>.wav, to send around and listen to.
 func _export_mix() -> void:
 	if _recording:
 		return
@@ -511,15 +540,14 @@ func _export_mix() -> void:
 	if _rec == null:
 		_rec = AudioEffectRecord.new()
 		AudioServer.add_bus_effect(0, _rec)
-	var bpb := 4.0
-	var start := (floorf(Conductor.song_beat / (_auto_bars.value * bpb)) + 1.0) * _auto_bars.value * bpb
-	# start recording from now; the file is trimmed to the sweep when it is saved
+	var span: float = _auto_bars.value * 4.0
+	var start := (floorf(Conductor.song_beat / span) + 1.0) * span
 	_rec.set_recording_active(true)
 	_recording = true
-	_rec_end_beat = start + _auto_bars.value * bpb
+	_rec_end_beat = start + span
 	_rec.set_meta("start_beat", start)
 	_rec.set_meta("begin_beat", Conductor.song_beat)
-	_set_status("录制中：从第 %d 小节开始录一遍 %d 小节的 AUTO…" % [int(start / 4) + 1, int(_auto_bars.value)])
+	_set_status("录制中：从第 %d 小节起录一遍 %d 小节的 AUTO…" % [int(start / 4) + 1, int(_auto_bars.value)])
 
 
 func _finish_export() -> void:
@@ -529,13 +557,11 @@ func _finish_export() -> void:
 	if wav == null:
 		_set_status("录制失败")
 		return
-	var spb := 60.0 / Music.bpm()
-	var skip_sec: float = (_rec.get_meta("start_beat") - _rec.get_meta("begin_beat")) * spb
-	var frames_skip := maxi(0, int(skip_sec * wav.mix_rate))
+	var skip_sec: float = (_rec.get_meta("start_beat") - _rec.get_meta("begin_beat")) * 60.0 / Music.bpm()
 	var bytes := 4 if wav.stereo else 2
-	var d := wav.data
-	if frames_skip * bytes < d.size():
-		wav.data = d.slice(frames_skip * bytes)
+	var skip := maxi(0, int(skip_sec * wav.mix_rate)) * bytes
+	if skip < wav.data.size():
+		wav.data = wav.data.slice(skip)
 	DirAccess.make_dir_recursive_absolute("res://levels/music/exports")
 	var path := "res://levels/music/exports/level_%d_%s.wav" % [level + 1, section_titles[section].replace(" ", "_")]
 	var err := wav.save_to_wav(path)
@@ -547,6 +573,8 @@ func _finish_export() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if k == null or not k.pressed or k.echo:
+		return
+	if get_viewport().gui_get_focus_owner() is LineEdit:
 		return
 	match k.keycode:
 		KEY_SPACE:
