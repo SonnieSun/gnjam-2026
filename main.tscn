@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://11k2uh3hyxpu" path="res://scripts/core/drum_kit.gd" id="4"]
 [ext_resource type="Script" uid="uid://c5yy16mrvvyv4" path="res://scripts/core/background_manager.gd" id="5_bg"]
 [ext_resource type="Script" uid="uid://b0wa8vfrokbey" path="res://scripts/core/gauge.gd" id="6_gauge"]
+[ext_resource type="Script" path="res://scripts/music/hit_meow.gd" id="7_hitmeow"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_border"]
 draw_center = false
@@ -75,6 +76,9 @@ script = ExtResource("6_gauge")
 
 [node name="DrumKit" type="Node" parent="." unique_id=95703817]
 script = ExtResource("4")
+
+[node name="HitMeow" type="Node" parent="." unique_id=1730452196]
+script = ExtResource("7_hitmeow")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1679597583]
 script = ExtResource("3")

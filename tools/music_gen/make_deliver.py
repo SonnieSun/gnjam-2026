@@ -3,7 +3,7 @@
   deliver/scene1/<group>/     scene 1 loops, one folder per group (skeleton, styles, cats, ...)
   deliver/classics/<song>/    each classic's stems
   deliver/meows/              the chosen meows + the 21-note meow kit
-  deliver/sfx/                one-shots (made by make_sfx.py)
+  deliver/sfx/                one-shots (made by make_sfx.py and make_hit_meows.py)
   deliver/previews/           30 s listening references (not game assets)
 
 usage: python -I make_deliver.py <loops dir> <deliver dir>

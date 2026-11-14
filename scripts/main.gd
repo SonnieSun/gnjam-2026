@@ -27,6 +27,7 @@ signal level_cleared
 @onready var judge: Judge = $Judge
 @onready var gauge: Gauge = $Gauge
 @onready var drum_kit: DrumKit = $DrumKit
+@onready var hit_meow: HitMeow = $HitMeow  # 打中时喵一声（Perfect / Good 各一组，随机挑）
 @onready var hud = $HUD
 
 var chart: SongChart
@@ -184,6 +185,7 @@ func _on_note_judged(note: NoteData, result: int, diff_sec: float) -> void:
 	if _current and note.section_index == _index:
 		gauge.apply(result)
 		_current.notify_judged(note, result)
+		hit_meow.play(result)
 		if result == NoteData.Result.PERFECT or result == NoteData.Result.GOOD:
 			var fx := StarBurst.create(result == NoteData.Result.PERFECT)
 			fx_layer.add_child(fx)
