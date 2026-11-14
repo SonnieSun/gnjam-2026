@@ -1,6 +1,7 @@
 class_name SongChart
 extends Resource
-## 整首歌：一个音频 + 若干首尾相接的段落。
+## 一个大关：一首循环播放的伴奏 + 按顺序闯的若干小关（sections）。
+## 小关不限时：每个小关的鼓谱一直循环，积累条满了才进下一个（见 gauge.gd 和 main.gd）。
 
 ## 背景音乐（不带鼓的版本，鼓由玩家打）。
 ## 留空时 Conductor 会自动生成占位伴奏，方便没有歌时先开发
@@ -13,6 +14,8 @@ extends Resource
 @export var drum_kick: AudioStream
 @export var drum_snare: AudioStream
 @export var drum_hat: AudioStream
+## 每进一个小关，先空几个小节再出音符（让玩家看清新画面）
+@export var rest_bars_on_switch := 1
 @export var sections: Array[SectionDef] = []
 
 

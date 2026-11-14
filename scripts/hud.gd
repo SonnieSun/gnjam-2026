@@ -6,6 +6,10 @@ extends CanvasLayer
 @onready var debug_label: Label = $DebugLabel
 @onready var result_label: Label = $ResultLabel
 @onready var milestone_label: Label = $MilestoneLabel
+## 积累条（样子在 main.tscn 的 HUD/GaugeBar 里调）
+@onready var gauge_bar: ProgressBar = get_node_or_null("GaugeBar")
+
+var _gauge_tween: Tween
 
 var _judge_tween: Tween
 var _flash_rect: ColorRect
@@ -67,12 +71,45 @@ func show_combo_milestone(combo: int) -> void:
 	_milestone_tween.tween_property(milestone_label, "modulate:a", 0.0, 0.4).set_delay(1.0)
 
 
+## 更新积累条
+func set_gauge(value: int, max_value: int) -> void:
+	if gauge_bar == null:
+		return
+	gauge_bar.max_value = max_value
+	if _gauge_tween:
+		_gauge_tween.kill()
+	_gauge_tween = create_tween()
+	_gauge_tween.tween_property(gauge_bar, "value", float(value), 0.15)
+
+
+## 积累条触发事件时闪一下（满条时闪得更明显）
+func pulse_gauge(is_full: bool) -> void:
+	if gauge_bar == null:
+		return
+	gauge_bar.pivot_offset = gauge_bar.size / 2.0
+	gauge_bar.scale = Vector2.ONE * (1.25 if is_full else 1.12)
+	gauge_bar.modulate = Color(2.0, 2.0, 1.4) if is_full else Color(1.5, 1.5, 1.5)
+	var t := gauge_bar.create_tween().set_parallel()
+	t.tween_property(gauge_bar, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(gauge_bar, "modulate", Color.WHITE, 0.35)
+
+
+## 在判定文字的位置临时显示一句提示（调试用）
+func show_note(text: String) -> void:
+	judge_label.text = text
+	judge_label.modulate.a = 1.0
+	if _judge_tween:
+		_judge_tween.kill()
+	_judge_tween = create_tween()
+	_judge_tween.tween_property(judge_label, "modulate:a", 0.0, 0.5).set_delay(1.0)
+
+
 func set_debug(text: String) -> void:
 	debug_label.text = text
 
 
 func show_result(judge: Judge) -> void:
-	result_label.text = "FULL CIRCLE!\nSCORE %d   MAX COMBO %d\nPERFECT %d   GOOD %d   MISS %d\n\n[R] restart   [Esc] menu" % [
+	result_label.text = "LEVEL CLEAR!\nSCORE %d   MAX COMBO %d\nPERFECT %d   GOOD %d   MISS %d\n\n[R] restart   [Esc] menu" % [
 		judge.score, judge.max_combo,
 		judge.counts[NoteData.Result.PERFECT],
 		judge.counts[NoteData.Result.GOOD],

@@ -67,6 +67,7 @@ func _ready() -> void:
 	add_child(_overlay)
 	_overlay.draw.connect(_draw_overlay)
 	_layout()
+	apply_comic_style()
 
 
 # ---- 子类重写这些 ----
@@ -117,6 +118,16 @@ func restore_rest() -> void:
 	_on_restore()
 
 
+## 按 ComicStyle.style 现在选的风格给这一关套上（或拿掉）画面风格。只在运行时生效，不改场景。
+func apply_comic_style() -> void:
+	if world == null or camera == null or Engine.is_editor_hint():
+		return
+	Y2KStyle.restore(self, _container, _viewport, camera, world)
+	ComicStyle.apply(world, camera)
+	if ComicStyle.style >= ComicStyle.Y2K:
+		Y2KStyle.apply(self, _container, _viewport, camera, world, _overlay, ComicStyle.style == ComicStyle.Y2K_JPEG)
+
+
 # ---- 基类实现 ----
 
 func hit_position(_note: NoteData = null) -> Vector2:
@@ -165,6 +176,8 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 		pos.y += randf_range(-0.5, 0.5) * k
 	camera.look_at_from_position(pos, look, Vector3(sin(roll), cos(roll), 0.0))
 	_posed = true
+	if Y2KStyle.is_active(self):
+		Y2KStyle.tick(self, progress(), pulse())
 	_overlay.queue_redraw()
 
 

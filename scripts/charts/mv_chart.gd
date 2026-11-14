@@ -1,14 +1,14 @@
 class_name MvChart
 extends RefCounted
 ## 猫咪 MV 原型（Cat/cat_mv_3d.html）的歌和镜头。
-## 120 BPM，共 56 拍 = 开头 4 拍 + 6 个镜头各 8 拍 + 结尾 4 拍，和原型一致。
-## 音乐是按原型的音色参数离线合成的不带鼓版本，鼓由玩家打：每拍一下，底鼓和军鼓交替。
+## 120 BPM。音乐是按原型的音色参数离线合成的不带鼓版本（60 拍，循环播放），
+## 鼓由玩家打：每拍一下，底鼓和军鼓交替。
+## 小关不限时：每个镜头的鼓谱一直循环，积累条满了才切下一个镜头。
 ##
 ## 六个镜头：唱片 / 追尾巴 / 拍地球 / 打大猫 / 洗衣机 / 飞碟，镜头之间硬切。
 ## 谱面字符：k = 底鼓  s = 军鼓  h = 踩镲  . = 休止，每小节 16 格。
 
 const BEAT := "k...s...k...s..."  # 每拍一下
-const REST := ""                  # 整小节不打（开头 / 结尾）
 
 
 static func build() -> SongChart:
@@ -22,12 +22,12 @@ static func build() -> SongChart:
 	c.drum_hat = preload("res://assets/mv/hat.wav")
 
 	var cut := SectionDef.Transition.CUT
-	c.sections.append(_section("1 DISC", preload("res://scenes/sections/mv_disc.tscn"), [REST, BEAT, BEAT], cut))
+	c.sections.append(_section("1 DISC", preload("res://scenes/sections/mv_disc.tscn"), [BEAT, BEAT], cut))
 	c.sections.append(_section("2 TAIL", preload("res://scenes/sections/mv_tail.tscn"), [BEAT, BEAT], cut))
 	c.sections.append(_section("3 EARTH", preload("res://scenes/sections/mv_earth.tscn"), [BEAT, BEAT], cut))
 	c.sections.append(_section("4 BIGCAT", preload("res://scenes/sections/mv_bigcat.tscn"), [BEAT, BEAT], cut))
 	c.sections.append(_section("5 WASHER", preload("res://scenes/sections/mv_washer.tscn"), [BEAT, BEAT], cut))
-	c.sections.append(_section("6 UFO", preload("res://scenes/sections/mv_ufo.tscn"), [BEAT, BEAT, REST], cut))
+	c.sections.append(_section("6 UFO", preload("res://scenes/sections/mv_ufo.tscn"), [BEAT, BEAT], cut))
 	c.recompute()
 	return c
 

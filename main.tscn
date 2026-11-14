@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://dgbeqaerhgjng" path="res://assets/art/collage1.png" id="3_7mycd"]
 [ext_resource type="Script" uid="uid://11k2uh3hyxpu" path="res://scripts/core/drum_kit.gd" id="4"]
 [ext_resource type="Script" uid="uid://c5yy16mrvvyv4" path="res://scripts/core/background_manager.gd" id="5_bg"]
+[ext_resource type="Script" uid="uid://b0wa8vfrokbey" path="res://scripts/core/gauge.gd" id="6_gauge"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_border"]
 draw_center = false
@@ -18,6 +19,30 @@ corner_radius_top_left = 28
 corner_radius_top_right = 28
 corner_radius_bottom_right = 28
 corner_radius_bottom_left = 28
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gauge_bg"]
+bg_color = Color(0, 0, 0, 0.45)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 1, 1, 0.85)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gauge_fill"]
+bg_color = Color(1, 0.72, 0.1, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 1, 1, 0)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [node name="Main" type="Node2D" unique_id=1027828459]
 script = ExtResource("1")
@@ -44,6 +69,9 @@ stretch_mode = 6
 
 [node name="Judge" type="Node" parent="." unique_id=91772685]
 script = ExtResource("2")
+
+[node name="Gauge" type="Node" parent="." unique_id=594195630]
+script = ExtResource("6_gauge")
 
 [node name="DrumKit" type="Node" parent="." unique_id=95703817]
 script = ExtResource("4")
@@ -124,3 +152,21 @@ anchor_bottom = 1.0
 theme_override_font_sizes/font_size = 36
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="GaugeBar" type="ProgressBar" parent="HUD" unique_id=1264075462]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -86.0
+offset_right = 260.0
+offset_bottom = -62.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_gauge_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_gauge_fill")
+max_value = 60.0
+show_percentage = false
