@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/menu_cat_3d.gd" id="1_cat"]
+[ext_resource type="PackedScene" path="res://scenes/cat_scratch_model.tscn" id="2_model"]
+
+[node name="MenuCat3D" type="Node3D"]
+script = ExtResource("1_cat")
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+position = Vector3(-0.37957, 0, 0)
+
+[node name="CatFill" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-25, -15, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 1.2
+light_cull_mask = 2
+
+[editable path="Model"]

@@ -2,8 +2,10 @@
 
 [ext_resource type="Script" uid="uid://c4v6i6vhwxo5" path="res://scripts/menu.gd" id="1_mhnvy"]
 [ext_resource type="Texture2D" uid="uid://dwxv07k3hys6l" path="res://assets/mv/tex/face_closedw.png" id="2_4ytvr"]
+[ext_resource type="Texture2D" uid="uid://dcttmq43hxb08" path="res://assets/art/bg.png" id="2_g3eks"]
 [ext_resource type="AudioStream" uid="uid://cfu1bsupc82w8" path="res://assets/mv/hat.wav" id="3_g3eks"]
 [ext_resource type="AudioStream" uid="uid://dnh0ae3vilxvq" path="res://assets/mv/kick.wav" id="4_v86rl"]
+[ext_resource type="PackedScene" path="res://scenes/menu_view.tscn" id="5_disc_3d"]
 
 [node name="Menu" type="Node2D" unique_id=1067574799]
 script = ExtResource("1_mhnvy")
@@ -18,8 +20,18 @@ anchor_bottom = 1.0
 mouse_filter = 2
 color = Color(0.16470589, 0.09411765, 0.2509804, 1)
 
+[node name="TextureRect" type="TextureRect" parent="BackgroundLayer/Background" unique_id=1624615005]
+layout_mode = 0
+offset_left = -2.0
+offset_top = -54.0
+offset_right = 1812.2191
+offset_bottom = 877.0
+scale = Vector2(0.6410472, 0.7107768)
+texture = ExtResource("2_g3eks")
+
 [node name="Disc" type="Node2D" parent="." unique_id=324898137]
 unique_name_in_owner = true
+visible = false
 position = Vector2(576, 650)
 
 [node name="Plate" type="Polygon2D" parent="Disc" unique_id=1275049770]
@@ -311,7 +323,13 @@ color = Color(0.08235294, 0.0627451, 0.12156863, 1)
 antialiased = true
 polygon = PackedVector2Array(12, 0, 11.942217, 1.1762056, 11.7694235, 2.3410838, 11.483284, 3.483416, 11.086555, 4.592201, 10.5830555, 5.6567607, 9.977635, 6.666843, 9.276126, 7.6127195, 8.485281, 8.485281, 7.6127195, 9.276126, 6.666843, 9.977635, 5.6567607, 10.5830555, 4.592201, 11.086555, 3.483416, 11.483284, 2.3410838, 11.7694235, 1.1762056, 11.942217, 7.3478806e-16, 12, -1.1762056, 11.942217, -2.3410838, 11.7694235, -3.483416, 11.483284, -4.592201, 11.086555, -5.6567607, 10.5830555, -6.666843, 9.977635, -7.6127195, 9.276126, -8.485281, 8.485281, -9.276126, 7.6127195, -9.977635, 6.666843, -10.5830555, 5.6567607, -11.086555, 4.592201, -11.483284, 3.483416, -11.7694235, 2.3410838, -11.942217, 1.1762056, -12, 1.4695761e-15, -11.942217, -1.1762056, -11.7694235, -2.3410838, -11.483284, -3.483416, -11.086555, -4.592201, -10.5830555, -5.6567607, -9.977635, -6.666843, -9.276126, -7.6127195, -8.485281, -8.485281, -7.6127195, -9.276126, -6.666843, -9.977635, -5.6567607, -10.5830555, -4.592201, -11.086555, -3.483416, -11.483284, -2.3410838, -11.7694235, -1.1762056, -11.942217, -2.2043643e-15, -12, 1.1762056, -11.942217, 2.3410838, -11.7694235, 3.483416, -11.483284, 4.592201, -11.086555, 5.6567607, -10.5830555, 6.666843, -9.977635, 7.6127195, -9.276126, 8.485281, -8.485281, 9.276126, -7.6127195, 9.977635, -6.666843, 10.5830555, -5.6567607, 11.086555, -4.592201, 11.483284, -3.483416, 11.7694235, -2.3410838, 11.942217, -1.1762056)
 
+[node name="Disc3D" parent="." unique_id=673064432 node_paths=PackedStringArray("disc_controller", "cat_arm_controller", "cat_head_controller") instance=ExtResource("5_disc_3d")]
+disc_controller = NodePath("../Disc")
+cat_arm_controller = NodePath("../Cat/ArmPivot")
+cat_head_controller = NodePath("../Cat/Head")
+
 [node name="Cat" type="Node2D" parent="." unique_id=890519064]
+visible = false
 position = Vector2(576, 0)
 
 [node name="Body" type="Polygon2D" parent="Cat" unique_id=981523442]
