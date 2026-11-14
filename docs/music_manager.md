@@ -124,7 +124,12 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 
 ## Music Director（已做）
 
-打开 `scenes/tools/music_director.tscn` 按 F6。
+编辑器顶部工具栏点"音乐"按钮（或打开 `scenes/tools/music_director.tscn` 按 F6）。面板有两页：
+
+- **曲库**：只是听。列出现在所有做好的曲子（四种风格、全猫乐队、Jazz、三种节奏、Entertainer、五首经典曲和它们的猫版），
+  点一首就循环放，下面的按钮开关它的每条音轨；最下面是所有一次性音效（喵、打中喵、SFX），点一下听一声。
+  加了新曲子在 `scripts/music/jukebox.gd` 的 `_songs()` 里加一行。
+- **编辑**：给每个大关配音乐，下面说的都是这一页。
 
 一关的音乐是几条**轨道**（默认按乐器分：节奏、低音、和声、旋律、高潮、猫鼓、事件），每条轨道里放几段
 **片段**（loop），同一时刻每条轨道只响一段。

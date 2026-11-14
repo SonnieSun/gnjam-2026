@@ -11,6 +11,7 @@ extends Control
 
 const THEME := preload("res://assets/ui/theme.tres")
 const CueStrip := preload("res://scripts/music/cue_strip.gd")
+const Jukebox := preload("res://scripts/music/jukebox.gd")
 const PALETTE := [Color("ffd23f"), Color("ff5d8f"), Color("7fd1ff"), Color("86ffa3"), Color("b38cff"),
 	Color("ff9f43"), Color("f8f4e3"), Color("5ce1e6")]
 const DEFAULT_MARKERS := [20.0 / 60.0, 40.0 / 60.0]
@@ -36,6 +37,9 @@ var _snap: CheckBox
 var _chips := {}       # lane id -> {clip id: Button}
 var _strips := {}      # lane id -> CueStrip
 var _recording := false
+var _edit_page: VBoxContainer
+var _jukebox: VBoxContainer
+var _tab_buttons: Array[Button] = []
 var _rec_end_beat := 0.0
 var _rec: AudioEffectRecord
 
@@ -44,6 +48,7 @@ func _ready() -> void:
 	theme = THEME
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_build_ui()
+	_show_page(0)
 	Music.lane_switched.connect(func(_lane, _clip): _refresh())
 	_load_level(0)
 
@@ -64,13 +69,26 @@ func _build_ui() -> void:
 	root.add_theme_constant_override("separation", 10)
 	add_child(root)
 
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 10)
-	root.add_child(top)
+	# two pages: 编辑 (this level's tracks and cues) and 曲库 (just listen to everything we have)
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 10)
+	root.add_child(tabs)
 	var title := Label.new()
 	title.text = "MUSIC DIRECTOR"
 	title.theme_type_variation = "Header"
-	top.add_child(title)
+	tabs.add_child(title)
+	_tab_buttons = [_button(tabs, "编辑", _show_page.bind(0), "Big"), _button(tabs, "曲库", _show_page.bind(1), "Big")]
+	_edit_page = VBoxContainer.new()
+	_edit_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_edit_page.add_theme_constant_override("separation", 10)
+	root.add_child(_edit_page)
+	_jukebox = Jukebox.new()
+	_jukebox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(_jukebox)
+
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	_edit_page.add_child(top)
 	_level_pick = OptionButton.new()
 	for i in Levels.count():
 		var t: String = _level_chart(i).title
@@ -99,12 +117,12 @@ func _build_ui() -> void:
 
 	_status = Label.new()
 	_status.theme_type_variation = "Hint"
-	root.add_child(_status)
+	_edit_page.add_child(_status)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root.add_child(scroll)
+	_edit_page.add_child(scroll)
 	_lanes_box = VBoxContainer.new()
 	_lanes_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_lanes_box.add_theme_constant_override("separation", 8)
@@ -112,7 +130,7 @@ func _build_ui() -> void:
 
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 10)
-	root.add_child(bottom)
+	_edit_page.add_child(bottom)
 	_button(bottom, "+ 轨道", _add_lane, "Big")
 	var pl := Label.new()
 	pl.text = "PROGRESS"
@@ -146,6 +164,18 @@ func _build_ui() -> void:
 	_auto_bars.value = 16
 	_auto_bars.suffix = "bars"
 	bottom.add_child(_auto_bars)
+
+
+## 0 = 编辑, 1 = 曲库. Leaving a page stops what it was playing.
+func _show_page(page: int) -> void:
+	if page == 1 and Conductor.playing:
+		_stop()
+	if page == 0:
+		_jukebox.stop_all()
+	_edit_page.visible = page == 0
+	_jukebox.visible = page == 1
+	for i in _tab_buttons.size():
+		_tab_buttons[i].theme_type_variation = "Hot" if i == page else "Big"
 
 
 func _button(parent: Control, text: String, on_press: Callable, variation := "") -> Button:
@@ -600,6 +630,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if k == null or not k.pressed or k.echo:
 		return
 	if get_viewport().gui_get_focus_owner() is LineEdit:
+		return
+	if _jukebox.visible:                       # 曲库: Space stops, nothing else
+		if k.keycode == KEY_SPACE:
+			_jukebox.stop_all()
+			get_viewport().set_input_as_handled()
 		return
 	match k.keycode:
 		KEY_SPACE:
