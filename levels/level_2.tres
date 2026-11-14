@@ -1,0 +1,151 @@
+[gd_resource type="Resource" script_class="SongChart" format=3]
+
+[ext_resource type="AudioStream" path="res://assets/fantasy/hat.wav" id="1_mrbuc"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/kick.wav" id="2_oce7n"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/snare.wav" id="3_4r5xl"]
+[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_q3vbg"]
+[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_35tcx"]
+[ext_resource type="PackedScene" path="res://scenes/sections/lick.tscn" id="6_vw372"]
+[ext_resource type="PackedScene" path="res://scenes/sections/earth.tscn" id="7_y88x4"]
+[ext_resource type="PackedScene" path="res://scenes/sections/tail.tscn" id="8_0sj03"]
+[ext_resource type="PackedScene" path="res://scenes/sections/orbit.tscn" id="9_8swv7"]
+[ext_resource type="PackedScene" path="res://scenes/sections/clock.tscn" id="10_prbh5"]
+[ext_resource type="PackedScene" path="res://scenes/sections/ripple.tscn" id="11_eb245"]
+[ext_resource type="PackedScene" path="res://scenes/sections/rings.tscn" id="12_u4n5s"]
+[ext_resource type="PackedScene" path="res://scenes/sections/moon.tscn" id="13_ve013"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="14_yiqag"]
+
+[sub_resource type="Resource" id="Resource_lbs4f"]
+script = ExtResource("5_35tcx")
+title = "1 LICK"
+scene = ExtResource("6_vw372")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s.....k.s...", "k.....k.....s...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_ipm0u"]
+script = ExtResource("5_35tcx")
+title = "2 SHRINK"
+scene = ExtResource("7_y88x4")
+beats_per_rev = 8.0
+bars = PackedStringArray("....s...k.k.s...", "k.......s...k...", "k...s.s.....s...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_ykbfq"]
+script = ExtResource("5_35tcx")
+title = "3 TRIPLE"
+scene = ExtResource("8_0sj03")
+bars = PackedStringArray("....h...s...k...", "k.h.s.......h.s.", "k.....s.h...s...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_3512u"]
+script = ExtResource("5_35tcx")
+title = "4 ORBIT"
+scene = ExtResource("9_8swv7")
+beats_per_rev = 8.0
+bars = PackedStringArray("....k.....s.....", "k.k...s...k.s...", "k.....k...s.s...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_qbv3m"]
+script = ExtResource("5_35tcx")
+title = "5 CLOCK"
+scene = ExtResource("10_prbh5")
+beats_per_rev = 8.0
+bars = PackedStringArray("....s...k.....s.", "..k...s...k...s.", "k...k...s.......")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_qfhd1"]
+script = ExtResource("5_35tcx")
+title = "6 RIPPLE"
+scene = ExtResource("11_eb245")
+beats_per_rev = 8.0
+bars = PackedStringArray("....k...s...k...", "s.......k.k.....", "k.....k.....k.s.")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_2ykbr"]
+script = ExtResource("5_35tcx")
+title = "7 RINGS"
+scene = ExtResource("12_u4n5s")
+beats_per_rev = 8.0
+bars = PackedStringArray("....k...h...s...", "k.h...s...h.k...", "s...k.h.....k...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_dvn71"]
+script = ExtResource("5_35tcx")
+title = "8 MOON"
+scene = ExtResource("13_ve013")
+beats_per_rev = 8.0
+bars = PackedStringArray("....k.......s...", "k.......s.......", "k.....s.....k...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_frk0u"]
+script = ExtResource("5_35tcx")
+title = "1 LICK"
+scene = ExtResource("6_vw372")
+beats_per_rev = 8.0
+bars = PackedStringArray("....s...k.k.s...", "k.....s...k.....", "k.k...s.....s.s.")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_sonls"]
+script = ExtResource("5_35tcx")
+title = "2 SHRINK"
+scene = ExtResource("7_y88x4")
+beats_per_rev = 8.0
+bars = PackedStringArray("....k.....k.s...", "s...k.......k...", "k...s...k.k.s...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_e1go5"]
+script = ExtResource("5_35tcx")
+title = "3 TRIPLE"
+scene = ExtResource("8_0sj03")
+bars = PackedStringArray("....s.h.k.......", "k...h...s.h.....", "k.s...h...k.s...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_m2ys2"]
+script = ExtResource("5_35tcx")
+title = "4 ORBIT"
+scene = ExtResource("9_8swv7")
+beats_per_rev = 8.0
+bars = PackedStringArray("....s.....k.k...", "k.....s.k.....s.", "k...k.....s.....")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_2wg5y"]
+script = ExtResource("5_35tcx")
+title = "5 CLOCK"
+scene = ExtResource("10_prbh5")
+beats_per_rev = 8.0
+bars = PackedStringArray("....k.k.....s...", "k...s.......k.s.", "..k...k...s.....")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_ie0vx"]
+script = ExtResource("5_35tcx")
+title = "6 RIPPLE"
+scene = ExtResource("11_eb245")
+beats_per_rev = 8.0
+bars = PackedStringArray("....s.....s.k...", "k.....k.s.......", "k...s.....k.s...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_7rwed"]
+script = ExtResource("5_35tcx")
+title = "7 RINGS"
+scene = ExtResource("12_u4n5s")
+beats_per_rev = 8.0
+bars = PackedStringArray("....h.k...s.....", "k...s.h.....h...", "k.h.s.....k.s...")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_f2gsw"]
+script = ExtResource("5_35tcx")
+title = "8 MOON"
+scene = ExtResource("13_ve013")
+beats_per_rev = 8.0
+bars = PackedStringArray("....s.......k...", "k.....k.....s...", "s.......k.......")
+gauge_events = PackedInt32Array()
+
+[resource]
+script = ExtResource("4_q3vbg")
+title = "LEVEL 2"
+stream = ExtResource("14_yiqag")
+drum_kick = ExtResource("2_oce7n")
+drum_snare = ExtResource("3_4r5xl")
+drum_hat = ExtResource("1_mrbuc")
+sections = Array[ExtResource("5_35tcx")]([SubResource("Resource_lbs4f"), SubResource("Resource_ipm0u"), SubResource("Resource_ykbfq"), SubResource("Resource_3512u"), SubResource("Resource_qbv3m"), SubResource("Resource_qfhd1"), SubResource("Resource_2ykbr"), SubResource("Resource_dvn71"), SubResource("Resource_frk0u"), SubResource("Resource_sonls"), SubResource("Resource_e1go5"), SubResource("Resource_m2ys2"), SubResource("Resource_2wg5y"), SubResource("Resource_ie0vx"), SubResource("Resource_7rwed"), SubResource("Resource_f2gsw")])

@@ -7,21 +7,97 @@ extends Resource
 enum Transition { ZOOM, CUT }
 
 @export var title := ""
-@export var scene: PackedScene
+## 这个小关用哪个场景。一般不用动这一项：在最下面的 scene_file 下拉框里选就行，
+## 那里列出了“小关场景文件夹”里所有能用的场景（文件夹在 项目设置 → Gnjam → Sections Folder 里改）。
+@export var scene: PackedScene:
+	set(value):
+		scene = value
+		notify_property_list_changed()
 ## 转一整圈需要多少拍。旋转角度 = 段内拍数 / beats_per_rev * TAU
 @export var beats_per_rev := 4.0
 ## 谱面：每个字符串是一小节，按字符数等分。
 ##   k = 底鼓  s = 军鼓  h = 踩镲  （x 等同于 k）  其他字符 = 休止
 ## 例如 "k...s...k.k.s..." = 十六分音符网格。空字符串 = 整小节休止。
-## 段落长度 = 小节数。
+## 这几个小节会一直循环，直到这个小关的积累条满了为止。
 @export var bars: PackedStringArray = []
 
 @export var transition: Transition = Transition.ZOOM
 
-## 由 SongChart.recompute() 填入
+## 这个小关的积累条满条值。0 = 不指定（用关卡场景里填的，场景也没填就用 Gauge 节点的默认值）
+@export var gauge_max := 0
+## 这个小关的事件分数线：积累条涨到这些分数时各触发一次事件，比如 [15, 30, 45]。
+## 只有 use_gauge_events 勾上时才生效（这样才能表达“这一关一个事件都没有”）。
+@export var gauge_events := PackedInt32Array()
+@export var use_gauge_events := false
+
+## 这个小关是从全曲第几拍开始的（进入这个小关时由 Main 填入）
 var start_beat := 0.0
-## 这一段总共多少拍（由 SongChart.recompute() 填入）
+## 鼓谱循环一遍多少拍（由 SongChart.recompute() 填入）
 var length := 0.0
+
+
+# ---- 检查器里的 scene_file 下拉框：列出小关场景文件夹里所有的场景 ----
+
+const SECTIONS_FOLDER_SETTING := "gnjam/sections_folder"
+const SECTIONS_FOLDER_DEFAULT := "res://scenes/sections"
+
+
+static func sections_folder() -> String:
+	return ProjectSettings.get_setting(SECTIONS_FOLDER_SETTING, SECTIONS_FOLDER_DEFAULT)
+
+
+## 小关场景文件夹里所有的场景（含子文件夹），返回相对那个文件夹的路径，按名字排序
+static func available_scenes(folder: String = "", prefix: String = "") -> PackedStringArray:
+	if folder == "":
+		folder = sections_folder()
+	var out := PackedStringArray()
+	var dir := DirAccess.open(folder)
+	if dir == null:
+		return out
+	for f in dir.get_files():
+		if f.get_extension() == "tscn":
+			out.append(prefix + f)
+	for d in dir.get_directories():
+		out.append_array(available_scenes(folder.path_join(d), prefix + d + "/"))
+	out.sort()
+	return out
+
+
+func _get_property_list() -> Array[Dictionary]:
+	var options := available_scenes()
+	var current: String = _get(&"scene_file")
+	if current != "" and not options.has(current):
+		options.append(current)  # 用的是文件夹外面的场景，也照样显示出来
+	return [{
+		"name": "scene_file",
+		"type": TYPE_STRING,
+		"usage": PROPERTY_USAGE_EDITOR,
+		"hint": PROPERTY_HINT_ENUM,
+		"hint_string": ",".join(options),
+	}]
+
+
+func _get(property: StringName) -> Variant:
+	if property == &"scene_file":
+		if scene == null:
+			return ""
+		var root := sections_folder().path_join("")
+		var path := scene.resource_path
+		return path.trim_prefix(root) if path.begins_with(root) else path
+	return null
+
+
+func _set(property: StringName, value: Variant) -> bool:
+	if property == &"scene_file":
+		var text := String(value)
+		if text == "":
+			scene = null
+		else:
+			var path := text if text.begins_with("res://") else sections_folder().path_join(text)
+			if ResourceLoader.exists(path):
+				scene = load(path)
+		return true
+	return false
 
 
 func length_beats(beats_per_bar: int) -> float:

@@ -24,6 +24,15 @@ var counts := {}
 
 var _next := 0  # 第一个还没判定的音符
 
+## 音符提前铺多少拍（要比任何关卡“提前显示音符”的拍数都长）
+const LOOKAHEAD_BEATS := 16.0
+var _pattern: Array[Dictionary] = []  # 当前小关循环的鼓谱
+var _pattern_len := 0.0
+var _pattern_origin := 0.0
+var _pattern_k := 0
+var _section_index := 0
+var _section_notes: Array[NoteData] = []
+
 
 func _ready() -> void:
 	# 在代码里注册按键，省得手改 project.godot；之后想改键可以挪到项目设置里
@@ -38,38 +47,75 @@ func _ready() -> void:
 		InputMap.action_add_event(HIT_ACTION, m)
 
 
-func load_chart(chart: SongChart) -> void:
-	notes = chart.build_notes()
-	reset(0.0)
+## 换一个大关时调用（清空音符和成绩）
+func load_chart(_chart: SongChart) -> void:
+	reset()
 
 
-## 重置成绩；from_beat 之前的音符直接跳过（用于从中间开始）
-func reset(from_beat: float) -> void:
+## 成绩清零、音符清空
+func reset(_from_beat: float = 0.0) -> void:
 	score = 0
 	combo = 0
 	max_combo = 0
 	counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
-	_next = notes.size()
-	for i in notes.size():
-		var n := notes[i]
-		n.judged = n.beat < from_beat
-		n.result = NoteData.Result.NONE
-		if not n.judged and i < _next:
-			_next = i
+	notes = []
+	_next = 0
+	_pattern = []
+	_section_notes = []
 	stats_changed.emit()
 
 
-func notes_for_section(index: int) -> Array[NoteData]:
-	var out: Array[NoteData] = []
-	for n in notes:
-		if n.section_index == index:
-			out.append(n)
-	return out
+## 开始一个小关：从 first_note_beat 起把它的鼓谱一遍遍循环铺下去（只提前铺 LOOKAHEAD_BEATS 拍）。
+## 上一个小关在 start_beat 之后还没到的音符会被丢掉。
+## 返回这个小关的音符列表——之后新铺出来的音符会不断加到这同一个列表里。
+func begin_section(index: int, def: SectionDef, beats_per_bar: int,
+		start_beat: float, first_note_beat: float) -> Array[NoteData]:
+	_drop_notes_from(start_beat)
+	_section_index = index
+	_pattern = def.parse_notes(beats_per_bar)
+	_pattern_len = def.length_beats(beats_per_bar)
+	_pattern_origin = first_note_beat
+	_pattern_k = 0
+	_section_notes = []
+	_generate()
+	return _section_notes
+
+
+## 不再出新音符，还没到的也都丢掉（大关打完时用）
+func stop_notes() -> void:
+	_pattern = []
+	_drop_notes_from(Conductor.song_beat)
+
+
+## 鼓谱循环一遍的拍数是 _pattern_len；第 _pattern_k 个音符 = 第几遍 + 这一遍里的第几个
+func _generate() -> void:
+	if _pattern.is_empty() or _pattern_len <= 0.0:
+		return
+	var horizon := Conductor.song_beat + LOOKAHEAD_BEATS
+	while true:
+		var d: Dictionary = _pattern[_pattern_k % _pattern.size()]
+		var beat: float = _pattern_origin + (_pattern_k / _pattern.size()) * _pattern_len + d.beat
+		if beat > horizon:
+			break
+		var n := NoteData.new()
+		n.beat = beat
+		n.sound = d.sound
+		n.section_index = _section_index
+		notes.append(n)
+		_section_notes.append(n)
+		_pattern_k += 1
+
+
+func _drop_notes_from(beat: float) -> void:
+	while notes.size() > _next and notes[-1].beat >= beat - 0.001:
+		notes[-1].judged = true  # 让还拿着它的旧关卡不再画它
+		notes.pop_back()
 
 
 func _process(_delta: float) -> void:
 	if not Conductor.playing:
 		return
+	_generate()
 	# 过了判定窗口还没按的算 Miss
 	while _next < notes.size():
 		var n := notes[_next]

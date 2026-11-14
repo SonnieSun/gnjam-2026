@@ -14,6 +14,14 @@ extends Node2D
 @export_group("击中手感")
 ## 每打中一下，step_rot 往前转多少（弧度）。漏打不转。
 @export var step_angle := PI / 4
+@export_group("积累条")
+## 这一关的满条值。0 = 用 Gauge 节点的默认值
+@export var gauge_max_override := 0
+## 勾上 = 这一关用下面自己的事件分数线；不勾 = 用 Gauge 节点的默认分数线
+@export var custom_gauge_events := false
+## 这一关的事件分数线：积累条涨到这些分数时各触发一次 _on_gauge_event，
+## 想要几个事件就填几个数（留空 = 这一关没有事件）。谱面里可以再单独覆盖。
+@export var gauge_events := PackedInt32Array()
 @export_group("编辑器预览")
 ## 勾上 = 预览自动循环播放；取消 = 停在下面指定的那一拍
 @export var preview_playing := true
@@ -47,6 +55,15 @@ var step_rot_target := 0.0
 var free_spin := 0.0
 var free_spin_vel := 0.3
 
+# ---- 积累条（Main 通知过来，关卡脚本直接读）----
+var gauge_value := 0
+var gauge_max := 60
+## 已经触发了几个事件（0 = 一个还没触发）
+var gauge_events_fired := 0
+## 这一关实际生效的事件分数线（从小到大）
+var gauge_event_values := PackedInt32Array()
+var _gauge_smooth := 0.0
+
 
 func setup(section_def: SectionDef, section_notes: Array[NoteData]) -> void:
 	def = section_def
@@ -78,9 +95,12 @@ func spin_angle() -> float:
 	return local_beat() / def.beats_per_rev * TAU
 
 
-## 这一段播到哪了：0 = 刚开始，1 = 结束（运镜之类用）
+## 这个小关打到哪了：0 = 刚开始，1 = 积累条满了（运镜之类用；跟着积累条平滑变化）。
+## 编辑器预览里没有积累条，就按预览的拍子从 0 走到 1。
 func progress() -> float:
-	return clampf(local_beat() / maxf(def.length, 0.001), 0.0, 1.0)
+	if _previewing():
+		return clampf(local_beat() / maxf(def.length, 0.001), 0.0, 1.0)
+	return _gauge_smooth
 
 
 ## 打中后的脉冲：打中瞬间是 1，很快衰减到 0
@@ -103,6 +123,23 @@ func notify_judged(note: NoteData, result: int) -> void:
 		step_rot_target += step_angle
 		free_spin_vel += 6.0 if result == NoteData.Result.PERFECT else 3.5
 	_on_note_judged(note, result)
+
+
+## 积累条的数值变了
+func notify_gauge(value: int, max_value: int) -> void:
+	gauge_value = value
+	gauge_max = max_value
+
+
+## 积累条第一次涨过第 index 条事件分数线
+func notify_gauge_event(index: int, value: int) -> void:
+	gauge_events_fired = index
+	_on_gauge_event(index, value)
+
+
+## 积累条满了（马上要切到下一关）
+func notify_gauge_filled() -> void:
+	_on_gauge_filled()
 
 
 func notify_empty_hit() -> void:
@@ -194,6 +231,7 @@ func _process(delta: float) -> void:
 	free_spin_vel += (0.3 - free_spin_vel) * minf(1.0, delta * 2.5)
 	free_spin += free_spin_vel * delta
 	step_rot += (step_rot_target - step_rot) * minf(1.0, delta * 18.0)
+	_gauge_smooth = lerpf(_gauge_smooth, float(gauge_value) / maxi(gauge_max, 1), minf(1.0, delta * 4.0))
 	if def:
 		_update_spin(local_beat(), spin_angle())
 
@@ -330,5 +368,17 @@ func _on_note_judged(_note: NoteData, _result: int) -> void:
 
 
 ## 玩家空按
+## 积累条第一次涨过第 index 条事件分数线时调用（index 从 1 开始，value = 那条线的分数）。
+## 有几条线、各在多少分，在场景根节点检查器的“积累条”一栏里填。
+## 留给关卡自己发挥：多放几个物体、加特效之类。现在默认什么都不做。
+func _on_gauge_event(_index: int, _value: int) -> void:
+	pass
+
+
+## 积累条满了时调用（之后在下一个小节线切到下一关）
+func _on_gauge_filled() -> void:
+	pass
+
+
 func _on_empty_hit() -> void:
 	pass

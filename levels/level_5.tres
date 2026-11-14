@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SongChart" format=3]
+
+[ext_resource type="AudioStream" path="res://assets/mv/hat.wav" id="1_hll5g"]
+[ext_resource type="AudioStream" path="res://assets/mv/kick.wav" id="2_mqk30"]
+[ext_resource type="AudioStream" path="res://assets/mv/snare.wav" id="3_dxrtt"]
+[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_c4l1d"]
+[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_uuvmb"]
+[ext_resource type="PackedScene" path="res://scenes/sections/pizza.tscn" id="6_y0jst"]
+[ext_resource type="AudioStream" path="res://assets/mv/mv_no_drums.ogg" id="7_vj20x"]
+
+[sub_resource type="Resource" id="Resource_85po2"]
+script = ExtResource("5_uuvmb")
+title = "PIZZA CAT"
+scene = ExtResource("6_y0jst")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+transition = 1
+gauge_events = PackedInt32Array()
+
+[resource]
+script = ExtResource("4_c4l1d")
+title = "LEVEL 5"
+stream = ExtResource("7_vj20x")
+drum_kick = ExtResource("2_mqk30")
+drum_snare = ExtResource("3_dxrtt")
+drum_hat = ExtResource("1_hll5g")
+sections = Array[ExtResource("5_uuvmb")]([SubResource("Resource_85po2")])

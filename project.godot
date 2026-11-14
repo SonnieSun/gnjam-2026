@@ -26,6 +26,15 @@ Conductor="*res://scripts/core/conductor.gd"
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/level_editor/plugin.cfg")
+
+[gnjam]
+
+sections_folder="res://scenes/sections"
+levels_folder="res://levels"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
