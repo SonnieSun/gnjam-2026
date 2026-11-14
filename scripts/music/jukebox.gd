@@ -123,16 +123,18 @@ func _rhythm(name: String, key: String) -> Dictionary:
 		_t("猫旋律", S1 + "cat_band/s1_C_lead_4b.wav", false)]}
 
 
-## 经典曲：cat = true 是全猫版（同样的音轨，一开始开的不一样）
-func _classic(name: String, key: String, bars: int, cat: bool) -> Dictionary:
+## 经典曲：version 0 = 普通版，1 = 猫版（喵连着唱），2 = 鬼畜版（每 4 小节一只猫，变速变调，硬切）。
+## 三个版本是同样的音轨，只是一开始开的不一样。
+func _classic(name: String, key: String, bars: int, version: int) -> Dictionary:
 	var p := "%sclassics/%s/%s_" % [M, key, key]
 	var e := "_%db.wav" % bars
-	return {"name": name + ("（猫版）" if cat else ""), "stems": [
+	var cat := version > 0
+	return {"name": name + ["", "（猫版）", "（鬼畜版）"][version], "stems": [
 		_t("鼓", S1 + "skeleton/s1_L1_groove_4b.wav"),
 		_t("和声", p + "fb_L0_keys" + e, not cat), _t("低音", p + "L2_bass" + e, not cat),
 		_t("旋律", p + "L3_pluck" + e, not cat), _t("高潮", p + "fb_L4_peak" + e, not cat),
-		_t("猫旋律", p + "L3_cat" + e, false), _t("猫旋律 连着唱", p + "L3_cat_flow" + e, cat),
-		_t("猫旋律 轮流唱", p + "L3_cat_pool" + e, false),
+		_t("猫旋律", p + "L3_cat" + e, false), _t("猫旋律 连着唱", p + "L3_cat_flow" + e, version == 1),
+		_t("猫旋律 轮流唱", p + "L3_cat_pool" + e, false), _t("猫旋律 鬼畜", p + "L3_cat_kichiku" + e, version == 2),
 		_t("猫鼓", p + "C_drums" + e, cat), _t("猫和声", p + "C_stabs" + e, cat), _t("猫低音", p + "C_bass" + e, cat)]}
 
 
@@ -159,8 +161,8 @@ func _songs() -> Array:
 	]
 	for c in [["康康舞曲", "can_can", 8], ["土耳其进行曲", "turkish_march", 16], ["山魔王", "mountain_king", 4],
 			["欢乐颂", "ode_to_joy", 8], ["致爱丽丝", "fur_elise", 4]]:
-		out.append(_classic(c[0], c[1], c[2], false))
-		out.append(_classic(c[0], c[1], c[2], true))
+		for version in 3:
+			out.append(_classic(c[0], c[1], c[2], version))
 	return out
 
 
