@@ -41,8 +41,8 @@ def cut(path, start, min_len=0.3):
     w = int(0.01 * SR)
     env = np.sqrt(np.convolve(m ** 2, np.ones(w) / w, mode='same'))
     keep = np.nonzero(env > env.max() * 10 ** (-26 / 20))[0]
-    loud = np.nonzero(env > env.max() * 10 ** (-18 / 20))[0]
-    sl = sl[max(0, loud[0] - int(0.015 * SR)): min(len(sl), keep[-1] + int(0.03 * SR))].copy()
+    loud = np.nonzero(env > env.max() * 10 ** (-12 / 20))[0]     # 5 ms before -12 dB: lands on the beat
+    sl = sl[max(0, loud[0] - int(0.005 * SR)): min(len(sl), keep[-1] + int(0.03 * SR))].copy()
     sl[: int(0.005 * SR)] *= np.linspace(0, 1, int(0.005 * SR))[:, None]
     sl[-int(0.02 * SR):] *= np.linspace(1, 0, int(0.02 * SR))[:, None]
     return sl / np.max(np.abs(sl))

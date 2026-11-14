@@ -37,7 +37,7 @@ def cut(path, start):
     w = int(0.01 * SR)
     env = np.sqrt(np.convolve(m ** 2, np.ones(w) / w, mode='same'))
     keep = np.nonzero(env > env.max() * 10 ** (-26 / 20))[0]
-    loud = np.nonzero(env > env.max() * 10 ** (-18 / 20))[0]
+    loud = np.nonzero(env > env.max() * 10 ** (-12 / 20))[0]
     a = max(0, loud[0] - int(0.005 * SR))
     b = min(len(sl), keep[-1] + int(0.02 * SR))
     return sl[a:b].mean(axis=1)
@@ -49,8 +49,20 @@ def own_pitch(m):
     return float(np.median(pc)) if pc is not None else 72.0
 
 
+def tight(v, db=-10, pre=0.002):
+    """Start 2 ms before the sound reaches -10 dB of its peak: a soft 'm' at the front would make the
+    meow feel late on the hit."""
+    m = np.abs(v)
+    w = int(0.005 * SR)
+    env = np.sqrt(np.convolve(m ** 2, np.ones(w) / w, mode='full')[: len(m)])
+    i = np.nonzero(env >= env.max() * 10 ** (db / 20))[0]
+    return v[max(0, i[0] - w - int(pre * SR)):] if len(i) else v
+
+
 def finish(v, rms=0.12):
-    """Same loudness for every file, a 2 ms fade in, a 25 ms fade out, and a peak cap."""
+    """Starts right on the sound, same loudness for every file, a 2 ms fade in, a 25 ms fade out,
+    and a peak cap."""
+    v = tight(v)
     v = v * rms / (np.sqrt(np.mean(v ** 2)) + 1e-9)
     g = int(0.002 * SR)
     v[:g] *= np.linspace(0, 1, g)

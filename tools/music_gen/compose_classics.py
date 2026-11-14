@@ -112,10 +112,10 @@ def trim_tail(sl, floor_db=-26):
     env = np.sqrt(np.convolve(m ** 2, np.ones(w) / w, mode='same'))
     keep = np.nonzero(env > env.max() * 10 ** (floor_db / 20))[0]
     end = min(len(sl), keep[-1] + int(0.03 * SR)) if len(keep) else len(sl)
-    # and a quiet start (a hummed 'm', a breath) would land the meow late on its beat: start 15 ms
-    # before it reaches -18 dB of its peak
-    loud = np.nonzero(env > env.max() * 10 ** (-18 / 20))[0]
-    start = max(0, loud[0] - int(0.015 * SR)) if len(loud) else 0
+    # and a quiet start (a hummed 'm', a murmur, a breath) would land the meow late on its beat:
+    # start 5 ms before it reaches -12 dB of its peak (#8 murmurs for 0.8 s before its meow)
+    loud = np.nonzero(env > env.max() * 10 ** (-12 / 20))[0]
+    start = max(0, loud[0] - int(0.005 * SR)) if len(loud) else 0
     out = sl[start:end].copy()
     g = min(int(0.005 * SR), len(out) // 4)
     out[:g] *= (np.linspace(0, 1, g)[:, None] if out.ndim == 2 else np.linspace(0, 1, g))
