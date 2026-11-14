@@ -1,3 +1,5 @@
+> **注意（后来的改动）**：Music Director 面板和它的编辑器插件已经删掉了。按进度切换片段现在在游戏里按 Tab 调出的面板上编辑（`scripts/tools/game_editor.gd`）；加轨道、加片段直接改 `levels/music/` 里的 json。下文里关于 Music Director 的部分只作历史记录。
+
 # 叠轨音乐播放管理（设计）
 
 > **已经做了的（2026-11-15）**：`Music` autoload（`scripts/music/music.gd`）和 Music Director 面板

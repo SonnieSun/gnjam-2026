@@ -4,7 +4,7 @@ extends Node2D
 ## 大关的顺序和对应的谱面在 scripts/core/levels.gd。
 
 ## 场景是按这个画面大小摆的；窗口比例不同时整体居中
-const BASE_SIZE := Vector2(1152, 648)
+const BASE_SIZE := Vector2(960, 720)
 
 ## 转盘转一格用多久（秒）
 @export var turn_time := 0.35

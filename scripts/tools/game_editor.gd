@@ -1,6 +1,6 @@
 extends CanvasLayer
 ## 游戏里的编辑面板：进了关卡按 Tab 调出来，再按 Tab 收起。只在编辑器里运行游戏时有（导出的游戏里没有）。
-## 它把“关卡编辑器”和“Music Director”两个插件里和当前小关有关的功能合到了一起，直接看着画面改：
+## 直接看着画面改当前小关：
 ##
 ##   最上面一根“积累条”进度条：拖它 = 假装玩家把积累条打到了这么满，画面、镜头特效、猫图、音乐都会跟着变。
 ##   面板开着的时候，打中 / 漏打不再改积累条。
@@ -8,13 +8,13 @@ extends CanvasLayer
 ##   镜头和猫图   点一个特效 = 从当前进度起切到它（再点一次 = 从这里起回到原样）；
 ##                细条上的白线是切换点，拖动改位置，右键删掉。
 ##                “+ 猫图”在当前进度加一只，选中后在画面上拖动摆位置。
-##   音乐         每条轨道点一段 = 从当前进度起换成它（和 Music Director 里一样）。
+##   音乐         每条轨道点一段 = 从当前进度起换成它。
 ##   谱子         点格子写这个小关循环的鼓谱。
 ##
 ## 改动先只在这次运行里生效，点“保存”才写进文件：镜头 / 猫图 / 谱子 / 满条值写进大关的 .tres，
 ## 音乐写进 levels/music/ 里对应的 .json。
 
-const Grid := preload("res://addons/level_editor/pattern_grid.gd")
+const Grid := preload("res://scripts/tools/pattern_grid.gd")
 const CueStrip := preload("res://scripts/music/cue_strip.gd")
 const THEME := preload("res://assets/ui/theme.tres")
 const PALETTE := [Color("ffd23f"), Color("ff5d8f"), Color("7fd1ff"), Color("86ffa3"), Color("b38cff"),
@@ -91,30 +91,31 @@ func _build_ui() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 8)
 	root.add_child(head)
-	_btn(head, "◀", func() -> void: _go(-1), "上一个小关")
-	_btn(head, "▶", func() -> void: _go(1), "下一个小关")
+	_btn(head, "◀", func() -> void: _go(-1), "Previous stage")
+	_btn(head, "▶", func() -> void: _go(1), "Next stage")
 	_title = Label.new()
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_title.custom_minimum_size.x = 120
 	head.add_child(_title)
-	head.add_child(_lbl("   满条值"))
+	head.add_child(_lbl("   Gauge max"))
 	_gauge_max = SpinBox.new()
 	_gauge_max.min_value = 5
 	_gauge_max.max_value = 2000
 	_gauge_max.step = 5
-	_gauge_max.tooltip_text = "这个小关的积累条要打多少分才满（全中每个音符 +5）"
+	_gauge_max.tooltip_text = "Points needed to fill this stage's gauge (a Perfect is +5)"
 	_gauge_max.value_changed.connect(_on_gauge_max)
 	head.add_child(_gauge_max)
 	_status = _lbl("")
-	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	head.add_child(_status)
-	_btn(head, "保存", save, "把所有小关的改动写进文件")
-	_btn(head, "收起 (Tab)", func() -> void: main.toggle_editor())
+	_btn(head, "Save", save, "Write the changes of every stage to disk")
+	_btn(head, "Close (Tab)", func() -> void: main.toggle_editor())
 
 	# 积累条
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 8)
 	root.add_child(bar)
-	bar.add_child(_lbl("积累条"))
+	bar.add_child(_lbl("Gauge"))
 	_progress = HSlider.new()
 	_progress.max_value = 100
 	_progress.step = 1
@@ -137,15 +138,15 @@ func _build_ui() -> void:
 
 func _build_fx_tab() -> Control:
 	var v := VBoxContainer.new()
-	v.name = "镜头和猫图"
+	v.name = "Camera & Memes"
 	v.add_theme_constant_override("separation", 6)
 	var row := HFlowContainer.new()
 	v.add_child(row)
-	row.add_child(_lbl("镜头  "))
+	row.add_child(_lbl("Camera  "))
 	for id: String in ScreenFx.EFFECTS:
 		var info: Dictionary = ScreenFx.EFFECTS[id]
 		var b := _btn(row, info.label, func() -> void: _cue_fx(id),
-				"从当前进度起切到“%s”（已经是它的话，再点 = 从这里起回到原样）" % info.label)
+				"From the current gauge position on, switch to %s (click again to go back to Normal from here)" % info.label)
 		b.add_theme_color_override("font_color", info.color.lightened(0.3))
 		_fx_buttons[id] = b
 	_fx_strip = CueStrip.new()
@@ -160,40 +161,38 @@ func _build_fx_tab() -> Control:
 	v.add_child(_fx_strip)
 
 	v.add_child(HSeparator.new())
-	var add := HBoxContainer.new()
+	var add := HFlowContainer.new()  # 窄屏放不下一行时自动折行
 	v.add_child(add)
-	add.add_child(_lbl("猫图  "))
+	add.add_child(_lbl("Meme  "))
 	_meme_pick = OptionButton.new()
 	_meme_pick.custom_minimum_size.x = 180
 	_meme_pick.focus_mode = Control.FOCUS_NONE
 	for key in MemeLib.keys():
 		_meme_pick.add_item(key)
 	add.add_child(_meme_pick)
-	_btn(add, "+ 在当前进度加一只", _add_meme, "积累条涨到现在这个进度时，这只猫蹦出来")
+	_btn(add, "+ Add at current gauge", _add_meme, "This cat pops in when the gauge reaches the current position")
 	_meme_box = HBoxContainer.new()
 	_meme_box.add_theme_constant_override("separation", 6)
 	add.add_child(_meme_box)
-	_meme_box.add_child(_lbl("    选中的：出现在"))
+	_meme_box.add_child(_lbl("  Selected: at"))
 	_meme_at = SpinBox.new()
 	_meme_at.max_value = 100
 	_meme_at.step = 5
 	_meme_at.suffix = "%"
 	_meme_at.value_changed.connect(func(val: float) -> void: _edit_meme("at", val / 100.0))
 	_meme_box.add_child(_meme_at)
-	_meme_box.add_child(_lbl("大小"))
+	_meme_box.add_child(_lbl("Size"))
 	_meme_size = HSlider.new()
 	_meme_size.min_value = 0.05
 	_meme_size.max_value = 1.0
 	_meme_size.step = 0.01
-	_meme_size.custom_minimum_size.x = 140
+	_meme_size.custom_minimum_size.x = 110
 	_meme_size.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_meme_size.focus_mode = Control.FOCUS_NONE
 	_meme_size.value_changed.connect(func(val: float) -> void: _edit_meme("size", val))
 	_meme_box.add_child(_meme_size)
-	_btn(_meme_box, "删掉", _remove_meme)
-	var hint := _lbl("  在画面上按住拖动 = 摆位置")
-	hint.modulate.a = 0.6
-	_meme_box.add_child(hint)
+	_btn(_meme_box, "Delete", _remove_meme)
+	_meme_box.tooltip_text = "Drag on the picture to place the selected meme"
 	_meme_chips = HFlowContainer.new()
 	v.add_child(_meme_chips)
 	return v
@@ -201,7 +200,7 @@ func _build_fx_tab() -> Control:
 
 func _build_music_tab() -> Control:
 	var scroll := ScrollContainer.new()
-	scroll.name = "音乐"
+	scroll.name = "Music"
 	_music_box = VBoxContainer.new()
 	_music_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_music_box.add_theme_constant_override("separation", 4)
@@ -211,12 +210,12 @@ func _build_music_tab() -> Control:
 
 func _build_pattern_tab() -> Control:
 	var v := VBoxContainer.new()
-	v.name = "谱子"
-	var tools := HBoxContainer.new()
+	v.name = "Pattern"
+	var tools := HFlowContainer.new()
 	v.add_child(tools)
-	tools.add_child(_lbl("画笔  "))
+	tools.add_child(_lbl("Brush  "))
 	var group := ButtonGroup.new()
-	var names := ["底鼓 K", "军鼓 S", "踩镲 H", "橡皮"]
+	var names := ["Kick K", "Snare S", "Hat H", "Eraser"]
 	for i in names.size():
 		var b := _btn(tools, names[i], func() -> void: _grid.brush = i if i < 3 else -1)
 		b.toggle_mode = true
@@ -226,11 +225,11 @@ func _build_pattern_tab() -> Control:
 			b.add_theme_color_override("font_color", Grid.COLORS[i])
 			b.add_theme_color_override("font_pressed_color", Grid.COLORS[i])
 	tools.add_child(VSeparator.new())
-	_btn(tools, "＋ 小节", func() -> void: _resize_bars(1))
-	_btn(tools, "－ 小节", func() -> void: _resize_bars(-1))
-	_btn(tools, "用新谱子重进这个小关", func() -> void: main.start_from(main._index),
-			"谱子改完要重进小关才会按新的出音符（成绩清零，音乐从头放）")
-	var hint := _lbl("   左键涂 / 再点一下擦掉，右键擦。这几小节一直循环到积累条满")
+	_btn(tools, "+ Bar", func() -> void: _resize_bars(1))
+	_btn(tools, "- Bar", func() -> void: _resize_bars(-1))
+	_btn(tools, "Restart stage with new pattern", func() -> void: main.start_from(main._index),
+			"Notes follow the new pattern only after the stage restarts (score resets, music starts over)")
+	var hint := _lbl("   Left click paints / click again clears, right click erases. These bars loop until the gauge is full")
 	hint.modulate.a = 0.6
 	tools.add_child(hint)
 	var scroll := ScrollContainer.new()
@@ -275,7 +274,7 @@ func _load_section() -> void:
 	var def := _def()
 	_loading = true
 	var file: String = def.get("scene_file")
-	_title.text = "小关 %d / %d   %s   ·   %s" % [main._index + 1, main.chart.sections.size(), def.title, file]
+	_title.text = "Stage %d / %d   %s   ·   %s" % [main._index + 1, main.chart.sections.size(), def.title, file]
 	_gauge_max.value = main.gauge.max_value
 	_progress.value = roundf(100.0 * main.gauge.value / maxi(main.gauge.max_value, 1))
 	_progress_lcd.text = "%d%%" % int(_progress.value)
@@ -359,7 +358,7 @@ func _put_cue(list: Array, now: String, id: String) -> void:
 
 func _mark_dirty() -> void:
 	dirty = true
-	_status.text = "● 有改动还没保存"
+	_status.text = "● Unsaved changes"
 
 
 # ---------------------------------------------------------------- 镜头
@@ -383,7 +382,7 @@ func _fill_memes() -> void:
 	for i in list.size():
 		var cue: Dictionary = list[i]
 		var b := _btn(_meme_chips, "%d%%  %s" % [roundi(float(cue.at) * 100.0), cue.meme], func() -> void: _select_meme(i),
-				"点一下选中，然后在画面上拖动摆位置")
+				"Click to select, then drag on the picture to place it")
 		b.toggle_mode = true
 		b.button_pressed = i == _meme_sel
 	_meme_box.visible = _meme_sel >= 0 and _meme_sel < list.size()
@@ -480,7 +479,7 @@ func _fill_music() -> void:
 	_music_strips.clear()
 	_music_chips.clear()
 	if not Music.enabled_for(Levels.selected) or Music.stream == null:
-		var note := _lbl("这个大关没有开叠轨音乐（用的是谱面里的一整首伴奏），没有可以按进度切换的轨道。\n要用的话，先在 Music Director 里给这个大关配好轨道并勾上 USE IN GAME。")
+		var note := _lbl("This level does not use layered music (it plays the single backing track from its chart), so there are no lanes to switch by gauge.\nTo use it, set up the lanes in this level's .json under levels/music/ and set use_in_game to true.")
 		note.modulate.a = 0.7
 		_music_box.add_child(note)
 		return
@@ -489,7 +488,7 @@ func _fill_music() -> void:
 		var lid: String = lane.id
 		var row := HBoxContainer.new()
 		_music_box.add_child(row)
-		var name_label := _lbl(lane.get("name", lid))
+		var name_label := _lbl(lid)  # 轨道的 id 本来就是英文；json 里的 name 是中文
 		name_label.custom_minimum_size.x = 70
 		row.add_child(name_label)
 		var right := VBoxContainer.new()
@@ -511,7 +510,7 @@ func _fill_music() -> void:
 			var color: Color = PALETTE[i % PALETTE.size()]
 			strip.colors[cid] = color
 			var b := _btn(chips, cid, func() -> void: _cue_music(lid, cid),
-					"从当前进度起，这条轨道换成这段（已经是它的话，再点 = 从这里起静音）")
+					"From the current gauge position on, this lane plays this clip (click again to mute it from here)")
 			b.add_theme_color_override("font_color", color)
 			_music_chips[lid][cid] = b
 		strip.changed.connect(func() -> void:
@@ -570,9 +569,9 @@ func save() -> void:
 				if cues[lid].is_empty():
 					cues.erase(lid)
 		err = Music.write(Music.path_for(Levels.selected), out)
-		saved += " 和 " + Music.path_for(Levels.selected).get_file()
+		saved += " and " + Music.path_for(Levels.selected).get_file()
 	dirty = err != OK
-	_status.text = ("已保存 " + saved) if err == OK else ("保存失败：" + error_string(err))
+	_status.text = ("Saved " + saved) if err == OK else ("Save failed: " + error_string(err))
 
 
 func _input(event: InputEvent) -> void:

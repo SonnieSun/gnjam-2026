@@ -1,9 +1,0 @@
-[gd_scene load_steps=3 format=3]
-
-[ext_resource type="Script" path="res://_sandbox/spin_cat/spin_ring_test.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/sections/disco.tscn" id="2"]
-
-[node name="DiscoTest" type="Node"]
-script = ExtResource("1")
-section_scene = ExtResource("2")
-bars = PackedStringArray("k.......k.......", "k.......k.......", "k...k...k...k...", "k...s...k...s...", "k...s...k...s...", "k...s...k.k.s...", "k...s...k...s...", "k.k.s...k...s...", "k...s...k.k.s...", "k...s.s.k...s...", "k...s...k.k.s...", "k.k.s...k.k.s...", "k...s...k...s...", "k.k.s...k.k.s...", "k...s.s.k...s.s.", "k...s...k.k.s...", "k=======....s...", "k...s...k=======", "....s...k...s...", "k===========s...", "k...s...k.k.s...", "k=======....s=..", "....k...s===....", "k...s.s.k=======", "....s...k...s...", "k===============", "....s...k.k.s...", "k=======s=======", "....k...s...k...", "k===========s...", "k...s.s.k=======", "....k.......k...")

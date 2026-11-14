@@ -5,74 +5,24 @@
 [ext_resource type="AudioStream" path="res://assets/mv/snare.wav" id="3_n3v0c"]
 [ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_j0vts"]
 [ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_xersk"]
-[ext_resource type="PackedScene" path="res://scenes/sections/mv_disc.tscn" id="6_yf4y6"]
-[ext_resource type="PackedScene" path="res://scenes/sections/mv_tail.tscn" id="7_y5l77"]
-[ext_resource type="PackedScene" path="res://scenes/sections/mv_earth.tscn" id="8_y0w57"]
-[ext_resource type="PackedScene" path="res://scenes/sections/mv_bigcat.tscn" id="9_vweym"]
-[ext_resource type="PackedScene" path="res://scenes/sections/mv_washer.tscn" id="10_1r4ni"]
-[ext_resource type="PackedScene" path="res://scenes/sections/mv_ufo.tscn" id="11_cqomk"]
+[ext_resource type="PackedScene" path="res://scenes/sections/pizza.tscn" id="6_4s1ec"]
 [ext_resource type="AudioStream" path="res://assets/mv/mv_no_drums.ogg" id="12_85ew5"]
 
-[sub_resource type="Resource" id="Resource_d7p4p"]
+[sub_resource type="Resource" id="Resource_qiekm"]
 script = ExtResource("5_xersk")
-title = "1 DISC"
-scene = ExtResource("6_yf4y6")
+title = "PIZZA CAT"
+scene = ExtResource("6_4s1ec")
 beats_per_rev = 8.0
 bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
 transition = 1
 gauge_events = PackedInt32Array()
-
-[sub_resource type="Resource" id="Resource_0raq0"]
-script = ExtResource("5_xersk")
-title = "2 TAIL"
-scene = ExtResource("7_y5l77")
-beats_per_rev = 8.0
-bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
-transition = 1
-gauge_events = PackedInt32Array()
-
-[sub_resource type="Resource" id="Resource_jtqyd"]
-script = ExtResource("5_xersk")
-title = "3 EARTH"
-scene = ExtResource("8_y0w57")
-beats_per_rev = 8.0
-bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
-transition = 1
-gauge_events = PackedInt32Array()
-
-[sub_resource type="Resource" id="Resource_tssbd"]
-script = ExtResource("5_xersk")
-title = "4 BIGCAT"
-scene = ExtResource("9_vweym")
-beats_per_rev = 8.0
-bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
-transition = 1
-gauge_events = PackedInt32Array()
-
-[sub_resource type="Resource" id="Resource_0ynas"]
-script = ExtResource("5_xersk")
-title = "5 WASHER"
-scene = ExtResource("10_1r4ni")
-beats_per_rev = 8.0
-bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
-transition = 1
-gauge_events = PackedInt32Array()
-
-[sub_resource type="Resource" id="Resource_p5ljh"]
-script = ExtResource("5_xersk")
-title = "6 UFO"
-scene = ExtResource("11_cqomk")
-beats_per_rev = 8.0
-bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
-transition = 1
-gauge_events = PackedInt32Array()
+fx_cues = [[0.5, "grid3"], [0.75, "kaleido"]]
 
 [resource]
 script = ExtResource("4_j0vts")
 title = "LEVEL 3"
-look = "HALFTONE"
 stream = ExtResource("12_85ew5")
 drum_kick = ExtResource("2_3883b")
 drum_snare = ExtResource("3_n3v0c")
 drum_hat = ExtResource("1_n56od")
-sections = Array[ExtResource("5_xersk")]([SubResource("Resource_d7p4p"), SubResource("Resource_0raq0"), SubResource("Resource_jtqyd"), SubResource("Resource_tssbd"), SubResource("Resource_0ynas"), SubResource("Resource_p5ljh")])
+sections = Array[ExtResource("5_xersk")]([SubResource("Resource_qiekm")])

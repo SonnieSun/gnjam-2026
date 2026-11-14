@@ -7,10 +7,9 @@
 [ext_resource type="Script" uid="uid://11k2uh3hyxpu" path="res://scripts/core/drum_kit.gd" id="4"]
 [ext_resource type="Script" uid="uid://c5yy16mrvvyv4" path="res://scripts/core/background_manager.gd" id="5_bg"]
 [ext_resource type="Script" uid="uid://b0wa8vfrokbey" path="res://scripts/core/gauge.gd" id="6_gauge"]
-[ext_resource type="Script" path="res://scripts/music/hit_meow.gd" id="7_hitmeow"]
-
-[ext_resource type="Script" path="res://scripts/fx/screen_fx.gd" id="7_sfx"]
-[ext_resource type="Script" path="res://scripts/fx/meme_cues.gd" id="8_memes"]
+[ext_resource type="Script" uid="uid://23vo31105b7b" path="res://scripts/music/hit_meow.gd" id="7_hitmeow"]
+[ext_resource type="Script" uid="uid://12x1km25tq2n" path="res://scripts/fx/screen_fx.gd" id="7_sfx"]
+[ext_resource type="Script" uid="uid://ch2o53k10oukc" path="res://scripts/fx/meme_cues.gd" id="8_memes"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_border"]
 draw_center = false
@@ -71,10 +70,10 @@ stretch_mode = 6
 
 [node name="FxLayer" type="Node2D" parent="." unique_id=1410506904]
 
-[node name="Memes" type="Node2D" parent="."]
+[node name="Memes" type="Node2D" parent="." unique_id=996167809]
 script = ExtResource("8_memes")
 
-[node name="ScreenFx" type="CanvasLayer" parent="."]
+[node name="ScreenFx" type="CanvasLayer" parent="." unique_id=1660370116]
 script = ExtResource("7_sfx")
 
 [node name="Judge" type="Node" parent="." unique_id=91772685]

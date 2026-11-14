@@ -7,7 +7,7 @@ extends Node
 ##
 ## 每个小关里，每条轨道有一串"切换点"：积累条进度到 X（0 = 刚进小关，1 = 满）时换成某段
 ## （"" = 静音）。当前进度之前最后一个切换点决定这条轨道响哪段。配置在 levels/music/<大关文件名>.json（如 level_1.json），
-## 用 Music Director 面板（scenes/tools/music_director.tscn）编辑。
+## 切换点在游戏里按 Tab 调出的面板上编辑（scripts/tools/game_editor.gd）；轨道和片段直接改 json。
 ##
 ## 进度和小关的变化排队到下一个边界（默认 4 拍 = 一小节）才生效。时钟仍然是 Conductor：
 ## 它放的就是这里建出来的同步流。

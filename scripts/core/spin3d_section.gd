@@ -5,7 +5,7 @@ extends SpinSection
 ## 脚本只负责“让它们动起来”。音符统一用“缩圈”显示在焦点位置。
 ## 判定、鼓声、星星、连击、编辑器预览都沿用 2D 关卡那一套，不用管。
 ##
-## 场景里需要有这些节点（名字要一致，复制一个现成的 mv_*.tscn 改最省事）：
+## 场景里需要有这些节点（名字要一致，照着 pizza.tscn 做最省事）：
 ##   View (SubViewportContainer)
 ##     Viewport (SubViewport)
 ##       Camera (Camera3D)        背景色在它的 Environment 里改；位置由脚本运镜，手动摆了也会被盖掉
@@ -97,16 +97,6 @@ func rest(node: Node3D) -> Transform3D:
 	if not _rest.has(node):
 		_rest[node] = node.transform
 	return _rest[node]
-
-
-## 让猫原地迈步：speed 越大腿摆得越快，amp 是摆动幅度。
-## cat 下面要有 LegFrontL / LegFrontR / LegBackL / LegBackR 四个节点。
-func walk(cat: Node3D, speed: float, amp: float = 0.6) -> void:
-	var t := Time.get_ticks_msec() / 1000.0 * speed
-	for i in CatBuilder.LEG_NAMES.size():
-		var leg := cat.get_node_or_null(CatBuilder.LEG_NAMES[i]) as Node3D
-		if leg:
-			leg.transform = rest(leg).rotated_local(Vector3.BACK, sin(t + (0.0 if (i == 0 or i == 3) else PI)) * amp)
 
 
 ## 所有动过的节点回到场景里摆好的姿势

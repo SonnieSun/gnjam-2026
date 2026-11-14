@@ -13,15 +13,15 @@ signal effect_changed(id: String)
 
 ## 特效名 -> {label 面板上显示的名字, color 面板上的颜色, 其余是 shader 参数的目标值}
 const EFFECTS := {
-	"": {"label": "原样", "color": Color(0.3, 0.3, 0.35)},
-	"grid2": {"label": "四宫格", "color": Color("7fd1ff"), "tiles": 2.0},
-	"grid3": {"label": "九宫格", "color": Color("4f9dff"), "tiles": 3.0},
-	"grid4": {"label": "十六宫格", "color": Color("3a6bd8"), "tiles": 4.0},
-	"kaleido": {"label": "万花筒", "color": Color("ff5d8f"), "kaleido": 1.0},
-	"mirror": {"label": "左右镜像", "color": Color("86ffa3"), "mirror": 1.0},
-	"rgb": {"label": "色彩错位", "color": Color("ffd23f"), "rgb_split": 0.012},
-	"zoom": {"label": "推近", "color": Color("ff9a3c"), "zoom": 1.45},
-	"invert": {"label": "反色", "color": Color("b38cff"), "invert": 1.0},
+	"": {"label": "Normal", "color": Color(0.3, 0.3, 0.35)},
+	"grid2": {"label": "2x2 Grid", "color": Color("7fd1ff"), "tiles": 2.0},
+	"grid3": {"label": "3x3 Grid", "color": Color("4f9dff"), "tiles": 3.0},
+	"grid4": {"label": "4x4 Grid", "color": Color("3a6bd8"), "tiles": 4.0},
+	"kaleido": {"label": "Kaleidoscope", "color": Color("ff5d8f"), "kaleido": 1.0},
+	"mirror": {"label": "Mirror", "color": Color("86ffa3"), "mirror": 1.0},
+	"rgb": {"label": "RGB Split", "color": Color("ffd23f"), "rgb_split": 0.012},
+	"zoom": {"label": "Zoom In", "color": Color("ff9a3c"), "zoom": 1.45},
+	"invert": {"label": "Invert", "color": Color("b38cff"), "invert": 1.0},
 }
 const NEUTRAL := {"tiles": 1.0, "kaleido": 0.0, "mirror": 0.0, "rgb_split": 0.0, "zoom": 1.0, "invert": 0.0}
 const SHADER := preload("res://assets/shaders/screen_fx.gdshader")

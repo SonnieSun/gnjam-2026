@@ -99,7 +99,7 @@ func _draw() -> void:
 	for bar in bars.size():
 		var cols := _cols(bar) if bars[bar] != "" else 16
 		var per_beat := float(cols) / beats_per_bar
-		draw_string(font, Vector2(0, TOP + bar * (CELL.y + GAP) + 20.0), "小节 %d" % (bar + 1),
+		draw_string(font, Vector2(0, TOP + bar * (CELL.y + GAP) + 20.0), "Bar %d" % (bar + 1),
 				HORIZONTAL_ALIGNMENT_LEFT, LABEL_W, 14, dim)
 		for i in cols:
 			var r := _cell_rect(bar, i)
