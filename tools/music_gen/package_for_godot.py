@@ -21,6 +21,9 @@ import sys
 D, G = sys.argv[1], sys.argv[2]
 A = os.path.join(G, 'assets', 'audio')
 SKIP = ('_L3_square_', '_L3_cat_classic_', 'ent_A_L3_lead')       # alternates not shipped
+# Level trims applied while copying (dB by file name part). The bass stems were rendered about 14 dB
+# above the chords, which is bass-heavy when every stem plays at full level in the game.
+TRIM_DB = {'_L2_bass_': -4.0, '_C_bass_': -4.0}
 
 
 def add_loop(src, dst):
@@ -34,6 +37,12 @@ def add_loop(src, dst):
         body = data[pos + 8: pos + 8 + size]
         if cid == b'fmt ':
             channels, bits = struct.unpack('<H', body[2:4])[0], struct.unpack('<H', body[14:16])[0]
+        if cid == b'data' and bits == 16:
+            db = sum(v for k, v in TRIM_DB.items() if k in os.path.basename(src))
+            if db:
+                import numpy as np
+                pcm = np.frombuffer(body, dtype='<i2').astype(np.float64) * 10 ** (db / 20)
+                body = np.clip(np.round(pcm), -32768, 32767).astype('<i2').tobytes()
         if cid != b'smpl':
             chunks.append((cid, body))
         pos += 8 + size + (size & 1)
