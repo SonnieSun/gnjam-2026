@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://d27pi6qo8jg71"]
+
+[ext_resource type="PackedScene" uid="uid://bxjcj53j05qs8" path="res://assets/art/washing_machine.tscn" id="1_6cx14"]
+
+[node name="WashingSection" type="Node2D" unique_id=1191080350]
+
+[node name="Washing machine" parent="." unique_id=1914778888 instance=ExtResource("1_6cx14")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0018834472, 0.4472637, -0.17370093)
