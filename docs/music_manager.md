@@ -1,7 +1,7 @@
 # 叠轨音乐播放管理（设计）
 
 > **已经做了的（2026-11-15）**：`Music` autoload（`scripts/music/music.gd`）和 Music Director 面板
-> （`scenes/tools/music_director.tscn`，F6 运行）。每个大关的配置在 `levels/music/level_<n>.json`。
+> （`scenes/tools/music_director.tscn`，F6 运行）。每个大关的配置在 `levels/music/<谱面名>.json`。
 > 下面"运行时"一节写的四个旋钮，第一版统一成了更简单的东西：**几条轨道，每条放几段 loop，同一时刻
 > 只响一段；每个小关里写"积累条进度到哪儿换成哪段"**。详见文末"Music Director"。
 
@@ -140,7 +140,10 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
   **EXPORT MIX**（录一遍 AUTO，也就是这个小关从 0% 到 100%，存成 `levels/music/exports/level_<n>_<小关>.wav`，不进 git）。
 - 快捷键：Space 播放 / 停止，← → 进度 ±5%，↑ ↓ 换小关，Ctrl+S 保存。
 
-配置格式（`levels/music/level_<n>.json`）：
+配置按谱面命名：`disco.json`（disco_chart）、`showcase.json`、`mv.json`、`pizza.json`；用同一个谱面的大关共用一套。
+`mv_eurobeat.json` 是 MV 的 eurobeat 版，想用就改名成 `mv.json`。
+
+配置格式：
 
 ```json
 {
@@ -156,6 +159,7 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 一个切换点都没到 = 静音。初始配置由 `tools/music_gen/make_music_sets.py` 生成（第 1 关：future bass 越来越猫；
 第 2 关：16 个小关轮流换风格，第二轮加猫；第 3、4 关：六个 MV 小关一关比一关猫；第 5 关：康康舞曲）。之后都在面板里改。
 
-游戏里（`scripts/main.gd` 开头那几行）：配置开了 `use_in_game` 的大关，谱面的伴奏换成这套同步流、
-BPM 换成配置的；进小关时 `Music.set_section(i)`，积累条变化时 `Music.set_progress(值 / 满条值)`。
+游戏里（`scripts/main.gd`）：配置开了 `use_in_game` 的大关，谱面的伴奏换成这套同步流、BPM 换成配置的；
+进小关时 `Music.set_section(i)`，进度变化时 `Music.set_progress(p)`。develop_sonnie 上进度是积累条（值 / 满条值），
+develop_framework 上段落按时间切换，进度是这一段走了多少（0-1）。
 没开的大关完全不变。注意现在的谱面是按 120 BPM 写的，开了之后整关会变成 160。

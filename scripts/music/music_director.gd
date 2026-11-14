@@ -7,7 +7,7 @@ extends Control
 ##   · 每条轨道下的细条是切换点：拖动改位置，右键删掉。
 ##   · + 片段 往轨道里放 WAV，+ 轨道 加一条新轨道，右键一段 = 从轨道里拿掉。
 ## 快捷键：Space 播放 / 停止，← → 进度 ±5%，↑ ↓ 换小关，Ctrl+S 保存。
-## 配置存在 levels/music/level_<n>.json；游戏里由 Music autoload 读（打开 USE IN GAME 之后）。
+## 配置存在 levels/music/<谱面名>.json；游戏里由 Music autoload 读（打开 USE IN GAME 之后）。
 
 const THEME := preload("res://assets/ui/theme.tres")
 const CueStrip := preload("res://scripts/music/cue_strip.gd")
@@ -286,7 +286,8 @@ func _load_level(index: int) -> void:
 	for def in chart.sections:
 		section_titles.append(def.title)
 		var marks := DEFAULT_MARKERS.duplicate()
-		if def.use_gauge_events and def.gauge_max > 0:
+		# gauge lines (older SectionDefs have no gauge fields: then the defaults)
+		if def.get("use_gauge_events") and int(def.get("gauge_max")) > 0:
 			marks = []
 			for g in def.gauge_events:
 				marks.append(float(g) / def.gauge_max)
@@ -322,6 +323,14 @@ func _cues() -> Dictionary:
 	return secs[section]["cues"]
 
 
+## This section's switch points of one lane (made empty if it has none yet).
+func _lane_cues(lid: String) -> Array:
+	var c := _cues()
+	if not c.has(lid):
+		c[lid] = []
+	return c[lid]
+
+
 func _lane(lid: String) -> Dictionary:
 	for lane in data.lanes:
 		if lane.id == lid:
@@ -334,7 +343,7 @@ func _lane(lid: String) -> Dictionary:
 func _cue(lid: String, cid: String) -> void:
 	var p := snappedf(_progress.value / 100.0, 0.05)
 	var now := Music.clip_at(section, lid, p)
-	var list: Array = _cues()[lid]
+	var list: Array = _lane_cues(lid)
 	for i in range(list.size() - 1, -1, -1):
 		if absf(list[i][0] - p) < 0.001:
 			list.remove_at(i)
@@ -347,7 +356,7 @@ func _cue(lid: String, cid: String) -> void:
 
 ## Sorted, and no cue that repeats what was already playing.
 func _tidy(lid: String) -> void:
-	var list: Array = _cues()[lid]
+	var list: Array = _lane_cues(lid)
 	list.sort_custom(func(a, b): return a[0] < b[0])
 	var out := []
 	var last := ""
@@ -485,7 +494,15 @@ func _play() -> void:
 	chart.bpm = Music.bpm()
 	chart.beats_per_bar = 4
 	chart.stream = Music.build(data)
-	Conductor.looping = true
+	# one long empty section, so a Conductor that stops at the end of the chart keeps going
+	var hold := SectionDef.new()
+	var empty := PackedStringArray()
+	empty.resize(512)
+	hold.bars = empty
+	chart.sections.append(hold)
+	chart.recompute()
+	if "looping" in Conductor:
+		Conductor.looping = true
 	Conductor.load_chart(chart)
 	Music.section = section
 	Music.progress = _progress.value / 100.0
