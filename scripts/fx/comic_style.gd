@@ -1,7 +1,7 @@
 class_name ComicStyle
 extends RefCounted
 ## 3D 关卡的画面风格切换（试验用）。这里管“现在用哪种风格”和漫画那几种；
-## Y2K 那两种的具体做法在 y2k_style.gd。每个大关默认用哪种，在 scripts/core/levels.gd 里填。
+## Y2K 那两种的具体做法在 y2k_style.gd。每个大关默认用哪种，在 levels/ 里那个大关的 .tres 的 look 一项里选。
 ##
 ## 漫画风格：给 3D 关卡套上漫画风格的 shader（assets/shaders/comic/，作者 Francisco Cidade，fcidade.itch.io）。
 ## 不改场景文件：运行时把模型的普通材质临时换成漫画材质，随时可以换回去。

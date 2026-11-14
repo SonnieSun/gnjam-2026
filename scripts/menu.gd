@@ -35,7 +35,7 @@ func _ready() -> void:
 		if child.name.begins_with("Sector"):
 			_sectors.append(child)
 	if _sectors.size() != Levels.count():
-		push_warning("转盘上有 %d 格，但 levels.gd 里有 %d 个大关，两边要一样多" % [_sectors.size(), Levels.count()])
+		push_warning("转盘上有 %d 格，但 levels/ 文件夹里有 %d 个大关，两边要一样多" % [_sectors.size(), Levels.count()])
 	_arm_rest = _arm.rotation
 	_head_rest = _head.position
 	_turns = Levels.selected

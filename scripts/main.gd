@@ -38,6 +38,9 @@ var _cleared := false
 
 func _ready() -> void:
 	# 谱面由主菜单选中的大关决定（见 scripts/core/levels.gd）；直接运行本场景时是第 1 大关
+	var requested := Levels.take_editor_request()  # 从关卡编辑器点“试玩”进来的
+	if requested >= 0:
+		start_section = requested
 	chart = Levels.build_chart()
 	ComicStyle.set_by_name(Levels.look())
 	drum_kit.use_chart(chart)

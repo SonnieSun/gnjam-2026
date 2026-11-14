@@ -1,0 +1,78 @@
+[gd_resource type="Resource" script_class="SongChart" format=3]
+
+[ext_resource type="AudioStream" path="res://assets/mv/hat.wav" id="1_yvcyl"]
+[ext_resource type="AudioStream" path="res://assets/mv/kick.wav" id="2_06uqm"]
+[ext_resource type="AudioStream" path="res://assets/mv/snare.wav" id="3_h8d5y"]
+[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_g7gro"]
+[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_plmmk"]
+[ext_resource type="PackedScene" path="res://scenes/sections/mv_disc.tscn" id="6_7288h"]
+[ext_resource type="PackedScene" path="res://scenes/sections/mv_tail.tscn" id="7_cj6r2"]
+[ext_resource type="PackedScene" path="res://scenes/sections/mv_earth.tscn" id="8_lemfp"]
+[ext_resource type="PackedScene" path="res://scenes/sections/mv_bigcat.tscn" id="9_ftxo4"]
+[ext_resource type="PackedScene" path="res://scenes/sections/mv_washer.tscn" id="10_eyogo"]
+[ext_resource type="PackedScene" path="res://scenes/sections/mv_ufo.tscn" id="11_qrgms"]
+[ext_resource type="AudioStream" path="res://assets/mv/mv_no_drums.ogg" id="12_bdo25"]
+
+[sub_resource type="Resource" id="Resource_w3xdr"]
+script = ExtResource("5_plmmk")
+title = "1 DISC"
+scene = ExtResource("6_7288h")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+transition = 1
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_g5xyu"]
+script = ExtResource("5_plmmk")
+title = "2 TAIL"
+scene = ExtResource("7_cj6r2")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+transition = 1
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_dfgwe"]
+script = ExtResource("5_plmmk")
+title = "3 EARTH"
+scene = ExtResource("8_lemfp")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+transition = 1
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_0l2gj"]
+script = ExtResource("5_plmmk")
+title = "4 BIGCAT"
+scene = ExtResource("9_ftxo4")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+transition = 1
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_q7ov0"]
+script = ExtResource("5_plmmk")
+title = "5 WASHER"
+scene = ExtResource("10_eyogo")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+transition = 1
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_2113t"]
+script = ExtResource("5_plmmk")
+title = "6 UFO"
+scene = ExtResource("11_qrgms")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+transition = 1
+gauge_events = PackedInt32Array()
+
+[resource]
+script = ExtResource("4_g7gro")
+title = "LEVEL 4"
+look = "Y2K"
+stream = ExtResource("12_bdo25")
+drum_kick = ExtResource("2_06uqm")
+drum_snare = ExtResource("3_h8d5y")
+drum_hat = ExtResource("1_yvcyl")
+sections = Array[ExtResource("5_plmmk")]([SubResource("Resource_w3xdr"), SubResource("Resource_g5xyu"), SubResource("Resource_dfgwe"), SubResource("Resource_0l2gj"), SubResource("Resource_q7ov0"), SubResource("Resource_2113t")])

@@ -1,19 +1,14 @@
 class_name Levels
 extends RefCounted
-## 大关列表：主菜单转盘上的每一格对应这里的一项，顺序一致。
-## chart 填谱面脚本的路径（脚本里要有 static func build() -> SongChart）。
-## 第 1 关是迪斯科猫砂盆，第 2 关是八种 2D 画法，第 3、4 关都是六个 MV 镜头（画面风格不同），第 5 关是披萨猫；做出新的大关后改对应那一行即可。
-## look（可选）= 这一大关里 3D 小关默认的画面风格，名字见 scripts/fx/comic_style.gd 的 NAMES；
-## 不填 = 原样。游戏里随时可以按 C 键切换着看。
+## 大关列表。每个大关是 levels/ 文件夹里的一个 .tres 文件（SongChart），按文件名排序：
+## level_1.tres 就是主菜单转盘上的第 1 格，以此类推。
+## 加一个大关 = 在那个文件夹里再放一个 .tres（复制一个现成的改最省事）；
+## 大关的名字、画面风格、小关和谱子都在 .tres 里编辑，见 levels/README.md。
+## 文件夹可以在 项目设置 → Gnjam → Levels Folder 里改。
 ## 增减大关的数量后，主菜单场景 scenes/menu.tscn 里转盘上的格子也要跟着增减。
 
-const LIST: Array[Dictionary] = [
-	{"title": "LEVEL 1", "chart": "res://scripts/charts/disco_chart.gd"},
-	{"title": "LEVEL 2", "chart": "res://scripts/charts/showcase_chart.gd"},
-	{"title": "LEVEL 3", "chart": "res://scripts/charts/mv_chart.gd", "look": "HALFTONE"},
-	{"title": "LEVEL 4", "chart": "res://scripts/charts/mv_chart.gd", "look": "Y2K"},
-	{"title": "LEVEL 5", "chart": "res://scripts/charts/pizza_chart.gd"},
-]
+const LEVELS_FOLDER_SETTING := "gnjam/levels_folder"
+const LEVELS_FOLDER_DEFAULT := "res://levels"
 
 const MENU_SCENE := "res://scenes/menu.tscn"
 const GAME_SCENE := "res://main.tscn"
@@ -22,19 +17,68 @@ const GAME_SCENE := "res://main.tscn"
 static var selected := 0
 
 
+static var _paths := PackedStringArray()
+
+
+## 所有大关文件的路径，按文件名排序
+static func paths() -> PackedStringArray:
+	if _paths.is_empty():
+		var folder: String = ProjectSettings.get_setting(LEVELS_FOLDER_SETTING, LEVELS_FOLDER_DEFAULT)
+		var dir := DirAccess.open(folder)
+		if dir:
+			for f in dir.get_files():
+				f = f.trim_suffix(".remap")  # 导出后的游戏里文件名会多这个后缀
+				if f.get_extension() == "tres":
+					_paths.append(folder.path_join(f))
+		_paths.sort()
+		if _paths.is_empty():
+			push_error("大关文件夹 %s 里没有找到 .tres 文件" % folder)
+	return _paths
+
+
+## 重新扫描文件夹（关卡编辑器新建了大关之后调用）
+static func rescan() -> void:
+	_paths = PackedStringArray()
+
+
+## 关卡编辑器点“试玩”时会留下这个文件：玩哪个大关、从第几个小关开始。
+## 游戏启动时读一次就删掉；返回要从第几个小关开始（没有这个文件 = -1）。
+const EDITOR_REQUEST_FILE := "user://level_editor_play.json"
+
+static func take_editor_request() -> int:
+	if not OS.has_feature("editor") or not FileAccess.file_exists(EDITOR_REQUEST_FILE):
+		return -1
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(EDITOR_REQUEST_FILE))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(EDITOR_REQUEST_FILE))
+	if not data is Dictionary:
+		return -1
+	var index := paths().find(String(data.get("level", "")))
+	if index < 0:
+		return -1
+	selected = index
+	return int(data.get("section", 0))
+
+
 static func count() -> int:
-	return LIST.size()
+	return paths().size()
+
+
+static func _chart(index: int) -> SongChart:
+	return load(paths()[clampi(index, 0, count() - 1)]) as SongChart
 
 
 static func title() -> String:
-	return LIST[selected].title
+	var t := _chart(selected).title
+	return t if t != "" else "LEVEL %d" % (selected + 1)
 
 
 ## 当前选中那一大关默认的画面风格名字
 static func look() -> String:
-	return LIST[selected].get("look", "OFF")
+	return _chart(selected).look
 
 
-## 生成当前选中那一大关的谱面
+## 生成当前选中那一大关的谱面（复制一份再用，游戏过程中不会改到文件里的数据）
 static func build_chart() -> SongChart:
-	return load(LIST[selected].chart).build()
+	var c := _chart(selected).duplicate(true) as SongChart
+	c.recompute()
+	return c

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="SongChart" format=3]
+
+[ext_resource type="AudioStream" path="res://assets/fantasy/hat.wav" id="1_8bmbr"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/kick.wav" id="2_rycc7"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/snare.wav" id="3_4gs5e"]
+[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_08bpo"]
+[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_n7ggn"]
+[ext_resource type="PackedScene" path="res://scenes/sections/disco.tscn" id="6_np8w2"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="7_ep8a4"]
+
+[sub_resource type="Resource" id="Resource_xjaog"]
+script = ExtResource("5_n7ggn")
+title = "DISCO"
+scene = ExtResource("6_np8w2")
+beats_per_rev = 8.0
+bars = PackedStringArray("k.......k.......", "k...k...k...k...", "k...s...k...s...", "k...s...k.k.s...")
+gauge_events = PackedInt32Array()
+
+[resource]
+script = ExtResource("4_08bpo")
+title = "LEVEL 1"
+stream = ExtResource("7_ep8a4")
+drum_kick = ExtResource("2_rycc7")
+drum_snare = ExtResource("3_4gs5e")
+drum_hat = ExtResource("1_8bmbr")
+sections = Array[ExtResource("5_n7ggn")]([SubResource("Resource_xjaog")])
