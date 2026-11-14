@@ -1,8 +1,391 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/sections/mv_disc_section.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/sections/mv_disc_section.gd" id="1_2xkk6"]
+[ext_resource type="Texture2D" path="res://assets/mv/tex/disc_label.png" id="2_2nlym"]
+[ext_resource type="Texture2D" path="res://assets/mv/tex/face_happyw.png" id="3_5jhc8"]
 
-[node name="MvDiscSection" type="Node2D"]
-script = ExtResource("1")
-bg_color = Color(0.165, 0.094, 0.251, 1)
-ring_radius_ratio = 0.12
+[sub_resource type="Environment" id="Environment_vngve"]
+background_mode = 1
+background_color = Color(0.16470589, 0.09411765, 0.2509804, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.86, 0.88, 0.94, 1)
+ambient_light_energy = 0.75
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_88qny"]
+diffuse_mode = 3
+specular_mode = 2
+albedo_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_kat8v"]
+top_radius = 3.0
+bottom_radius = 3.0
+height = 0.12
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wrtgs"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+diffuse_mode = 3
+specular_mode = 2
+albedo_texture = ExtResource("2_2nlym")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_mti1x"]
+size = Vector2(6, 6)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5pkqr"]
+diffuse_mode = 3
+specular_mode = 2
+albedo_color = Color(0.96862745, 0.9529412, 0.9254902, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_5gg81"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bo02r"]
+diffuse_mode = 3
+specular_mode = 2
+albedo_color = Color(0.8784314, 0.627451, 0.3764706, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_onghy"]
+radius = 0.3
+height = 0.6
+
+[sub_resource type="SphereMesh" id="SphereMesh_6va3l"]
+radius = 0.4
+height = 0.8
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_in7yh"]
+top_radius = 0.0
+bottom_radius = 0.14
+height = 0.24
+radial_segments = 4
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_pq8i6"]
+top_radius = 0.0
+bottom_radius = 0.14
+height = 0.24
+radial_segments = 4
+rings = 1
+
+[sub_resource type="SphereMesh" id="SphereMesh_d12vt"]
+radius = 0.18
+height = 0.36
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_43fgo"]
+transparency = 1
+shading_mode = 0
+albedo_texture = ExtResource("3_5jhc8")
+
+[sub_resource type="QuadMesh" id="QuadMesh_p8piq"]
+size = Vector2(0.76, 0.76)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_lwgmy"]
+radius = 0.1
+height = 0.45
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_kpdjt"]
+radius = 0.1
+height = 0.45
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_fphvx"]
+radius = 0.1
+height = 0.45
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_ixxhi"]
+radius = 0.1
+height = 0.45
+
+[sub_resource type="SphereMesh" id="SphereMesh_qapjw"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_jg32k"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_3xf47"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_kadrg"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_a5pra"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_j02iv"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_4tudq"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_76xdx"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_5buck"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_t5lry"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_bipk3"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_2iw7s"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_4aewe"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_p6jlw"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_p6w64"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_ojrmc"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_f6luy"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_2avm1"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_nj1nr"]
+radius = 0.07
+height = 0.14
+
+[node name="MvDiscSection" type="Node2D" unique_id=1842028726]
+script = ExtResource("1_2xkk6")
+
+[node name="View" type="SubViewportContainer" parent="." unique_id=671999983]
+offset_left = -576.0
+offset_top = -324.0
+offset_right = 576.0
+offset_bottom = 324.0
+mouse_filter = 2
+stretch = true
+
+[node name="Viewport" type="SubViewport" parent="View" unique_id=1062161881]
+msaa_3d = 2
+size = Vector2i(1152, 648)
+render_target_update_mode = 4
+
+[node name="Camera" type="Camera3D" parent="View/Viewport" unique_id=520025515]
+transform = Transform3D(1, 0, 0, 0, 0.98287225, 0.18428855, 0, -0.18428855, 0.98287225, 0, 1.5, 8)
+environment = SubResource("Environment_vngve")
+fov = 45.0
+near = 0.1
+far = 200.0
+
+[node name="Sun" type="DirectionalLight3D" parent="View/Viewport" unique_id=987939358]
+transform = Transform3D(0.8000001, -0.42426407, 0.42426407, 0, 0.7071068, 0.70710677, -0.6, -0.56568545, 0.56568545, 3, 5, 4)
+light_energy = 1.25
+
+[node name="World" type="Node3D" parent="View/Viewport" unique_id=246735970]
+
+[node name="Tilt" type="Node3D" parent="View/Viewport/World" unique_id=326181495]
+transform = Transform3D(0.9286646, 0.37092048, 0, -0.33399427, 0.8362134, -0.43496552, -0.16133761, 0.4039371, 0.90044713, 0, 0, 0)
+
+[node name="Disc" type="Node3D" parent="View/Viewport/World/Tilt" unique_id=147372572]
+unique_name_in_owner = true
+
+[node name="Vinyl" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Disc" unique_id=309257285]
+material_override = SubResource("StandardMaterial3D_88qny")
+mesh = SubResource("CylinderMesh_kat8v")
+
+[node name="Label" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Disc" unique_id=2035374050]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.062, 0)
+material_override = SubResource("StandardMaterial3D_wrtgs")
+mesh = SubResource("PlaneMesh_mti1x")
+
+[node name="Cat" type="Node3D" parent="View/Viewport/World/Tilt" unique_id=482707520]
+unique_name_in_owner = true
+transform = Transform3D(-0.33100563, 0, 0.7829019, 0, 0.85, 0, -0.7829019, 0, -0.33100563, 1.9, 0.62, 0.9)
+
+[node name="Body" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat" unique_id=1331096028]
+transform = Transform3D(1.3, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_5gg81")
+
+[node name="Patch" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat" unique_id=488052881]
+transform = Transform3D(1.3, 0, 0, 0, 0.6, 0, 0, 0, 1, -0.2, 0.3, 0.1)
+material_override = SubResource("StandardMaterial3D_bo02r")
+mesh = SubResource("SphereMesh_onghy")
+
+[node name="Head" type="Node3D" parent="View/Viewport/World/Tilt/Cat" unique_id=690038314]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0.7, 0.4, 0)
+
+[node name="Ball" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Head" unique_id=442304136]
+transform = Transform3D(1.1, 0, 0, 0, 0.95, 0, 0, 0, 1, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_6va3l")
+
+[node name="EarL" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Head" unique_id=1562160475]
+transform = Transform3D(0.6642368, -0.24246536, 0.70710677, 0.3428978, 0.9393727, 0, -0.6642368, 0.24246536, 0.70710677, -0.22, 0.34, 0)
+material_override = SubResource("StandardMaterial3D_bo02r")
+mesh = SubResource("CylinderMesh_in7yh")
+
+[node name="EarR" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Head" unique_id=824032132]
+transform = Transform3D(0.6642368, 0.24246536, 0.70710677, -0.3428978, 0.9393727, 0, -0.6642368, -0.24246536, 0.70710677, 0.22, 0.34, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("CylinderMesh_pq8i6")
+
+[node name="Patch" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Head" unique_id=1176482595]
+transform = Transform3D(1, 0, 0, 0, 0.8, 0, 0, 0, 0.5, -0.18, 0.18, 0.18)
+material_override = SubResource("StandardMaterial3D_bo02r")
+mesh = SubResource("SphereMesh_d12vt")
+
+[node name="Face" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Head" unique_id=686143297]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.408)
+material_override = SubResource("StandardMaterial3D_43fgo")
+mesh = SubResource("QuadMesh_p8piq")
+
+[node name="LegFrontL" type="Node3D" parent="View/Viewport/World/Tilt/Cat" unique_id=890134256]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, -0.2, 0.22)
+
+[node name="Leg" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/LegFrontL" unique_id=1459513231]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("CapsuleMesh_lwgmy")
+
+[node name="LegFrontR" type="Node3D" parent="View/Viewport/World/Tilt/Cat" unique_id=2046094531]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, -0.2, -0.22)
+
+[node name="Leg" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/LegFrontR" unique_id=1495535097]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("CapsuleMesh_kpdjt")
+
+[node name="LegBackL" type="Node3D" parent="View/Viewport/World/Tilt/Cat" unique_id=534891604]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, -0.2, 0.22)
+
+[node name="Leg" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/LegBackL" unique_id=308848161]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("CapsuleMesh_fphvx")
+
+[node name="LegBackR" type="Node3D" parent="View/Viewport/World/Tilt/Cat" unique_id=1879343035]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, -0.2, -0.22)
+
+[node name="Leg" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/LegBackR" unique_id=370914794]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("CapsuleMesh_ixxhi")
+
+[node name="Tail" type="Node3D" parent="View/Viewport/World/Tilt/Cat" unique_id=517497036]
+
+[node name="Seg00" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=1562633549]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.05, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_qapjw")
+
+[node name="Seg01" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=1763568153]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.63495374, 0.06400462, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_jg32k")
+
+[node name="Seg02" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=1948952551]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6851852, 0.08148149, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_3xf47")
+
+[node name="Seg03" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=253739041]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.74375, 0.103125006, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_kadrg")
+
+[node name="Seg04" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=1233556977]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8037037, 0.12962963, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_a5pra")
+
+[node name="Seg05" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=740010039]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85810196, 0.1616898, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_j02iv")
+
+[node name="Seg06" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=652915024]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.2, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_4tudq")
+
+[node name="Seg07" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=609918967]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.93113416, 0.24791668, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_76xdx")
+
+[node name="Seg08" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=991573912]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9574074, 0.30555555, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_5buck")
+
+[node name="Seg09" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=188925966]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.978125, 0.36874998, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_t5lry")
+
+[node name="Seg10" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=1146360973]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9925926, 0.43333334, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_bipk3")
+
+[node name="Seg11" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=872671445]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.0001156, 0.49513888, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_2iw7s")
+
+[node name="Seg12" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=141772347]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.55, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_4aewe")
+
+[node name="Seg13" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=300514712]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.98773146, 0.6003473, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_p6jlw")
+
+[node name="Seg14" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=1133264126]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.962963, 0.6500001, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_p6w64")
+
+[node name="Seg15" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=236770530]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.93125, 0.6968751, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_ojrmc")
+
+[node name="Seg16" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=737648462]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8981481, 0.7388889, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_f6luy")
+
+[node name="Seg17" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=891863574]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8692129, 0.7739584, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_2avm1")
+
+[node name="Seg18" type="MeshInstance3D" parent="View/Viewport/World/Tilt/Cat/Tail" unique_id=639865226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0.8, 0)
+material_override = SubResource("StandardMaterial3D_5pkqr")
+mesh = SubResource("SphereMesh_nj1nr")
+
+[node name="Focus" type="Marker3D" parent="View/Viewport/World/Tilt/Cat" unique_id=1844780554]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)

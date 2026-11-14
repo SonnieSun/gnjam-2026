@@ -2,12 +2,16 @@
 class_name CatBuilder
 extends RefCounted
 ## 用基本形状拼卡通猫和道具的工具（照着猫咪 MV 原型里的 makeHead / makeCat 移植）。
+## 现在的 MV 镜头场景里的模型就是用它生成一次后存进场景文件的；正式运行时不再调用它。
+## 想用脚本再造一只猫（比如先生成、再存成场景给美术调）时可以继续用。
 ## 坐标习惯和原型一致：y 朝上，整只猫的身体沿 x 轴、头朝 +x；单独的猫头脸朝 +z。
 
 const WHITE := Color("f7f3ec")
 const ORANGE := Color("e0a060")
 const DARK := Color("3a3330")
 const PINK := Color("f2a0a8")
+## 四条腿的节点名（走路动画按这个名字找腿）
+const LEG_NAMES: Array[String] = ["LegFrontL", "LegFrontR", "LegBackL", "LegBackR"]
 
 static var _mats := {}
 static var _faces := {}
@@ -136,15 +140,18 @@ static func make_head(o: Dictionary = {}) -> Node3D:
 	var patch: bool = o.get("patch", true)
 	var ball := sphere(r, mat)
 	ball.scale = Vector3(1.1, 0.95, 1.0)
+	ball.name = "Ball"
 	head.add_child(ball)
 	for sx: float in [-1.0, 1.0]:
 		var ear := cylinder(0.0, r * 0.35, r * 0.6, toon(ORANGE) if (sx < 0 and patch) else mat, 4)
 		ear.position = Vector3(sx * r * 0.55, r * 0.85, 0.0)
 		euler_xyz(ear, 0.0, PI / 4, -sx * 0.35)
+		ear.name = "EarL" if sx < 0 else "EarR"
 		head.add_child(ear)
 	if patch:
 		var p := sphere(r * 0.45, toon(ORANGE), Vector3(-r * 0.45, r * 0.45, r * 0.45))
 		p.scale = Vector3(1.0, 0.8, 0.5)
+		p.name = "Patch"
 		head.add_child(p)
 	var quad := QuadMesh.new()
 	quad.size = Vector2(r * 1.9, r * 1.9)
@@ -152,7 +159,9 @@ static func make_head(o: Dictionary = {}) -> Node3D:
 	face_mat.albedo_texture = face_texture(o.get("eyes", "dot"), o.get("mouth", "w"))
 	face_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	face_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	head.add_child(part(quad, face_mat, Vector3(0.0, 0.0, r * 1.02)))
+	var face := part(quad, face_mat, Vector3(0.0, 0.0, r * 1.02))
+	face.name = "Face"
+	head.add_child(face)
 	return head
 
 
@@ -163,23 +172,29 @@ static func make_cat(o: Dictionary = {}) -> Node3D:
 	var mat := toon(o.get("color", WHITE))
 	var body := sphere(0.5, mat)
 	body.scale = Vector3(1.3, 0.85, 0.85)
+	body.name = "Body"
 	cat.add_child(body)
 	var patch := sphere(0.3, toon(ORANGE), Vector3(-0.2, 0.3, 0.1))
 	patch.scale = Vector3(1.3, 0.6, 1.0)
+	patch.name = "Patch"
 	cat.add_child(patch)
 	var head := make_head(o)
 	head.position = Vector3(0.7, 0.4, 0.0)
 	head.rotation.y = PI / 2
+	head.name = "Head"
 	cat.add_child(head)
 	var legs: Array[Node3D] = []
 	for xz: Vector2 in [Vector2(0.35, 0.22), Vector2(0.35, -0.22), Vector2(-0.35, 0.22), Vector2(-0.35, -0.22)]:
 		var pivot := Node3D.new()
 		pivot.position = Vector3(xz.x, -0.2, xz.y)
 		pivot.add_child(capsule(0.1, 0.25, mat, Vector3(0.0, -0.2, 0.0)))
+		pivot.get_child(0).name = "Leg"
+		pivot.name = LEG_NAMES[legs.size()]
 		cat.add_child(pivot)
 		legs.append(pivot)
 	# 尾巴：沿一条曲线排一串小球
 	var tail := Node3D.new()
+	tail.name = "Tail"
 	var pts: Array[Vector3] = [Vector3(-0.6, 0.05, 0), Vector3(-0.9, 0.2, 0), Vector3(-1.0, 0.55, 0), Vector3(-0.85, 0.8, 0)]
 	for seg in 3:
 		for i in 6:
@@ -187,20 +202,14 @@ static func make_cat(o: Dictionary = {}) -> Node3D:
 			var after: Vector3 = pts[mini(seg + 2, 3)]
 			tail.add_child(sphere(0.07, mat, pts[seg].cubic_interpolate(pts[seg + 1], before, after, i / 6.0)))
 	tail.add_child(sphere(0.07, mat, pts[3]))
+	for i in tail.get_child_count():
+		tail.get_child(i).name = "Seg%02d" % i
 	cat.add_child(tail)
 	cat.set_meta("head", head)
 	cat.set_meta("legs", legs)
 	cat.set_meta("tail", tail)
 	cat.set_meta("body", body)
 	return cat
-
-
-## 让猫原地迈步：speed 越大腿摆得越快，amp 是摆动幅度
-static func walk(cat: Node3D, speed: float, amp: float = 0.6) -> void:
-	var t := Time.get_ticks_msec() / 1000.0 * speed
-	var legs: Array = cat.get_meta("legs")
-	for i in legs.size():
-		legs[i].rotation.z = sin(t + (0.0 if (i == 0 or i == 3) else PI)) * amp
 
 
 ## 不受光照影响的纯色材质；alpha < 1 就是半透明（玻璃、光束），double_sided = 两面都画
