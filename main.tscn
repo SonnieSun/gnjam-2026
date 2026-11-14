@@ -1,0 +1,126 @@
+[gd_scene format=3 uid="uid://du1xgea2e6ue6"]
+
+[ext_resource type="Script" uid="uid://b8324evpb0wdj" path="res://scripts/main.gd" id="1"]
+[ext_resource type="Script" uid="uid://dyvntdwe8npat" path="res://scripts/core/judge.gd" id="2"]
+[ext_resource type="Script" uid="uid://ddn38vqur70qw" path="res://scripts/hud.gd" id="3"]
+[ext_resource type="Texture2D" uid="uid://dgbeqaerhgjng" path="res://assets/art/collage1.png" id="3_7mycd"]
+[ext_resource type="Script" uid="uid://11k2uh3hyxpu" path="res://scripts/core/drum_kit.gd" id="4"]
+[ext_resource type="Script" uid="uid://c5yy16mrvvyv4" path="res://scripts/core/background_manager.gd" id="5_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_border"]
+draw_center = false
+border_width_left = 12
+border_width_top = 12
+border_width_right = 12
+border_width_bottom = 12
+border_color = Color(0.98, 0.94, 0.85, 1)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
+
+[node name="Main" type="Node2D" unique_id=1027828459]
+script = ExtResource("1")
+
+[node name="Backgrounds" type="CanvasLayer" parent="." unique_id=349903117]
+layer = -1
+script = ExtResource("5_bg")
+
+[node name="collage1" type="TextureRect" parent="Backgrounds" unique_id=1929301169]
+show_behind_parent = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_7mycd")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="SectionHost" type="Node2D" parent="." unique_id=1568153294]
+
+[node name="FxLayer" type="Node2D" parent="." unique_id=1410506904]
+
+[node name="Judge" type="Node" parent="." unique_id=91772685]
+script = ExtResource("2")
+
+[node name="DrumKit" type="Node" parent="." unique_id=95703817]
+script = ExtResource("4")
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1679597583]
+script = ExtResource("3")
+
+[node name="Border" type="Panel" parent="HUD" unique_id=1452004365]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_border")
+
+[node name="ScoreLabel" type="Label" parent="HUD" unique_id=1916168740]
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 400.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 28
+text = "SCORE 0"
+
+[node name="ComboLabel" type="Label" parent="HUD" unique_id=550515101]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -400.0
+offset_top = 16.0
+offset_right = -24.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 2
+
+[node name="JudgeLabel" type="Label" parent="HUD" unique_id=1030232154]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 16.0
+offset_right = 300.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+
+[node name="MilestoneLabel" type="Label" parent="HUD" unique_id=1071459904]
+modulate = Color(1, 0.9, 0.3, 0)
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -420.0
+offset_top = -45.0
+offset_right = -40.0
+offset_bottom = 45.0
+theme_override_font_sizes/font_size = 56
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="DebugLabel" type="Label" parent="HUD" unique_id=798816132]
+modulate = Color(1, 1, 1, 0.6)
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -40.0
+offset_right = 1000.0
+offset_bottom = -12.0
+
+[node name="ResultLabel" type="Label" parent="HUD" unique_id=666445568]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_font_sizes/font_size = 36
+horizontal_alignment = 1
+vertical_alignment = 1

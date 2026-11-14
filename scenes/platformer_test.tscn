@@ -1,0 +1,80 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://b8324evpb0wdj" path="res://scripts/main.gd" id="1_0xm2m"]
+[ext_resource type="Texture2D" uid="uid://defcd7tnka67y" path="res://icon.svg" id="2_0xm2m"]
+
+[sub_resource type="GDScript" id="GDScript_h6ru2"]
+script/source = "extends CharacterBody2D
+
+
+const SPEED = 300.0
+const JUMP_VELOCITY = -400.0
+
+
+func _physics_process(delta: float) -> void:
+	# Add the gravity.
+	if not is_on_floor():
+		velocity += get_gravity() * delta
+
+	# Handle jump.
+	if Input.is_action_just_pressed(\"ui_accept\") and is_on_floor():
+		velocity.y = JUMP_VELOCITY
+
+	# Get the input direction and handle the movement/deceleration.
+	# As good practice, you should replace UI actions with custom gameplay actions.
+	var direction := Input.get_axis(\"ui_left\", \"ui_right\")
+	if direction:
+		velocity.x = direction * SPEED
+	else:
+		velocity.x = move_toward(velocity.x, 0, SPEED)
+
+	move_and_slide()
+"
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_h6ru2"]
+
+[node name="main" type="Node2D" unique_id=209642921]
+script = ExtResource("1_0xm2m")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=461036064]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D" unique_id=224830828]
+polygon = PackedVector2Array(146, 301, 1151, 305, 1151, 343, 148, 343)
+
+[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D" unique_id=1863974623]
+polygon = PackedVector2Array(151, 308, 1145, 305, 1144, 341, 159, 343)
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="StaticBody2D" unique_id=848626838]
+position = Vector2(-25, -26)
+script = SubResource("GDScript_h6ru2")
+
+[node name="Icon" type="Sprite2D" parent="StaticBody2D/CharacterBody2D" unique_id=820984898]
+position = Vector2(555, 125)
+scale = Vector2(0.26944473, 0.24555756)
+texture = ExtResource("2_0xm2m")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D/CharacterBody2D" unique_id=1946487592]
+position = Vector2(555, 125)
+shape = SubResource("CircleShape2D_h6ru2")
+
+[node name="StaticBody2D2" type="StaticBody2D" parent="." unique_id=1035626863]
+position = Vector2(442, -95)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D2" unique_id=1642085570]
+polygon = PackedVector2Array(146, 301, 1151, 305, 1151, 343, 148, 343)
+
+[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D2" unique_id=1686001025]
+polygon = PackedVector2Array(151, 308, 1145, 305, 1144, 341, 159, 343)
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="StaticBody2D2" unique_id=1530733870]
+position = Vector2(-25, -26)
+script = SubResource("GDScript_h6ru2")
+
+[node name="Icon" type="Sprite2D" parent="StaticBody2D2/CharacterBody2D" unique_id=1837808671]
+position = Vector2(555, 125)
+scale = Vector2(0.26944473, 0.24555756)
+texture = ExtResource("2_0xm2m")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D2/CharacterBody2D" unique_id=1577135804]
+position = Vector2(555, 125)
+shape = SubResource("CircleShape2D_h6ru2")

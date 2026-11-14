@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="400" height="400">
+  <!-- 原创小猫：奶油色、灰褐色耳朵和尾巴，低头闭眼。舌头由代码画，所以这里没有。 -->
+  <!-- 尾巴 -->
+  <path d="M146 52 q40 -6 34 -42" stroke="#8a7566" stroke-width="13" fill="none" stroke-linecap="round"/>
+  <!-- 身体（在头的后上方，因为猫是低着头的） -->
+  <ellipse cx="100" cy="62" rx="54" ry="42" fill="#efe4d0"/>
+  <!-- 耳朵 -->
+  <path d="M56 96 L46 46 L90 76 Z" fill="#8a7566" stroke="#8a7566" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M144 96 L154 46 L110 76 Z" fill="#8a7566" stroke="#8a7566" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M60 86 L55 60 L78 76 Z" fill="#e9a9b0"/>
+  <path d="M140 86 L145 60 L122 76 Z" fill="#e9a9b0"/>
+  <!-- 头 -->
+  <ellipse cx="100" cy="120" rx="54" ry="46" fill="#f8f0e2"/>
+  <!-- 脸中间的深色重点色 -->
+  <ellipse cx="100" cy="134" rx="27" ry="23" fill="#b9a594" opacity="0.5"/>
+  <!-- 腮红 -->
+  <ellipse cx="64" cy="132" rx="9" ry="6" fill="#f2b8b8" opacity="0.6"/>
+  <ellipse cx="136" cy="132" rx="9" ry="6" fill="#f2b8b8" opacity="0.6"/>
+  <!-- 闭着的眼睛 -->
+  <path d="M68 116 q11 -10 22 0" stroke="#3a2f2a" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <path d="M110 116 q11 -10 22 0" stroke="#3a2f2a" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <!-- 鼻子和嘴 -->
+  <path d="M93 130 h14 l-7 8 z" fill="#e58a9a" stroke="#e58a9a" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M100 139 q-8 10 -17 3 M100 139 q8 10 17 3" stroke="#3a2f2a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- 胡须 -->
+  <path d="M58 138 l-26 -5 M58 144 l-26 4 M142 138 l26 -5 M142 144 l26 4" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
