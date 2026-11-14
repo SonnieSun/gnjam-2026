@@ -26,6 +26,11 @@
 | `rhythm_variants` | 换 L1 + L2 | `Rhalf` 半速、`Rbreak` 2-step、`Rclub` jersey club；玩家底鼓位置跟着变 |
 | `entertainer_leads` | 16 小节 L3 | Entertainer 旋律：拨弦 / 猫，用第 1 关的和弦 |
 
+## `music/scene1_120/`：第 1 关素材的 120 BPM 版
+
+给 Kisa 的迪斯科关（它是 120 BPM）用的 17 条音轨，`s120_*`，每条 4 小节 = 8 秒，内容和 `scene1/` 里同名的一样：
+骨架鼓和低音、disco 和 future bass 两种风格、club 和半拍节奏、全猫乐队、喵和海豹事件轨。
+
 ## `music/classics/<曲名>/`：经典曲
 
 只借旋律，每首自己的调和和弦，是独立的一关，不和第 1 关互切。每首都有：`fb_L0_keys` 铺底、`L2_bass`、

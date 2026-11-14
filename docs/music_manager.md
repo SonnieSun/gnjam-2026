@@ -179,3 +179,18 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 想法：鬼畜版猫旋律不预渲染，旋律存成音符数据，游戏里按拍触发喵（每只猫一个采样，`pitch_scale` 变速变调，到点停掉 = 硬切，
 共鸣提前烤进采样）。好处是变速不用重渲染、可以做成"打中才唱出这个音"。做好后和预渲染的 `L3_cat_kichiku` 对比，一样好再替换它。
 普通猫版（拉长的 Miiiiao、互相叠）运行时做不了，继续用预渲染的音轨。
+
+## Kisa 的四关（level_6 到 level_9）
+
+这四关现在也用这套音乐系统（配置在 `levels/music/level_6_disco.json` 等，都开了 USE IN GAME；关掉就回到关卡原来的音乐）。
+
+- **level_6_disco（120 BPM）**：保持它原来的速度，用我们第 1 关素材的 120 版（`assets/audio/music/scene1_120/`）。
+  和它原来的配乐一样，积累条每过一条事件线加一层：星星灯 = 和声，灯球 = 旋律，跳舞猫 = 猫鼓，漂移 = 高潮；
+  拆房子上路时鼓和低音换成 club 节奏、和声旋律换成 future bass；舞池 = 猫旋律，网格 = 高潮回来，圆台 = 猫和声 + 猫低音，飞碟 = 喵事件轨。
+  吸猫小关是全猫乐队配半拍节奏。关卡自己的分轨控制（`DiscoMusic`）在我们的音乐开着时让开，只改了它一处。
+- **level_7 飞船 / level_8 吸猫 / level_9 电视墙（160 BPM）**：分别放 Eurobeat、山魔王（后段鬼畜猫）、Chip。注意它们原来是 120，开着我们的音乐整关会变快；
+  嫌快就在配置里把 `use_in_game` 关掉。
+- 连击到里程碑（10、20、50……）会响一声转圈喵（"oiia"），在 main.tscn 的 HitMeow 节点上调或关。
+
+初始配置都由 `tools/music_gen/make_music_sets.py` 生成；120 的素材是 `CAT_BPM=120 python -I compose_disc.py` 渲染的。
+

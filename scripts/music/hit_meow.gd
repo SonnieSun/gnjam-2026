@@ -21,12 +21,20 @@ extends Node
 @export_range(0.0, 0.2, 0.005) var pitch_random := 0.03
 ## 音量随机上下多少 dB
 @export_range(0.0, 6.0, 0.1) var volume_random_db := 1.0
+## 连击到里程碑（10、20、50……）时的转圈喵（"oiia"那种，用我们自己的喵做的），两个轮流放；清空 = 不放
+@export var spin_sounds: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/spin_meow_a.wav"),
+	preload("res://assets/audio/sfx/spin_meow_b.wav"),
+]
+@export_range(-30.0, 6.0) var spin_volume_db := -4.0
 ## 同时最多几声（连打很快时前一声还没完）
 @export_range(1, 8) var voices := 4
 
 var _players: Array[AudioStreamPlayer] = []
 var _next := 0
 var _last := {}   # 每组上次挑的是第几个
+var _spin_player: AudioStreamPlayer
+var _spin_next := 0
 
 
 func _ready() -> void:
@@ -34,6 +42,8 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_players.append(p)
+	_spin_player = AudioStreamPlayer.new()
+	add_child(_spin_player)
 
 
 ## 按判定结果喵一声：Perfect 和 Good 喵，Miss 不出声
@@ -43,6 +53,16 @@ func play(result: int) -> void:
 	match result:
 		NoteData.Result.PERFECT: _play_from(perfect_sounds, "perfect")
 		NoteData.Result.GOOD: _play_from(good_sounds, "good")
+
+
+## 连击里程碑：转圈喵一声
+func spin() -> void:
+	if not enabled or spin_sounds.is_empty():
+		return
+	_spin_player.stream = spin_sounds[_spin_next % spin_sounds.size()]
+	_spin_next += 1
+	_spin_player.volume_db = spin_volume_db
+	_spin_player.play()
 
 
 func _play_from(sounds: Array[AudioStream], group: String) -> void:

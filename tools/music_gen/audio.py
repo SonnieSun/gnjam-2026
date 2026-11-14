@@ -8,6 +8,7 @@ Everything is float64 stereo arrays of shape (n, 2) at 44.1 kHz.
   reverb / delay            room and echoes
   place                     drop a sound into a track at a time, optionally pitched
 """
+import os
 import struct
 import wave
 
@@ -87,7 +88,7 @@ def resample(x, ratio):
 
 # --- time --------------------------------------------------------------------
 
-BPM = 160.0
+BPM = float(os.environ.get('CAT_BPM', 160.0))   # 160 for everything; CAT_BPM=120 renders a 120 version
 BEAT = 60.0 / BPM
 BAR = 4 * BEAT
 

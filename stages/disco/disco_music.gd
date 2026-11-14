@@ -29,6 +29,10 @@ const SILENT_DB := -60.0
 static func music() -> AudioStreamSynchronized:
 	if Conductor.chart == null:
 		return null
+	# 这一大关用了叠轨音乐系统（Music autoload，levels/music/<大关>.json 里开了 use_in_game）：
+	# 正在播的是它的音轨，由它按积累条来开关，这里不要去动。
+	if Music.stream != null and Conductor.chart.stream == Music.stream:
+		return null
 	return Conductor.chart.stream as AudioStreamSynchronized
 
 

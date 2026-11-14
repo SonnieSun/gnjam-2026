@@ -10,7 +10,10 @@ Every music loop gets a RIFF 'smpl' chunk with one forward loop over the whole f
 WAV importer (loop mode "Detect From WAV", the default) imports it already looping. One-shots
 get none. Listening previews and alternates nobody uses are left out to keep the repo light.
 
-usage: python -I package_for_godot.py <deliver dir> <godot project dir>
+A 120 BPM render of scene 1 (CAT_BPM=120 python -I compose_disc.py <samples> <loops_120>) can be given as
+a third argument: the stems listed in STEMS_120 go to assets/audio/music/scene1_120/ as s120_*.wav.
+
+usage: python -I package_for_godot.py <deliver dir> <godot project dir> [<120 BPM loops dir>/s1_disc]
 """
 import glob
 import os
@@ -24,6 +27,11 @@ SKIP = ('_L3_square_', '_L3_cat_classic_', 'ent_A_L3_lead')       # alternates n
 # Level trims applied while copying (dB by file name part). The bass stems were rendered about 14 dB
 # above the chords, which is bass-heavy when every stem plays at full level in the game.
 TRIM_DB = {'_L2_bass_': -4.0, '_C_bass_': -4.0}
+# the 120 BPM stems the game uses (Kisa's disco level): the disco and future bass styles, the club and
+# half-time rhythms, the cat band and two event tracks
+STEMS_120 = ('L1_groove', 'L2_bass', 'B_L0_keys', 'B_L3_hook', 'B_L4_peak', 'fb_L0_keys', 'fb_L3_hook', 'fb_L4_peak',
+             'Rclub_L1_groove', 'Rclub_L2_bass', 'Rhalf_L1_groove', 'C_drums', 'C_stabs', 'C_bass', 'C_lead',
+             'X_meow', 'X_seal')
 
 
 def add_loop(src, dst):
@@ -79,6 +87,11 @@ for group in sorted(os.listdir(os.path.join(D, 'scene1'))):
     n += copy_tree(os.path.join(D, 'scene1', group), os.path.join(A, 'music', 'scene1', group), loop=True)
 for song in sorted(os.listdir(os.path.join(D, 'classics'))):
     n += copy_tree(os.path.join(D, 'classics', song), os.path.join(A, 'music', 'classics', song), loop=True)
+if len(sys.argv) > 3:
+    os.makedirs(os.path.join(A, 'music', 'scene1_120'), exist_ok=True)
+    for k in STEMS_120:
+        add_loop(os.path.join(sys.argv[3], f's1_disc_{k}_4b.wav'), os.path.join(A, 'music', 'scene1_120', f's120_{k}_4b.wav'))
+        n += 1
 n += copy_tree(os.path.join(D, 'sfx'), os.path.join(A, 'sfx'), loop=False)
 n += copy_tree(os.path.join(D, 'meows'), os.path.join(A, 'meows'), loop=False)
 size = sum(os.path.getsize(f) for f in glob.glob(os.path.join(A, '**', '*.wav'), recursive=True))
