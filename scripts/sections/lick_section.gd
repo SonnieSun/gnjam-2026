@@ -4,14 +4,10 @@ extends SpinSection
 ## 音符固定在地球边缘，随地球转到小猫嘴边（顶部白圈）时按键，小猫会舔一下。
 ## 转一圈 = beats_per_rev 拍。
 
-## 趴在地球顶上的小猫图片；舌头是代码画的，嘴的位置对不上就调 mouth_offset。
-@export var cat_texture: Texture2D = preload("res://assets/art/cat_lick.svg")
-## 嘴相对图片中心的位置（以 cat_size 为 1）
-@export var mouth_offset := Vector2(0.0, 0.2)
-## 想改用猫 meme 动图就在这里填 MemeLib 里的名字（比如 "lick"），填了就不用上面的图片；
-## 击中时把动画从头放一遍。留空 = 用图片。
-@export var meme := ""
-@export var cat_size := 190.0
+##
+## 小猫和舌头摆在场景里：Cat（图片）和它下面的 Tongue（一条线，第一个点是嘴，脚本只拉长它）。
+## 想换成猫 meme 动图：把 Cat 换成挂了 meme_sprite.gd 的节点（名字仍叫 Cat、勾上唯一名称），
+## 击中时会把动画从头放一遍。
 @export var radius := 160.0
 @export var ocean_color := Color(0.13, 0.42, 0.85)
 @export var land_color := Color(0.25, 0.68, 0.35)
@@ -39,14 +35,14 @@ var _angle := 0.0
 var _lick := 0.0   # 1 = 舌头完全伸出，逐渐收回
 var _bob := 0.0    # 跟着拍子点头
 var _tint := Color.WHITE
-var _cat: MemeSprite
+
+@onready var _cat: Node2D = get_node_or_null("%Cat")
+@onready var _tongue: Line2D = get_node_or_null("%Tongue")
 
 
 func _ready() -> void:
-	if meme != "":
-		_cat = MemeSprite.create(meme, cat_size)
+	if _cat is MemeSprite:
 		_cat.mode = MemeSprite.Mode.MANUAL
-		add_child(_cat)
 
 
 func hit_position(_note: NoteData = null) -> Vector2:
@@ -63,10 +59,15 @@ func _update_spin(_local_beat: float, angle: float) -> void:
 	_lick = lerpf(_lick, 0.0, 0.14)
 	_bob = lerpf(_bob, 0.0, 0.18)
 	_tint = _tint.lerp(Color.WHITE, 0.1)
-	# 小猫趴在判定圈上方，跟着拍子点头，舔的时候往下探
-	if _cat:
-		_cat.position = hit_position() + Vector2(0.0, -cat_size * 0.42 + 6.0 * _lick + 3.0 * _bob)
-		_cat.modulate = _tint
+	# 小猫跟着拍子点头，舔的时候往下探、舌头伸长
+	if _cat and can_animate():
+		var squash := 1.0 + 0.04 * _bob
+		_cat.transform = rest2d(_cat).translated(Vector2(0.0, 5.0 * _lick + 3.0 * _bob)) \
+				.scaled_local(Vector2(squash, 1.0 / squash))
+		_cat.modulate = rest_modulate(_cat) * _tint
+		if _tongue and _tongue.get_point_count() >= 2:
+			var length := (6.0 + 20.0 * _lick) / maxf(absf(rest2d(_cat).get_scale().y), 0.001)
+			_tongue.set_point_position(1, _tongue.get_point_position(0) + Vector2(0.0, length))
 	queue_redraw()
 
 
@@ -79,13 +80,13 @@ func _on_note_judged(_note: NoteData, result: int) -> void:
 		_tint = result_color(result)
 	else:
 		_lick = 1.0
-		if _cat:
+		if _cat is MemeSprite:
 			_cat.play_once(0.35)
 
 
 func _on_empty_hit() -> void:
 	_lick = 0.6  # 空舔一下
-	if _cat:
+	if _cat is MemeSprite:
 		_cat.play_once(0.35)
 
 
@@ -126,19 +127,6 @@ func _draw() -> void:
 	# --- 判定圈 ---
 	var hit := hit_position()
 	draw_arc(hit, 22.0, 0.0, TAU, 32, Color.WHITE, 3.0)
-
-	# --- 小猫（用图片时）：趴在地球顶上，舔的时候头往下探、舌头伸到判定圈 ---
-	if _cat == null:
-		var head_drop := 5.0 * _lick + 3.0 * _bob
-		var cat_center := hit + Vector2(0.0, -cat_size * 0.3 + head_drop)
-		var squash := 1.0 + 0.04 * _bob
-		var size := Vector2(cat_size * squash, cat_size / squash)
-		draw_texture_rect(cat_texture, Rect2(cat_center - size / 2.0, size), false, _tint)
-		var mouth := cat_center + mouth_offset * cat_size
-		var tip := mouth + Vector2(0.0, 6.0 + 20.0 * _lick)
-		draw_line(mouth, tip, Color(0.95, 0.5, 0.6), 11.0)
-		draw_circle(tip, 5.5, Color(0.95, 0.5, 0.6))
-		draw_line(mouth + Vector2(0.0, 2.0), tip, Color(0.85, 0.38, 0.5), 2.0)
 
 	draw_string(ThemeDB.fallback_font, Vector2(-200.0, radius + 48.0), def.title,
 			HORIZONTAL_ALIGNMENT_CENTER, 400.0, 28)

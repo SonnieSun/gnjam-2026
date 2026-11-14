@@ -2,10 +2,9 @@
 extends SpinSection
 ## 波纹：圆圈从中心的“喇叭”向外扩散，碰到外面固定的大圆环时按键。
 ## 是缩圈关的反方向。
+## 中心“喊出波纹”的猫摆在场景里（Center），脚本只让它跟着拍子一鼓一鼓。
 
 @export var speaker_color := Color(0.75, 0.25, 0.45)
-## 中心“喊出波纹”的猫 meme
-@export var center_meme := "meow"
 @export var inner_radius := 55.0
 @export var outer_radius := 245.0
 ## 波纹从出现到碰到外环需要几拍
@@ -14,13 +13,8 @@ extends SpinSection
 var _angle := 0.0
 var _pulse := 0.0
 var _ring_color := Color.WHITE
-var _center: MemeSprite
 
-
-func _ready() -> void:
-	_center = MemeSprite.create(center_meme, inner_radius * 2.6)
-	_center.z_index = 1
-	add_child(_center)
+@onready var _center: Node2D = get_node_or_null("%Center")
 
 
 func hit_position(_note: NoteData = null) -> Vector2:
@@ -36,7 +30,8 @@ func _update_spin(_local_beat: float, angle: float) -> void:
 	_angle = angle
 	_pulse = lerpf(_pulse, 0.0, 0.15)
 	_ring_color = _ring_color.lerp(Color.WHITE, 0.1)
-	_center.scale = Vector2.ONE * (inner_radius * 2.6 / 128.0) * (1.0 + 0.18 * _pulse)
+	if _center and can_animate():
+		_center.transform = rest2d(_center).scaled_local(Vector2.ONE * (1.0 + 0.18 * _pulse))
 	queue_redraw()
 
 

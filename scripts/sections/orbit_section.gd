@@ -2,12 +2,9 @@
 extends SpinSection
 ## 轨道：一个小圆沿圆形轨道绕中心的行星跑，经过轨道上的标记点时按键。
 ## 和转盘关相反——这里盘不动，判定点自己在跑。跑一圈 = beats_per_rev 拍。
+## 两只猫摆在场景里：Center（中间的，动画每小节放一遍）和 Runner（沿轨道跑的，位置由脚本算，大小在场景里调）。
 
 @export var planet_color := Color(0.2, 0.55, 0.45)
-## 中间的猫 meme，动画跟着拍子走（每小节放一遍）
-@export var center_meme := "oiia"
-## 沿轨道跑的猫 meme
-@export var runner_meme := "nyan"
 @export var planet_radius := 95.0
 @export var orbit_radius := 205.0
 @export var runner_radius := 20.0
@@ -18,15 +15,9 @@ const SHOW_AHEAD := 0.85  # 提前多少圈显示标记点
 var _angle := 0.0
 var _pulse := 0.0
 var _runner_color := Color.WHITE
-var _center: MemeSprite
-var _runner: MemeSprite
 
-
-func _ready() -> void:
-	_center = MemeSprite.create(center_meme, planet_radius * 2.1)
-	add_child(_center)
-	_runner = MemeSprite.create(runner_meme, runner_radius * 11.0)
-	add_child(_runner)
+@onready var _center: MemeSprite = get_node_or_null("%Center")
+@onready var _runner: Node2D = get_node_or_null("%Runner")
 
 
 func _runner_pos(angle_offset: float = 0.0) -> Vector2:
@@ -46,11 +37,14 @@ func _update_spin(_local_beat: float, angle: float) -> void:
 	_angle = angle
 	_pulse = lerpf(_pulse, 0.0, 0.15)
 	_runner_color = _runner_color.lerp(Color.WHITE, 0.1)
-	_center.set_progress(_local_beat / 4.0)
-	_center.scale = _center.scale.lerp(Vector2.ONE * (planet_radius * 2.1 / 128.0) * (1.0 + 0.1 * _pulse), 0.5)
-	_runner.position = _runner_pos()
-	_runner.rotation = START_ANGLE + _angle + PI / 2  # 头朝前进方向
-	_runner.modulate = _runner_color
+	if can_animate():
+		if _center:
+			_center.set_progress(_local_beat / 4.0)
+			_center.transform = rest2d(_center).scaled_local(Vector2.ONE * (1.0 + 0.1 * _pulse))
+		if _runner:
+			# 头朝前进方向；大小用场景里设的
+			_runner.transform = Transform2D(START_ANGLE + _angle + PI / 2, rest2d(_runner).get_scale(), 0.0, _runner_pos())
+			_runner.modulate = rest_modulate(_runner) * _runner_color
 	queue_redraw()
 
 

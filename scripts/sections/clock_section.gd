@@ -2,11 +2,9 @@
 extends SpinSection
 ## 表盘：一根指针扫过圆形表盘，扫到表盘边缘的刻度音符时按键。
 ## 指针转一圈 = beats_per_rev 拍。
+## 表盘正中的猫摆在场景里（Center），脚本不动它，随便换、随便摆。
 
 @export var dial_color := Color(0.16, 0.14, 0.24)
-## 表盘正中的猫 meme
-@export var center_meme := "grumpy"
-@export var center_size := 170.0
 @export var dial_radius := 235.0
 @export var note_radius := 200.0
 
@@ -16,12 +14,6 @@ const SWEEP := 0.7  # 指针后面拖着的扇形有多宽（弧度）
 
 var _angle := 0.0
 var _hand_color := Color.WHITE
-var _center: MemeSprite
-
-
-func _ready() -> void:
-	_center = MemeSprite.create(center_meme, center_size)
-	add_child(_center)
 
 
 func _tip() -> Vector2:

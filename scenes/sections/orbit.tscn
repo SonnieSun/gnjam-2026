@@ -1,6 +1,28 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://7l452l5qgdp1"]
 
-[ext_resource type="Script" path="res://scripts/sections/orbit_section.gd" id="1"]
+[ext_resource type="Script" uid="uid://c14tg5m2gm4aw" path="res://scripts/sections/orbit_section.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://cb37vwvu83gmi" path="res://assets/memes/oiia.png" id="2_14e52"]
+[ext_resource type="Script" uid="uid://qjfvui8dkb7m" path="res://scripts/fx/meme_sprite.gd" id="3_qcroo"]
+[ext_resource type="Texture2D" uid="uid://b2gce02f2500w" path="res://assets/memes/nyan.png" id="4_a64at"]
 
-[node name="OrbitSection" type="Node2D"]
+[node name="OrbitSection" type="Node2D" unique_id=38618572]
 script = ExtResource("1")
+
+[node name="Center" type="Sprite2D" parent="." unique_id=1102411853]
+unique_name_in_owner = true
+scale = Vector2(1.5585938, 1.5585938)
+texture = ExtResource("2_14e52")
+hframes = 8
+vframes = 4
+script = ExtResource("3_qcroo")
+meme = "oiia"
+
+[node name="Runner" type="Sprite2D" parent="." unique_id=1217365329]
+unique_name_in_owner = true
+position = Vector2(0, -205)
+scale = Vector2(1.71875, 1.71875)
+texture = ExtResource("4_a64at")
+hframes = 8
+vframes = 2
+script = ExtResource("3_qcroo")
+meme = "nyan"

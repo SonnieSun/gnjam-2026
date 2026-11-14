@@ -7,7 +7,8 @@ extends Node2D
 ##
 ## 编辑器预览：这个脚本和所有关卡脚本都带 @tool，在编辑器里单独打开某个关卡场景时，
 ## 会用一段假的鼓谱把画面跑起来，并画出游戏画面的边界框，方便摆美术。
-## 预览只发生在编辑器里，不会改动场景文件，也不影响正式运行。
+## 预览只发生在编辑器里，不影响正式运行；保存场景时动过的节点会自动回到摆好的姿势。
+## 想拖动场景里的猫图，先取消勾选“预览播放”。
 ## 新写的关卡脚本第一行也要加 @tool 才会有预览。
 
 @export_group("击中手感")
@@ -240,7 +241,52 @@ func _preview_tick(delta: float) -> void:
 		notify_beat(floori(_preview_now))
 
 
+# ---- 摆在场景里的 2D 美术（猫图等）：动画在摆好的姿势上叠加 ----
+
+var _rest2d := {}  # 节点 -> [摆好的位置姿态, 摆好的颜色]
+
+
+## 现在能不能动场景里的节点。编辑器里没勾“预览播放”时返回 false，并让动过的节点回到摆好的姿势，
+## 这样美术可以放心拖动它们。让节点动起来的代码都要包在 if can_animate(): 里。
+func can_animate() -> bool:
+	if Engine.is_editor_hint() and not preview_playing:
+		restore_rest2d()
+		return false
+	return true
+
+
+## 这个节点在场景里摆好的位置姿态（第一次问的时候记下来）。
+## 动画写成：node.transform = rest2d(node).scaled_local(...) 之类，不要写死位置和大小。
+func rest2d(node: Node2D) -> Transform2D:
+	if not _rest2d.has(node):
+		_rest2d[node] = [node.transform, node.modulate]
+	return _rest2d[node][0]
+
+
+## 这个节点在场景里设的颜色（modulate）
+func rest_modulate(node: Node2D) -> Color:
+	rest2d(node)
+	return _rest2d[node][1]
+
+
+## 只是想知道它摆在哪（不打算动它）：有记录用记录，没有就读现在的
+func placed(node: Node2D) -> Transform2D:
+	return _rest2d[node][0] if _rest2d.has(node) else node.transform
+
+
+## 所有动过的 2D 节点回到摆好的姿势
+func restore_rest2d() -> void:
+	for node: Node2D in _rest2d:
+		if is_instance_valid(node):
+			node.transform = _rest2d[node][0]
+			node.modulate = _rest2d[node][1]
+	_rest2d.clear()
+
+
 func _notification(what: int) -> void:
+	# 保存场景之前先回到摆好的姿势，免得把动到一半的样子存进文件
+	if what == NOTIFICATION_EDITOR_PRE_SAVE:
+		restore_rest2d()
 	# 预览时画出游戏画面的边界（这个框不会出现在正式运行里）
 	if what == NOTIFICATION_DRAW and _previewing():
 		var size := screen_size()

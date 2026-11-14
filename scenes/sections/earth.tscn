@@ -1,9 +1,18 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/sections/ring_section.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/memes/popcat.png" id="2_q1itk"]
+[ext_resource type="Script" path="res://scripts/fx/meme_sprite.gd" id="3_ro6wx"]
 
-[node name="EarthSection" type="Node2D"]
+[node name="EarthSection" type="Node2D" unique_id=91603778]
 script = ExtResource("1")
-disc_color = Color(0.15, 0.4, 0.75, 1)
-target_radius = 110.0
 approach_beats = 3.0
+
+[node name="Targets" type="Node2D" parent="." unique_id=2056461194]
+
+[node name="Cat1" type="Sprite2D" parent="Targets" unique_id=1388591225]
+scale = Vector2(1.4609375, 1.4609375)
+texture = ExtResource("2_q1itk")
+hframes = 2
+script = ExtResource("3_ro6wx")
+meme = "popcat"

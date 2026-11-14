@@ -1,6 +1,19 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/sections/rings_section.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/memes/catjam.png" id="2_dd12u"]
+[ext_resource type="Script" path="res://scripts/fx/meme_sprite.gd" id="3_3umf7"]
 
-[node name="RingsSection" type="Node2D"]
+[node name="RingsSection" type="Node2D" unique_id=1950635012]
 script = ExtResource("1")
+ring_radii = PackedFloat32Array(105, 170, 235)
+rev_multipliers = PackedFloat32Array(1, -1, 1.5)
+
+[node name="Center" type="Sprite2D" parent="." unique_id=2058018195]
+unique_name_in_owner = true
+scale = Vector2(1.171875, 1.171875)
+texture = ExtResource("2_dd12u")
+hframes = 8
+vframes = 4
+script = ExtResource("3_3umf7")
+meme = "catjam"

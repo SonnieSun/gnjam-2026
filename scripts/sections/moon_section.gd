@@ -2,10 +2,9 @@
 extends SpinSection
 ## 月相：月亮一点点变圆，外圈的圆弧同时合拢；变成满月（圆弧闭合成整圆）的瞬间按键。
 ## 每个音符是一次“盈满”，适合节奏稀疏的段落。
+## 月亮里的猫摆在场景里（Center）：月亮越圆它越清楚、越大，满月时完全显形。场景里摆的是满月时的样子。
 
 @export var moon_color := Color(1.0, 0.95, 0.75)
-## 月亮里的猫 meme：月亮越圆它越清楚，满月时完全显形
-@export var center_meme := "flower"
 @export var dark_color := Color(0.14, 0.15, 0.26)
 @export var moon_radius := 150.0
 ## 一次盈满最长用几拍（两个音符离得更近时，用它们的间隔）
@@ -13,13 +12,9 @@ extends SpinSection
 
 var _pulse := 0.0
 var _flash := Color.WHITE
-var _center: MemeSprite
 var _phase := 0.0
 
-
-func _ready() -> void:
-	_center = MemeSprite.create(center_meme, moon_radius * 1.6)
-	add_child(_center)
+@onready var _center: Node2D = get_node_or_null("%Center")
 
 
 func hit_position(_note: NoteData = null) -> Vector2:
@@ -34,8 +29,10 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 	center_on_screen()
 	_pulse = lerpf(_pulse, 0.0, 0.12)
 	_flash = _flash.lerp(Color.WHITE, 0.1)
-	_center.modulate = Color(1, 1, 1, clampf(_phase * 1.2 - 0.2, 0.0, 1.0))
-	_center.scale = Vector2.ONE * (moon_radius * 1.6 / 128.0) * (0.8 + 0.2 * _phase + 0.12 * _pulse)
+	if _center and can_animate():
+		var normal := rest_modulate(_center)
+		_center.modulate = Color(normal, normal.a * clampf(_phase * 1.2 - 0.2, 0.0, 1.0))
+		_center.transform = rest2d(_center).scaled_local(Vector2.ONE * (0.8 + 0.2 * _phase + 0.12 * _pulse))
 	queue_redraw()
 
 

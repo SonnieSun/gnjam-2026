@@ -5,15 +5,13 @@ extends SpinSection
 ## - 多个目标 = 第三关：每个音符按鼓的种类去不同的目标圆
 ##   （底鼓 -> 第 1 个，军鼓 -> 第 2 个，踩镲 -> 第 3 个，目标不够就循环）。
 ## 目标圆本身仍然按 beats_per_rev 自转。
+##
+## 目标圆的个数和位置由场景决定：Targets 节点下面每放一只猫（挂 meme_sprite.gd 的节点）就是一个目标圆，
+## 猫摆在哪目标圆就在哪。只有两帧的猫（比如 popcat）击中时张一下嘴，其他的一直循环播放。
 
 @export var disc_color := Color(0.15, 0.4, 0.75)
-## 每个目标圆上放哪个猫 meme（MemeLib 里的名字），目标比名字多就循环用。
-## 只有两帧的（比如 popcat）击中时张一下嘴，其他的一直循环播放。
-@export var memes := PackedStringArray(["popcat"])
 ## 目标圆上的猫要不要跟着节拍旋转（转一圈 = beats_per_rev 拍）
 @export var spin_memes := false
-## 各个目标圆相对屏幕中心的位置
-@export var target_offsets := PackedVector2Array([Vector2.ZERO])
 @export var target_radius := 110.0
 ## 圆圈从出现到重合需要几拍
 @export var approach_beats := 2.0
@@ -27,30 +25,38 @@ const RING_COLORS: Array[Color] = [
 
 var _angle := 0.0
 var _cats: Array[MemeSprite] = []
-var _cat_base_scale := Vector2.ONE
+var _bump: Array[float] = []  # 每只猫现在被“顶大”了多少，逐渐回落
 
 
 func _ready() -> void:
-	for i in target_offsets.size():
-		var cat := MemeSprite.create(memes[i % memes.size()], target_radius * 1.7)
+	var targets := get_node_or_null("Targets")
+	if targets == null:
+		push_error("%s：场景里缺少 Targets 节点（下面放猫）" % name)
+		return
+	for child in targets.get_children():
+		var cat := child as MemeSprite
+		if cat == null:
+			continue
 		if cat.frame_count == 2:
 			cat.mode = MemeSprite.Mode.MANUAL
 			cat.idle_frame = 1  # popcat：第 1 帧闭嘴，第 0 帧张嘴
 			cat.frame = 1
-		cat.position = target_offsets[i]
-		cat.z_index = 1  # 盖在自己画的圆盘上面
-		add_child(cat)
 		_cats.append(cat)
-	_cat_base_scale = _cats[0].scale
+		_bump.append(0.0)
 
 
 ## 这个音符去哪个目标圆
 func target_index(note: NoteData) -> int:
-	return note.sound % target_offsets.size()
+	return note.sound % maxi(_cats.size(), 1)
+
+
+## 第 i 个目标圆的位置 = 那只猫在场景里摆的位置
+func target_position(i: int) -> Vector2:
+	return placed(_cats[i]).origin if i < _cats.size() else Vector2.ZERO
 
 
 func hit_position(note: NoteData = null) -> Vector2:
-	return target_offsets[target_index(note)] if note else target_offsets[0]
+	return target_position(target_index(note) if note else 0)
 
 
 func hit_radius() -> float:
@@ -60,23 +66,27 @@ func hit_radius() -> float:
 func _update_spin(_local_beat: float, angle: float) -> void:
 	center_on_screen()
 	_angle = angle
-	for cat in _cats:
-		cat.scale = cat.scale.lerp(_cat_base_scale, 0.2)
-		if spin_memes:
-			cat.rotation = angle
+	var animate := can_animate()
+	for i in _cats.size():
+		_bump[i] = lerpf(_bump[i], 0.0, 0.2)
+		if animate:
+			var pose := rest2d(_cats[i]).scaled_local(Vector2.ONE * (1.0 + _bump[i]))
+			_cats[i].transform = pose.rotated_local(angle) if spin_memes else pose
 	queue_redraw()
 
 
 func _on_beat(_beat_in_section: int) -> void:
-	for cat in _cats:
-		cat.scale = _cat_base_scale * 1.12
+	for i in _bump.size():
+		_bump[i] = 0.12
 
 
 func _on_note_judged(note: NoteData, result: int) -> void:
+	if _cats.is_empty():
+		return
 	var cat := _cats[target_index(note)]
 	if result != NoteData.Result.MISS and cat.frame_count == 2:
 		cat.flash_frame(0, 0.14)
-		cat.scale = _cat_base_scale * 1.25
+		_bump[target_index(note)] = 0.25
 	match result:
 		NoteData.Result.PERFECT: _flash(cat, Color(1.0, 0.9, 0.2))
 		NoteData.Result.GOOD: _flash(cat, Color(0.4, 1.0, 0.5))
@@ -89,15 +99,19 @@ func _on_empty_hit() -> void:
 
 
 func _flash(cat: MemeSprite, c: Color) -> void:
+	if not can_animate():
+		return
+	var normal := rest_modulate(cat)
 	cat.modulate = c
-	create_tween().tween_property(cat, "modulate", Color.WHITE, 0.25)
+	create_tween().tween_property(cat, "modulate", normal, 0.25)
 
 
 func _draw() -> void:
 	if def == null:
 		return
 	# 目标圆：圆盘 + 自转的辐条 + 白色判定轮廓
-	for offset in target_offsets:
+	for k in _cats.size():
+		var offset := target_position(k)
 		draw_circle(offset, target_radius, disc_color)
 		for i in 4:
 			var dir := Vector2.from_angle(_angle + i * TAU / 4.0)

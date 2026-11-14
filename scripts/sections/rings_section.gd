@@ -2,11 +2,9 @@
 extends SpinSection
 ## 同心环：三层圆环各自旋转，底鼓 / 军鼓 / 踩镲 的音符分别固定在内 / 中 / 外环上，
 ## 转到正上方各自的判定圈时按键。
+## 圆环正中的猫摆在场景里（Center），动画跟着拍子走（每两拍放一遍）。
 
 @export var ring_radii := PackedFloat32Array([105.0, 170.0, 235.0])
-## 圆环正中的猫 meme，动画跟着拍子走（每两拍放一遍）
-@export var center_meme := "catjam"
-@export var center_size := 150.0
 ## 每层转一圈的拍数 = beats_per_rev * 这个倍数；负数 = 反方向转
 @export var rev_multipliers := PackedFloat32Array([1.0, -1.0, 1.5])
 
@@ -14,12 +12,8 @@ const HIT_ANGLE := -PI / 2
 const SHOW_AHEAD := 0.8
 
 var _flash: Array[Color] = [Color.WHITE, Color.WHITE, Color.WHITE]
-var _center: MemeSprite
 
-
-func _ready() -> void:
-	_center = MemeSprite.create(center_meme, center_size)
-	add_child(_center)
+@onready var _center: MemeSprite = get_node_or_null("%Center")
 
 
 func _ring(note: NoteData) -> int:
@@ -36,7 +30,8 @@ func hit_radius() -> float:
 
 func _update_spin(_local_beat: float, _angle: float) -> void:
 	center_on_screen()
-	_center.set_progress(_local_beat / 2.0)
+	if _center and can_animate():
+		_center.set_progress(_local_beat / 2.0)
 	for i in _flash.size():
 		_flash[i] = _flash[i].lerp(Color.WHITE, 0.1)
 	queue_redraw()

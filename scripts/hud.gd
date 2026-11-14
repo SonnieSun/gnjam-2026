@@ -72,7 +72,7 @@ func set_debug(text: String) -> void:
 
 
 func show_result(judge: Judge) -> void:
-	result_label.text = "FULL CIRCLE!\nSCORE %d   MAX COMBO %d\nPERFECT %d   GOOD %d   MISS %d\n\n[R] restart" % [
+	result_label.text = "FULL CIRCLE!\nSCORE %d   MAX COMBO %d\nPERFECT %d   GOOD %d   MISS %d\n\n[R] restart   [Esc] menu" % [
 		judge.score, judge.max_combo,
 		judge.counts[NoteData.Result.PERFECT],
 		judge.counts[NoteData.Result.GOOD],

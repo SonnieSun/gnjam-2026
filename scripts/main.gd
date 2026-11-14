@@ -20,10 +20,8 @@ var _current: SpinSection
 
 
 func _ready() -> void:
-	# 换谱面改这一行：
-	#   MvChart       猫咪 MV 原型的歌和镜头（3D 关卡）
-	#   ShowcaseChart 八种 2D 关卡画法轮流展示，每关约 6 秒
-	chart = MvChart.build()
+	# 谱面由主菜单选中的大关决定（见 scripts/core/levels.gd）；直接运行本场景时是第 1 大关
+	chart = Levels.build_chart()
 	drum_kit.use_chart(chart)
 	Conductor.load_chart(chart)
 	judge.load_chart(chart)
@@ -56,7 +54,7 @@ func _process(_delta: float) -> void:
 	var i := maxi(chart.section_index_at(Conductor.song_beat), _min_index)
 	if i != _index:
 		_switch_to(i, true)
-	hud.set_debug("%s  |  bar %d  beat %.2f  |  [1-%d] jump  [R] restart" % [
+	hud.set_debug("%s  |  bar %d  beat %.2f  |  [1-%d] jump  [R] restart  [Esc] menu" % [
 		chart.sections[_index].title,
 		int(Conductor.song_beat / chart.beats_per_bar) + 1,
 		Conductor.song_beat,
@@ -117,6 +115,12 @@ func _on_empty_hit() -> void:
 		_current.notify_empty_hit()
 
 
+## 回主菜单
+func back_to_menu() -> void:
+	Conductor.stop()
+	get_tree().change_scene_to_file(Levels.MENU_SCENE)
+
+
 func _on_song_finished() -> void:
 	hud.show_result(judge)
 
@@ -127,6 +131,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if key.physical_keycode == KEY_R:
 		start_from(0)
+	elif key.physical_keycode == KEY_ESCAPE:
+		back_to_menu()
 	elif OS.is_debug_build():
 		var n := key.physical_keycode - KEY_1
 		if n >= 0 and n < chart.sections.size():
