@@ -387,14 +387,15 @@ def build(song):
         sw[-t2n(0.008):] *= np.linspace(1, 0, t2n(0.008))[:, None]
         place(x, sw, t2n(b * BAR))
     L['fb_L4_peak'] = match_rms(finish(reverb(highpass(x, 150), 0.9, 0.3, mix=0.1)[: len(x)], bars), 0.060)
-    # cat drums: "meow" on every beat, low on 1 and 3, high on 2 and 4, kitten "mi" on the off-beats
+    # cat drums: "meow" on every beat, low on 1 and 3, high on 2 and 4, a short "mi" on the off-beats
     lo, hi = song['drum_notes']
     x = blank(bars)
     for b in range(bars):
         for beat in range(4):
             target = lo if beat % 2 == 0 else hi
-            place(x, stereo(sing_miao(turn(SHORT, 'drum'), target, 0.26, keep=0.3)), t2n(b * BAR + beat * BEAT))
-            place(x, stereo(mi(hi + 12, 0.045), 0.3 if beat % 2 else -0.3), t2n(b * BAR + beat * BEAT + 2 * STEP), 0.4)
+            place(x, stereo(sing_miao(turn(SHORT, 'drum', target), target, 0.26, keep=0.3)), t2n(b * BAR + beat * BEAT))
+            # the off-beat "mi" a fourth above the high drum (it was an octave up: a shrill kitten)
+            place(x, stereo(lowpass(mi(hi + 5, 0.045), 5000), 0.3 if beat % 2 else -0.3), t2n(b * BAR + beat * BEAT + 2 * STEP), 0.35)
     L['C_drums'] = match_rms(finish(highpass(x, 120), bars), 0.10)
     # cat stabs: three cats on the off-beat 8ths, the chord of that half bar
     x = blank(bars)
