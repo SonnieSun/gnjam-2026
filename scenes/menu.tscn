@@ -6,6 +6,25 @@
 [ext_resource type="AudioStream" uid="uid://cfu1bsupc82w8" path="res://assets/mv/hat.wav" id="3_g3eks"]
 [ext_resource type="AudioStream" uid="uid://dnh0ae3vilxvq" path="res://assets/mv/kick.wav" id="4_v86rl"]
 [ext_resource type="PackedScene" path="res://scenes/menu_view.tscn" id="5_disc_3d"]
+[ext_resource type="Shader" uid="uid://4l2vnxmigy" path="res://assets/menu/neon_arrow.gdshader" id="6_neon_arrow"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_neon_left"]
+shader = ExtResource("6_neon_arrow")
+shader_parameter/direction = 1.0
+shader_parameter/glow_color = Color(0.56, 0.08, 1, 1)
+shader_parameter/tube_color = Color(0.82, 0.38, 1, 1)
+shader_parameter/core_color = Color(1, 0.91, 1, 1)
+shader_parameter/tube_radius = 4.30000004917396
+shader_parameter/glow_strength = 1.5000000223518
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_neon_right"]
+shader = ExtResource("6_neon_arrow")
+shader_parameter/direction = -1.0
+shader_parameter/glow_color = Color(0.56, 0.08, 1, 1)
+shader_parameter/tube_color = Color(0.82, 0.38, 1, 1)
+shader_parameter/core_color = Color(1, 0.91, 1, 1)
+shader_parameter/tube_radius = 4.30000004917396
+shader_parameter/glow_strength = 1.5000000223518
 
 [node name="Menu" type="Node2D" unique_id=1067574799]
 script = ExtResource("1_mhnvy")
@@ -21,6 +40,7 @@ mouse_filter = 2
 color = Color(0.16470589, 0.09411765, 0.2509804, 1)
 
 [node name="TextureRect" type="TextureRect" parent="BackgroundLayer/Background" unique_id=1624615005]
+self_modulate = Color(0.42, 0.42, 0.5, 1)
 layout_mode = 0
 offset_left = -2.0
 offset_top = -54.0
@@ -400,10 +420,10 @@ focus_mode = 0
 flat = true
 
 [node name="Shape" type="Polygon2D" parent="ArrowLeft" unique_id=1449163173]
+material = SubResource("ShaderMaterial_neon_left")
 position = Vector2(60, 65)
-color = Color(1, 0.9490196, 0.627451, 1)
 antialiased = true
-polygon = PackedVector2Array(-42, 0, 30, -48, 12, 0, 30, 48)
+polygon = PackedVector2Array(-74, -80, 74, -80, 74, 80, -74, 80)
 
 [node name="ArrowRight" type="Button" parent="." unique_id=694713718]
 unique_name_in_owner = true
@@ -415,10 +435,10 @@ focus_mode = 0
 flat = true
 
 [node name="Shape" type="Polygon2D" parent="ArrowRight" unique_id=1818777405]
+material = SubResource("ShaderMaterial_neon_right")
 position = Vector2(60, 65)
-color = Color(1, 0.9490196, 0.627451, 1)
 antialiased = true
-polygon = PackedVector2Array(42, 0, -30, -48, -12, 0, -30, 48)
+polygon = PackedVector2Array(-74, -80, 74, -80, 74, 80, -74, 80)
 
 [node name="TurnSfx" type="AudioStreamPlayer" parent="." unique_id=404911172]
 stream = ExtResource("3_g3eks")
