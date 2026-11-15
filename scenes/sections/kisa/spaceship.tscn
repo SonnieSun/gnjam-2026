@@ -1,0 +1,74 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/sections/kisa/spaceship_section.gd" id="1"]
+[ext_resource type="Script" path="res://stages/spaceship/space_stage.gd" id="2"]
+[ext_resource type="Script" path="res://stages/shared/y2k_fx/y2k_hit_fx_swap.gd" id="y2k_swap"]
+[ext_resource type="Script" path="res://stages/spaceship/y2k/spaceship_y2k_look.gd" id="y2k_look"]
+[ext_resource type="Script" path="res://stages/spaceship/stars/star_field.gd" id="stars"]
+[ext_resource type="Script" path="res://stages/spaceship/stars/star_cloud.gd" id="star_cloud"]
+[ext_resource type="Texture2D" path="res://stages/spaceship/skybox/nebula_512_blue.jpg" id="sky512"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_red.glb" id="p_red"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_green.glb" id="p_green"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_jupiter.glb" id="p_jupiter"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_saturn.glb" id="p_saturn"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_earth.glb" id="p_earth"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_twilight.glb" id="p_twilight"]
+
+[sub_resource type="Gradient" id="g_cloud_a"]
+offsets = PackedFloat32Array(0, 0.45, 0.8, 1)
+colors = PackedColorArray(0.25, 0.35, 1, 1, 0.45, 0.4, 1, 1, 0.65, 0.75, 1, 1, 1, 0.95, 0.9, 1)
+
+[sub_resource type="Gradient" id="g_cloud_b"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.5, 0.3, 1, 1, 0.35, 0.55, 1, 1, 0.9, 0.85, 1, 1)
+
+[sub_resource type="Gradient" id="g_background"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(0.4, 0.5, 1, 1, 0.7, 0.6, 1, 1, 1, 0.97, 0.92, 1)
+
+[sub_resource type="Resource" id="cloud_dash"]
+script = ExtResource("star_cloud")
+direction = Vector3(-0.3, 0.02, -1)
+distance = 220.0
+size = Vector3(110, 70, 70)
+count = 1400
+concentration = 0.65
+particle_size = Vector2(1, 4.5)
+colors = SubResource("g_cloud_a")
+glow_size = 170.0
+glow_color = Color(0.35, 0.42, 1, 0.7)
+
+[sub_resource type="Resource" id="cloud_solar"]
+script = ExtResource("star_cloud")
+direction = Vector3(0.25, -1, 0.2)
+distance = 210.0
+size = Vector3(120, 60, 90)
+count = 1400
+concentration = 0.6
+particle_size = Vector2(1, 4.5)
+colors = SubResource("g_cloud_b")
+glow_size = 180.0
+glow_color = Color(0.4, 0.38, 1, 0.7)
+
+[node name="SpaceshipSection" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Stage" type="Node" parent="."]
+script = ExtResource("2")
+star_count = 0
+sky_texture = ExtResource("sky512")
+planet_models = Array[PackedScene]([ExtResource("p_red"), ExtResource("p_green"), ExtResource("p_jupiter"), ExtResource("p_saturn"), ExtResource("p_earth"), ExtResource("p_twilight")])
+planet_model_colors = Array[Color]([Color(1, 0.45, 0.35, 1), Color(0.5, 1, 0.55, 1), Color(1, 0.8, 0.55, 1), Color(1, 0.88, 0.6, 1), Color(0.55, 0.8, 1, 1), Color(0.8, 0.75, 1, 1)])
+
+[node name="Y2kHitFxSwap" type="Node" parent="."]
+script = ExtResource("y2k_swap")
+
+[node name="Y2kLook" type="Node" parent="."]
+script = ExtResource("y2k_look")
+sky_energy = 0.32
+sky_solar_energy = 0.22
+
+[node name="Stars" type="Node" parent="."]
+script = ExtResource("stars")
+clouds = Array[ExtResource("star_cloud")]([SubResource("cloud_dash"), SubResource("cloud_solar")])
+background_colors = SubResource("g_background")

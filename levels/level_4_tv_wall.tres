@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SongChart" format=3]
+
+[ext_resource type="AudioStream" path="res://assets/fantasy/hat.wav" id="1_mkr00"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/kick.wav" id="2_s82gm"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/snare.wav" id="3_pay8u"]
+[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_matbv"]
+[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_kfdwl"]
+[ext_resource type="PackedScene" path="res://scenes/sections/kisa/tv_wall.tscn" id="6_5j17s"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="7_tyvne"]
+
+[sub_resource type="Resource" id="Resource_h24y6"]
+script = ExtResource("5_kfdwl")
+title = "TV WALL"
+scene = ExtResource("6_5j17s")
+beats_per_rev = 8.0
+bars = PackedStringArray("k.......k.......", "k...s...k...s...")
+gauge_events = PackedInt32Array()
+
+[resource]
+script = ExtResource("4_matbv")
+title = "TV WALL"
+stream = ExtResource("7_tyvne")
+bpm = 120.0
+drum_kick = ExtResource("2_s82gm")
+drum_snare = ExtResource("3_pay8u")
+drum_hat = ExtResource("1_mkr00")
+sections = Array[ExtResource("5_kfdwl")]([SubResource("Resource_h24y6")])

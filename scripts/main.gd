@@ -66,6 +66,7 @@ func _ready() -> void:
 	judge.pressed.connect(drum_kit.play)
 	judge.empty_hit.connect(_on_empty_hit)
 	judge.combo_milestone.connect(func(combo: int): hud.show_combo_milestone(combo))
+	judge.combo_milestone.connect(func(_combo: int): hit_meow.spin())  # 连击里程碑：转圈喵（oiia）
 	judge.stats_changed.connect(func(): hud.set_stats(judge.score, judge.combo))
 	gauge.changed.connect(_on_gauge_changed)
 	gauge.event.connect(_on_gauge_event)

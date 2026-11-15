@@ -645,7 +645,7 @@ print('animal preview done')
 
 # ===== the cat band: every part can be swapped for a cat version ("more and more cat") =========
 # Same chords, riff and loop length as everything else, so the game can swap one layer at a time:
-#   C_drums  meow drums: "meow - meow - meow - meow" on the four beats, kitten "mi" on the
+#   C_drums  meow drums: "meow - meow - meow - meow" on the four beats, a short cat "mi" on the
 #            off-beats like a hi-hat, a "meow-meow-meow-meow" roll at the end of bar 4. Added on top.
 #   C_stabs  replaces L0: the upbeat chords sung by three cats in short "ba"-like chops.
 #   C_bass   replaces L2: the octave bass as low meows (a Siamese) with a sine sub under it.
@@ -670,7 +670,9 @@ def layer_cat_drums():
     x = blank()
     short = cats('ID 1899') + cats('ID 1901')
     low_cats = cats('ID 0903')                                        # an adult cat already around F4
-    kitten = cats('ID 0390')
+    # the off-beat "mi" was a 3-week kitten pushed up to F6: too shrill. Now a grown cat already
+    # around D5-F5 (ID 1898), at F5, a little softer and with the top rolled off
+    tick = cats('ID 1898')
     for bar in range(BARS):
         for beat in range(4):
             # "boom" low on 1 and 3, "tak" high on 2 and 4, each from a meow already near that pitch,
@@ -681,8 +683,8 @@ def layer_cat_drums():
                 v = chop(short[beat % len(short)], nm('Bb4'), 0.24, fade=0.04)
             place(x, pan(v.mean(axis=1), 0.0), t2n(bar * BAR + beat * BEAT), 1.0)
             if not (bar == 3 and beat == 3):
-                v = chop(kitten[(bar + beat) % len(kitten)], nm('F6'), 0.07, fade=0.02)
-                place(x, pan(v.mean(axis=1), 0.3 if beat % 2 else -0.3), t2n(bar * BAR + beat * BEAT + 2 * STEP), 0.35)
+                v = lowpass(chop(tick[(bar + beat) % len(tick)], nm('F5'), 0.07, fade=0.02), 5000)
+                place(x, pan(v.mean(axis=1), 0.3 if beat % 2 else -0.3), t2n(bar * BAR + beat * BEAT + 2 * STEP), 0.3)
         if bar == 3:                                                  # the roll into the next round
             for i, st in enumerate((12, 13, 14, 15)):
                 v = chop(short[i % len(short)], nm('Bb4') + [0, 2, 5, 7][i], 0.085)

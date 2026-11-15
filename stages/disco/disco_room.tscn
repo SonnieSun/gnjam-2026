@@ -1,0 +1,126 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="PackedScene" path="res://stages/disco/model/disco_ball.glb" id="ball_model"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/room_shell.glb" id="room_model"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/litter_box.glb" id="box_model"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/star_lamp.glb" id="star_model"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/desk.glb" id="desk"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/crt.glb" id="crt"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/stool.glb" id="stool"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/gamepad_light.glb" id="gamepad"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/wall_star.glb" id="wall_star"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/zigzag_plaque.glb" id="plaque"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/flower_light.glb" id="flower"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/drink_can_pink.glb" id="can_pink"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/drink_can_green.glb" id="can_green"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/potted_plant.glb" id="plant"]
+[ext_resource type="PackedScene" path="res://stages/disco/model/cable.glb" id="cable"]
+
+[node name="DiscoRoom" type="Node3D"]
+
+[node name="Scaled" type="Node3D" parent="."]
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 1.26, 0)
+
+[node name="RoomShell" parent="Scaled" instance=ExtResource("room_model")]
+
+[node name="LitterBox" parent="." instance=ExtResource("box_model")]
+
+[node name="Stars" type="Node3D" parent="Scaled"]
+
+[node name="Star1" type="Node3D" parent="Scaled/Stars"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.7, 6.3, 1.7)
+
+[node name="Star2" type="Node3D" parent="Scaled/Stars"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.6, 5.4, -0.4)
+
+[node name="Star3" type="Node3D" parent="Scaled/Stars"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 5.4, -4.6)
+
+[node name="Star4" type="Node3D" parent="Scaled/Stars"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 6.3, -6.7)
+
+[node name="DiscoBall" type="Node3D" parent="Scaled"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 7, -1.5)
+
+[node name="DriftPath" type="Node3D" parent="."]
+
+[node name="P1" type="Node3D" parent="DriftPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
+
+[node name="P2" type="Node3D" parent="DriftPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.8, 7.2, 3.6)
+
+[node name="P3" type="Node3D" parent="DriftPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 8.4, -8.4)
+
+[node name="P4" type="Node3D" parent="DriftPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10.08, -13.2)
+
+[node name="P5" type="Node3D" parent="DriftPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 7.68, -7.2)
+
+[node name="P6" type="Node3D" parent="DriftPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.2, 6.24, 7.2)
+
+[node name="P7" type="Node3D" parent="DriftPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 7.2, 13.2)
+
+[node name="P8" type="Node3D" parent="DriftPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.2, 12, -7.2)
+
+[node name="BallModel" parent="Scaled/DiscoBall" instance=ExtResource("ball_model")]
+transform = Transform3D(0.31, 0, 0, 0, 0.31, 0, 0, 0, 0.31, 0, -1.99, 0)
+
+[node name="Lamp" parent="Scaled/Stars/Star1" instance=ExtResource("star_model")]
+transform = Transform3D(0.7071068, 0, 0.7071068, 0, 1, 0, -0.7071068, 0, 0.7071068, 0, 0, 0)
+
+[node name="Lamp" parent="Scaled/Stars/Star2" instance=ExtResource("star_model")]
+transform = Transform3D(0.7071068, 0, 0.7071068, 0, 1, 0, -0.7071068, 0, 0.7071068, 0, 0, 0)
+
+[node name="Lamp" parent="Scaled/Stars/Star3" instance=ExtResource("star_model")]
+transform = Transform3D(0.7071068, 0, 0.7071068, 0, 1, 0, -0.7071068, 0, 0.7071068, 0, 0, 0)
+
+[node name="Lamp" parent="Scaled/Stars/Star4" instance=ExtResource("star_model")]
+transform = Transform3D(0.7071068, 0, 0.7071068, 0, 1, 0, -0.7071068, 0, 0.7071068, 0, 0, 0)
+
+[node name="Props" type="Node3D" parent="Scaled"]
+
+[node name="Desk" parent="Scaled/Props" instance=ExtResource("desk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6, -0.9, -6.6)
+
+[node name="CRT" parent="Scaled/Props" instance=ExtResource("crt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.6, 2.2, -6.7)
+
+[node name="PottedPlant" parent="Scaled/Props" instance=ExtResource("plant")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.6, 4.45, -6.25)
+
+[node name="CanPink" parent="Scaled/Props" instance=ExtResource("can_pink")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.9, 2.2, -6.0)
+
+[node name="CanGreen" parent="Scaled/Props" instance=ExtResource("can_green")]
+transform = Transform3D(0.92, 0, 0.38, 0, 1, 0, -0.38, 0, 0.92, 3.55, 2.2, -6.35)
+
+[node name="Stool" parent="Scaled/Props" instance=ExtResource("stool")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.8, -0.9, -4.2)
+
+[node name="WallStar" parent="Scaled/Props" instance=ExtResource("wall_star")]
+transform = Transform3D(0.97, -0.26, 0, 0.26, 0.97, 0, 0, 0, 1, 5.8, 5.4, -8)
+
+[node name="BoxStarL" parent="." instance=ExtResource("wall_star")]
+transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 0.4, -2.1, -0.45, 3.12)
+
+[node name="BoxStarR" parent="." instance=ExtResource("wall_star")]
+transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 0.4, 2.1, -0.45, 3.12)
+
+[node name="ZigzagPlaque" parent="Scaled/Props" instance=ExtResource("plaque")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 3.8, -8)
+
+[node name="GamepadLight" parent="Scaled/Props" instance=ExtResource("gamepad")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -8, 3.6, -5.2)
+
+[node name="FlowerLight" parent="Scaled/Props" instance=ExtResource("flower")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -8, 4.6, 2.5)
+
+[node name="Cable" parent="Scaled/Props" instance=ExtResource("cable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 8, -7.95)
+
