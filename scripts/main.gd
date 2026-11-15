@@ -192,7 +192,7 @@ func _wait_for_start() -> void:
 	if breath_bars > 0.0:
 		# 黑幕落走要 StageCurtain.LEAVE_SECONDS，之后再停 breath_bars 小节
 		var wait := StageCurtain.LEAVE_SECONDS + breath_bars * chart.beats_per_bar * 60.0 / chart.bpm
-		get_tree().create_timer(wait).timeout.connect(_begin_after_wait)
+		get_tree().create_timer(wait).timeout.connect(_begin_on_bar)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -201,8 +201,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_begin_after_wait()
 
 
+## 停够了：等到透出来的那段音乐的下一条小节线再开始数拍子，这样它的鼓能一直响到第一拍，和正式的音乐接上
+func _begin_on_bar() -> void:
+	if not _waiting_to_start:
+		return
+	var left := Music.bridge_seconds_to_bar()
+	if left > 0.0:
+		get_tree().create_timer(left).timeout.connect(_begin_after_wait.bind(true))
+	else:
+		_begin_after_wait(true)
+
+
 ## 喘息结束（玩家按了一下，或者停够了）：正式开始这一关
-func _begin_after_wait() -> void:
+func _begin_after_wait(on_bar := false) -> void:
 	if not _waiting_to_start:
 		return
 	_waiting_to_start = false
@@ -221,7 +232,7 @@ func _begin_after_wait() -> void:
 		_breath_preview.queue_free()
 		_breath_preview = null
 		hud.visible = true
-	Music.bridge_go(lead_in_beats * 60.0 / chart.bpm)  # 数拍子，正好数到第一拍
+	Music.bridge_go(lead_in_beats * 60.0 / chart.bpm, on_bar)  # 数拍子，正好数到第一拍
 	start_from(start_section)
 
 

@@ -80,6 +80,10 @@ var _rain: CPUParticles3D
 var _sparks: CPUParticles3D
 var _stars: CPUParticles3D
 var _time := 0.0
+## 规矩：玩家没在操作的时候镜头不乱动。最后一次打中之后过这么多秒，镜头的左右摇和风暴里的抖动就收掉
+@export var idle_hold_seconds := 1.2
+var _idle := 99.0
+var _active := 0.0
 var _shade_tex: GradientTexture2D
 var _ring_color0 := Color.WHITE
 var _judge_color0 := Color.WHITE
@@ -152,6 +156,7 @@ func judge(note: NoteData, result: int) -> void:
 	super(note, result)
 	if result != NoteData.Result.MISS:
 		_boost = 1.0
+		_idle = 0.0
 
 
 func update(beat: float, notes: Array[NoteData], approach_beats: float) -> void:
@@ -168,6 +173,8 @@ func update(beat: float, notes: Array[NoteData], approach_beats: float) -> void:
 		return
 	var dt := get_process_delta_time()
 	_time += dt
+	_idle += dt
+	_active = move_toward(_active, 1.0 if _idle < idle_hold_seconds else 0.0, dt * (4.0 if _idle < idle_hold_seconds else 1.5))
 	_boost = maxf(_boost - dt * 2.5, 0.0)
 	_col_t = minf(_col_t + dt / maxf(phase_fade_seconds[sky_phase], 0.01), 1.0)
 	_white = maxf(_white - dt * 0.9, 0.0)
@@ -332,7 +339,7 @@ func _update_storm(beat: float, dt: float) -> void:
 	if beat >= _next_bolt:
 		_next_bolt = ceilf(beat) + maxf(roundf(randf_range(0.5, 1.5) * lightning_every_beats), 1.0) - 0.001
 		_bolt = 1.0
-		_shake = maxf(_shake, storm_shake * 3.0)
+		_shake = maxf(_shake, storm_shake * 3.0 * _active)
 		# 一道锯齿形的闪电，从屏幕上面劈到中下
 		var size := get_viewport_rect().size
 		var x := randf_range(-0.42, 0.42) * size.x
@@ -344,7 +351,7 @@ func _update_storm(beat: float, dt: float) -> void:
 			_bolt_points.append(Vector2(x, y))
 			x += randf_range(-60.0, 60.0)
 			y += randf_range(40.0, 90.0)
-	_shake = maxf(_shake, storm_shake)
+	_shake = maxf(_shake, storm_shake * _active)
 
 
 ## 光圈的材质：暗的时候是发光的（和吸猫舞台一样），solid 往 1 走就变成不透明的实心色，亮背景上也看得清
@@ -383,7 +390,7 @@ func _update_cat(beat: float, dt: float) -> void:
 func _apply_camera(beat: float, dt: float) -> void:
 	_shake = maxf(_shake - dt * 2.0, 0.0)
 	var jitter := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), 0.0) * _shake
-	var sway := Vector3(sin(beat * PI * 0.25) * camera_sway, 0.0, 0.0)
+	var sway := Vector3(sin(beat * PI * 0.25) * camera_sway * _active, 0.0, 0.0)
 	var r := smoothstep(0.0, 1.0, _reveal)
 	var c := smoothstep(0.0, 1.0, _closeup)
 	var pos := camera_position.lerp(reveal_position, r).lerp(closeup_position, c)

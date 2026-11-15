@@ -96,8 +96,11 @@ var _bridge_fade: Tween
 var _tease: AudioStreamPlayer
 var _tease_fade: Tween
 ## 透出来多响（dB）、用几秒淡进来
-const TEASE_DB := -11.0
-const TEASE_FADE := 2.5
+const TEASE_DB := -4.0
+const TEASE_FADE := 0.8
+## 等待的循环多响（dB）：刚打完时 / 下一关的声音进来之后
+const BRIDGE_DB := -2.0
+const BRIDGE_UNDER_DB := -6.0
 
 
 func _ready() -> void:
@@ -448,45 +451,70 @@ func bridge_out() -> void:
 		_bridge_fade.kill()
 	if Time.get_ticks_msec() - _whoosh_ms > 5000:      # 关卡自己刚放过"飞走"（猫飞出屏幕）就不再放一遍
 		play_sfx("sky_whoosh_up", -3.0)
+	play_sfx("level_clear", -4.0)  # 过关的一声，转场不至于一下子空掉
+	play_sfx("crash", -8.0)
 	_tease_stop(0.0)
 	_bridge.stream = load(BRIDGE_LOOP)
-	_bridge.volume_db = -5.0
+	_bridge.volume_db = BRIDGE_DB
 	_bridge.play()
 
 
-## 等待的时候让下一关的声音透出来一点：下一关开头那条和声（没有就低音、再没有就鼓）小声地循环，
-## 和等待循环的小节对齐，慢慢淡进来；等待循环自己让开一点。这样每个接口听起来是通往不同的地方。
+## 喘息的时候下一关的声音已经在响了：下一关开头的鼓，加上开头那条和声（没有就低音），循环着放，
+## 和等待循环的小节对齐，很快淡进来；等待循环自己让开一点。这样转场不安静，每个接口听起来也是通往不同的地方。
 ## 要在下一关的音乐配置读进来之后调（main.gd 的 _wait_for_start）。
 func bridge_tease() -> void:
 	if not bridge_active() or _bridge.stream.resource_path != BRIDGE_LOOP:
 		return
-	var file := ""
-	for lane_id in ["bed", "bass", "beat"]:
-		var clip := clip_at(0, lane_id, 0.0)
-		for lane in data.get("lanes", []):
-			if lane.id != lane_id:
-				continue
-			for c in lane.clips:
-				if c.id == clip and str(c.get("file", "")) != "":
-					file = c.file
-		if file != "":
-			break
-	if file == "" or not ResourceLoader.exists(file):
+	var files: Array[String] = []
+	for group in [["beat"], ["bed", "bass"]]:
+		for lane_id: String in group:
+			var file := _clip_file(lane_id, clip_at(0, lane_id, 0.0))
+			if file != "" and ResourceLoader.exists(file):
+				files.append(file)
+				break
+	if files.is_empty():
 		return
-	var wav := (load(file) as AudioStream).duplicate()
-	if wav is AudioStreamWAV:
-		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		wav.loop_begin = 0
-		wav.loop_end = int(wav.get_length() * wav.mix_rate)
-	var bar := 240.0 / bpm()
-	_tease.stream = wav
+	var both := AudioStreamSynchronized.new()
+	both.stream_count = files.size()
+	for i in files.size():
+		var wav := (load(files[i]) as AudioStream).duplicate()
+		if wav is AudioStreamWAV:
+			wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			wav.loop_begin = 0
+			wav.loop_end = int(wav.get_length() * wav.mix_rate)
+		both.set_sync_stream(i, wav)
+	_tease.stream = both
 	_tease.volume_db = -40.0
-	_tease.play(fmod(_bridge.get_playback_position(), bar))
+	var seek := fmod(_bridge.get_playback_position(), 240.0 / bpm())
+	_tease.play(seek)
+	_tease_t0 = Time.get_ticks_usec() - int(seek * 1000000.0)
 	if _tease_fade:
 		_tease_fade.kill()
 	_tease_fade = create_tween().set_parallel()
 	_tease_fade.tween_property(_tease, "volume_db", TEASE_DB, TEASE_FADE)
-	_tease_fade.tween_property(_bridge, "volume_db", -9.0, TEASE_FADE)
+	_tease_fade.tween_property(_bridge, "volume_db", BRIDGE_UNDER_DB, TEASE_FADE)
+
+
+func _clip_file(lane_id: String, clip_id: String) -> String:
+	for lane in data.get("lanes", []):
+		if lane.id == lane_id:
+			for c in lane.clips:
+				if c.id == clip_id:
+					return str(c.get("file", ""))
+	return ""
+
+
+## 离透出来的那段音乐的下一条小节线还有几秒（没在放就是 0）。在小节线上开始数拍子，
+## 透出来的鼓就能一直响到下一关的第一拍，和正式的音乐接上，中间不断。
+var _tease_t0 := 0
+
+func bridge_seconds_to_bar() -> float:
+	if not _tease.playing:
+		return 0.0
+	var bar := 240.0 / bpm()
+	var pos := (Time.get_ticks_usec() - _tease_t0) / 1000000.0
+	var left := bar - fmod(pos, bar)
+	return 0.0 if left > bar - 0.02 else left
 
 
 func _tease_stop(seconds: float) -> void:
@@ -508,11 +536,22 @@ func bridge_active() -> bool:
 
 
 ## 下一关正式开始（预备拍从现在起，seconds 秒后是第一拍）：数拍子，等待的循环淡出
-func bridge_go(seconds := 1.5) -> void:
+## on_bar = 是在透出来的那段音乐的小节线上开始的：它就照常响着，最后一拍才收，正好交给正式的音乐
+func bridge_go(seconds := 1.5, on_bar := false) -> void:
 	if not bridge_active():
 		return
-	play_sfx("count_in", -4.0, seconds)
-	_tease_stop(seconds)
+	play_sfx("count_in", -1.0, seconds)
+	play_sfx("riser_1b", -7.0, seconds)  # 一声上扬的音效，正好在第一拍放完
+	if on_bar and _tease.playing:
+		if _tease_fade:
+			_tease_fade.kill()
+		var last := 60.0 / bpm()
+		_tease_fade = create_tween()
+		_tease_fade.tween_interval(maxf(seconds - last, 0.0))
+		_tease_fade.tween_property(_tease, "volume_db", -40.0, last * 0.9)
+		_tease_fade.tween_callback(_tease.stop)
+	else:
+		_tease_stop(minf(seconds, 0.3))
 	if _bridge_fade:
 		_bridge_fade.kill()
 	_bridge_fade = create_tween()

@@ -92,6 +92,10 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 @export_range(0.0, 1.0) var punk_every_beat_at := 0.7
 ## 打中、长按按完的那一下镜头猛地推近多少（占距离的比例），很快弹回去；进展越靠后推得越狠
 @export_range(0.0, 0.6) var punk_hit_zoom := 0.14
+## 规矩：玩家没在操作的时候镜头不乱动。最后一次按键 / 按住之后过了 idle_hold_seconds 秒，镜头用 idle_settle_seconds 秒
+## 回到正面停住（角度、远近、每拍推的那一下都停），玩家再按才重新动起来。0 = 不管，一直按拍子动
+@export var idle_hold_seconds := 0.8
+@export var idle_settle_seconds := 0.6
 ## 镜头不管怎么动，洗衣机都基本在画面中间：镜头一直对着洗衣机（舱门）和原来那一档的取景点之间的一点，
 ## 推近的时候完全对准洗衣机。1 = 永远正对洗衣机，0 = 只按原来的取景（拉远后洗衣机在画面中下方）
 @export_range(0.0, 1.0) var punk_keep_centered := 0.6
@@ -155,6 +159,8 @@ var _cat_home := Vector3.ZERO
 var _flying := false
 var _landed := false
 var _hit_punch := 0.0
+var _idle := 99.0  # 玩家多久没操作了（秒）
+var _active := 0.0  # 镜头现在动几成（0 = 停在正面）
 
 ## 猫开始往洗衣机里飞（seconds 秒后落进去）/ 落进去了
 signal cat_flying(seconds: float)
@@ -295,6 +301,7 @@ func progress() -> float:
 func tap() -> void:
 	_head_click = head_click_duration
 	_hit_punch = 1.0
+	_idle = 0.0
 
 
 ## 长按开头打中，开始按住
@@ -395,6 +402,9 @@ func update(beat: float, dt: float) -> void:
 	_update_cat(dt)
 	_update_fly_in(beat, dt)
 	_hit_punch = maxf(_hit_punch - dt * 6.0, 0.0)
+	_idle = 0.0 if _hold_progress >= 0.0 else _idle + dt
+	var want := 1.0 if idle_hold_seconds <= 0.0 or _idle < idle_hold_seconds else 0.0
+	_active = move_toward(_active, want, dt / maxf(idle_settle_seconds if want < _active else 0.15, 0.01))
 	_update_shake()
 	_beat = beat
 	_update_camera(dt)
@@ -533,9 +543,13 @@ func _beat_pose() -> Dictionary:
 	t = 1.0 - pow(1.0 - t, 3.0)
 	var punch := pow(1.0 - fposmod(_beat, 1.0), 4.0) * beat_zoom_punch
 	punch += _hit_punch * punk_hit_zoom * (0.4 + 0.6 * p) if punk_camera else 0.0
+	# 玩家没在操作：按 _active 收回正面（平滑的），每拍推的那一下也收掉；打中的那一下照常
+	var k := smoothstep(0.0, 1.0, _active)
+	punch = pow(1.0 - fposmod(_beat, 1.0), 4.0) * beat_zoom_punch * k
+	punch += _hit_punch * punk_hit_zoom * (0.4 + 0.6 * p) if punk_camera else 0.0
 	return {
-		"yaw": lerpf(a.yaw, b.yaw, t), "pitch": lerpf(a.pitch, b.pitch, t), "roll": lerpf(a.roll, b.roll, t),
-		"scale": lerpf(a.scale, b.scale, t) * (1.0 - punch),
+		"yaw": lerpf(a.yaw, b.yaw, t) * k, "pitch": lerpf(a.pitch, b.pitch, t) * k, "roll": lerpf(a.roll, b.roll, t) * k,
+		"scale": lerpf(1.0, lerpf(a.scale, b.scale, t), k) * (1.0 - punch),
 	}
 
 
