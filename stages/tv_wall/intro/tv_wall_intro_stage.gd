@@ -35,9 +35,9 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 ## 舱门洞口中心和半径（洗衣机自己的坐标，照原洗衣机关的数值）
 @export var opening_center := Vector3(0.004025, 0.02949, 0.2456)
 @export var opening_radius := 0.145
-## 对齐 v8 门框灯带的几何中心、中线半径和前表面。
-@export var judgement_center := Vector3(0.0063975, 0.0296535, 0.312)
-@export var judgement_radius := 0.176728
+## 判定圈画在门框上
+@export var judgement_center := Vector3(0.004025, 0.02949, 0.2495)
+@export var judgement_radius := 0.176
 
 @export_group("猫脸")
 ## 猫脸（按宽和高里较短的一边算）是洞口直径的几倍；>= 1 时脸填满舱门，多出来的边角被机身挡住
@@ -79,6 +79,29 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 @export var beat_zoom_range := Vector2(0.85, 1.1)
 ## 每一拍往里推多少（0.05 = 推近 5%）
 @export_range(0.0, 0.3) var beat_zoom_punch := 0.05
+
+@export_group("朋克运镜")
+## 跟拍运镜随着进展越来越疯（进展 = 按完了几次长按 / 一共要按几次）。关掉 = 一直是上面"跟拍运镜"的强度
+@export var punk_camera := true
+## 到最后，随机角度的幅度乘到这么多倍
+@export var punk_angle_scale := 2.4
+## 到最后，远近在这个范围里一近一远地跳（镜头距离的倍数）
+@export var punk_zoom_range := Vector2(0.5, 1.5)
+## 进展过了这两个比例，换镜头从每小节一次变成每 2 拍一次、每拍一次；换的时候也越来越"硬"（几乎是切）
+@export_range(0.0, 1.0) var punk_half_bar_at := 0.3
+@export_range(0.0, 1.0) var punk_every_beat_at := 0.7
+## 打中、长按按完的那一下镜头猛地推近多少（占距离的比例），很快弹回去；进展越靠后推得越狠
+@export_range(0.0, 0.6) var punk_hit_zoom := 0.22
+
+@export_group("开场：猫飞进洗衣机")
+## 开场预备拍里，猫头从画面上方转着飞进舱门，正好在第一拍落进去（几拍；0 = 不放，猫一开始就在里面）
+@export var fly_in_beats := 3.0
+## 从哪里飞来（洗衣机坐标，画面上方靠近镜头）、中途经过哪里
+@export var fly_in_from := Vector3(-0.35, 0.75, 1.15)
+@export var fly_in_via := Vector3(0.3, 0.45, 0.8)
+## 飞的时候多大（落进去才变回填满舱门）、转多快（度 / 秒）
+@export var fly_in_scale := 0.6
+@export var fly_in_spin_degrees := 900.0
 
 @export_group("发电")
 ## 发电时画面震动最大多少像素
@@ -125,6 +148,14 @@ var _finale_to := INF
 var _finale_cam: Transform3D
 var _center_tv := 0
 var _machine_home := Vector3.ZERO
+var _cat_home := Vector3.ZERO
+var _flying := false
+var _landed := false
+var _hit_punch := 0.0
+
+## 猫开始往洗衣机里飞（seconds 秒后落进去）/ 落进去了
+signal cat_flying(seconds: float)
+signal cat_landed
 
 
 func setup(host: Node2D) -> void:
@@ -191,7 +222,11 @@ func _build_env() -> void:
 
 func _build_machine() -> void:
 	_machine = MACHINE.instantiate() as Node3D
-	# 保留 v8 的三组表面材质；整网格覆盖会抹掉灯带颜色动画。
+	# 洗衣机场景里材质是挂在表面上的，挪到 material_override 上，漫画滤镜才认得
+	for mi in _machine.find_children("*", "MeshInstance3D", true, false):
+		var m := (mi as MeshInstance3D).get_surface_override_material(0)
+		if m:
+			(mi as MeshInstance3D).material_override = m
 	world.add_child(_machine)
 	# 猫脸：外面一层 _cat 放在舱门正中央、负责原地旋转；里面一层把模型摆正、缩到填满舱门
 	_cat = Node3D.new()
@@ -216,6 +251,7 @@ func _build_machine() -> void:
 	holder.position = -(holder.transform.basis * box.get_center())
 	# 整张脸都在机身里面：脸最前面比洞口平面再往里一点
 	_cat.position = Vector3(opening_center.x, opening_center.y, opening_center.z - head_inset - box.size.z * s * 0.5)
+	_cat_home = _cat.position
 	# 舱门里面的灯，不然脸在机身里是黑的
 	var inner := OmniLight3D.new()
 	inner.position = Vector3(opening_center.x, opening_center.y, opening_center.z + 0.06)
@@ -246,9 +282,16 @@ func _build_lens() -> void:
 
 # ---------------- 给关卡脚本的 ----------------
 
+## 进展（0~1）：按完了几次长按 / 一共要按几次（拉远镜头的几次 + 把电视全点亮的几次）
+func progress() -> float:
+	var total := zoom_holds + ceili(float(grid.count()) / maxi(tvs_per_hold, 1))
+	return clampf(float(holds_done) / maxi(total, 1), 0.0, 1.0)
+
+
 ## 单点打中：猫脸转一小段
 func tap() -> void:
 	_head_click = head_click_duration
+	_hit_punch = 1.0
 
 
 ## 长按开头打中，开始按住
@@ -280,6 +323,7 @@ func hold_end(success: bool) -> Array[int]:
 		return lit
 	if not success:
 		return lit
+	_hit_punch = 1.0
 	holds_done += 1
 	if holds_done <= zoom_holds:
 		return lit
@@ -346,6 +390,8 @@ func update(beat: float, dt: float) -> void:
 	_update_lights(dt)
 	grid.update(dt, _beat_pulse)
 	_update_cat(dt)
+	_update_fly_in(beat, dt)
+	_hit_punch = maxf(_hit_punch - dt * 6.0, 0.0)
 	_update_shake()
 	_beat = beat
 	_update_camera(dt)
@@ -377,12 +423,45 @@ func _update_cat(dt: float) -> void:
 	_cat.rotation = Vector3(0.0, 0.0, _head_angle)
 
 
+## 开场：猫头从画面上方转着飞进舱门（预备拍里，第一拍落进去），落进去洗衣机震一下
+func _update_fly_in(beat: float, dt: float) -> void:
+	if _landed or fly_in_beats <= 0.0:
+		return
+	if not Conductor.playing:
+		_cat.visible = false  # 还没开始（两关之间的喘息）：洗衣机是空的，猫等开始了才飞进来
+		return
+	var t := (beat + fly_in_beats) / fly_in_beats
+	if t >= 1.0:
+		_landed = true
+		_cat.position = _cat_home
+		_cat.scale = Vector3.ONE
+		if _flying:  # 真的飞过才算落地（从中间跳进这一关时不放）
+			_release_shake = 1.0
+			_release_age = 0.0
+			_hit_punch = 1.0
+			cat_landed.emit()
+		return
+	if not _flying and t > 0.0:
+		_flying = true
+		cat_flying.emit((1.0 - t) * fly_in_beats * Conductor.sec_per_beat())
+	t = clampf(t, 0.0, 1.0)
+	var e := t * t  # 越飞越快，砸进去
+	var a := fly_in_from.lerp(fly_in_via, e)
+	var b := fly_in_via.lerp(_cat_home, e)
+	_cat.position = a.lerp(b, e)
+	_cat.scale = Vector3.ONE * fly_in_scale
+	_cat.rotation.z += deg_to_rad(fly_in_spin_degrees) * dt
+	_cat.visible = t > 0.0
+
+
 ## 发电震动的强弱：只有亮电视阶段的长按才震。起按就有 70%，很快升到最大；松手后 0.2 秒收掉
 func _shake_envelope() -> float:
 	if _hold_progress >= 0.0:
 		if zooming_phase():
 			return 0.0
 		return 0.7 + 0.3 * smoothstep(0.0, 0.25, _hold_progress)
+	if not _landed:
+		return 0.0
 	return _release_shake * (1.0 - smoothstep(0.0, 0.2, _release_age))
 
 
@@ -431,12 +510,22 @@ func _place_camera(zoom: float) -> void:
 ## 现在的跟拍姿势：从上一小节的随机姿势很快滑到这一小节的（先快后慢），再叠上每拍往里推一下
 func _beat_pose() -> Dictionary:
 	var step := maxf(beat_change_beats, 0.5)
+	var ease_beats := beat_ease_beats
+	var p := progress() if punk_camera else 0.0
+	if punk_camera:
+		# 朋克：越往后换得越勤、越硬
+		if p >= punk_every_beat_at:
+			step = 1.0
+		elif p >= punk_half_bar_at:
+			step = minf(step, 2.0)
+		ease_beats = lerpf(beat_ease_beats, 0.12, p)
 	var bar := floori(_beat / step)
 	var a := _bar_pose(bar - 1)
 	var b := _bar_pose(bar)
-	var t := clampf((_beat - bar * step) / maxf(beat_ease_beats, 0.01), 0.0, 1.0)
+	var t := clampf((_beat - bar * step) / maxf(ease_beats, 0.01), 0.0, 1.0)
 	t = 1.0 - pow(1.0 - t, 3.0)
 	var punch := pow(1.0 - fposmod(_beat, 1.0), 4.0) * beat_zoom_punch
+	punch += _hit_punch * punk_hit_zoom * (0.4 + 0.6 * p) if punk_camera else 0.0
 	return {
 		"yaw": lerpf(a.yaw, b.yaw, t), "pitch": lerpf(a.pitch, b.pitch, t), "roll": lerpf(a.roll, b.roll, t),
 		"scale": lerpf(a.scale, b.scale, t) * (1.0 - punch),
@@ -449,11 +538,20 @@ func _bar_pose(i: int) -> Dictionary:
 		return {"yaw": 0.0, "pitch": 0.0, "roll": 0.0, "scale": 1.0}
 	var rng := RandomNumberGenerator.new()
 	rng.seed = i * 9973 + 17
+	var p := progress() if punk_camera else 0.0
+	var k := lerpf(1.0, punk_angle_scale, p)
+	var near := lerpf(beat_zoom_range.x, punk_zoom_range.x, p)
+	var far := lerpf(beat_zoom_range.y, punk_zoom_range.y, p)
+	var zoom := rng.randf_range(near, far)
+	if p > 0.15:
+		# 一近一远地跳：单数拍在近的那一半里挑，双数拍在远的那一半里挑
+		var mid := (near + far) * 0.5
+		zoom = rng.randf_range(near, lerpf(near, mid, 0.6)) if i % 2 == 0 else rng.randf_range(lerpf(far, mid, 0.6), far)
 	return {
-		"yaw": rng.randf_range(-beat_yaw_degrees, beat_yaw_degrees),
-		"pitch": rng.randf_range(-beat_pitch_degrees, beat_pitch_degrees),
-		"roll": rng.randf_range(-beat_roll_degrees, beat_roll_degrees),
-		"scale": rng.randf_range(beat_zoom_range.x, beat_zoom_range.y),
+		"yaw": rng.randf_range(-beat_yaw_degrees, beat_yaw_degrees) * k,
+		"pitch": rng.randf_range(-beat_pitch_degrees, beat_pitch_degrees) * k,
+		"roll": rng.randf_range(-beat_roll_degrees, beat_roll_degrees) * k,
+		"scale": zoom,
 	}
 
 

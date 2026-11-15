@@ -7,8 +7,12 @@
   {
    "id": "beat",
    "name": "节奏",
-   "gain_db": 0,
+   "gain_db": 0.0,
    "clips": [
+    {
+     "id": "half",
+     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L1_groove_4b.wav"
+    },
     {
      "id": "groove",
      "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav"
@@ -18,78 +22,134 @@
   {
    "id": "bass",
    "name": "低音",
-   "gain_db": 0,
+   "gain_db": 0.0,
    "clips": [
     {
-     "id": "bass",
-     "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
+     "id": "ybf_bass",
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L2_bass_8b.wav"
     },
     {
-     "id": "cat_bass",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_bass_4b.wav"
+     "id": "ybfb_bass",
+     "file": "res://assets/audio/music/classics/ybf_b/ybf_b_L2_bass_8b.wav"
+    },
+    {
+     "id": "mk_bass",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L2_bass_4b.wav"
+    },
+    {
+     "id": "cc_bass",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav"
     }
    ]
   },
   {
    "id": "bed",
    "name": "和声",
-   "gain_db": 0,
+   "gain_db": 0.0,
    "clips": [
     {
-     "id": "chip_keys",
-     "file": "res://assets/audio/music/scene1/style_chip/s1_chip_L0_keys_4b.wav"
+     "id": "ybf_keys",
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_fb_L0_keys_8b.wav"
     },
     {
-     "id": "cat_stabs",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav"
+     "id": "ybfb_keys",
+     "file": "res://assets/audio/music/classics/ybf_b/ybf_b_fb_L0_keys_8b.wav"
+    },
+    {
+     "id": "mk_keys",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L0_keys_4b.wav"
+    },
+    {
+     "id": "cc_keys",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav"
     }
    ]
   },
   {
    "id": "lead",
    "name": "旋律",
-   "gain_db": 0,
+   "gain_db": 0.0,
    "clips": [
     {
-     "id": "chip_hook",
-     "file": "res://assets/audio/music/scene1/style_chip/s1_chip_L3_hook_4b.wav"
+     "id": "ybf_pluck",
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_pluck_8b.wav"
     },
     {
-     "id": "cat_lead",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
+     "id": "ybf_cats",
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_flow_8b.wav"
+    },
+    {
+     "id": "ybfb_cats",
+     "file": "res://assets/audio/music/classics/ybf_b/ybf_b_L3_cat_flow_8b.wav"
+    },
+    {
+     "id": "mk_pluck",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_pluck_4b.wav"
+    },
+    {
+     "id": "mk_cats",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_flow_4b.wav"
+    },
+    {
+     "id": "cc_cats",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_flow_8b.wav"
     }
    ]
   },
   {
    "id": "peak",
    "name": "高潮",
-   "gain_db": 0,
+   "gain_db": 0.0,
    "clips": [
     {
-     "id": "chip_peak",
-     "file": "res://assets/audio/music/scene1/style_chip/s1_chip_L4_peak_4b.wav"
+     "id": "ybf_peak",
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_fb_L4_peak_8b.wav"
+    },
+    {
+     "id": "mk_peak",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L4_peak_4b.wav"
+    },
+    {
+     "id": "cc_peak",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav"
     }
    ]
   },
   {
    "id": "meow",
    "name": "猫鼓",
-   "gain_db": 0,
+   "gain_db": 0.0,
    "clips": [
     {
-     "id": "cat_drums",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+     "id": "ybf_cat_drums",
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_C_drums_8b.wav"
+    },
+    {
+     "id": "mk_cat_drums",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_C_drums_4b.wav"
+    },
+    {
+     "id": "cc_cat_drums",
+     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav"
     }
    ]
   },
   {
    "id": "kiai",
    "name": "KIAI 鬼畜",
-   "gain_db": -2,
+   "gain_db": -2.0,
    "clips": [
     {
-     "id": "cat_kichiku",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_kichiku_4b.wav"
+     "id": "ybf_kichiku",
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_kichiku_8b.wav"
+    },
+    {
+     "id": "mk_kichiku",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
+    },
+    {
+     "id": "cc_kichiku",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav"
     }
    ]
   },
@@ -99,8 +159,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "hit_riff",
-     "pattern": "res://levels/music/patterns/kichiku_riff.json",
+     "id": "ybf_by_hit",
+     "pattern": "res://levels/music/patterns/your_best_friend.json",
      "by_hit": true
     }
    ]
@@ -123,22 +183,94 @@
    "cues": {
     "beat": [
      [
-      0,
+      0.0,
+      "half"
+     ],
+     [
+      0.3,
       "groove"
      ]
     ],
     "bass": [
      [
-      0,
-      "bass"
+      0.12,
+      "ybf_bass"
+     ],
+     [
+      0.7,
+      "ybfb_bass"
      ]
     ],
     "bed": [
      [
-      0,
-      "chip_keys"
+      0.0,
+      "ybf_keys"
+     ],
+     [
+      0.7,
+      "ybfb_keys"
+     ]
+    ],
+    "lead": [
+     [
+      0.12,
+      "ybf_pluck"
+     ],
+     [
+      0.5,
+      "ybf_cats"
+     ],
+     [
+      0.7,
+      "ybfb_cats"
+     ]
+    ],
+    "peak": [
+     [
+      0.5,
+      "ybf_peak"
+     ]
+    ],
+    "meow": [
+     [
+      0.3,
+      "ybf_cat_drums"
+     ]
+    ],
+    "kiai": [
+     [
+      0.88,
+      "ybf_kichiku"
+     ]
+    ],
+    "hit": [
+     [
+      0.0,
+      "ybf_by_hit"
+     ],
+     [
+      0.3,
+      ""
      ]
     ]
+   },
+   "tiers": [
+    0.12,
+    0.3,
+    0.5,
+    0.7,
+    0.88
+   ],
+   "transition_tiers": [
+    3
+   ],
+   "fever": [
+    0.88,
+    1.0
+   ],
+   "own": {
+    "kiai": "ybf_kichiku",
+    "hit": "ybf_by_hit"
    }
   },
   {
@@ -146,54 +278,46 @@
    "cues": {
     "beat": [
      [
-      0,
+      0.0,
+      "half"
+     ],
+     [
+      0.3,
       "groove"
      ]
     ],
     "bass": [
      [
       0.0,
-      "bass"
-     ],
-     [
-      0.7,
-      "cat_bass"
+      "mk_bass"
      ]
     ],
     "bed": [
      [
-      0,
-      "chip_keys"
+      0.0,
+      "mk_keys"
      ]
     ],
     "lead": [
      [
-      0.25,
-      "chip_hook"
-     ],
-     [
-      0.5,
-      "cat_lead"
-     ]
-    ],
-    "peak": [
-     [
-      0.75,
-      "chip_peak"
+      0.3,
+      "mk_pluck"
      ]
     ],
     "meow": [
      [
-      0.25,
-      "cat_drums"
-     ]
-    ],
-    "kiai": [
-     [
-      0.9,
-      "cat_kichiku"
+      0.6,
+      "mk_cat_drums"
      ]
     ]
+   },
+   "tiers": [
+    0.3,
+    0.6
+   ],
+   "own": {
+    "kiai": "mk_kichiku",
+    "hit": ""
    }
   },
   {
@@ -201,50 +325,52 @@
    "cues": {
     "beat": [
      [
-      0,
+      0.0,
       "groove"
      ]
     ],
     "bass": [
      [
-      0.15,
-      "bass"
+      0.0,
+      "mk_bass"
      ]
     ],
     "bed": [
      [
-      0,
-      "chip_keys"
+      0.0,
+      "mk_keys"
      ]
     ],
     "lead": [
      [
-      0.25,
-      "chip_hook"
+      0.0,
+      "mk_pluck"
      ],
      [
-      0.5,
-      "cat_lead"
+      0.4,
+      "mk_cats"
      ]
     ],
     "peak": [
      [
       0.75,
-      "chip_peak"
+      "mk_peak"
      ]
     ],
     "meow": [
      [
-      0.25,
-      "cat_drums"
-     ]
-    ],
-    "kiai": [
-     [
-      0.9,
-      "cat_kichiku"
+      0.0,
+      "mk_cat_drums"
      ]
     ]
+   },
+   "tiers": [
+    0.4,
+    0.75
+   ],
+   "own": {
+    "kiai": "mk_kichiku",
+    "hit": ""
    }
   },
   {
@@ -252,78 +378,59 @@
    "cues": {
     "beat": [
      [
-      0,
+      0.0,
       "groove"
      ]
     ],
     "bass": [
      [
-      0.15,
-      "bass"
+      0.0,
+      "cc_bass"
      ]
     ],
     "bed": [
      [
-      0,
-      "chip_keys"
-     ],
-     [
-      0.7,
-      "cat_stabs"
+      0.0,
+      "cc_keys"
      ]
     ],
     "lead": [
      [
-      0.2,
-      "chip_hook"
-     ],
-     [
-      0.7,
-      "cat_lead"
+      0.0,
+      "cc_cats"
      ]
     ],
     "peak": [
      [
-      0.45,
-      "chip_peak"
+      0.35,
+      "cc_peak"
      ]
     ],
     "meow": [
      [
-      0.45,
-      "cat_drums"
+      0.0,
+      "cc_cat_drums"
      ]
     ],
     "kiai": [
      [
-      0.9,
-      "cat_kichiku"
-     ]
-    ],
-    "hit": [
-     [
-      0.2,
-      "hit_riff"
-     ],
-     [
       0.7,
-      ""
+      "cc_kichiku"
      ]
     ]
    },
    "tiers": [
-    0.2,
-    0.45,
-    0.7,
-    0.9
-   ],
-   "transition_tiers": [
-    3
+    0.35,
+    0.7
    ],
    "fever": [
-    0.9,
+    0.7,
     1.0
-   ]
+   ],
+   "own": {
+    "kiai": "cc_kichiku",
+    "hit": ""
+   }
   }
  ]
 }

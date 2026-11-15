@@ -48,29 +48,21 @@ var _finale := false
 var _fill_at := INF
 var _next_view: SubViewport
 var _hold_ok_age := INF  # 长按刚按完过了几秒（INF = 没在闪）
-var _hit_ring_color := Color.WHITE
-
-## 白色形状预览：只覆盖本关节奏特效的颜色，不改原始音符数据。
-func sound_color(_note: NoteData) -> Color:
-	return Color.WHITE
 
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
-		return
-	# 单独 F6 运行小关时，先加载带谱面、判定、HUD 的完整测试场景。
-	if get_parent() == get_tree().root:
-		_open_standalone_preview.call_deferred()
 		return
 	_stage = get_node_or_null("Stage") as TvWallIntroStage
 	if _stage == null:
 		_stage = TvWallIntroStage.new()
 		add_child(_stage)
 	_stage.setup(self)
-
-
-func _open_standalone_preview() -> void:
-	get_tree().change_scene_to_file("res://scenes/sections/kisa/washing_preview.tscn")
+	# 开场猫飞进洗衣机：一声往下掉的喵正好掉到落进去那一下，落进去"咚"一声
+	_stage.cat_flying.connect(func(seconds: float) -> void: Music.play_sfx("catness_down", -5.0, seconds))
+	_stage.cat_landed.connect(func() -> void:
+		Music.play_sfx("kick", -2.0)
+		Music.play_sfx("spin_meow_a", -6.0))
 
 
 func hit_position(_note: NoteData = null) -> Vector2:
@@ -93,10 +85,14 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 	if _holding:
 		_update_hold()
 	_stage.update(song_beat(), dt)
+	# 这一段的积累条不涨：音乐按"按完了几次长按"走（见 Music.override_progress）
+	if active:
+		Music.override_progress(1.0 if _finale else _stage.progress())
 	if song_beat() >= _fill_at:
 		_fill_gauge_now()
 	for tv in _stage.take_just_lit():
 		_bolts.append({"to": tv, "age": 0.0})
+		Music.play_sfx("laser_zap", -12.0)  # 电视亮起来：滋一声
 	for i in range(_bolts.size() - 1, -1, -1):
 		_bolts[i].age += dt
 		if _bolts[i].age > 0.35:
@@ -118,7 +114,6 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		if is_hold:
 			_failed[note] = true
 		return
-	_hit_ring_color = sound_color(note)
 	if is_hold:
 		var j := main_judge()
 		if j == null:
@@ -126,6 +121,8 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 			return
 		_holding = note
 		_stage.hold_begin()
+		# 按住 = 洗衣机转起来：一声上扬的音效，正好在该松手的时候放完
+		Music.play_sfx("riser_1b", -11.0, hold_beats(note) * Conductor.sec_per_beat())
 		j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
 	else:
 		_stage.tap()
@@ -165,9 +162,6 @@ func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:
 
 
 func _finish_hold(success: bool) -> void:
-	if success:
-		_hit_ring_color = sound_color(_holding)
-		hit_age = 0.0
 	if not success:
 		_failed[_holding] = true
 		_flash = 1.0
@@ -188,7 +182,7 @@ func _draw() -> void:
 		return
 	var size := screen_size()
 	if Engine.is_editor_hint():
-		draw_string(ThemeDB.fallback_font, Vector2(-300.0, 0.0), "洗衣机 / 电视墙开场：按 F6 直接测试；空格击打或长按，R 重开",
+		draw_string(ThemeDB.fallback_font, Vector2(-300.0, 0.0), "电视墙开场：3D 画面不在编辑器里预览，F5 运行后按 4",
 				HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20)
 		return
 	if _stage == null:
@@ -198,8 +192,9 @@ func _draw() -> void:
 	var center := hit_position()
 	var radius := maxf(hit_radius(), 1.0)
 	var travel := approach_travel_ratio * size.y
-	var visual_time := Time.get_ticks_msec() / 1000.0
-	# 门框自发光灯带就是判定线，不再叠加另一条橙色固定圆圈。
+	draw_focus(self, center, radius)
+	draw_lit_target(self, center, radius, Color(hold_ok_color, 0.95), judge_ring_width)  # 默认的判定圈：粗的绿圈
+	draw_target_guides(self, center, radius, travel, approach_beats, Callable(), 1.0, 1.0, false)  # 只补空拍的虚线
 	for n in own_notes():
 		var length := hold_beats(n)
 		var ahead := beats_until(n)
@@ -215,24 +210,21 @@ func _draw() -> void:
 		if failed and tail_ahead < 0.0:
 			continue
 		var k := maxf(ahead, 0.0) / maxf(approach_beats, 0.01)
-		var c := Color(0.5, 0.5, 0.5) if failed else sound_color(n)
-		c.a = clampf(1.0 - k * 0.6, 0.0, 1.0)
-		if failed:
-			draw_arc(center, radius + k * travel, 0.0, TAU, 96, c, 4.0, true)
-		else:
-			var charge := clampf(1.0 - ahead / 0.8, 0.0, 1.0)
-			NeonJudgementRing.draw(self, center, radius + k * travel, c,
-				visual_time, (1.1 if length > 0.0 else 0.95) + charge * 0.65, charge)
-			NeonJudgementRing.draw_charge(self, center, radius, c, ahead, visual_time)
+		# 和第 1 关一样：越靠近判定圈越亮越粗，最后一段带柔光（长按的头圈更粗一点；断掉的长按是灰的、淡一点）
+		var base := Color(0.5, 0.5, 0.5) if failed else note_color(n)
+		var look := approach_ring_look(k, base, 0.35 if failed else 0.5,
+				10.0 if length > 0.0 else 8.0, 16.0 if length > 0.0 else 14.0)
+		draw_approach_ring(self, center, radius + k * travel, look)
 	if _holding:
-		NeonJudgementRing.draw(self, center, radius, sound_color(_holding), visual_time, 1.15, 0.6)
+		draw_arc(center, radius, 0.0, TAU, 96, hold_progress_color, 7.0)
 		_draw_ring_lightning(center, radius)
 		_draw_hold_progress(center, radius, _holding)
 	if _hold_ok_age < hold_ok_seconds:
 		_draw_hold_ok(center, radius)
 	for b in _bolts:
 		_draw_bolt(center, _stage.tv_screen_pos(b.to), 1.0 - b.age / 0.35)
-	NeonJudgementRing.draw_impact(self, center, radius, _hit_ring_color, hit_age)
+	if tap_age < 0.15:
+		draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64, Color(1, 1, 1, 1.0 - tap_age / 0.15), 6.0)
 	if _flash > 0.0:
 		draw_rect(Rect2(-size / 2.0, size), Color(1.0, 0.15, 0.2, _flash * miss_flash))
 
@@ -300,12 +292,12 @@ func _draw_ring_lightning(center: Vector2, radius: float) -> void:
 		var zig := sin(float(i * 17 + phase * 11)) * 4.0 + (2.0 if i % 2 == 0 else -2.0)
 		pts.append(center + Vector2.from_angle(TAU * i / 64.0) * (radius * 1.055 + zig))
 	pts[64] = pts[0]
-	var c := sound_color(_holding)
+	var c := hold_progress_color.lerp(Color(1.0, 0.8, 0.95), 0.35)
 	c.a = 0.2
 	draw_polyline(pts, c, 8.0, true)
 	c.a = 0.95
 	draw_polyline(pts, c, 2.5, true)
-	draw_polyline(pts, sound_color(_holding).lerp(Color.WHITE, 0.65), 1.0, true)
+	draw_polyline(pts, Color(0.92, 1.0, 1.0, 0.85), 1.0, true)
 
 
 ## 洗衣机通到刚亮起来的电视的一道闪电

@@ -50,6 +50,14 @@ extends SpinSection
 @export var mash_text := "MASH!"
 @export var max_text := "MAX!"
 @export var mash_key_text := "SPACE"
+## 连按唱鬼畜：每按一下，猫唱出现在这首曲子的下一个音（按多快唱多快，硬切），每一串连按接着唱下一小节、换一只猫；
+## 超过达标数之后每多按一下整体再升 mash_sing_lift 个半音。关掉 = 用下面那个一下比一下高的声音
+@export var mash_sings := true
+## 现在响的和声是哪首曲子（片段名的开头）就唱哪首的谱子（levels/music/patterns/ 里的名字）；都对不上用 mash_sing_default
+@export var mash_sing_tunes := {"mk_": "mountain_king", "cc_": "can_can", "ybf": "your_best_friend"}
+@export var mash_sing_default := "kichiku_riff"
+@export_range(-30.0, 6.0) var mash_sing_db := -3.0
+@export var mash_sing_lift := 1.0
 ## 每按一下的声音，一下比一下高几个半音；蓄满时的一声
 @export var charge_sound: AudioStream = preload("res://assets/audio/sfx/hit_meow_good_a.wav")
 @export var charge_pitch_step := 2.0
@@ -232,8 +240,10 @@ func _on_empty_hit() -> void:
 		return
 	_charge += 1  # 没有上限：达标之后接着按，每一下照样有反馈
 	_pop = 1.0
-	# 一下比一下高，最高到两个八度
-	_play(charge_sound, charge_sound_db, pow(2.0, minf((_charge - 1) * charge_pitch_step, 24.0) / 12.0))
+	# 连按唱鬼畜（没唱成，比如没有谱子，就用原来的声音：一下比一下高，最高到两个八度）
+	if not (mash_sings and Music.meow.sing_step(_mash_tune(), _charge - 1, _zone_id, mash_sing_db,
+			maxf(_charge - _charge_target, 0.0) * mash_sing_lift)):
+		_play(charge_sound, charge_sound_db, pow(2.0, minf((_charge - 1) * charge_pitch_step, 24.0) / 12.0))
 	if _charge == _charge_target:
 		# 达标的这一下：立刻 Perfect
 		_maxed = true
@@ -242,6 +252,22 @@ func _on_empty_hit() -> void:
 		_judge_zone(NoteData.Result.PERFECT)
 	elif _charge > _charge_target:
 		_max_flash = maxf(_max_flash, 0.6)  # 多按的每一下再炸一小圈
+
+
+## 连按唱哪首：看现在响的是哪首曲子的和声
+var _tune_cache := {}
+
+func _mash_tune() -> Dictionary:
+	var clip: String = Music.playing_clip("bed")
+	var tune_name := mash_sing_default
+	for prefix: String in mash_sing_tunes:
+		if clip.begins_with(prefix):
+			tune_name = mash_sing_tunes[prefix]
+	if not _tune_cache.has(tune_name):
+		var path := "res://levels/music/patterns/%s.json" % tune_name
+		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
+		_tune_cache[tune_name] = d if d is Dictionary else {}
+	return _tune_cache[tune_name]
 
 
 ## 这一段连按出结果：找这一段里最后一个连按音符当“代表”，交给 Judge 照常计分、算连击、弹判定文字

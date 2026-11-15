@@ -1,5 +1,5 @@
 {
- "title": "WASHING MACHINE",
+ "title": "LEVEL 5",
  "bpm": 160,
  "use_in_game": true,
  "quantize_beats": 4,
@@ -107,7 +107,7 @@
  ],
  "sections": [
   {
-   "title": "WASHING MACHINE",
+   "title": "PIZZA CAT",
    "cues": {
     "beat": [
      [

@@ -216,6 +216,7 @@ func bpm() -> float:
 
 ## 进了第 index 个小关（进度从 0 开始），排到下一个边界生效
 func set_section(index: int) -> void:
+	progress_override = -1.0
 	var changed := index != section
 	_end_fever()
 	section = index
@@ -231,9 +232,21 @@ func set_section(index: int) -> void:
 		play_sfx("crash", -9.0)
 
 
+## 小关自己报进度，不看积累条（比如洗衣机那一段：积累条不涨，进度是按完了几次长按）。
+## 换小关时自动取消。p < 0 = 取消，回到看积累条。
+var progress_override := -1.0
+
+func override_progress(p: float) -> void:
+	progress_override = p
+	if p >= 0.0 and not is_equal_approx(p, progress):
+		set_progress(p)
+
+
 ## 积累条进度变了（0-1），排到下一个边界生效。
 ## 往上直接跟；往下迟钝：掉到当前档位线以下 DOWN_MARGIN 才退档，不然就停在档位线上。
 func set_progress(p: float) -> void:
+	if progress_override >= 0.0:
+		p = progress_override  # 这个小关自己报进度（见 override_progress）
 	progress = clampf(p, 0.0, 1.0)
 	if not dynamics() or progress >= effective:
 		effective = progress
@@ -329,7 +342,12 @@ func _end_fever() -> void:
 
 
 ## 某条轨道里的第一段（没有这条轨道或者它是空的，返回 ""）
+## 一关里串了几首曲子时，每个小关可以写明自己用哪一段（小关里的 "own": {"kiai": "cc_kichiku", "hit": ""}，
+## "" = 这个小关没有）：升档送的小 kiai、里程碑的 kiai、fever 里自动补上的轨道都按它来，不会拿错成别的曲子的。
 func _first_clip(lane_id: String) -> String:
+	var secs: Array = data.get("sections", [])
+	if section >= 0 and section < secs.size() and secs[section].get("own", {}).has(lane_id):
+		return str(secs[section].own[lane_id])
 	for lane in data.get("lanes", []):
 		if lane.id == lane_id and not lane.get("clips", []).is_empty():
 			return lane.clips[0].id
@@ -381,14 +399,14 @@ func rise_to_bar() -> void:
 func kiai(bars := 4, now := false) -> void:
 	if stream == null or not dynamics():
 		return
-	for lane in data.get("lanes", []):
-		if lane.id == "kiai" and not lane.get("clips", []).is_empty():
-			var from := Conductor.song_beat if now else ceilf(Conductor.song_beat / 4.0) * 4.0
-			_force["kiai"] = [lane.clips[0].id, from + bars * 4.0]
-			if now:
-				_apply_now()
-			else:
-				_queue()
+	var clip := _first_clip("kiai")
+	if clip != "":
+		var from := Conductor.song_beat if now else ceilf(Conductor.song_beat / 4.0) * 4.0
+		_force["kiai"] = [clip, from + bars * 4.0]
+		if now:
+			_apply_now()
+		else:
+			_queue()
 
 
 ## 漏打：旋律类的轨道压低 beats 拍（听起来像旋律被打断了一下）
@@ -644,7 +662,7 @@ func _apply_now(beat_index := -1) -> void:
 	for lane in data.get("lanes", []):
 		var c := clip_at(section, lane.id, effective)
 		if fever_now and c == "" and lane.id in FEVER_LANES and not lane.get("clips", []).is_empty():
-			c = lane.clips[0].id
+			c = _first_clip(lane.id)
 		if _force.has(lane.id):
 			c = _force[lane.id][0]
 		if muted.get(lane.id, false):
