@@ -71,6 +71,7 @@ var _road: DiscoRoad
 var _layer_gain := PackedFloat32Array()  # 每条分轨现在的音量（0~1）
 var _fill_at := INF  # 结尾镜头放到这一拍：接着玩吸猫（或者把积累条顶满过关）
 var _clear_at := INF  # 猫飞出屏幕之后，到这一拍把积累条顶满过关
+var _curtain := false
 var _abduct: AbductionStage  # 结尾之后接着玩的吸猫舞台（嵌在迪斯科的 3D 世界里）
 var _abduct_gauge_from := 0  # 开始吸猫时积累条的值
 
@@ -131,6 +132,12 @@ func _update_spin(local_beat: float, angle: float) -> void:
 			var launch := _road.fly_away(fly_away_beats * Conductor.sec_per_beat())
 			_clear_at = song_beat() + fly_away_beats
 			get_tree().create_timer(maxf(launch - 1.8, 0.0)).timeout.connect(Music.play_sfx.bind("sky_whoosh_up", -3.0))
+	# 猫飞出去之后、过关之前：后面还接着一关（一路连着玩）就落下黑幕，下一关开始时它接着往下落出屏幕
+	if song_beat() >= _clear_at - 2.0 and not _curtain:
+		_curtain = true
+		var main_script: Script = load("res://scripts/main.gd")
+		if main_script.in_run and Levels.interlude_after(Levels.selected) != "":
+			StageCurtain.drop(get_tree(), 1.8 * Conductor.sec_per_beat())
 	if song_beat() >= _clear_at:
 		_clear_at = INF
 		_fill_gauge_now()
