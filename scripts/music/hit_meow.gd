@@ -29,10 +29,10 @@ extends Node
 @export_range(0.0, 0.3, 0.005) var perfect_pitch_up := 0.06
 ## 音量随机上下多少 dB
 @export_range(0.0, 6.0, 0.1) var volume_random_db := 1.0
-## 连击到里程碑（10、20、50……）时的转圈喵（"oiia"那种，用我们自己的喵做的），两个轮流放；清空 = 不放
+## 连击到里程碑（10、20、50……）时的一声提示：一声很短的小猫 "mi"。清空 = 不放
+## （原来是"oiia"那种转圈喵 spin_meow_a / _b，突然冒出一段在游戏里很突兀，2026-11-16 换掉了；文件还在 sfx 里）
 @export var spin_sounds: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/spin_meow_a.wav"),
-	preload("res://assets/audio/sfx/spin_meow_b.wav"),
+	preload("res://assets/audio/sfx/kitten_mi.wav"),
 ]
 @export_range(-30.0, 6.0) var spin_volume_db := -4.0
 ## 漏打的那一声（连着打中之后第一下漏打才响）；清空 = 不放

@@ -742,13 +742,35 @@ func _on_beat(index: int) -> void:
 		_apply_now(index)
 
 
+func _fever_on_bars() -> int:
+	var secs: Array = data.get("sections", [])
+	return int(secs[section].get("fever_on_bars", 0)) if section >= 0 and section < secs.size() else 0
+
+
+## 进度 p 所在的那一段 fever 是从哪开始的
+func _fever_start(p: float) -> float:
+	for r: Array in fever_ranges(section):
+		if p >= float(r[0]) and p <= float(r[1]):
+			return float(r[0])
+	return p
+
+
 ## beat_index >= 0：这是在第几拍的边界上应用的（用来判断是不是乐句线）；-1 = 马上、不管边界
 func _apply_now(beat_index := -1) -> void:
 	_pending = false
 	var base: float = data.get("quantize_beats", 4)
 	var use_dynamics := dynamics()
+	# 进 fever 时曲子要换到另一段（比如土耳其进行曲换到 A 大调那段）的小关，写了 "fever_on_bars": 4：
+	# fever 只在乐句线上进（过门那一小节是上一句的最后一小节），不然新的一段会从句子中间唱起。没到乐句线就先按 fever 前的样子等着。
+	var eff := effective
+	var hold := false
+	if use_dynamics and beat_index >= 0 and not fever and in_fever(eff) and not _fever_fill_done:
+		var bars := _fever_on_bars()
+		if bars > 0 and int(round(beat_index + base)) % (bars * 4) != 0:
+			eff = _fever_start(eff) - 0.0001
+			hold = true
 	# 升到要过门的那一档：这条小节线先放一小节过门，下一条小节线才真的换
-	var going_to := tier_of(effective, tier_lines(section))
+	var going_to := tier_of(eff, tier_lines(section))
 	if use_dynamics and beat_index >= 0 and going_to > tier and going_to != _fill_done_for \
 			and _fill_clip() != "" and _wants_fill(going_to):
 		_fill_done_for = going_to
@@ -757,7 +779,7 @@ func _apply_now(beat_index := -1) -> void:
 		_next_beat = beat_index + base
 		return
 	# 要进 fever：也先一小节过门
-	var fever_now := use_dynamics and in_fever(effective)
+	var fever_now := use_dynamics and in_fever(eff)
 	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and _fill_clip() != "":
 		_fever_fill_done = true
 		_play_fill_bar()
@@ -769,7 +791,7 @@ func _apply_now(beat_index := -1) -> void:
 			and not _force.has("kiai") and _first_clip("kiai") != "" and _tier_sfx(going_to) == "":
 		_force["kiai"] = [_first_clip("kiai"), float(beat_index) + base]
 	for lane in data.get("lanes", []):
-		var c := clip_at(section, lane.id, maxf(effective, _carry_level()))
+		var c := clip_at(section, lane.id, maxf(eff, _carry_level()))
 		if fever_now and c == "" and lane.id in FEVER_LANES and not lane.get("clips", []).is_empty():
 			c = _first_clip(lane.id)
 		if _force.has(lane.id):
@@ -793,7 +815,7 @@ func _apply_now(beat_index := -1) -> void:
 	for i in _slot_lane.size():
 		_target[i] = 1.0 if _now.get(_slot_lane[i], "") == _slot_clip[i] else 0.0
 	# 档位变了：升档 = 镲 + 一声上扬的喵，降档 = 一声往下的喵（刚换小关那一次不放）
-	var new_tier := tier_of(effective, tier_lines(section))
+	var new_tier := tier_of(eff, tier_lines(section))
 	if use_dynamics and Conductor.playing and not _quiet_tier_change and beat_index >= 0:
 		if new_tier > tier:
 			# 这一档有自己的音效（小关里的 "tier_sfx": {"2": "sky_holy_hit"}）就放它，不放通用的镲和喵，也不送小 kiai
@@ -809,12 +831,14 @@ func _apply_now(beat_index := -1) -> void:
 	if new_tier != tier:
 		tier_changed.emit(new_tier, new_tier > tier)
 	tier = new_tier
+	if hold:
+		_pending = true
+		_next_beat = beat_index + base
 	if fever_now != fever:
 		fever = fever_now
 		if fever:
 			if Conductor.playing and beat_index >= 0:
-				play_sfx("crash", -7.0)
-				play_sfx("spin_meow_a", -5.0)
+				play_sfx("crash", -7.0)  # 进 fever 只放一声镲（原来还有一段转圈喵，太突兀，去掉了）
 			fever_started.emit()
 		else:
 			_fever_fill_done = false
