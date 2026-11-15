@@ -200,6 +200,8 @@ func _setup_tv(root: Node3D, color_i: int, feed: int) -> void:
 		"screen": scr, "cover": null, "size": Vector2(box.size.x, box.size.y) * s, "home": root.position,
 		"lit": false, "t": 0.0, "flash": 0.0,
 	})
+	# 跟拍：每台电视用不同的节奏胀一下（正拍、反拍、每两拍、跟底鼓 / 军鼓……），整面墙错落着动
+	BeatDecor.stagger(root, tvs.size() - 1, 0.06)
 
 
 func _tint(node: Node, col: Color) -> void:

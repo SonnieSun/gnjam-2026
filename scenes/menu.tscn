@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dqrnfe8ay85dt"]
 
 [ext_resource type="FontFile" path="res://assets/fonts/candy_gem/CandyGem.fnt" id="99_candy"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/credit.png" id="98_credit"]
 [ext_resource type="Script" uid="uid://c4v6i6vhwxo5" path="res://scripts/menu.gd" id="1_mhnvy"]
 [ext_resource type="Texture2D" uid="uid://dwxv07k3hys6l" path="res://assets/mv/tex/face_closedw.png" id="2_4ytvr"]
 [ext_resource type="Texture2D" uid="uid://dcttmq43hxb08" path="res://assets/art/bg.png" id="2_g3eks"]
@@ -31,6 +32,24 @@ shader_parameter/glow_strength = 1.5000000223518
 script = ExtResource("1_mhnvy")
 
 [node name="MenuActions" type="CanvasLayer" parent="."]
+
+[node name="Credit" type="TextureRect" parent="MenuActions"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -264.0
+offset_top = -158.0
+offset_right = -24.0
+offset_bottom = -78.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 0
+tooltip_text = "CREDIT"
+texture = ExtResource("98_credit")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Play" type="Button" parent="MenuActions"]
 anchors_preset = 7

@@ -21,6 +21,8 @@ signal level_cleared
 @export var start_section := 0
 ## 开始前的预备拍数（音乐响起之前先空走几拍）
 @export var lead_in_beats := 4.0
+## 最后一关打完，结算画面停几秒之后自动接片尾字幕（期间按任意键马上去；0 = 不自动，等玩家按键）
+@export var credits_after_seconds := 6.0
 @export_group("阶段触发的大反馈")
 ## 积累条涨过一条分数线（进了新阶段）/ 涨满时：画面顶一大下（1 = 一次 Perfect 那么大；0 = 不顶）
 @export var phase_punch := 2.0
@@ -70,6 +72,8 @@ var _cozy_preview: SpinSection
 @onready var memes: MemeCues = $Memes
 
 const GameEditor := preload("res://scripts/tools/game_editor.gd")
+## 片尾字幕（星球大战式滚动字幕，scenes/credits.tscn）
+const CREDITS_SCENE := "res://scenes/credits.tscn"
 const ShockRing := preload("res://scripts/fx/shock_ring.gd")
 
 ## 游戏里的编辑面板开着（Tab）：这时积累条由面板上的进度条控制，打中 / 漏打不再改它
@@ -83,6 +87,7 @@ var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = �
 var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比例（计分用）
 var _stage_clicks: Array[float] = []  # 每个小关预计要按多少下（实时显示分数用）
 var _cleared := false
+var _credits_going := false
 var _gauge_offset := 0  # 共用积累条：这一段前面的几段一共多少分
 var _gauge_total := 0   # 共用积累条：整条一共多少分
 
@@ -397,6 +402,20 @@ func _clear_level() -> void:
 		judge.score += run_score
 		judge.possible += run_possible
 	hud.show_result(judge)
+	# 结算画面停一会儿，自己接到片尾字幕（不回第 1 关）；字幕放完回主菜单
+	if credits_after_seconds > 0.0:
+		get_tree().create_timer(credits_after_seconds).timeout.connect(_go_credits)
+
+
+## 去片尾字幕（scenes/credits.tscn）。音乐不停，接着在字幕下面放
+func _go_credits() -> void:
+	if _credits_going or not is_inside_tree():
+		return
+	_credits_going = true
+	if ResourceLoader.exists(CREDITS_SCENE):
+		get_tree().change_scene_to_file(CREDITS_SCENE)
+	else:
+		back_to_menu()
 
 
 ## 每个阶段（小关）占这一大关满分的比例 = 这个阶段大约要点几下 ÷ 整关大约要点几下。
@@ -598,8 +617,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if key.physical_keycode == KEY_ESCAPE:
 		return  # Esc 归暂停转盘管（scripts/pause_menu.gd）
 	if _cleared and hud.result_label.visible:
-		# 最终结算画面：按任意键从第 1 大关重新开始
-		restart_run(get_tree())
+		# 最终结算画面：按任意键马上去片尾字幕（不按也会自己去，见 _clear_level），字幕放完回主菜单
+		_go_credits()
 		return
 	if key.physical_keycode == KEY_TAB and OS.is_debug_build():
 		toggle_editor()
