@@ -22,6 +22,7 @@ fx_cues = [[0.5, "grid3"], [0.75, "kaleido"]]
 script = ExtResource("4_q3vbg")
 title = "LEVEL 2"
 stream = ExtResource("14_yiqag")
+bpm = 160.0
 drum_kick = ExtResource("2_oce7n")
 drum_snare = ExtResource("3_4r5xl")
 drum_hat = ExtResource("1_mrbuc")

@@ -122,7 +122,7 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 5. 总线布局 + Music 总线上的侧链压缩。
 6. 实测：长时间播放会不会漂（开 10 分钟看 `song_beat` 和各层是否还对齐）。
 
-还没定的：猫化由什么驱动（连击，还是关卡进度）；六个 MV 场景各用哪个风格、哪首经典曲；谱面要改成 160 BPM。
+还没定的：猫化由什么驱动（连击，还是关卡进度）；六个 MV 场景各用哪个风格、哪首经典曲。
 
 ## Music Director（已做）
 
@@ -163,4 +163,4 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 
 游戏里（`scripts/main.gd`）：配置开了 `use_in_game` 的大关，谱面的伴奏换成这套同步流、BPM 换成配置的；
 进小关时（`section_entered`）`Music.set_section(i)`，积累条变化时（`gauge.changed`）`Music.set_progress(值 / 满条值)`。
-没开的大关完全不变。注意现在的谱面是按 120 BPM 写的，开了之后整关会变成 160。
+没开的大关用谱面自己的伴奏和 BPM。现在五个大关都开了，谱面的 BPM 也都是 160。

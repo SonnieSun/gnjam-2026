@@ -1,7 +1,7 @@
 {
 	"title": "LEVEL 3",
 	"bpm": 160,
-	"use_in_game": false,
+	"use_in_game": true,
 	"quantize_beats": 4,
 	"lanes": [
 		{

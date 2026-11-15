@@ -34,7 +34,7 @@
 | title | 主菜单上显示的名字 |
 | look | 这一大关里 3D 小关默认的画面风格（下拉框） |
 | stream | 伴奏（不带鼓的版本，循环播放） |
-| bpm / beats_per_bar | 速度、每小节几拍 |
+| bpm / beats_per_bar | 速度（现在统一 160）、每小节几拍 |
 | drum_kick / snare / hat | 玩家按键时发出的鼓声 |
 | rest_bars_on_switch | 每进一个小关先空几个小节再出音符 |
 | sections | 小关列表，从上到下就是闯关顺序 |
