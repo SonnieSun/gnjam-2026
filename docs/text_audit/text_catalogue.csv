@@ -1,0 +1,438 @@
+﻿text_or_template,source
+STEP 1/2  -  INPUT LATENCY,scripts/calibrate.gd:63; capture:calibrate1
+STEP 2/2  -  VISUAL OFFSET,scripts/calibrate.gd:69; capture:calibrate2
+Close your eyes. Tap SPACE on every click. / %d / %d taps    current %+.0f ms /  / [Esc] cancel,scripts/calibrate.gd:75
+Does the flash land on the click? / [<] / [>] adjust    visual %+.0f ms    input %+.0f ms /  / [Enter] save    [R] redo step 1    [Esc] cancel,scripts/calibrate.gd:78
+SCORE %d,scripts/hud.gd:44
+%d COMBO,scripts/hud.gd:45
+PERFECT,scripts/hud.gd:50; levelkit/play/playtest.gd:103; capture:perfect
+GREAT  %s,scripts/hud.gd:51
+LATE,scripts/hud.gd:51; scripts/hud.gd:52
+EARLY,scripts/hud.gd:51; scripts/hud.gd:52
+GOOD  %s,scripts/hud.gd:52; levelkit/play/playtest.gd:105
+MISS,scripts/hud.gd:53; levelkit/play/playtest.gd:69; levelkit/play/playtest.gd:107; capture:miss; capture:combo
+COMBO %d,scripts/hud.gd:63
+LEVEL CLEAR! / SCORE %d   MAX COMBO %d / PERFECT %d   GREAT %d   GOOD %d   MISS %d / AVG %+.0f ms %s /  / [R] restart   [Esc] menu,scripts/hud.gd:116
+%s  |  bar %d  beat %.2f  |  gauge %d/%d  |  [1-%d] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,scripts/main.gd:106
+LOOK: ,scripts/main.gd:246
+[O] CALIBRATE LATENCY,scripts/menu.gd:57; capture:menu0; capture:menu1; capture:menu2; capture:menu3; capture:menu4
+LEVEL %d,scripts/menu_view.gd:39
+%d %s,scripts/menu_view.gd:40
+STAGE,scripts/menu_view.gd:40
+STAGES,scripts/menu_view.gd:40
+点一首曲子开始放,scripts/music/jukebox.gd:50; capture:jukebox
+STOPPED,scripts/music/jukebox.gd:56; scripts/music/jukebox.gd:251; scripts/music/meow_studio.gd:191; capture:jukebox; capture:studio_drums; capture:studio_melody
+STOP,scripts/music/jukebox.gd:59; scripts/music/meow_studio.gd:174; capture:jukebox
+曲子（点了就放，再点一首就换）,scripts/music/jukebox.gd:74; capture:jukebox
+这首曲子的音轨（亮着 = 在响，点一下开 / 关）,scripts/music/jukebox.gd:85; capture:jukebox
+喵谱子（游戏里按格子触发的猫鼓 / 鬼畜猫旋律，可以改）：点名字 = 跟着曲子一起放，✎ = 打开编辑,scripts/music/jukebox.gd:89; capture:jukebox
+一次性音效（点一下听一声）,scripts/music/jukebox.gd:94; capture:jukebox
+（文件没了）,scripts/music/jukebox.gd:225
+正在放：,scripts/music/jukebox.gd:238
+鼓 ,scripts/music/jukebox.gd:283
+drums,scripts/music/jukebox.gd:283; scripts/music/meow_pattern_editor.gd:38
+旋律 ,scripts/music/jukebox.gd:283
+✎,scripts/music/jukebox.gd:291; capture:jukebox; capture:jukebox
+在喵谱子工作室里打开编辑,scripts/music/jukebox.gd:292
+BAR %3d  BEAT %d,scripts/music/jukebox.gd:340; scripts/music/meow_studio.gd:194
+JUKEBOX 曲库,scripts/music/jukebox_scene.gd:32; capture:jukebox
+回主菜单 (Esc),scripts/music/jukebox_scene.gd:37; capture:jukebox
+name,scripts/music/meow_grid.gd:186; scripts/music/meow_pattern_editor.gd:42
+row %d,scripts/music/meow_grid.gd:186
+C%d,scripts/music/meow_grid.gd:191
+存好的喵谱子（levels/music/patterns/）,scripts/music/meow_pattern_editor.gd:35
+New drums,scripts/music/meow_pattern_editor.gd:38; capture:studio_drums; capture:studio_melody
+新的猫鼓：每行一种喵，点格子,scripts/music/meow_pattern_editor.gd:38
+New melody,scripts/music/meow_pattern_editor.gd:39; capture:studio_drums; capture:studio_melody
+melody,scripts/music/meow_pattern_editor.gd:39
+新的鬼畜猫旋律：小钢琴卷帘,scripts/music/meow_pattern_editor.gd:39
+Save,scripts/music/meow_pattern_editor.gd:44; scripts/tools/game_editor.gd:125; levelkit/editor/level_editor.gd:107; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4; capture:studio_drums; capture:studio_melody; capture:level_editor; capture:playtest; capture:playtest_result
+存成 levels/music/patterns/<name>.json（存了就出现在曲库里）,scripts/music/meow_pattern_editor.gd:44
+- Bar,scripts/music/meow_pattern_editor.gd:46; scripts/tools/game_editor.gd:354; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4; capture:studio_drums; capture:studio_melody
++ Bar,scripts/music/meow_pattern_editor.gd:49; scripts/tools/game_editor.gd:353; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4; capture:studio_drums; capture:studio_melody
+   Cat,scripts/music/meow_pattern_editor.gd:51; capture:studio_drums; capture:studio_melody
+旋律：哪只猫唱。auto = 每 4 小节挑原本音高最近的那只,scripts/music/meow_pattern_editor.gd:55
+No patterns yet: New drums or New melody,scripts/music/meow_pattern_editor.gd:79
+Could not read ,scripts/music/meow_pattern_editor.gd:126
+meow_drums,scripts/music/meow_pattern_editor.gd:154
+cat_melody,scripts/music/meow_pattern_editor.gd:157
+New pattern (not saved yet),scripts/music/meow_pattern_editor.gd:159
+ %d bars ,scripts/music/meow_pattern_editor.gd:180
+bars,scripts/music/meow_pattern_editor.gd:180
+"drums: left click = on / off, drag to paint",scripts/music/meow_pattern_editor.gd:186
+"melody: click = note, drag right = longer, right click = delete",scripts/music/meow_pattern_editor.gd:188
+● Unsaved pattern,scripts/music/meow_pattern_editor.gd:241
+Give the pattern a name first,scripts/music/meow_pattern_editor.gd:272
+Save failed: ,scripts/music/meow_pattern_editor.gd:278; scripts/tools/game_editor.gd:901
+"Saved %s: it is in the jukebox now; add it to a level on the game's Tab panel, Music page (+ meow)",scripts/music/meow_pattern_editor.gd:281
+MEOW STUDIO,scripts/music/meow_studio.gd:58; capture:studio_drums; capture:studio_melody
+PLAY,scripts/music/meow_studio.gd:61; scripts/music/meow_studio.gd:181; scenes/menu.tscn:53; capture:menu0; capture:menu1; capture:menu2; capture:menu3; capture:menu4; capture:studio_drums; capture:studio_melody
+Hot,scripts/music/meow_studio.gd:61
+只听谱子时的速度（选了伴奏就跟伴奏的速度走）,scripts/music/meow_studio.gd:69
+节拍器,scripts/music/meow_studio.gd:73; capture:studio_drums; capture:studio_melody
+每拍响一下，写谱子时好对拍子,scripts/music/meow_studio.gd:75
+伴奏,scripts/music/meow_studio.gd:83; capture:studio_drums; capture:studio_melody
+不选 = 只听谱子。选曲库里的一首，下面一排开关它的每条音轨,scripts/music/meow_studio.gd:87
+回曲库 (Esc),scripts/music/meow_studio.gd:91; capture:studio_drums; capture:studio_melody
+回游戏,scripts/music/meow_studio.gd:92; capture:studio_drums; capture:studio_melody
+试听里的音轨,scripts/music/meow_studio.gd:100; capture:studio_drums; capture:studio_melody
+LISTEN / GET READY,scripts/sections/cat_earth_section.gd:306; capture:game2; capture:orbit0; capture:orbit1; capture:orbit2; capture:charge25
+Click / Space follows the hats,scripts/sections/cat_earth_section.gd:307; capture:game2; capture:orbit0; capture:orbit1; capture:orbit2
+Next roll is coming,scripts/sections/cat_earth_section.gd:310
+READY  %d / %d,scripts/sections/cat_earth_section.gd:313
+Strike once when the ring meets,scripts/sections/cat_earth_section.gd:314; capture:charge25; capture:charge27; capture:charge28; capture:charge29; capture:charge30; capture:charge31
+CHARGE  %d / %d,scripts/sections/cat_earth_section.gd:316
+Fast taps to the hats,scripts/sections/cat_earth_section.gd:317; scenes/sections/cat_earth.tscn:147; capture:charge26
+HIT THE EARTH!,scripts/sections/cat_earth_section.gd:319; capture:charge28
+One strong hit on the snare,scripts/sections/cat_earth_section.gd:320
+◀,scripts/tools/game_editor.gd:106; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Previous stage,scripts/tools/game_editor.gd:106
+▶,scripts/tools/game_editor.gd:107; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Next stage,scripts/tools/game_editor.gd:107
+   Gauge max,scripts/tools/game_editor.gd:113; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Points needed to fill this stage's gauge (a Perfect is +5),scripts/tools/game_editor.gd:118
+Jukebox,scripts/tools/game_editor.gd:123; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Leave the game and listen to every song and sound we have,scripts/tools/game_editor.gd:123
+Meow,scripts/tools/game_editor.gd:124; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Leave the game and write meow drums / cat melodies (they become new clips for the Music page),scripts/tools/game_editor.gd:124
+Write the changes of every stage to disk,scripts/tools/game_editor.gd:125
+Close (Tab),scripts/tools/game_editor.gd:126; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Gauge,scripts/tools/game_editor.gd:132; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+0%,scripts/tools/game_editor.gd:151
+▶ Jump here,scripts/tools/game_editor.gd:177; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+  Name,scripts/tools/game_editor.gd:179; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Starts at,scripts/tools/game_editor.gd:184; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Gauge points where this phase starts (a Perfect is +5),scripts/tools/game_editor.gd:190
+Delete,scripts/tools/game_editor.gd:195; scripts/tools/game_editor.gd:279; levelkit/editor/side_panel.gd:87; levelkit/editor/side_panel.gd:87; capture:edit0; capture:edit0; capture:edit1; capture:edit1; capture:edit2; capture:edit2; capture:edit3; capture:edit3; capture:edit4; capture:edit4
+Remove this gauge line. Later phases move up one slot,scripts/tools/game_editor.gd:195
++ Add phase at current gauge,scripts/tools/game_editor.gd:198; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Add a gauge line at the current gauge position,scripts/tools/game_editor.gd:198
+   Dragging the gauge forward past a line triggers that phase; dragging back does not undo it. Use Jump to go back.,scripts/tools/game_editor.gd:199; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Camera  ,scripts/tools/game_editor.gd:213; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+"Click to pick, double-click to add at the current gauge position",scripts/tools/game_editor.gd:248
++ Add picked meme at current gauge,scripts/tools/game_editor.gd:256; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+The picked cat pops in when the gauge reaches the current position,scripts/tools/game_editor.gd:256
+Drag on the picture to place the selected meme,scripts/tools/game_editor.gd:265
+At,scripts/tools/game_editor.gd:270; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Size,scripts/tools/game_editor.gd:277; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Effect,scripts/tools/game_editor.gd:283; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Speed,scripts/tools/game_editor.gd:291; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Brush  ,scripts/tools/game_editor.gd:341; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Restart stage with new pattern,scripts/tools/game_editor.gd:355; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+"   Left click paints / click again clears, right click erases. These bars loop until the gauge is full",scripts/tools/game_editor.gd:357; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
++ meow,scripts/tools/game_editor.gd:387; capture:edit0; capture:edit0; capture:edit0; capture:edit0; capture:edit0; capture:edit0; capture:edit0; capture:edit0; capture:edit1; capture:edit1; capture:edit1; capture:edit1; capture:edit1; capture:edit1; capture:edit1; capture:edit1; capture:edit2; capture:edit2; capture:edit2; capture:edit2; capture:edit2; capture:edit2; capture:edit2; capture:edit2; capture:edit3; capture:edit3; capture:edit3; capture:edit3; capture:edit3; capture:edit3; capture:edit3; capture:edit3; capture:edit4; capture:edit4; capture:edit4; capture:edit4; capture:edit4; capture:edit4; capture:edit4; capture:edit4
+Add a saved meow pattern (meow drums / cat melody written in Meow Studio) to this lane as a clip,scripts/tools/game_editor.gd:390
+Stage %d / %d   %s   ·   %s,scripts/tools/game_editor.gd:438
+%d%%,scripts/tools/game_editor.gd:441; scripts/tools/game_editor.gd:475; scripts/tools/game_editor.gd:485
+  ·  %s,scripts/tools/game_editor.gd:485
+● Unsaved changes,scripts/tools/game_editor.gd:530
+"Click to select, double-click to jump there",scripts/tools/game_editor.gd:572
+= %d%%,scripts/tools/game_editor.gd:588
+%d%%  %s,scripts/tools/game_editor.gd:698
+"This level does not use layered music (it plays the single backing track from its chart), so there are no lanes to switch by gauge. / To use it, set up the lanes in this level's .json under levels/music/ and set use_in_game to true.",scripts/tools/game_editor.gd:805
+Saved ,scripts/tools/game_editor.gd:901
+Bar %d,scripts/tools/pattern_grid.gd:102
+飞碟吸猫关卡：3D 画面不在编辑器里预览，F6 运行 abduction_test.tscn,scripts/sections/kisa/abduction_section.gd:85
+飞船关卡：3D 画面不在编辑器里预览，F6 运行 spaceship_test.tscn,scripts/sections/kisa/spaceship_section.gd:105
+洗衣机 / 电视墙开场：按 F6 直接测试；空格击打或长按，R 重开,scripts/sections/kisa/tv_wall_intro_section.gd:169
+电视墙关卡：3D 画面不在编辑器里预览，F5 运行后按 4,scripts/sections/kisa/tv_wall_section.gd:90
+LEFT / RIGHT  SELECT     SPACE / ENTER  PLAY,scenes/menu.tscn:71; capture:menu0; capture:menu1; capture:menu2; capture:menu3; capture:menu4
+DISCO,scenes/menu.tscn:142; scenes/menu_disc_3d.tscn:120; capture:menu0; capture:menu0; capture:menu1; capture:menu1; capture:menu2; capture:menu2; capture:menu3; capture:menu3; capture:menu4; capture:menu4
+1 STAGE,scenes/menu.tscn:154; scenes/menu.tscn:210; scenes/menu.tscn:266; scenes/menu.tscn:322; scenes/menu.tscn:378; scenes/menu_disc_3d.tscn:132; scenes/menu_disc_3d.tscn:161; scenes/menu_disc_3d.tscn:219; scenes/menu_disc_3d.tscn:248; capture:menu0; capture:menu0; capture:menu0; capture:menu0; capture:menu0; capture:menu0; capture:menu0; capture:menu0; capture:menu0; capture:menu1; capture:menu1; capture:menu1; capture:menu1; capture:menu1; capture:menu1; capture:menu1; capture:menu1; capture:menu1; capture:menu2; capture:menu2; capture:menu2; capture:menu2; capture:menu2; capture:menu2; capture:menu2; capture:menu2; capture:menu2; capture:menu3; capture:menu3; capture:menu3; capture:menu3; capture:menu3; capture:menu3; capture:menu3; capture:menu3; capture:menu3; capture:menu4; capture:menu4; capture:menu4; capture:menu4; capture:menu4; capture:menu4; capture:menu4; capture:menu4; capture:menu4
+SPACESHIP,scenes/menu.tscn:198; scenes/menu_disc_3d.tscn:149; capture:menu0; capture:menu0; capture:menu1; capture:menu1; capture:menu2; capture:menu2; capture:menu3; capture:menu3; capture:menu4; capture:menu4
+ORBIT CAT,scenes/menu.tscn:254; scenes/menu_disc_3d.tscn:178; capture:menu0; capture:menu0; capture:menu1; capture:menu1; capture:menu2; capture:menu2; capture:menu3; capture:menu3; capture:menu4; capture:menu4
+TV WALL,scenes/menu.tscn:310; scenes/menu_disc_3d.tscn:207; capture:menu0; capture:menu0; capture:menu1; capture:menu1; capture:menu2; capture:menu2; capture:menu3; capture:menu3; capture:menu4; capture:menu4
+WASHING MACHINE,scenes/menu.tscn:366; scenes/menu_disc_3d.tscn:236; capture:menu0; capture:menu0; capture:menu1; capture:menu1; capture:menu2; capture:menu2; capture:menu3; capture:menu3; capture:menu4; capture:menu4
+3 STAGES,scenes/menu_disc_3d.tscn:190; capture:menu0; capture:menu1; capture:menu2; capture:menu3; capture:menu4
+CHARGE  0 / 8,scenes/sections/cat_earth.tscn:126
+level name,levelkit/editor/level_editor.gd:102
+New,levelkit/editor/level_editor.gd:106; capture:level_editor; capture:playtest; capture:playtest_result
+Empty level (undo brings the old one back),levelkit/editor/level_editor.gd:106
+Ctrl/Cmd+S: saves to levels/<name>.json,levelkit/editor/level_editor.gd:107
+Open ▾,levelkit/editor/level_editor.gd:108; capture:level_editor; capture:playtest; capture:playtest_result
+Undo,levelkit/editor/level_editor.gd:114; capture:level_editor; capture:playtest; capture:playtest_result
+Redo,levelkit/editor/level_editor.gd:115; capture:level_editor; capture:playtest; capture:playtest_result
+Song…,levelkit/editor/level_editor.gd:119; capture:level_editor; capture:playtest; capture:playtest_result
+Pick an .ogg/.mp3/.wav (or drop one on the window),levelkit/editor/level_editor.gd:119
+Song time of beat 0. Tap play with the metronome on and nudge until the clicks sit on the song.,levelkit/editor/level_editor.gd:125
+▶ Play,levelkit/editor/level_editor.gd:130; capture:level_editor; capture:playtest; capture:playtest_result
+Space,levelkit/editor/level_editor.gd:130
+● Rec,levelkit/editor/level_editor.gd:131; capture:level_editor; capture:playtest; capture:playtest_result
+R: lane keys write notes while playing,levelkit/editor/level_editor.gd:131
+Metro,levelkit/editor/level_editor.gd:132; capture:level_editor; capture:playtest; capture:playtest_result
+M,levelkit/editor/level_editor.gd:132
+Hits,levelkit/editor/level_editor.gd:133; capture:level_editor; capture:playtest; capture:playtest_result
+H: play lane sounds on notes,levelkit/editor/level_editor.gd:133
+Grid / snap,levelkit/editor/level_editor.gd:138
+Diff,levelkit/editor/level_editor.gd:147; capture:level_editor; capture:playtest; capture:playtest_result
+from song,levelkit/editor/level_editor.gd:156; capture:level_editor; capture:playtest; capture:playtest_result
+Use the song's onsets (needs songs/<song>.analysis.json from tools/analyze_song.py),levelkit/editor/level_editor.gd:157
+Gen chart,levelkit/editor/level_editor.gd:159; capture:level_editor; capture:playtest; capture:playtest_result
+Replace the chart with a generated one,levelkit/editor/level_editor.gd:159
+Gen world,levelkit/editor/level_editor.gd:160; capture:level_editor; capture:playtest; capture:playtest_result
+Replace the entities with ChartGen.place_runner (an example),levelkit/editor/level_editor.gd:160
+PLAYTEST (Tab),levelkit/editor/level_editor.gd:162; capture:level_editor; capture:playtest; capture:playtest_result
+beat %.2f   %d notes  %d entities%s,levelkit/editor/level_editor.gd:253
+(missing) ,levelkit/editor/level_editor.gd:315
+(no song),levelkit/editor/level_editor.gd:315; capture:level_editor; capture:playtest; capture:playtest_result
+Place,levelkit/editor/side_panel.gd:25; capture:level_editor; capture:playtest; capture:playtest_result
+"Pick a type, click the world. Esc = select tool.",levelkit/editor/side_panel.gd:27; capture:level_editor; capture:playtest; capture:playtest_result
+Select,levelkit/editor/side_panel.gd:42; capture:level_editor; capture:playtest; capture:playtest_result
+Inspector,levelkit/editor/side_panel.gd:65; capture:level_editor; capture:playtest; capture:playtest_result
+Nothing selected.,levelkit/editor/side_panel.gd:66; capture:level_editor; capture:playtest; capture:playtest_result
+beat %.2f,levelkit/editor/side_panel.gd:78
+Duplicate,levelkit/editor/side_panel.gd:86
+Ctrl/Cmd+D,levelkit/editor/side_panel.gd:86
+RESULT  %d%%,levelkit/play/playtest.gd:75
+early,levelkit/play/playtest.gd:105
+late,levelkit/play/playtest.gd:105
+Right-click to reset,levelkit/ui/ui_kit.gd:154
+SCORE 0,capture:game0; capture:game1; capture:game2; capture:orbit0; capture:orbit1; capture:orbit2; capture:charge25; capture:charge26; capture:charge27; capture:charge28; capture:charge29; capture:charge30; capture:charge31; capture:game3; capture:game4; capture:hold; capture:hold_failed
+DISCO  |  bar 1  beat -3.06  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:game0
+SCORE 12800,capture:perfect; capture:great_early; capture:great_late; capture:good_early; capture:good_late; capture:miss; capture:combo; capture:look; capture:result; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+23 COMBO,capture:perfect; capture:great_early; capture:great_late; capture:good_early; capture:good_late; capture:miss; capture:combo; capture:look; capture:result; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+DISCO  |  bar 1  beat -2.88  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:perfect
+GREAT  EARLY,capture:great_early
+DISCO  |  bar 1  beat -2.70  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:great_early
+GREAT  LATE,capture:great_late
+DISCO  |  bar 1  beat -2.52  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:great_late
+GOOD  EARLY,capture:good_early
+DISCO  |  bar 1  beat -2.34  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:good_early
+GOOD  LATE,capture:good_late
+DISCO  |  bar 1  beat -2.16  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:good_late
+DISCO  |  bar 1  beat -1.98  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:miss
+COMBO 50,capture:combo; capture:look; capture:result; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+DISCO  |  bar 1  beat -1.78  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:combo
+LOOK: Y2K_JPEG,capture:look
+DISCO  |  bar 1  beat -1.58  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:look
+DISCO  |  bar 1  beat -1.40  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:result
+LEVEL CLEAR! / SCORE 12800   MAX COMBO 50 / PERFECT 100   GREAT 25   GOOD 16   MISS 3 / AVG +12 ms LATE /  / [R] restart   [Esc] menu,capture:result; capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+DISCO  |  bar 1  beat -1.11  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:edit0
+Stage 1 / 1   DISCO   ·   kisa/disco.tscn,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+0%  ·  Start,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Start,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+1  Stars · 20,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+2  Ball · 40,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+3  Dancers · 60,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+4  Drift · 80,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+5  Road · 110,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+6  Dance floor · 140,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+7  Grid · 220,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+8  Plaza · 320,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+9  Finale · 390,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Normal,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+2x2 Grid,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+3x3 Grid,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+4x4 Grid,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Kaleidoscope,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Mirror,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+RGB Split,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Zoom In,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Invert,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+None,capture:edit0; capture:edit0; capture:edit1; capture:edit1; capture:edit2; capture:edit2; capture:edit3; capture:edit3; capture:edit4; capture:edit4
+Spin,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Orbit,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Stream,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Bounce,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Float,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+beat,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+jazz_groove,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+groove,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+club,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+half,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+bass,capture:edit0; capture:edit0; capture:edit1; capture:edit1; capture:edit2; capture:edit2; capture:edit3; capture:edit3; capture:edit4; capture:edit4
+jazz_bass,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+club_bass,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+cat_bass,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+bed,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+jazz_piano,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+disco_keys,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+fb_keys,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+cat_stabs,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+lead,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+jazz_sax,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+disco_hook,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+fb_hook,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+cat_flow,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+peak,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+jazz_shout,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+disco_peak,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+fb_peak,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+meow,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+cat_drums,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+kiai,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+cat_kichiku,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+fx,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+ev_meow,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+ev_seal,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Kick K,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Snare S,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Hat H,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+Eraser,capture:edit0; capture:edit1; capture:edit2; capture:edit3; capture:edit4
+DISCO  |  bar 1  beat -0.98  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:edit1
+DISCO  |  bar 1  beat 0.56  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:edit2
+DISCO  |  bar 1  beat 0.12  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:edit3
+DISCO  |  bar 1  beat 0.25  |  gauge 0/470  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:edit4
+SPACESHIP  |  bar 1  beat -2.55  |  gauge 0/60  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:game1
+ORBIT / WARM UP  |  bar 1  beat -2.97  |  gauge 0/20  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:game2
+ORBIT / WARM UP  |  bar 1  beat -3.50  |  gauge 0/20  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:orbit0
+ORBIT / CHARGE UP  |  bar 1  beat -3.49  |  gauge 0/30  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:orbit1
+ORBIT / SUPERNOVA  |  bar 1  beat -3.48  |  gauge 0/40  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:orbit2
+ORBIT / SUPERNOVA  |  bar 1  beat -3.39  |  gauge 0/40  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:charge25
+CHARGE  4 / 8,capture:charge26
+ORBIT / SUPERNOVA  |  bar 1  beat -3.30  |  gauge 0/40  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:charge26
+READY  8 / 8,capture:charge27
+ORBIT / SUPERNOVA  |  bar 1  beat -3.21  |  gauge 0/40  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:charge27
+ORBIT / SUPERNOVA  |  bar 1  beat -3.11  |  gauge 0/40  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:charge28
+MISSED THE BEAT,capture:charge29
+ORBIT / SUPERNOVA  |  bar 1  beat -3.02  |  gauge 0/40  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:charge29
+LOW CHARGE,capture:charge30
+ORBIT / SUPERNOVA  |  bar 1  beat -2.93  |  gauge 0/40  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:charge30
+POWER SHOT!,capture:charge31
+ORBIT / SUPERNOVA  |  bar 1  beat -2.84  |  gauge 0/40  |  [1-3] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:charge31
+TV WALL  |  bar 1  beat -2.46  |  gauge 0/100000  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:game3
+WASHING MACHINE  |  bar 1  beat -2.49  |  gauge 0/100000  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:game4
+WASHING MACHINE  |  bar 1  beat -2.33  |  gauge 0/100000  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:hold
+WASHING MACHINE  |  bar 1  beat -2.18  |  gauge 0/100000  |  [1-1] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu,capture:hold_failed
+Close your eyes. Tap SPACE on every click. / 0 / 16 taps    current +0 ms /  / [Esc] cancel,capture:calibrate1
+Does the flash land on the click? / [<] / [>] adjust    visual +0 ms    input +0 ms /  / [Enter] save    [R] redo step 1    [Esc] cancel,capture:calibrate2
+Future Bass,capture:jukebox; capture:studio_drums; capture:studio_melody
+Eurobeat,capture:jukebox; capture:studio_drums; capture:studio_melody
+Chip,capture:jukebox; capture:studio_drums; capture:studio_melody
+Disco,capture:jukebox; capture:studio_drums; capture:studio_melody
+全猫乐队,capture:jukebox; capture:studio_drums; capture:studio_melody
+Jazz,capture:jukebox; capture:studio_drums; capture:studio_melody
+节奏：半拍,capture:jukebox; capture:studio_drums; capture:studio_melody
+节奏：Break,capture:jukebox; capture:studio_drums; capture:studio_melody
+节奏：Club,capture:jukebox; capture:studio_drums; capture:studio_melody
+Entertainer,capture:jukebox; capture:studio_drums; capture:studio_melody
+120 · Jazz,capture:jukebox; capture:studio_drums; capture:studio_melody
+120 · Disco,capture:jukebox; capture:studio_drums; capture:studio_melody
+120 · Future Bass,capture:jukebox; capture:studio_drums; capture:studio_melody
+120 · Club + Future Bass,capture:jukebox; capture:studio_drums; capture:studio_melody
+120 · Eurobeat,capture:jukebox; capture:studio_drums; capture:studio_melody
+120 · Chip,capture:jukebox; capture:studio_drums; capture:studio_melody
+120 · 全猫乐队,capture:jukebox; capture:studio_drums; capture:studio_melody
+康康舞曲,capture:jukebox; capture:studio_drums; capture:studio_melody
+康康舞曲（猫版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+康康舞曲（鬼畜版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+土耳其进行曲,capture:jukebox; capture:studio_drums; capture:studio_melody
+土耳其进行曲（猫版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+土耳其进行曲（鬼畜版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+山魔王,capture:jukebox; capture:studio_drums; capture:studio_melody
+山魔王（猫版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+山魔王（鬼畜版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+欢乐颂,capture:jukebox; capture:studio_drums; capture:studio_melody
+欢乐颂（猫版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+欢乐颂（鬼畜版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+致爱丽丝,capture:jukebox; capture:studio_drums; capture:studio_melody
+致爱丽丝（猫版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+致爱丽丝（鬼畜版）,capture:jukebox; capture:studio_drums; capture:studio_melody
+旋律 kichiku_riff,capture:jukebox
+鼓 meow_drums_basic,capture:jukebox
++ 新猫鼓,capture:jukebox
++ 新旋律,capture:jukebox
+catness_down,capture:jukebox
+catness_up,capture:jukebox
+clap,capture:jukebox
+crash,capture:jukebox
+glitch_meow,capture:jukebox
+hit_meow_good_a,capture:jukebox
+hit_meow_good_b,capture:jukebox
+hit_meow_good_c,capture:jukebox
+hit_meow_perfect_a,capture:jukebox
+hit_meow_perfect_b,capture:jukebox
+hit_meow_perfect_c,capture:jukebox
+kick,capture:jukebox
+kitten_mi,capture:jukebox
+laser_zap,capture:jukebox
+level_clear,capture:jukebox
+meow_long_06_Bb5,capture:jukebox
+meow_long_06_D5,capture:jukebox
+meow_long_06_G5,capture:jukebox
+meow_long_13_Bb4,capture:jukebox
+meow_long_13_D4,capture:jukebox
+meow_long_13_G4,capture:jukebox
+meow_natural_01,capture:jukebox
+meow_natural_06,capture:jukebox
+meow_natural_10,capture:jukebox
+meow_natural_13,capture:jukebox
+meow_natural_14,capture:jukebox
+meow_natural_15,capture:jukebox
+meow_short_08_Bb5,capture:jukebox
+meow_short_08_D5,capture:jukebox
+meow_short_08_F5,capture:jukebox
+meow_short_11_Bb5,capture:jukebox
+meow_short_11_D6,capture:jukebox
+meow_short_11_F6,capture:jukebox
+meow_short_14_Bb4,capture:jukebox
+meow_short_14_D5,capture:jukebox
+meow_short_14_F5,capture:jukebox
+meow_short_15_Bb3,capture:jukebox
+meow_short_15_D4,capture:jukebox
+meow_short_15_F4,capture:jukebox
+miss_meow,capture:jukebox
+orch_hit_Bb,capture:jukebox
+rewind_1b,capture:jukebox
+riser_1b,capture:jukebox
+seal_bark,capture:jukebox
+spin_meow_a,capture:jukebox
+spin_meow_b,capture:jukebox
+miao_accent_06,capture:jukebox
+miao_accent_13,capture:jukebox
+miao_long_01,capture:jukebox
+miao_long_06,capture:jukebox
+miao_long_10,capture:jukebox
+miao_long_13,capture:jukebox
+miao_long_14,capture:jukebox
+miao_long_15,capture:jukebox
+miao_short_08,capture:jukebox
+miao_short_11,capture:jukebox
+miao_short_14,capture:jukebox
+miao_short_15,capture:jukebox
+无（只听谱子）,capture:studio_drums; capture:studio_drums; capture:studio_melody; capture:studio_melody
+kichiku_riff,capture:studio_drums; capture:studio_drums; capture:studio_melody; capture:studio_melody
+meow_drums_basic,capture:studio_drums; capture:studio_melody
+meow_drums_1,capture:studio_drums
+ 2 bars ,capture:studio_drums
+auto,capture:studio_drums; capture:studio_drums; capture:studio_melody; capture:studio_melody
+01,capture:studio_drums; capture:studio_melody
+06,capture:studio_drums; capture:studio_melody
+10,capture:studio_drums; capture:studio_melody
+13,capture:studio_drums; capture:studio_melody
+14,capture:studio_drums; capture:studio_melody
+15,capture:studio_drums; capture:studio_melody
+08,capture:studio_drums; capture:studio_melody
+11,capture:studio_drums; capture:studio_melody
+   New pattern (not saved yet),capture:studio_drums; capture:studio_melody
+cat_melody_1,capture:studio_melody
+ 4 bars ,capture:studio_melody
+demo_runner,capture:level_editor; capture:playtest; capture:playtest_result
+BPM,capture:level_editor; capture:playtest; capture:playtest_result
+Offset ms,capture:level_editor; capture:playtest; capture:playtest_result
+Beats,capture:level_editor; capture:playtest; capture:playtest_result
+1/4,capture:level_editor; capture:level_editor; capture:playtest; capture:playtest; capture:playtest_result; capture:playtest_result
+1/1,capture:level_editor; capture:playtest; capture:playtest_result
+1/2,capture:level_editor; capture:playtest; capture:playtest_result
+1/3,capture:level_editor; capture:playtest; capture:playtest_result
+1/6,capture:level_editor; capture:playtest; capture:playtest_result
+1/8,capture:level_editor; capture:playtest; capture:playtest_result
+Seed,capture:level_editor; capture:playtest; capture:playtest_result
+Spawn,capture:level_editor; capture:playtest; capture:playtest_result
+Goal,capture:level_editor; capture:playtest; capture:playtest_result
+Platform,capture:level_editor; capture:playtest; capture:playtest_result
+Spike,capture:level_editor; capture:playtest; capture:playtest_result
+Coin,capture:level_editor; capture:playtest; capture:playtest_result
+Cat,capture:level_editor; capture:playtest; capture:playtest_result
+HOLD %.1fs,draw/data definition
+HOLD FAILED,draw/data definition
+LOOK: OFF / HALFTONE / HATCH / FLAT / PRINT / Y2K / Y2K_JPEG,draw/data definition
+ORBIT / WARM UP,draw/data definition
+ORBIT / CHARGE UP,draw/data definition
+ORBIT / SUPERNOVA,draw/data definition
+RESULT %d%%,draw/data definition
+D / F / J / K,draw/data definition
+Kick / Snare / Hat / Blip,draw/data definition
+Spawn / Goal / Platform / Spike / Coin / Cat,draw/data definition
+Width / One_way / Move_beats / Move_y / On_beat / Value / Dance / Scale,draw/data definition
+always / on beat / off beat / bob / spin / hop,draw/data definition

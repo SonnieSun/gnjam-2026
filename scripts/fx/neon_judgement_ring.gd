@@ -48,22 +48,46 @@ static func draw_impact(ci: CanvasItem, center: Vector2, radius: float,
 	var t := clampf(age / 0.5, 0.0, 1.0)
 	var fade := 1.0 - smoothstep(0.12, 1.0, t)
 	var expansion := 1.0 - pow(1.0 - t, 3.0)
-	var ring_radius := radius + expansion * 48.0
+	var ring_radius := radius + expansion * 85.0
 	var white := Color(1.0, 1.0, 1.0, fade)
+	# 成功瞬间的白色能量裙边：四片旋转镰形弧由门框撑开。
+	# 中心留空，轮廓参照手绘断环与四向旋涡星芒。
+	var spin := expansion * 0.55
+	var blade_width := (18.0 + radius * 0.045) * (1.0 - t * 0.8)
+	for blade in 4:
+		var start_angle := TAU * blade / 4.0 + spin - 0.2
+		var shape := PackedVector2Array()
+		for j in 33:
+			var u := float(j) / 32.0
+			var a := start_angle + u * 1.18
+			var bulge := pow(sin(u * PI), 0.7)
+			shape.append(center + Vector2.from_angle(a) * (ring_radius + bulge * blade_width))
+		for j in range(32, -1, -1):
+			var u := float(j) / 32.0
+			var a := start_angle + u * 1.18
+			var bulge := pow(sin(u * PI), 0.7)
+			shape.append(center + Vector2.from_angle(a) * (ring_radius - bulge * blade_width * 0.25))
+		ci.draw_colored_polygon(shape, white)
+		ci.draw_arc(center, ring_radius + blade_width + 12.0, start_angle + 0.1,
+			start_angle + 0.85, 32, Color(1, 1, 1, fade * 0.65), 1.8, true)
+	# 命中的前 80ms 给出贴合门框的硬闪，不靠全屏闪白。
+	var snap := maxf(0.0, 1.0 - age / 0.08)
+	if snap > 0.0:
+		ci.draw_arc(center, radius, 0.0, TAU, 160, Color(1, 1, 1, snap), 18.0 * snap + 2.0, true)
 	# 不均匀的断续亮环：细线骨架上有几段粗亮的能量弧。
 	for i in 9:
 		var start := TAU * i / 9.0 + 0.07
 		var end := start + TAU / 9.0 - (0.035 if i % 3 == 0 else 0.012)
-		var width := (2.0 + float(i % 3) * 1.4) * (1.0 - t * 0.5)
+		var width := (3.0 + float(i % 3) * 2.0) * (1.0 - t * 0.5)
 		ci.draw_arc(center, ring_radius, start, end, 32, Color(1, 1, 1, fade * 0.08), width + 14.0, true)
 		ci.draw_arc(center, ring_radius, start, end, 32, Color(1, 1, 1, fade * 0.16), width + 6.0, true)
 		ci.draw_arc(center, ring_radius, start, end, 32, white, width, true)
 	# 五颗大小不同的四尖星，落在冲击环上；曲线内凹，尖端细长。
 	for i in 5:
-		var angle := [-2.42, -2.02, -0.24, 0.9, 2.55][i] as float
+		var angle := ([-2.42, -2.02, -0.24, 0.9, 2.55][i] as float) + spin * 0.5
 		var direction := Vector2.from_angle(angle)
 		var pos := center + direction * ring_radius
-		var star_size := [48.0, 34.0, 29.0, 45.0, 36.0][i] as float
+		var star_size := [76.0, 42.0, 59.0, 78.0, 56.0][i] as float
 		star_size *= (0.55 + sin(minf(t * 5.0, PI * 0.5)) * 0.45) * (1.0 - t * 0.55)
 		var points := PackedVector2Array()
 		for j in 64:
@@ -76,6 +100,16 @@ static func draw_impact(ci: CanvasItem, center: Vector2, radius: float,
 			halo.append(pos + (p - pos) * 1.18)
 		ci.draw_colored_polygon(halo, Color(1, 1, 1, fade * 0.1))
 		ci.draw_colored_polygon(points, white)
+	# 音游式碎片：成簇的菱形、短条在命中后径向飞散。
+	for i in 20:
+		var angle := TAU * i / 20.0 + 0.22
+		var direction := Vector2.from_angle(angle)
+		var pos := center + direction * (radius + expansion * (100.0 + float(i % 4) * 15.0))
+		var half_size := (3.0 + float(i % 3)) * (1.0 - t)
+		var diamond := PackedVector2Array()
+		for corner in 4:
+			diamond.append(pos + Vector2.from_angle(TAU * corner / 4.0 + angle + t * 3.0) * half_size)
+		ci.draw_colored_polygon(diamond, Color(1, 1, 1, fade * 0.9))
 	# 细长的放射光刺，主要位于光环外侧，不覆盖猫脸。
 	for i in 26:
 		var angle := TAU * i / 26.0 + sin(float(i * 17)) * 0.07

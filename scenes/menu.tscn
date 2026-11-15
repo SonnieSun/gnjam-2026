@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://dqrnfe8ay85dt"]
 
+[ext_resource type="FontFile" path="res://assets/fonts/candy_gem/CandyGem.fnt" id="99_candy"]
 [ext_resource type="Script" uid="uid://c4v6i6vhwxo5" path="res://scripts/menu.gd" id="1_mhnvy"]
 [ext_resource type="Texture2D" uid="uid://dwxv07k3hys6l" path="res://assets/mv/tex/face_closedw.png" id="2_4ytvr"]
 [ext_resource type="Texture2D" uid="uid://dcttmq43hxb08" path="res://assets/art/bg.png" id="2_g3eks"]
@@ -28,6 +29,47 @@ shader_parameter/glow_strength = 1.5000000223518
 
 [node name="Menu" type="Node2D" unique_id=1067574799]
 script = ExtResource("1_mhnvy")
+
+[node name="MenuActions" type="CanvasLayer" parent="."]
+
+[node name="Play" type="Button" parent="MenuActions"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -110.0
+offset_top = -106.0
+offset_right = 110.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 0
+focus_mode = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("99_candy")
+theme_override_font_sizes/font_size = 42
+text = "PLAY"
+flat = true
+
+[node name="Controls" type="Label" parent="MenuActions"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -42.0
+offset_right = 220.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.8, 0.74, 0.87, 1)
+theme_override_font_sizes/font_size = 16
+text = "LEFT / RIGHT  SELECT     SPACE / ENTER  PLAY"
+horizontal_alignment = 1
 
 [node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=1656689015]
 layer = -1
@@ -95,23 +137,25 @@ offset_left = -170.0
 offset_top = -330.0
 offset_right = 170.0
 offset_bottom = -260.0
-theme_override_colors/font_color = Color(0.16470589, 0.09411765, 0.2509804, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 52
 text = "DISCO"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sub" type="Label" parent="Disc/Sector1" unique_id=1579215854]
 offset_left = -170.0
 offset_top = -262.0
 offset_right = 170.0
 offset_bottom = -228.0
-theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 22
 text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sector2" type="Node2D" parent="Disc" unique_id=391505104]
 rotation = -1.2566371
 
@@ -149,23 +193,25 @@ offset_left = -170.0
 offset_top = -330.0
 offset_right = 170.0
 offset_bottom = -260.0
-theme_override_colors/font_color = Color(0.16470589, 0.09411765, 0.2509804, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 52
 text = "SPACESHIP"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sub" type="Label" parent="Disc/Sector2" unique_id=858030741]
 offset_left = -170.0
 offset_top = -262.0
 offset_right = 170.0
 offset_bottom = -228.0
-theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 22
 text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sector3" type="Node2D" parent="Disc" unique_id=800358559]
 rotation = -2.5132742
 
@@ -203,23 +249,25 @@ offset_left = -170.0
 offset_top = -330.0
 offset_right = 170.0
 offset_bottom = -260.0
-theme_override_colors/font_color = Color(0.16470589, 0.09411765, 0.2509804, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 52
 text = "ORBIT CAT"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sub" type="Label" parent="Disc/Sector3" unique_id=1329752640]
 offset_left = -170.0
 offset_top = -262.0
 offset_right = 170.0
 offset_bottom = -228.0
-theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 22
 text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sector4" type="Node2D" parent="Disc" unique_id=1425880206]
 rotation = -3.7699113
 
@@ -257,23 +305,25 @@ offset_left = -170.0
 offset_top = -330.0
 offset_right = 170.0
 offset_bottom = -260.0
-theme_override_colors/font_color = Color(0.16470589, 0.09411765, 0.2509804, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 52
 text = "TV WALL"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sub" type="Label" parent="Disc/Sector4" unique_id=1203546319]
 offset_left = -170.0
 offset_top = -262.0
 offset_right = 170.0
 offset_bottom = -228.0
-theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 22
 text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sector5" type="Node2D" parent="Disc" unique_id=1555872333]
 rotation = -5.0265484
 
@@ -311,23 +361,25 @@ offset_left = -170.0
 offset_top = -330.0
 offset_right = 170.0
 offset_bottom = -260.0
-theme_override_colors/font_color = Color(0.16470589, 0.09411765, 0.2509804, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 52
-text = "LEVEL 5"
+text = "WASHING MACHINE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Sub" type="Label" parent="Disc/Sector5" unique_id=716896967]
 offset_left = -170.0
 offset_top = -262.0
 offset_right = 170.0
 offset_bottom = -228.0
-theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 22
 text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+theme_override_fonts/font = ExtResource("99_candy")
 [node name="Hub" type="Polygon2D" parent="Disc" unique_id=1189254522]
 color = Color(0.96862745, 0.9529412, 0.9254902, 1)
 antialiased = true

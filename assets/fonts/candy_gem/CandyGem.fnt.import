@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://dygllycba4ugs"
+path="res://.godot/imported/CandyGem.fnt-2dab27e5a7da3862bd057e4051d095e9.fontdata"
+
+[deps]
+
+source_file="res://assets/fonts/candy_gem/CandyGem.fnt"
+dest_files=["res://.godot/imported/CandyGem.fnt-2dab27e5a7da3862bd057e4051d095e9.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

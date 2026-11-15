@@ -44,6 +44,7 @@ func _ready() -> void:
 	_disc.rotation = _turns * _step()
 	_left.pressed.connect(turn.bind(-1))
 	_right.pressed.connect(turn.bind(1))
+	$MenuActions/Play.pressed.connect(start)
 	_refresh()
 	_add_calibrate_hint()
 
