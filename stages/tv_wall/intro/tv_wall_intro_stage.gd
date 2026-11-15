@@ -231,9 +231,9 @@ func _build_env() -> void:
 
 func _build_machine() -> void:
 	_machine = MACHINE.instantiate() as Node3D
-	# 洗衣机场景里材质是挂在表面上的，挪到 material_override 上，漫画滤镜才认得
+	# GLB 按材质拆分网格；读取表面材质供漫画滤镜使用，保留机身和门框各自的颜色
 	for mi in _machine.find_children("*", "MeshInstance3D", true, false):
-		var m := (mi as MeshInstance3D).get_surface_override_material(0)
+		var m := (mi as MeshInstance3D).get_active_material(0)
 		if m:
 			(mi as MeshInstance3D).material_override = m
 	world.add_child(_machine)
