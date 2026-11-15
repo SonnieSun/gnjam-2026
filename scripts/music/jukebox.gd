@@ -197,7 +197,8 @@ func _songs() -> Array:
 		out.append({"name": "120 · " + st[0], "bpm": 120.0, "stems": stems})
 	for c in [["康康舞曲", "can_can", 8], ["土耳其进行曲", "turkish_march", 16], ["山魔王", "mountain_king", 4],
 			["欢乐颂", "ode_to_joy", 8], ["致爱丽丝", "fur_elise", 4],
-			["Your Best Friend", "your_best_friend", 8]]:   # Undertale，只给内部试玩
+			["Your Best Friend", "your_best_friend", 8],   # Undertale，只给内部试玩；下面三个是它的别的段落
+			["YBF · 前奏", "ybf_intro", 4], ["YBF · B 段", "ybf_b", 8], ["YBF · 结尾", "ybf_end", 4]]:
 		for version in 3:
 			out.append(_classic(c[0], c[1], c[2], version))
 	return out

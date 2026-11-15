@@ -23,7 +23,7 @@ GROUPS = {
     'style_chip': ['chip_L0_keys', 'chip_L3_hook', 'chip_L4_peak'],
     'style_jazz': ['J_L0_piano', 'J_L1_groove', 'J_L2_bass', 'J_L3_sax', 'J_L4_shout'],
     'cat_band': ['C_drums', 'C_stabs', 'C_lead', 'C_lead_flow', 'C_lead_kichiku', 'C_bass'],
-    'events': ['X_meow', 'X_seal', 'X_vox'],
+    'events': ['X_meow', 'X_seal', 'X_vox', 'X_fill'],
     'rhythm_variants': ['Rhalf_L1_groove', 'Rhalf_L2_bass', 'Rbreak_L1_groove', 'Rbreak_L2_bass', 'Rclub_L1_groove', 'Rclub_L2_bass'],
     'entertainer_leads': ['ent_fb_L3_lead', 'ent_cat_L3_lead', 'ent_A_L3_lead'],
 }
@@ -35,7 +35,8 @@ for group, names in GROUPS.items():
         assert len(src) == 1, name
         shutil.copy(src[0], os.path.join(D, 'scene1', group, os.path.basename(src[0]).replace('s1_disc_', 's1_')))
         n += 1
-for song in ('can_can', 'turkish_march', 'ode_to_joy', 'mountain_king', 'fur_elise', 'your_best_friend'):
+for song in ('can_can', 'turkish_march', 'ode_to_joy', 'mountain_king', 'fur_elise', 'your_best_friend',
+             'ybf_intro', 'ybf_b', 'ybf_end'):
     os.makedirs(os.path.join(D, 'classics', song), exist_ok=True)
     for f in glob.glob(os.path.join(L, 'classics', f'{song}_*b.wav')):
         if 'preview' not in f:

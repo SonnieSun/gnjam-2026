@@ -92,6 +92,17 @@
      "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav"
     }
    ]
+  },
+  {
+   "id": "fill",
+   "name": "过门",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "fill",
+     "file": "res://assets/audio/music/scene1/events/s1_X_fill_4b.wav"
+    }
+   ]
   }
  ],
  "sections": [
@@ -158,6 +169,9 @@
     0.45,
     0.7,
     0.9
+   ],
+   "transition_tiers": [
+    3
    ]
   }
  ]

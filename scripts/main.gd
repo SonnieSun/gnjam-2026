@@ -56,7 +56,7 @@ func _ready() -> void:
 		chart.first_beat_offset_sec = 0.0
 		section_entered.connect(Music.set_section)
 		gauge.changed.connect(func(v: int, m: int) -> void: Music.set_progress(float(v) / maxi(m, 1)))
-		gauge.filled.connect(func() -> void: Music.kiai(1, true))  # 积累条满了：切小关前这一小节鬼畜全开
+		gauge.filled.connect(Music.rise_to_bar)  # 积累条满了：一声上扬音效，正好在换小关的那条小节线上放完
 	else:
 		Music.clear()  # 这一关不用叠轨音乐：别让上一关的喵谱子跟过来
 	ComicStyle.set_by_name(Levels.look())

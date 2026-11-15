@@ -207,6 +207,11 @@ SETS[9] = {'title': 'TV WALL', 'use': True, 'tracks': SKELETON + style('chip', '
 # A song that is kichiku by nature (native=True) lets the kichiku lead take the tune from tier 2 on and
 # adds the cat lead on top at tier 5 instead.
 TIERS = (0.2, 0.45, 0.7, 0.9)
+# Going up into these tiers (1 = past the first line) takes a transition bar first: one bar of the fill
+# with only the beat under it, then the new tier comes in on the next bar line. 3 = when the cats take over.
+TRANSITION_TIERS = (3,)
+# the transition fill (make_fill.py): its lane is never cued, the music manager switches it on for a bar
+FILL = [t('fill', S1 + 'events/s1_X_fill_4b.wav', 'fill')]
 
 
 def pattern(id_, name, group, by_hit=False):
@@ -236,8 +241,8 @@ def scene1_song(title, key, folder, prefix):
              'cat_drums': 'cat_drums', 'cat_lead': 'cat_lead', 'cat_stabs': 'cat_stabs', 'cat_bass': 'cat_bass',
              'kichiku': 'cat_kichiku', 'hit': 'hit_riff'}
     return {'title': title, 'use': True,
-            'tracks': SKELETON + style(key, folder, prefix) + CATS + KIAI + [pattern('hit_riff', 'kichiku_riff', 'hit', by_hit=True)],
-            'sections': [{'title': title, 'rules': five_tiers(roles), 'tiers': TIERS}]}
+            'tracks': SKELETON + style(key, folder, prefix) + CATS + KIAI + FILL + [pattern('hit_riff', 'kichiku_riff', 'hit', by_hit=True)],
+            'sections': [{'title': title, 'rules': five_tiers(roles), 'tiers': TIERS, 'transition_tiers': TRANSITION_TIERS}]}
 
 
 SETS[7] = scene1_song('SPACESHIP', 'euro', 'style_eurobeat', 'A')
@@ -247,8 +252,8 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
                       t('cc_pluck', CC + 'L3_pluck_8b.wav', 'hook'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
                       t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'), t('cc_cat_flow', CC + 'L3_cat_flow_8b.wav', 'hook'),
                       t('cc_cat_stabs', CC + 'C_stabs_8b.wav', 'bed'), t('cc_cat_bass', CC + 'C_bass_8b.wav', 'bass'),
-                      t('cc_kichiku', CC + 'L3_cat_kichiku_8b.wav', 'kiai')],
-           'sections': [{'title': 'PIZZA CAT', 'tiers': TIERS, 'rules': five_tiers({
+                      t('cc_kichiku', CC + 'L3_cat_kichiku_8b.wav', 'kiai')] + FILL,
+           'sections': [{'title': 'PIZZA CAT', 'tiers': TIERS, 'transition_tiers': TRANSITION_TIERS, 'rules': five_tiers({
                'groove': 'groove', 'bass': 'cc_bass', 'keys': 'cc_keys', 'hook': 'cc_pluck', 'peak': 'cc_peak',
                'cat_drums': 'cc_cat_drums', 'cat_lead': 'cc_cat_flow', 'cat_stabs': 'cc_cat_stabs',
                'cat_bass': 'cc_cat_bass', 'kichiku': 'cc_kichiku'})}]}
@@ -260,7 +265,7 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
 NAMES = {5: 'level_5', 6: 'level_1_disco', 7: 'level_2_spaceship', 9: 'level_4_tv_wall'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('hit', '打中唱', 'hit'),
-         ('fx', '事件', 'event')]
+         ('fx', '事件', 'event'), ('fill', '过门', 'fill')]
 LANE_GAIN = {'kiai': -2.0}   # stacked on the cat lead, so a little under it
 
 
@@ -289,6 +294,8 @@ def to_lanes(s):
         out = {'title': sec['title'], 'cues': cues}
         if 'tiers' in sec:
             out['tiers'] = list(sec['tiers'])          # the tier lines (else every cue position is one)
+        if 'transition_tiers' in sec:
+            out['transition_tiers'] = list(sec['transition_tiers'])
         sections.append(out)
     return lanes, sections
 
