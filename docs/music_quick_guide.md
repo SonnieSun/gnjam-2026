@@ -22,6 +22,13 @@
 
 - **改音乐**：运行游戏后按 **Tab** 调出编辑面板，"音乐"页里每条轨道点一段 = 从当前进度起换成它；最上面的 Gauge 条就是积累条。改完点 Save。
   加轨道、加片段直接改 `levels/music/` 里的 json（原来的 Music Director 面板已经被这个面板取代）。
+- **写猫鼓 / 鬼畜猫旋律**：曲库里有一排"喵谱子"，点 ✎ 或"+ 新猫鼓 / + 新旋律"进全屏的喵谱子工作室
+  （也可以从 Tab 面板点 **Meow**，或打开 `scenes/tools/meow_studio.tscn` 按 F6）。PLAY 只放谱子本身；
+  "伴奏"里可以选曲库里任意一首配着听，并开关它的每条音轨。Save 存成 `levels/music/patterns/` 里的 json，存了就出现在曲库里；
+  插着 MIDI 键盘可以直接弹（播放时弹就是录）。
+- **把喵谱子用进一关**：游戏里按 Tab，Music 页每条轨道右边的 **+ meow** 选一个存好的谱子，它成为那条轨道的新片段，
+  再像别的片段一样点它；Save 才写进配置。不替换原来的片段。
+  有 MIDI 的话：`python tools/music_gen/midi_to_pattern.py 曲子.mid --name 名字`。
 - **只想听**：编辑面板最上面一排点 **Jukebox**，或者在 Godot 里打开 `scenes/tools/jukebox.tscn` 按 F6。
   点一首就放，下面的按钮开关每条音轨，最下面是所有音效。不改任何东西；Esc 回主菜单。
 - 配置格式和设计见 `docs/music_manager.md`，素材清单见 `assets/audio/README.md`。
