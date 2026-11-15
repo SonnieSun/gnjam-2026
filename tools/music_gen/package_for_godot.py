@@ -94,6 +94,8 @@ if len(sys.argv) > 3:
     for k in STEMS_120:
         add_loop(os.path.join(sys.argv[3], f's1_disc_{k}_4b.wav'), os.path.join(A, 'music', 'scene1_120', f's120_{k}_4b.wav'))
         n += 1
+if os.path.isdir(os.path.join(D, 'sky')):
+    n += copy_tree(os.path.join(D, 'sky'), os.path.join(A, 'music', 'sky'), loop=True)
 n += copy_tree(os.path.join(D, 'sfx'), os.path.join(A, 'sfx'), loop=False)
 n += copy_tree(os.path.join(D, 'meows'), os.path.join(A, 'meows'), loop=False)
 if os.path.isdir(os.path.join(D, 'meows_runtime')):       # the per-cat meows the game plays note by note

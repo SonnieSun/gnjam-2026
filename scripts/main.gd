@@ -44,6 +44,8 @@ static var run_score := 0
 static var run_possible := 0.0
 ## 现在是不是在一路连着玩（从第 1 关开始的）
 static var in_run := true
+## 两关之间：等玩家按一下才开始这一关
+var _waiting_to_start := false
 
 @onready var section_host: Node2D = $SectionHost
 @onready var fx_layer: Node2D = $FxLayer
@@ -105,7 +107,37 @@ func _ready() -> void:
 	# Esc 暂停转盘（暂停时也要能收键，所以挂一个不受暂停影响的层）
 	add_child(preload("res://scripts/pause_menu.gd").new())
 
-	start_from(start_section)
+	# 一路连着玩从上一关过来的（过门还在响）：先喘口气，玩家按一下才正式开始这一关
+	if Music.bridge_active():
+		_wait_for_start()
+	else:
+		start_from(start_section)
+
+
+## 两关之间的喘息：显示一句提示，等玩家按一下（打鼓的键 / 鼠标）再开始。画面上这时只有背景，
+## 想在这里放转场动画（黑幕、猫飞上天）就接在这段时间里；声音是 Music 的等待循环。
+func _wait_for_start() -> void:
+	_waiting_to_start = true
+	var layer := CanvasLayer.new()
+	layer.layer = 20
+	layer.name = "StartPrompt"
+	add_child(layer)
+	var label := Label.new()
+	label.text = "%s\n\nPRESS TO START" % Levels.title()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.add_theme_font_size_override("font_size", 40)
+	layer.add_child(label)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _waiting_to_start and event.is_action_pressed(Judge.HIT_ACTION):
+		_waiting_to_start = false
+		get_node("StartPrompt").queue_free()
+		get_viewport().set_input_as_handled()
+		Music.bridge_go(lead_in_beats * 60.0 / chart.bpm)  # 数拍子，正好数到第一拍
+		start_from(start_section)
 
 
 ## 从某个小关重新开始（成绩清零，音乐从头放）
@@ -213,6 +245,7 @@ func _clear_level() -> void:
 		run_possible += judge.possible
 		Levels.selected += 1
 		Conductor.stop()
+		Music.bridge_out()  # 过门：飞走的音效 + 等待的循环，一直响到下一关玩家按下开始
 		get_tree().change_scene_to_file.call_deferred(Levels.GAME_SCENE)
 		return
 	# 最终结算：一路连着玩的话把前面几关的成绩合进来

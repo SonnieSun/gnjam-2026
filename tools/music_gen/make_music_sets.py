@@ -300,27 +300,46 @@ SETS[6] = {'title': 'DISCO', 'use': True,
                'cat_drums': [[D[2], D[7]], [PLAZA_FEVER, D[8]]],
                'ev_meow': [[D[3], D[4]]], 'ev_seal': [[D[8], 1]]}}]}
 
-# --- the UFO level (level_4_abduction: the abduction, split off from the end of the disco level) -----
-# The player sings the cat up: the gauge (default 60, lines at 20 and 40) has three stages.
-#   LOCK    half-time beat and bass, nothing else: every hit sings one note of a rising scale
-#           (the 'ufo_rise' pattern, played by_hit), so playing well is what makes the tune climb
-#   RISE    + chords and meow drums, the hits keep singing
-#   FEVER   (inside the ship) transition bar, then the normal beat, the peak layer, the cat lead with
-#           the kichiku lead on top; the hits still sing
-SETS[10] = {'title': 'UFO', 'use': True,
+# --- the sky level (the UFO / abduction level, to become level 2) -----------------------------------
+# The cat is pulled up by the beam: through the clouds, into a storm with doom horns, then it suddenly
+# turns bright and holy and the Ode to Joy starts; in space the cats take the tune over and it ends in
+# FEVER on the way into the UFO. The dark half is in C minor, the light is C major (the Ode stems).
+# Lines in gauge progress (one section for now; when the level is built its stages get the real lines):
+#   start  CLOUDS   half-time beat, the low C drone, wind with clouds rushing past. Every hit sings one
+#                   note of a rising scale
+#   SKY[0] STORM    + the doom horns with thunder
+#   SKY[1] LIGHT    everything dark stops on the bar line: the 'holy hit', then the holy pad, the Ode's
+#                   chords and bass on the normal beat; now every hit sings the next note of the Ode to Joy
+#   SKY[2] SPACE    the tune plays by itself: the cats sing it, with meow drums
+#   SKY[3] FEVER    (into the UFO) transition bar, then the peak layer and the kichiku lead on top
+SKY = (0.25, 0.5, 0.7, 0.85)
+SK = M + 'sky/sky_'
+OJ = M + 'classics/ode_to_joy/ode_to_joy_'
+SETS[10] = {'title': 'SKY', 'use': True,
             'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
-                       t('half_bass', RV + 'Rhalf_L2_bass_4b.wav', 'bass'), SKELETON[1]]
-            + style('fb', 'style_futurebass', 'fb')[:1] + CATS[2:3] + style('fb', 'style_futurebass', 'fb')[2:]
-            + CATS[:1] + KIAI + [pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True)] + EVENTS[1:] + FILL,
-            'sections': [{'title': 'UFO', 'tiers': (1 / 3, 2 / 3), 'fever': (2 / 3, 1.0), 'rules': {
-                'half': [[0, 2 / 3]], 'groove': [[2 / 3, 1]], 'half_bass': [[0, 2 / 3]], 'bass': [[2 / 3, 1]],
-                'fb_keys': [[1 / 3, 1]], 'cat_drums': [[1 / 3, 1]], 'cat_lead': [[2 / 3, 1]], 'fb_peak': [[2 / 3, 1]],
-                'ufo_rise': [[0, 1]], 'ev_seal': [[0, 1 / 3]]}}]}
+                       t('drone', SK + 'drone_8b.wav', 'bass'), t('ode_bass', OJ + 'L2_bass_8b.wav', 'bass'),
+                       t('ode_keys', OJ + 'fb_L0_keys_8b.wav', 'bed'),
+                       t('ode_cats', OJ + 'L3_cat_flow_8b.wav', 'hook'),
+                       t('doom_horns', SK + 'doom_horns_8b.wav', 'peak'), t('holy_pad', SK + 'holy_pad_8b.wav', 'peak'),
+                       t('ode_cat_drums', OJ + 'C_drums_8b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_8b.wav', 'kiai'),
+                       pattern('ode_by_hit', 'ode_to_joy', 'hit', by_hit=True), pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
+                       t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_8b.wav', 'event')] + FILL,
+            'sections': [{'title': 'SKY', 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
+                'half': [[0, SKY[1]]], 'groove': [[SKY[1], 1]],
+                'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
+                'ode_keys': [[SKY[1], 1]],
+                'ode_cats': [[SKY[2], 1]],
+                'doom_horns': [[SKY[0], SKY[1]]], 'holy_pad': [[SKY[1], SKY[3]]],
+                'ode_cat_drums': [[SKY[2], 1]],
+                'ufo_rise': [[0, SKY[1]]], 'ode_by_hit': [[SKY[1], SKY[2]]],
+                'wind': [[0, SKY[2]]], 'ode_peak': [[SKY[3], 1]]}}]}
 
-# file = the level file it goes with (levels/<name>.tres). The levels were reordered several times:
-# now 1 DISCO (set 6), 2 TV WALL (set 9, its four sections are edited by hand: it is kept, not regenerated),
-# 3 SPACESHIP (set 7), 4 ABDUCTION = the UFO level (set 10), 5 PIZZA (set 5). Sets 1-4 and 8 are old and skipped.
-NAMES = {5: 'level_5', 6: 'level_1_disco', 7: 'level_3_spaceship', 9: 'level_2_tv_wall', 10: 'level_4_abduction'}
+# file = the level file it goes with (levels/<name>.tres -> levels/music/<name>.json). The level list was
+# reordered several times; now the menu has 1 DISCO (set 6), 2 TV WALL (set 9: its sections are edited by
+# hand, so it is kept and not regenerated) and 3 SPACESHIP (set 7). A name starting with '../' is written
+# relative to levels/music: the sky level (set 10) and PIZZA (set 5) are parked in levels/alternates/.
+NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
+         10: '../alternates/abduction_music', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('hit', '打中唱', 'hit'),
          ('fx', '事件', 'event'), ('fill', '过门', 'fill')]
@@ -356,6 +375,8 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
+        if 'tier_sfx' in sec:
+            out['tier_sfx'] = {str(k): v for k, v in sec['tier_sfx'].items()}
         sections.append(out)
     return lanes, sections
 

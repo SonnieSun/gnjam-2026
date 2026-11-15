@@ -1,5 +1,5 @@
 {
- "title": "UFO",
+ "title": "SKY",
  "bpm": 160,
  "use_in_game": true,
  "quantize_beats": 4,
@@ -25,12 +25,12 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "half_bass",
-     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L2_bass_4b.wav"
+     "id": "drone",
+     "file": "res://assets/audio/music/sky/sky_drone_8b.wav"
     },
     {
-     "id": "bass",
-     "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
+     "id": "ode_bass",
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L2_bass_8b.wav"
     }
    ]
   },
@@ -40,8 +40,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "fb_keys",
-     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L0_keys_4b.wav"
+     "id": "ode_keys",
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L0_keys_8b.wav"
     }
    ]
   },
@@ -51,8 +51,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "cat_lead",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
+     "id": "ode_cats",
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_flow_8b.wav"
     }
    ]
   },
@@ -62,8 +62,12 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "fb_peak",
-     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L4_peak_4b.wav"
+     "id": "doom_horns",
+     "file": "res://assets/audio/music/sky/sky_doom_horns_8b.wav"
+    },
+    {
+     "id": "holy_pad",
+     "file": "res://assets/audio/music/sky/sky_holy_pad_8b.wav"
     }
    ]
   },
@@ -73,8 +77,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "cat_drums",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+     "id": "ode_cat_drums",
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_C_drums_8b.wav"
     }
    ]
   },
@@ -84,8 +88,8 @@
    "gain_db": -2.0,
    "clips": [
     {
-     "id": "cat_kichiku",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_kichiku_4b.wav"
+     "id": "ode_kichiku",
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_kichiku_8b.wav"
     }
    ]
   },
@@ -94,6 +98,11 @@
    "name": "打中唱",
    "gain_db": 0.0,
    "clips": [
+    {
+     "id": "ode_by_hit",
+     "pattern": "res://levels/music/patterns/ode_to_joy.json",
+     "by_hit": true
+    },
     {
      "id": "ufo_rise",
      "pattern": "res://levels/music/patterns/ufo_rise.json",
@@ -107,8 +116,12 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "ev_seal",
-     "file": "res://assets/audio/music/scene1/events/s1_X_seal_4b.wav"
+     "id": "wind",
+     "file": "res://assets/audio/music/sky/sky_wind_8b.wav"
+    },
+    {
+     "id": "ode_peak",
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L4_peak_8b.wav"
     }
    ]
   },
@@ -126,7 +139,7 @@
  ],
  "sections": [
   {
-   "title": "UFO",
+   "title": "SKY",
    "cues": {
     "beat": [
      [
@@ -134,69 +147,95 @@
       "half"
      ],
      [
-      0.667,
+      0.5,
       "groove"
      ]
     ],
     "bass": [
      [
       0.0,
-      "half_bass"
+      "drone"
      ],
      [
-      0.667,
-      "bass"
+      0.5,
+      "ode_bass"
      ]
     ],
     "bed": [
      [
-      0.333,
-      "fb_keys"
+      0.5,
+      "ode_keys"
      ]
     ],
     "lead": [
      [
-      0.667,
-      "cat_lead"
+      0.7,
+      "ode_cats"
      ]
     ],
     "peak": [
      [
-      0.667,
-      "fb_peak"
+      0.25,
+      "doom_horns"
+     ],
+     [
+      0.5,
+      "holy_pad"
+     ],
+     [
+      0.85,
+      ""
      ]
     ],
     "meow": [
      [
-      0.333,
-      "cat_drums"
+      0.7,
+      "ode_cat_drums"
      ]
     ],
     "hit": [
      [
       0.0,
       "ufo_rise"
+     ],
+     [
+      0.5,
+      "ode_by_hit"
+     ],
+     [
+      0.7,
+      ""
      ]
     ],
     "fx": [
      [
       0.0,
-      "ev_seal"
+      "wind"
      ],
      [
-      0.333,
+      0.7,
       ""
+     ],
+     [
+      0.85,
+      "ode_peak"
      ]
     ]
    },
    "tiers": [
-    0.3333333333333333,
-    0.6666666666666666
+    0.25,
+    0.5,
+    0.7,
+    0.85
    ],
    "fever": [
-    0.6666666666666666,
+    0.85,
     1.0
-   ]
+   ],
+   "tier_sfx": {
+    "1": "none",
+    "2": "sky_holy_hit"
+   }
   }
  ]
 }

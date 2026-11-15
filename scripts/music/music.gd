@@ -83,6 +83,14 @@ var _fever_fill_done := false
 var _sfx: Array[AudioStreamPlayer] = []
 var _sfx_next := 0
 
+## 关与关之间的过门（一路连着玩）。Music 是自动加载，换场景不会被清掉，所以它能从上一关响到下一关：
+##   bridge_out()  上一关打完：一声"飞走"的音效，同时起一段等待的循环（风 + 心跳 + 一个低音）
+##   （换场景、加载；玩家看到下一关，喘口气）
+##   bridge_go()   玩家按了一下、下一关的预备拍开始：一小节数拍子（四声 mi），等待的循环在这一小节里淡出
+const BRIDGE_LOOP := "res://assets/audio/music/sky/bridge_wait_4b.wav"
+var _bridge: AudioStreamPlayer
+var _bridge_fade: Tween
+
 
 func _ready() -> void:
 	Conductor.beat.connect(_on_beat)
@@ -92,6 +100,8 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_sfx.append(p)
+	_bridge = AudioStreamPlayer.new()
+	add_child(_bridge)
 
 
 ## 第 level_index 个大关（0 起）的音乐配置：和大关文件同名（levels/level_1.tres -> levels/music/level_1.json）
@@ -235,6 +245,14 @@ func _wants_fill(t: int) -> bool:
 	return false
 
 
+## 升到这个小关的第 t 档（1 起）时放的专用音效（没写就是 ""）
+func _tier_sfx(t: int) -> String:
+	var secs: Array = data.get("sections", [])
+	if section < 0 or section >= secs.size():
+		return ""
+	return str(secs[section].get("tier_sfx", {}).get(str(t), ""))
+
+
 ## 这套配置开没开动态（升档过门、降档迟钝、乐句线切换、漏打压低、KIAI）
 func dynamics() -> bool:
 	return data.get("dynamics", true)
@@ -366,6 +384,35 @@ func kiai(bars := 4, now := false) -> void:
 func dip(beats := 1.0) -> void:
 	if stream != null and dynamics() and Conductor.playing:
 		_dip_until = Conductor.song_beat + beats
+
+
+## 上一关打完，要去下一关：飞走的音效 + 等待的循环（一直响到 bridge_go）
+func bridge_out() -> void:
+	if not ResourceLoader.exists(BRIDGE_LOOP):
+		return
+	if _bridge_fade:
+		_bridge_fade.kill()
+	play_sfx("sky_whoosh_up", -3.0)
+	_bridge.stream = load(BRIDGE_LOOP)
+	_bridge.volume_db = -5.0
+	_bridge.play()
+
+
+## 现在是不是在两关之间等着（过门在响）
+func bridge_active() -> bool:
+	return _bridge != null and _bridge.playing
+
+
+## 下一关正式开始（预备拍从现在起，seconds 秒后是第一拍）：数拍子，等待的循环淡出
+func bridge_go(seconds := 1.5) -> void:
+	if not bridge_active():
+		return
+	play_sfx("count_in", -4.0, seconds)
+	if _bridge_fade:
+		_bridge_fade.kill()
+	_bridge_fade = create_tween()
+	_bridge_fade.tween_property(_bridge, "volume_db", -40.0, seconds)
+	_bridge_fade.tween_callback(_bridge.stop)
 
 
 ## 放一个一次性音效（assets/audio/sfx/<name>.wav）。ends_in_sec > 0：变速，让它正好在这么多秒后放完。
@@ -504,7 +551,7 @@ func _apply_now(beat_index := -1) -> void:
 		return
 	# 升档：送一小节小 kiai（fever 里本来就开着，不用送）
 	if use_dynamics and beat_index >= 0 and not _quiet_tier_change and going_to > tier and not fever_now \
-			and not _force.has("kiai") and _first_clip("kiai") != "":
+			and not _force.has("kiai") and _first_clip("kiai") != "" and _tier_sfx(going_to) == "":
 		_force["kiai"] = [_first_clip("kiai"), float(beat_index) + base]
 	for lane in data.get("lanes", []):
 		var c := clip_at(section, lane.id, effective)
@@ -534,8 +581,12 @@ func _apply_now(beat_index := -1) -> void:
 	var new_tier := tier_of(effective, tier_lines(section))
 	if use_dynamics and Conductor.playing and not _quiet_tier_change and beat_index >= 0:
 		if new_tier > tier:
-			play_sfx("crash", -9.0)
-			play_sfx("catness_up", -6.0)
+			# 这一档有自己的音效（小关里的 "tier_sfx": {"2": "sky_holy_hit"}）就放它，不放通用的镲和喵，也不送小 kiai
+			if _tier_sfx(new_tier) != "":
+				play_sfx(_tier_sfx(new_tier), -2.0)
+			else:
+				play_sfx("crash", -9.0)
+				play_sfx("catness_up", -6.0)
 		elif new_tier < tier:
 			play_sfx("catness_down", -6.0)
 	if beat_index >= 0:
