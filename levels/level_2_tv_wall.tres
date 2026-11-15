@@ -31,6 +31,7 @@ gauge_events = PackedInt32Array(30)
 [sub_resource type="Resource" id="Section_slap_charge"]
 script = ExtResource("5_kfdwl")
 title = "SLAP / CHARGE"
+joins_previous = true
 scene = ExtResource("8_earth")
 beats_per_rev = 8.0
 bars = PackedStringArray("h.h.h.h.s.......", "h.h.h.h.s.......")
@@ -42,9 +43,10 @@ gauge_events = PackedInt32Array(15)
 [sub_resource type="Resource" id="Section_slap_power"]
 script = ExtResource("5_kfdwl")
 title = "SLAP / POWER"
+joins_previous = true
 scene = ExtResource("8_earth")
 beats_per_rev = 8.0
-bars = PackedStringArray("hhhhhhh.s.......", "hh.hhhh.s...k...")
+bars = PackedStringArray("hhhhhhh.s.......", "hh.hhhh.s.......")
 transition = 1
 gauge_max = 45
 use_gauge_events = true

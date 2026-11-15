@@ -50,6 +50,9 @@ extends CanvasLayer
 
 ## 积累条本体（main.gd 进游戏时填进来）：刻度要读它的分数线和已经触发了几条
 var gauge: Gauge
+## 几个小关共用一条积累条时（SectionDef.joins_previous）：现在这一段前面已经有多少分、每两段在哪交接（main.gd 填）
+var gauge_offset := 0
+var gauge_bounds := PackedInt32Array()
 
 var _gauge_tween: Tween
 var _gauge_marks: Control        # 叠在积累条上画刻度和涨跌闪光的一层
@@ -108,18 +111,33 @@ func _draw_gauge_marks() -> void:
 		_gauge_marks.draw_rect(Rect2(x0, 4.0, maxf(x1 - x0, 3.0), size.y - 8.0), Color(c, c.a * k * k))
 	if gauge == null:
 		return
+	# 两段交接的地方：和阶段线一样画，快到时也跟着拍子闪
+	for b in gauge_bounds:
+		var bx := size.x * b / top
+		var bc := gauge_tick_color
+		var bgrow := 0.0
+		var left := b - gauge_offset - gauge.value
+		if b <= gauge_offset:
+			bc = gauge_tick_done_color
+		elif b == gauge_offset + gauge.max_value and left <= gauge_tick_near:
+			var bnear := 1.0 - clampf(float(left) / maxf(gauge_tick_near, 1.0), 0.0, 1.0)
+			var bbeat := pow(1.0 - fposmod(Conductor.song_beat, 1.0), 2.0)
+			bc = gauge_tick_color.lerp(gauge_tick_near_color, 0.5 + 0.5 * bnear)
+			bc.a = lerpf(0.7, 1.0, bbeat)
+			bgrow = (3.0 + 6.0 * bnear) * (0.4 + 0.6 * bbeat)
+		_gauge_marks.draw_line(Vector2(bx, 3.0 - bgrow), Vector2(bx, size.y - 3.0 + bgrow), bc, 3.0 + bgrow * 0.25)
 	for i in gauge.events.size():
-		var at := gauge.events[i]
-		if at >= top:
+		var at := gauge.events[i] + gauge_offset
+		if at >= top or at in gauge_bounds:
 			continue  # 满条那条线就是条的尽头，不用画
 		var x := size.x * at / top
 		var c := gauge_tick_color
 		var grow := 0.0
 		if i < gauge.events_fired:
 			c = gauge_tick_done_color
-		elif i == gauge.events_fired and at - gauge.value <= gauge_tick_near:
+		elif i == gauge.events_fired and at - gauge_offset - gauge.value <= gauge_tick_near:
 			# 下一条线快到了：跟着拍子闪，越近越亮、伸得越长
-			var near := 1.0 - clampf(float(at - gauge.value) / maxf(gauge_tick_near, 1.0), 0.0, 1.0)
+			var near := 1.0 - clampf(float(at - gauge_offset - gauge.value) / maxf(gauge_tick_near, 1.0), 0.0, 1.0)
 			var beat := pow(1.0 - fposmod(Conductor.song_beat, 1.0), 2.0)
 			c = gauge_tick_color.lerp(gauge_tick_near_color, 0.5 + 0.5 * near)
 			c.a = lerpf(0.7, 1.0, beat)
