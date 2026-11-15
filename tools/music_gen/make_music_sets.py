@@ -210,6 +210,9 @@ TIERS = (0.2, 0.45, 0.7, 0.9)
 # Going up into these tiers (1 = past the first line) takes a transition bar first: one bar of the fill
 # with only the beat under it, then the new tier comes in on the next bar line. 3 = when the cats take over.
 TRANSITION_TIERS = (3,)
+# FEVER is placed by hand per section ("fever": [from, to] in gauge progress): in the template it is the top
+# tier; a level made by hand puts it where its big moment is (the disco level: on the plaza).
+FEVER = (TIERS[3], 1.0)
 # the transition fill (make_fill.py): its lane is never cued, the music manager switches it on for a bar
 FILL = [t('fill', S1 + 'events/s1_X_fill_4b.wav', 'fill')]
 
@@ -242,7 +245,8 @@ def scene1_song(title, key, folder, prefix):
              'kichiku': 'cat_kichiku', 'hit': 'hit_riff'}
     return {'title': title, 'use': True,
             'tracks': SKELETON + style(key, folder, prefix) + CATS + KIAI + FILL + [pattern('hit_riff', 'kichiku_riff', 'hit', by_hit=True)],
-            'sections': [{'title': title, 'rules': five_tiers(roles), 'tiers': TIERS, 'transition_tiers': TRANSITION_TIERS}]}
+            'sections': [{'title': title, 'rules': five_tiers(roles), 'tiers': TIERS, 'transition_tiers': TRANSITION_TIERS,
+                          'fever': FEVER}]}
 
 
 SETS[7] = scene1_song('SPACESHIP', 'euro', 'style_eurobeat', 'A')
@@ -253,7 +257,7 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
                       t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'), t('cc_cat_flow', CC + 'L3_cat_flow_8b.wav', 'hook'),
                       t('cc_cat_stabs', CC + 'C_stabs_8b.wav', 'bed'), t('cc_cat_bass', CC + 'C_bass_8b.wav', 'bass'),
                       t('cc_kichiku', CC + 'L3_cat_kichiku_8b.wav', 'kiai')] + FILL,
-           'sections': [{'title': 'PIZZA CAT', 'tiers': TIERS, 'transition_tiers': TRANSITION_TIERS, 'rules': five_tiers({
+           'sections': [{'title': 'PIZZA CAT', 'tiers': TIERS, 'transition_tiers': TRANSITION_TIERS, 'fever': FEVER, 'rules': five_tiers({
                'groove': 'groove', 'bass': 'cc_bass', 'keys': 'cc_keys', 'hook': 'cc_pluck', 'peak': 'cc_peak',
                'cat_drums': 'cc_cat_drums', 'cat_lead': 'cc_cat_flow', 'cat_stabs': 'cc_cat_stabs',
                'cat_bass': 'cc_cat_bass', 'kichiku': 'cc_kichiku'})}]}
@@ -296,6 +300,8 @@ def to_lanes(s):
             out['tiers'] = list(sec['tiers'])          # the tier lines (else every cue position is one)
         if 'transition_tiers' in sec:
             out['transition_tiers'] = list(sec['transition_tiers'])
+        if 'fever' in sec:
+            out['fever'] = list(sec['fever'])
         sections.append(out)
     return lanes, sections
 

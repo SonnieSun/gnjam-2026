@@ -151,11 +151,23 @@
      "file": "res://assets/audio/music/scene1_120/s120_X_seal_4b.wav"
     }
    ]
+  },
+  {
+   "id": "fill",
+   "name": "过门",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "fill",
+     "file": "res://assets/audio/music/scene1_120/s120_X_fill_4b.wav"
+    }
+   ]
   }
  ],
  "sections": [
   {
    "title": "DISCO",
+   "fever": [0.681, 0.83],
    "cues": {
     "beat": [
      [

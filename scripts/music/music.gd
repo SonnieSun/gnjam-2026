@@ -14,6 +14,11 @@ extends Node
 
 ## 一条轨道换了片段（在边界上生效的那一刻发出；clip 为 "" 表示静音）
 signal lane_switched(lane: String, clip: String)
+## 档位变了（在小节线上生效的那一刻）。new_tier = 这个小关里已经过了几条档位线，up = 是升档
+signal tier_changed(new_tier: int, up: bool)
+## FEVER 开始 / 结束（在小节线上）。画面、得分想跟着 fever 走就接这两个。
+signal fever_started
+signal fever_ended
 
 const MUSIC_DIR := "res://levels/music/"
 const SILENT_DB := -80.0
@@ -67,6 +72,14 @@ var _quiet_tier_change := true          # 刚换小关 / 刚开始：档位变�
 const FILL_LANE := "fill"
 const KEEP_IN_FILL := ["beat"]          # 过门小节里照常响的轨道
 var _fill_done_for := -1                # 已经为升到第几档放过过门小节
+
+## FEVER：手动设计的。每个小关的配置里写 "fever": [从, 到]（积累条进度 0-1，可以写好几段 [[a, b], [c, d]]），
+## 进度走进这一段就是 fever：先一小节过门（有过门轨道的话），然后鬼畜猫旋律（kiai 轨道）和"打中唱"（hit 轨道）
+## 全程开着，不管它们的切换点怎么写；走出这一段（往上走完，或者掉回去）就结束。
+## 另外每次升档会送一小节"小 kiai"（鬼畜猫旋律响一小节就退），fever 里面不重复送。
+const FEVER_LANES := ["kiai", "hit"]
+var fever := false
+var _fever_fill_done := false
 var _sfx: Array[AudioStreamPlayer] = []
 var _sfx_next := 0
 
@@ -122,6 +135,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_fill_done_for = -1
 	_quiet_tier_change = true
 	_dip_until = -1.0
+	_end_fever()
 	for key: String in meow.active.keys():
 		meow.set_active(key, {})
 	var streams: Array[AudioStream] = []
@@ -162,6 +176,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 
 ## 这一关不用叠轨音乐：把上一关留下的东西清掉（不然上一关的喵谱子、KIAI、打中唱会跟到这一关来）
 func clear() -> void:
+	_end_fever()
 	data = {}
 	stream = null
 	_patterns.clear()
@@ -181,6 +196,7 @@ func bpm() -> float:
 ## 进了第 index 个小关（进度从 0 开始），排到下一个边界生效
 func set_section(index: int) -> void:
 	var changed := index != section
+	_end_fever()
 	section = index
 	progress = 0.0
 	effective = 0.0
@@ -242,8 +258,51 @@ func tier_lines(section_index: int) -> PackedFloat32Array:
 				if at > 0.0 and not seen.has(at):
 					seen[at] = true
 					out.append(at)
+	for r: Array in fever_ranges(section_index):          # fever 的两头也是档位线（进出 fever 也有迟钝）
+		for v: float in r:
+			if v > 0.0 and v < 1.0 and not out.has(v):
+				out.append(v)
 	out.sort()
 	return out
+
+
+## 这个小关手动标的 fever 段：[[从, 到], ...]（没标就是空的）
+func fever_ranges(section_index: int) -> Array:
+	var secs: Array = data.get("sections", [])
+	if section_index < 0 or section_index >= secs.size():
+		return []
+	var raw: Array = secs[section_index].get("fever", [])
+	if raw.is_empty():
+		return []
+	if not raw[0] is Array:
+		raw = [raw]
+	var out: Array = []
+	for r: Array in raw:
+		out.append([snappedf(float(r[0]), 0.001), snappedf(float(r[1]), 0.001)])
+	return out
+
+
+## 进度 p 在不在这个小关的 fever 段里
+func in_fever(p: float) -> bool:
+	for r: Array in fever_ranges(section):
+		if p + 0.0001 >= r[0] and (p < r[1] or r[1] >= 0.999):
+			return true
+	return false
+
+
+func _end_fever() -> void:
+	_fever_fill_done = false
+	if fever:
+		fever = false
+		fever_ended.emit()
+
+
+## 某条轨道里的第一段（没有这条轨道或者它是空的，返回 ""）
+func _first_clip(lane_id: String) -> String:
+	for lane in data.get("lanes", []):
+		if lane.id == lane_id and not lane.get("clips", []).is_empty():
+			return lane.clips[0].id
+	return ""
 
 
 ## 进度 p 已经过了几条档位线
@@ -433,8 +492,22 @@ func _apply_now(beat_index := -1) -> void:
 		_pending = true
 		_next_beat = beat_index + base
 		return
+	# 要进 fever：也先一小节过门
+	var fever_now := use_dynamics and in_fever(effective)
+	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and _fill_clip() != "":
+		_fever_fill_done = true
+		_play_fill_bar()
+		_pending = true
+		_next_beat = beat_index + base
+		return
+	# 升档：送一小节小 kiai（fever 里本来就开着，不用送）
+	if use_dynamics and beat_index >= 0 and not _quiet_tier_change and going_to > tier and not fever_now \
+			and not _force.has("kiai") and _first_clip("kiai") != "":
+		_force["kiai"] = [_first_clip("kiai"), float(beat_index) + base]
 	for lane in data.get("lanes", []):
 		var c := clip_at(section, lane.id, effective)
+		if fever_now and c == "" and lane.id in FEVER_LANES and not lane.get("clips", []).is_empty():
+			c = lane.clips[0].id
 		if _force.has(lane.id):
 			c = _force[lane.id][0]
 		if muted.get(lane.id, false):
@@ -465,7 +538,19 @@ func _apply_now(beat_index := -1) -> void:
 			play_sfx("catness_down", -6.0)
 	if beat_index >= 0:
 		_quiet_tier_change = false
+	if new_tier != tier:
+		tier_changed.emit(new_tier, new_tier > tier)
 	tier = new_tier
+	if fever_now != fever:
+		fever = fever_now
+		if fever:
+			if Conductor.playing and beat_index >= 0:
+				play_sfx("crash", -7.0)
+				play_sfx("spin_meow_a", -5.0)
+			fever_started.emit()
+		else:
+			_fever_fill_done = false
+			fever_ended.emit()
 
 
 func _process(delta: float) -> void:

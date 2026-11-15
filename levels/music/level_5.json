@@ -172,6 +172,10 @@
    ],
    "transition_tiers": [
     3
+   ],
+   "fever": [
+    0.9,
+    1.0
    ]
   }
  ]
