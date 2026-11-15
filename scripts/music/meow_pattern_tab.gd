@@ -12,14 +12,15 @@ const EDIT_KEY := "__meow_edit__"
 ## 谱子加进了某条轨道（宿主拿它去保存这一关的音乐配置）
 signal added_to_lane(lane: String, clip: String)
 
-## 宿主告诉这里：现在有没有能加片段的轨道（比如选的是不属于哪一关的基础伴奏，就没有）
-var has_lanes: Callable = func() -> bool: return Music.stream != null
+## 宿主设成 true：只要在播就一直放这个谱子，不显示 Listen 开关（工作室里 PLAY 就是听谱子）
+var always_listen := false
 var pattern: Dictionary = {}
 var path := ""
 
 var _pick: OptionButton
 var _name: LineEdit
 var _lane: OptionButton
+var _level: OptionButton
 var _listen: CheckBox
 var _cat: OptionButton
 var _bars: Label
@@ -47,11 +48,19 @@ func _init() -> void:
 	row.add_child(_name)
 	_btn(row, "Save", _save, "Write this pattern to levels/music/patterns/<name>.json")
 	row.add_child(VSeparator.new())
+	var to := Label.new()
+	to.text = "Add to"
+	row.add_child(to)
+	_level = OptionButton.new()
+	_level.focus_mode = Control.FOCUS_NONE
+	_level.tooltip_text = "The level whose music gets this pattern as a new clip"
+	_level.item_selected.connect(_on_level)
+	row.add_child(_level)
 	_lane = OptionButton.new()
 	_lane.focus_mode = Control.FOCUS_NONE
-	_lane.tooltip_text = "The lane of this level's music the pattern goes into"
+	_lane.tooltip_text = "The lane of that level's music the pattern goes into"
 	row.add_child(_lane)
-	_btn(row, "Add to lane", _add_to_lane, "Save, then add this pattern to the lane as a new clip; pick it on the Music page like any other clip")
+	_btn(row, "Add", _add_to_lane, "Save, then add this pattern to that lane as a new clip and write the level's music file; in the game, pick it on the Tab panel's Music page")
 	row.add_child(VSeparator.new())
 	_listen = CheckBox.new()
 	_listen.text = "Listen"
@@ -92,6 +101,7 @@ func _ready() -> void:
 	_cat.add_item("auto")
 	for id: String in Music.meow.cats:
 		_cat.add_item(id)
+	_fill_levels()
 	_fill_lanes()
 	_fill_patterns()
 	if _pick.item_count > 0:
@@ -107,6 +117,11 @@ func _on_pick(i: int) -> void:
 
 func _on_listen(_on: bool) -> void:
 	_update_listen()
+
+
+func _on_level(_i: int) -> void:
+	_fill_lanes()
+	_pick_default_lane()
 
 
 func _on_cat(i: int) -> void:
@@ -139,12 +154,26 @@ func _fill_patterns() -> void:
 			_pick.selected = _pick.item_count - 1
 
 
+## 能加片段的大关：开了叠轨音乐的那些
+func _fill_levels() -> void:
+	_level.clear()
+	for i in Levels.count():
+		if Music.enabled_for(i):
+			var chart := load(Levels.paths()[i]) as SongChart
+			_level.add_item("%d %s" % [i + 1, chart.title if chart and chart.title != "" else "LEVEL"])
+			_level.set_item_metadata(_level.item_count - 1, i)
+			if i == Levels.selected:
+				_level.selected = _level.item_count - 1
+
+
 func _fill_lanes() -> void:
 	var keep := _lane.get_item_text(_lane.selected) if _lane.selected >= 0 else ""
 	_lane.clear()
 	var ids: Array[String] = []
-	for lane: Dictionary in Music.data.get("lanes", []):
-		ids.append(lane.id)
+	if _level.selected >= 0:
+		var level: int = _level.get_item_metadata(_level.selected)
+		for lane: Dictionary in Music.read(Music.path_for(level)).get("lanes", []):
+			ids.append(lane.id)
 	for extra: String in ["meow", "kiai"]:
 		if not ids.has(extra):
 			ids.append(extra)
@@ -214,7 +243,7 @@ func _show() -> void:
 	for i in _cat.item_count:
 		if _cat.get_item_text(i) == str(pattern.get("cat", "auto")):
 			_cat.selected = i
-	_lane.selected = maxi(0, _lane_index("meow" if _grid.is_drums() else "kiai"))
+	_pick_default_lane()
 	if _grid.is_drums():
 		_status.text = "   drums: left click = on / off, drag to paint"
 	else:
@@ -239,6 +268,12 @@ func _center() -> void:
 		mid = (lo + hi) / 2.0
 	var y: float = _grid.TOP + (_grid.HIGH - mid) * _grid.note_row_h
 	_scroll.scroll_vertical = int(maxf(0.0, y - _scroll.size.y / 2.0))
+
+
+## 猫鼓默认进 meow 轨道，旋律默认进 kiai 轨道
+func _pick_default_lane() -> void:
+	if not pattern.is_empty():
+		_lane.selected = maxi(0, _lane_index("meow" if _grid.is_drums() else "kiai"))
 
 
 func _lane_index(id: String) -> int:
@@ -296,7 +331,7 @@ func _nearest_cat(midi: float) -> String:
 
 
 func _update_listen() -> void:
-	var on := _listen.button_pressed and is_visible_in_tree() and not pattern.is_empty()
+	var on := (_listen.button_pressed or always_listen) and is_visible_in_tree() and not pattern.is_empty()
 	var empty: Dictionary = {}
 	Music.meow.set_active(EDIT_KEY, pattern if on else empty)
 
@@ -321,15 +356,21 @@ func _save() -> bool:
 
 
 func _add_to_lane() -> void:
-	if not has_lanes.call():
-		_status.text = "   Pick a level as the backing first: the basic backing has no lanes to add to"
+	if _level.selected < 0:
+		_status.text = "   No level uses layered music, so there is no lane to add to"
 		return
 	if not _save():
 		return
+	var level: int = _level.get_item_metadata(_level.selected)
 	var lane := _lane.get_item_text(_lane.selected)
-	var clip := Music.add_pattern_clip(lane, path)
+	var err := Music.add_pattern_clip_to_level(level, lane, path)
+	var clip := path.get_file().get_basename()
+	if err != OK:
+		_status.text = "   Could not write the level's music file: " + error_string(err)
+		return
 	_fill_lanes()
-	_status.text = "   Added '%s' to lane %s" % [clip, lane]
+	_status.text = "   Added '%s' to lane %s of %s: in the game, pick it on the Tab panel's Music page" % [
+			clip, lane, Music.path_for(level).get_file()]
 	added_to_lane.emit(lane, clip)
 
 
@@ -340,6 +381,12 @@ func say(text: String) -> void:
 
 func refresh_lanes() -> void:
 	_fill_lanes()
+
+
+func set_always_listen(on: bool) -> void:
+	always_listen = on
+	_listen.visible = not on
+	_update_listen()
 
 
 func refresh_listen() -> void:
@@ -357,8 +404,8 @@ func _process(_delta: float) -> void:
 	if not is_visible_in_tree() or pattern.is_empty():
 		return
 	var head := -1.0
-	if Conductor.playing and Conductor.song_beat >= 0.0:
-		head = Conductor.song_beat * 4.0
+	if Music.meow.running() and Music.meow.now_beat() >= 0.0:
+		head = Music.meow.now_beat() * 4.0
 	if head != _grid.playhead:
 		_grid.playhead = head
 		_grid.queue_redraw()

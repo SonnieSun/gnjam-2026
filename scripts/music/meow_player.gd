@@ -31,6 +31,11 @@ var _voice_end := PackedFloat32Array()     # 这个播放器到第几拍要停�
 var _next_voice := 0
 var _last_step := -1000000
 var _phrase_cat := {}                      # 旋律片段："名字/第几句" -> cat id
+## 曲库请工作室打开的东西：谱子文件的路径，或 "new:drums" / "new:melody"（工作室打开后读一次就清掉）
+var edit_request := ""
+## 自己走的时钟（喵谱子工作室里只听谱子、不放曲子的时候用）：> 0 = 按这个 BPM 自己走，不看 Conductor
+var free_bpm := 0.0
+var _free_t0 := 0
 
 
 func _ready() -> void:
@@ -85,16 +90,46 @@ func set_active(key: String, pattern: Dictionary, db := 0.0) -> void:
 		gain_db[key] = db
 
 
+## 不放曲子，按 bpm 自己走（从第 0 拍开始）
+func start_free(bpm: float) -> void:
+	free_bpm = maxf(bpm, 30.0)
+	_free_t0 = Time.get_ticks_usec()
+	_last_step = -1000000
+
+
+func stop_free() -> void:
+	free_bpm = 0.0
+	for i in _voices.size():
+		_voices[i].stop()
+		_voice_end[i] = -1.0
+
+
+## 现在有没有在走（自己走，或者跟着 Conductor）
+func running() -> bool:
+	return free_bpm > 0.0 or (Conductor.playing and Conductor.chart != null)
+
+
+## 现在第几拍
+func now_beat() -> float:
+	if free_bpm > 0.0:
+		return (Time.get_ticks_usec() - _free_t0) / 1000000.0 * free_bpm / 60.0
+	return Conductor.song_beat
+
+
+func _sec_per_beat() -> float:
+	return 60.0 / free_bpm if free_bpm > 0.0 else Conductor.sec_per_beat()
+
+
 ## 马上放一声（编辑器里点格子试听用）
 func preview(cat: String, midi: float, tick := false, seconds := 0.4) -> void:
-	_play(cat, midi, tick, 0.0, Conductor.song_beat + seconds / Conductor.sec_per_beat() if Conductor.playing else -1.0)
+	_play(cat, midi, tick, 0.0, now_beat() + seconds / _sec_per_beat() if running() else -1.0)
 
 
 func _process(_delta: float) -> void:
-	if not Conductor.playing or Conductor.chart == null:
+	if not running():
 		_last_step = -1000000
 		return
-	var beat := Conductor.song_beat
+	var beat := now_beat()
 	for i in _voices.size():
 		if _voice_end[i] >= 0.0 and beat >= _voice_end[i]:
 			_voices[i].stop()
@@ -103,7 +138,7 @@ func _process(_delta: float) -> void:
 		_last_step = -1000000
 		return
 	# Conductor 的时间是"现在听到的"，喇叭还要晚一个输出延迟才出声：提前这么多触发，喵才落在格子上
-	var ahead := AudioServer.get_output_latency() / Conductor.sec_per_beat()
+	var ahead := 0.0 if free_bpm > 0.0 else AudioServer.get_output_latency() / Conductor.sec_per_beat()
 	var step := floori((beat + ahead) * 4.0)
 	if step < 0:
 		return

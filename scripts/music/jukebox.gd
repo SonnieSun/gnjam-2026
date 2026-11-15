@@ -19,6 +19,12 @@ var _song_buttons: Array[Button] = []
 var _stems_box: HFlowContainer
 var _now: Label
 var _lcd: Label
+var _patterns_box: HFlowContainer
+var _pattern_on := {}                 # 正在跟着放的喵谱子：路径 -> true
+
+## 精简模式（喵谱子工作室里当伴奏用）：只有"这首曲子的音轨"那一排开关，曲子由外面选（play_song）。
+## 要在加进场景树之前设好。
+var compact := false
 
 
 func _ready() -> void:
@@ -29,6 +35,12 @@ func _ready() -> void:
 	_shot.max_polyphony = 4
 	add_child(_shot)
 	_songs_list = _songs()
+	if compact:
+		_now = Label.new()
+		_lcd = Label.new()
+		_stems_box = HFlowContainer.new()
+		add_child(_stems_box)
+		return
 
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
@@ -73,6 +85,11 @@ func _ready() -> void:
 	_title(body, "这首曲子的音轨（亮着 = 在响，点一下开 / 关）")
 	_stems_box = HFlowContainer.new()
 	body.add_child(_stems_box)
+
+	_title(body, "喵谱子（游戏里按格子触发的猫鼓 / 鬼畜猫旋律，可以改）：点名字 = 跟着曲子一起放，✎ = 打开编辑")
+	_patterns_box = HFlowContainer.new()
+	body.add_child(_patterns_box)
+	_fill_patterns()
 
 	_title(body, "一次性音效（点一下听一声）")
 	var shots := HFlowContainer.new()
@@ -187,7 +204,8 @@ func _songs() -> Array:
 
 # ---------------------------------------------------------------- playing
 
-func play_song(index: int) -> void:
+## autoplay = false：只把这首曲子和它的音轨开关准备好，先不放
+func play_song(index: int, autoplay := true) -> void:
 	_song = index
 	var song: Dictionary = _songs_list[index]
 	_stream = AudioStreamSynchronized.new()
@@ -213,7 +231,10 @@ func play_song(index: int) -> void:
 		b.toggled.connect(_on_stem.bind(i, b))
 		_stems_box.add_child(b)
 	_player.stream = _stream
-	_player.play()
+	if autoplay:
+		_player.play()
+		if not _pattern_on.is_empty():
+			Music.meow.start_free(song_bpm())      # 跟着放的喵谱子和曲子一起从头开始
 	_now.text = "正在放：" + song.name
 	for i in _song_buttons.size():
 		_song_buttons[i].theme_type_variation = "Hot" if i == index else ""
@@ -228,6 +249,80 @@ func stop_all() -> void:
 	_player.stop()
 	_shot.stop()
 	_lcd.text = "STOPPED"
+	if not compact:
+		Music.meow.stop_free()
+		var empty: Dictionary = {}
+		for path: String in _pattern_on:
+			Music.meow.set_active("jukebox:" + path, empty)
+		_pattern_on.clear()
+		if _patterns_box:
+			_fill_patterns()
+
+
+## 现在这首曲子的速度（没选曲子就是 160）
+func song_bpm() -> float:
+	return float(_songs_list[_song].get("bpm", BPM)) if _song >= 0 else BPM
+
+
+func song_names() -> PackedStringArray:
+	var out := PackedStringArray()
+	for s: Dictionary in _songs_list:
+		out.append(s.name)
+	return out
+
+
+# ---------------------------------------------------------------- 喵谱子
+
+func _fill_patterns() -> void:
+	for c in _patterns_box.get_children():
+		_patterns_box.remove_child(c)
+		c.queue_free()
+	for path in MeowPlayer.list_patterns():
+		var kind: String = MeowPlayer.read_pattern(path).get("kind", "")
+		var b := Button.new()
+		b.text = ("鼓 " if kind == "drums" else "旋律 ") + path.get_file().get_basename()
+		b.toggle_mode = true
+		b.button_pressed = _pattern_on.has(path)
+		b.theme_type_variation = "Hot" if _pattern_on.has(path) else ""
+		b.focus_mode = Control.FOCUS_NONE
+		b.toggled.connect(_on_pattern.bind(path, b))
+		_patterns_box.add_child(b)
+		var e := Button.new()
+		e.text = "✎"
+		e.tooltip_text = "在喵谱子工作室里打开编辑"
+		e.focus_mode = Control.FOCUS_NONE
+		e.pressed.connect(_edit.bind(path))
+		_patterns_box.add_child(e)
+	for kind: Array in [["+ 新猫鼓", "new:drums"], ["+ 新旋律", "new:melody"]]:
+		var n := Button.new()
+		n.text = kind[0]
+		n.focus_mode = Control.FOCUS_NONE
+		n.pressed.connect(_edit.bind(kind[1]))
+		_patterns_box.add_child(n)
+
+
+## 点了一个喵谱子：开 = 跟着现在的曲子一起放（没在放曲子就自己按 160 走），关 = 停
+func _on_pattern(on: bool, path: String, button: Button) -> void:
+	button.theme_type_variation = "Hot" if on else ""
+	var empty: Dictionary = {}
+	if on:
+		_pattern_on[path] = true
+		Music.meow.set_active("jukebox:" + path, MeowPlayer.read_pattern(path))
+		if _player.playing:
+			_player.play()                         # 曲子和谱子一起从头，才对得齐
+		Music.meow.start_free(song_bpm())
+	else:
+		_pattern_on.erase(path)
+		Music.meow.set_active("jukebox:" + path, empty)
+		if _pattern_on.is_empty() and not _player.playing:
+			Music.meow.stop_free()
+
+
+## 去喵谱子工作室编辑（request = 谱子路径，或 "new:drums" / "new:melody"）
+func _edit(request: String) -> void:
+	stop_all()
+	Music.meow.edit_request = request
+	get_tree().change_scene_to_file("res://scenes/tools/meow_studio.tscn")
 
 
 func is_playing() -> bool:
