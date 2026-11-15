@@ -208,7 +208,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True, 'tracks': SKELETON + style('chip', '
 # adds the cat lead on top at tier 5 instead.
 TIERS = (0.2, 0.45, 0.7, 0.9)
 # Going up into these tiers (1 = past the first line) takes a transition bar first: one bar of the fill
-# with only the beat under it, then the new tier comes in on the next bar line. 3 = when the cats take over.
+# with the beat, bass and chords still under it (only the tune steps out), then the new tier comes in on the next bar line. 3 = when the cats take over.
 TRANSITION_TIERS = (3,)
 # FEVER is placed by hand per section ("fever": [from, to] in gauge progress): in the template it is the top
 # tier; a level made by hand puts it where its big moment is (the disco level: on the plaza).
@@ -321,7 +321,7 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
 #   5 house opens  transition bar, then ASK / ANSWER on the club beat: the instrument asks, the cats answer
 #                  (the cutscene has no notes, so the gauge and the music stay here while it plays)
 #   6 dance floor  the cats sing the whole tune                     (the runway)
-#   7 grid       the band takes the tune back: the future-bass peak layer, the cats rest
+#   7 grid       (nothing new in the music: the cats keep singing; the stage changes, a crash and a bar of kichiku mark it)
 #   8 plaza      A CAPPELLA   the band stops, only the cat lead over the cat bass (no cat chords: too muddy)
 #   PLAZA_FEVER  transition bar, then FEVER: breakbeat, full band, cat lead with the kichiku lead on top
 # One tune at a time (2026-11-16), on every level: the peak layer never sounds under the cat lead, and in FEVER
@@ -344,8 +344,8 @@ SETS[6] = {'title': 'DISCO', 'use': True,
                'half_bass': [[0, D[2]], [D[8], 1]], 'bass': [[D[2], D[4]]], 'club_bass': [[D[4], D[7]]],
                'cat_bass': [[D[7], PLAZA_FEVER]], 'break_bass': [[PLAZA_FEVER, D[8]]],
                'disco_keys': [[D[0], D[4]]], 'fb_keys': [[D[4], D[7]], [PLAZA_FEVER, 1]], 
-               'disco_hook': [[D[1], D[4]]], 'ask_answer': [[D[4], D[5]]], 'cat_lead': [[D[5], D[6]], [D[7], PLAZA_FEVER]],
-               'disco_peak': [[D[2], D[4]]], 'fb_peak': [[D[6], D[7]]],
+               'disco_hook': [[D[1], D[4]]], 'ask_answer': [[D[4], D[5]]], 'cat_lead': [[D[5], PLAZA_FEVER]],
+               'disco_peak': [[D[2], D[4]]], 
                'cat_drums': [[D[2], D[7]], [PLAZA_FEVER, D[8]]],
                'ev_meow': [[D[3], D[4]]], 'ev_seal': [[D[8], 1]]}}]}
 
@@ -426,7 +426,7 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       CATS[0],
                       t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'), t('oj_kichiku', OJ + 'L3_cat_kichiku_8b.wav', 'kiai')] + FILL,
            'sections': [
-               {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (3,), 'fever': (T3[3], 1.0),
+               {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0),
                 'own': {'kiai': 'tm_kichiku', 'hit': ''}, 'rules': {
                    'half': [[0, T3[0]]], 'groove': [[T3[0], 1]], 'tm_keys': [[0, 1]], 'tm_bass': [[T3[0], 1]],
                    'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], 1]], 'tm_peak': [[T3[3], 1]],

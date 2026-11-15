@@ -70,7 +70,8 @@ var _quiet_tier_change := true          # 刚换小关 / 刚开始：档位变�
 ## 换小关时、以及升到小关里 "transition_tiers" 写的那几档时，先放一小节过门（只留节奏轨 + 过门，别的都停），
 ## 下一个小节线才换成新的。所有的切换都落在小节线上。
 const FILL_LANE := "fill"
-const KEEP_IN_FILL := ["beat"]          # 过门小节里照常响的轨道
+# 过门小节里照常响的轨道：鼓、低音、和声都不停，只有旋律、高潮层、猫叫让出一小节（全停听起来像音乐断了）
+const KEEP_IN_FILL := ["beat", "bass", "bed"]
 var _fill_done_for := -1                # 已经为升到第几档放过过门小节
 
 ## FEVER：手动设计的。每个小关的配置里写 "fever": [从, 到]（积累条进度 0-1，可以写好几段 [[a, b], [c, d]]），
@@ -371,7 +372,7 @@ func _fill_clip() -> String:
 	return ""
 
 
-## 现在起放过门：过门轨道响，节奏轨照旧，别的轨道都停（淡出一拍）。之后由下一次 _apply_now 换成该响的。
+## 现在起放过门：过门轨道响，鼓、低音、和声照旧，别的轨道都停（淡出一拍）。之后由下一次 _apply_now 换成该响的。
 func _play_fill_bar() -> void:
 	var fill := _fill_clip()
 	for lane in data.get("lanes", []):
