@@ -31,6 +31,12 @@ extends Node2D
 @export var beat_guides := true
 ## 虚线隔几拍一条（1 = 每拍，0.5 = 每半拍）
 @export_range(0.125, 4.0, 0.125) var guide_every := 1.0
+@export_group("视觉焦点")
+## 判定点周围留一块干净的区域，外面慢慢压暗（压在音符和辅助线下面），让眼睛集中在判定线上。0 = 不压暗
+@export_range(0.0, 0.8, 0.05) var focus_dim := 0.35
+## 判定圈半径的几倍以内保持原样、几倍以外压到最暗
+@export var focus_clear := 1.8
+@export var focus_soft := 4.5
 @export_group("编辑器预览")
 ## 勾上 = 预览自动循环播放；取消 = 停在下面指定的那一拍
 @export var preview_playing := true
@@ -118,14 +124,69 @@ func own_notes() -> Array[NoteData]:
 	return none
 
 
+# ---- 视觉焦点 ----
+
+var _focus_amount := 0.0  # 现在压暗了多少（0~1）：有音符要来时压暗，歇着的时候慢慢松开
+var _focus_tex: GradientTexture2D
+
+
+## 画视觉焦点：center / radius 是判定圈（关卡画音符之前先调这个，压暗就在音符下面）
+func draw_focus(ci: CanvasItem, center: Vector2, radius: float, squash := 1.0) -> void:
+	if focus_dim <= 0.0 or _focus_amount <= 0.01 or not draws_own_notes():
+		return
+	if _focus_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(0, 0, 0, 0))
+		g.set_color(1, Color(0, 0, 0, 1))
+		g.set_offset(0, clampf(focus_clear / maxf(focus_soft, 0.01), 0.0, 0.95))
+		g.set_offset(1, 1.0)
+		_focus_tex = GradientTexture2D.new()
+		_focus_tex.gradient = g
+		_focus_tex.fill = GradientTexture2D.FILL_RADIAL
+		_focus_tex.fill_from = Vector2(0.5, 0.5)
+		_focus_tex.fill_to = Vector2(1.0, 0.5)
+		_focus_tex.width = 256
+		_focus_tex.height = 256
+	var tint := Color(1, 1, 1, focus_dim * _focus_amount)
+	var half := Vector2(radius * focus_soft, radius * focus_soft * squash)
+	var inner := Rect2(center - half, half * 2.0)
+	ci.draw_texture_rect(_focus_tex, inner, false, tint)
+	# 渐变框外面的部分一样压暗
+	var big := maxf(screen_size().length(), 2000.0) * 2.0
+	var dark := Color(0, 0, 0, focus_dim * _focus_amount)
+	var l := center.x - big
+	var t := center.y - big
+	ci.draw_rect(Rect2(l, t, big * 2.0, inner.position.y - t), dark)
+	ci.draw_rect(Rect2(l, inner.end.y, big * 2.0, center.y + big - inner.end.y), dark)
+	ci.draw_rect(Rect2(l, inner.position.y, inner.position.x - l, inner.size.y), dark)
+	ci.draw_rect(Rect2(inner.end.x, inner.position.y, center.x + big - inner.end.x, inner.size.y), dark)
+
+
+func _update_focus(delta: float) -> void:
+	var want := 0.0
+	var now := song_beat()
+	for n in notes:
+		if n.judged:
+			continue
+		var ahead := n.beat - now
+		if ahead > 4.0:
+			break
+		if ahead > -0.2:
+			want = 1.0
+			break
+	_focus_amount = move_toward(_focus_amount, want, delta * (2.0 if want > _focus_amount else 0.6))
+
+
 # ---- 节拍辅助线（规则在 BeatGuides）----
 
 ## 现在要画的辅助线（见 BeatGuides.compute）。lead = 这一关音符提前几拍出现
-func guide_list(lead: float, note_list: Variant = null) -> Array[Dictionary]:
+## include_solid = false：音符本身就是缩圈的关卡用（实线会和音符完全重合，只画虚线）
+func guide_list(lead: float, note_list: Variant = null, include_solid := true) -> Array[Dictionary]:
 	if not beat_guides or not draws_own_notes():
 		var none: Array[Dictionary] = []
 		return none
-	return BeatGuides.compute(note_list if note_list != null else notes, song_beat(), lead, guide_every, guide_color)
+	return BeatGuides.compute(note_list if note_list != null else notes, song_beat(), lead, guide_every, guide_color,
+			Callable(), include_solid)
 
 
 ## 辅助线（和预亮）用什么颜色：和关卡画音符的颜色一致。关卡用自己的一套颜色时重写这个
@@ -144,8 +205,8 @@ func target_look(base := Color.WHITE, filter := Callable()) -> Dictionary:
 ## 音符不是缩圈的关卡也用这个：辅助线围着判定点收过来，提示「第几拍该按」。
 ## note_target(note) -> [圆心, 半径]：每个音符的判定点不一样时给（实线画在音符自己的判定点上）
 func draw_target_guides(ci: CanvasItem, center: Vector2, radius: float, travel: float, lead: float,
-		note_target := Callable(), squash := 1.0, scale_x := 1.0) -> void:
-	for g in guide_list(lead):
+		note_target := Callable(), squash := 1.0, scale_x := 1.0, include_solid := true) -> void:
+	for g in guide_list(lead, null, include_solid):
 		var l := BeatGuides.look(g)
 		var a := clampf(g.a, 0.0, 1.0)
 		if g.solid and note_target.is_valid():
@@ -314,8 +375,9 @@ static func result_color(result: int) -> Color:
 ## ci 是画在哪个节点上（一般传 self）；travel 是圆环最远离判定圈多少像素。
 func draw_approach_rings(ci: CanvasItem, center: Vector2, radius: float,
 		approach_beats: float, travel: float) -> void:
+	draw_focus(ci, center, radius)
 	draw_lit_target(ci, center, radius, Color(1, 1, 1, 0.9))
-	draw_target_guides(ci, center, radius, travel, approach_beats)
+	draw_target_guides(ci, center, radius, travel, approach_beats, Callable(), 1.0, 1.0, false)  # 音符就是缩圈，只补虚线
 	for n in own_notes():
 		if n.judged:
 			continue
@@ -368,6 +430,8 @@ func _process(delta: float) -> void:
 		_update_spin(local_beat(), spin_angle())
 	if note_style:
 		note_style.update_notes(song_beat(), notes)
+	if def:
+		_update_focus(delta)
 
 
 # ---- 编辑器预览 ----

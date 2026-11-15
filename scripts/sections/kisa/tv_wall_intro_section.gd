@@ -164,8 +164,9 @@ func _draw() -> void:
 	var center := hit_position()
 	var radius := maxf(hit_radius(), 1.0)
 	var travel := approach_travel_ratio * size.y
+	draw_focus(self, center, radius)
 	draw_lit_target(self, center, radius, Color(1.0, 0.62, 0.18, 0.95), 4.0)
-	draw_target_guides(self, center, radius, travel, approach_beats)
+	draw_target_guides(self, center, radius, travel, approach_beats, Callable(), 1.0, 1.0, false)  # 只补空拍的虚线
 	for n in own_notes():
 		var length := hold_beats(n)
 		var ahead := beats_until(n)

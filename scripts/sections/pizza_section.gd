@@ -169,6 +169,7 @@ func _draw_overlay() -> void:
 	if def == null or _phase == 2:
 		return
 	# 节拍辅助线：围着判定点收过来（3D 圆环各走各的路，这里给一个统一的「第几拍该按」）
+	draw_focus(_overlay, hit_position(), hit_radius())
 	draw_lit_target(_overlay, hit_position(), hit_radius(), Color(1, 1, 1, 0.5), 2.0)
 	draw_target_guides(_overlay, hit_position(), hit_radius(), 0.32 * screen_size().y, ring_beats)
 	if tap_age >= 0.15:

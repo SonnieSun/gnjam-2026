@@ -106,6 +106,7 @@ func _draw() -> void:
 				HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20)
 		return
 	# 节拍辅助线：行星各走各的路线，这里围着判定点（猫）收过来，提示「第几拍该按」
+	draw_focus(self, hit_position(), hit_radius())
 	draw_lit_target(self, hit_position(), hit_radius(), Color(1, 1, 1, 0.45), 2.0)
 	draw_target_guides(self, hit_position(), hit_radius(), 0.3 * size.y, approach_beats)
 	if _flash > 0.0:
