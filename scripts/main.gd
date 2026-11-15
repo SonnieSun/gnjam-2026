@@ -48,6 +48,10 @@ static var in_run := true
 var _waiting_to_start := false
 ## 两关之间的黑幕落下来用几秒（落完才换关）
 @export var curtain_seconds := 0.6
+## 两关之间的喘息：黑幕落走之后，下一关真正的场景先摆在那儿停几小节，然后自动开始数拍子
+## （这段时间里按一下就马上开始）。0 = 不自动开始，一直等玩家按
+@export var breath_bars := 1.0
+var _breath_preview: SpinSection
 ## 第 1 关的温馨开头：先假装是一个温馨的养猫小游戏（八音盒、粉粉的画面），玩家按一下，画风突变，正式开始。
 ## 只在一路连着玩、从第 1 关起步的时候出现，这次运行里只出现一次（重开不再放）。关掉 = 直接开始
 @export var cozy_intro := true
@@ -155,37 +159,65 @@ func _wait_for_start() -> void:
 				overlay.cat = c  # 有这只猫的 3D 舞台就做特写运镜
 		layer.add_child(overlay)
 		return
+	# 喘息不在黑幕里：下一关真正的场景先摆出来（不开始，没有音符），黑幕落走就看得到它；
+	# 分数、积累条先藏起来，画面上只有关卡名。停 breath_bars 小节后自动开始（或者玩家按一下马上开始）。
+	var def := chart.sections[clampi(start_section, 0, chart.sections.size() - 1)]
+	_breath_preview = def.scene.instantiate() as SpinSection
+	var none: Array[NoteData] = []
+	_breath_preview.setup(def, none)
+	section_host.add_child(_breath_preview)
+	_breath_preview.enter()
+	_breath_preview.self_modulate.a = 0.0  # 判定圈和辅助线先不画
+	hud.visible = false
 	var label := Label.new()
-	label.text = "%s\n\nPRESS TO START" % Levels.title()
+	label.text = Levels.title() if breath_bars > 0.0 else "%s\n\nPRESS TO START" % Levels.title()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.offset_bottom = -70.0
 	label.add_theme_font_size_override("font_size", 40)
+	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.85))
+	label.add_theme_constant_override("outline_size", 10)
 	layer.add_child(label)
 	# 提示字慢慢一明一暗；下一关的声音从等待的循环里透出来一点
 	var blink := label.create_tween().set_loops()
 	blink.tween_property(label, "modulate:a", 0.45, 0.75).set_trans(Tween.TRANS_SINE)
 	blink.tween_property(label, "modulate:a", 1.0, 0.75).set_trans(Tween.TRANS_SINE)
 	Music.bridge_tease()
+	if breath_bars > 0.0:
+		# 黑幕落走要 StageCurtain.LEAVE_SECONDS，之后再停 breath_bars 小节
+		var wait := StageCurtain.LEAVE_SECONDS + breath_bars * chart.beats_per_bar * 60.0 / chart.bpm
+		get_tree().create_timer(wait).timeout.connect(_begin_after_wait)
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _waiting_to_start and event.is_action_pressed(Judge.HIT_ACTION):
-		_waiting_to_start = false
-		get_node("StartPrompt").queue_free()
 		get_viewport().set_input_as_handled()
-		if _cozy:
-			_cozy = false
-			_cozy_preview.queue_free()
-			_cozy_preview = null
-			hud.visible = true
-			Music.cozy_snap(lead_in_beats * 60.0 / chart.bpm)  # 八音盒戛然而止，倒带倒到第一拍
-			_cozy_break()
-			start_from(start_section)
-			_cozy_spin(lead_in_beats * 60.0 / chart.bpm)
-			return
-		Music.bridge_go(lead_in_beats * 60.0 / chart.bpm)  # 数拍子，正好数到第一拍
+		_begin_after_wait()
+
+
+## 喘息结束（玩家按了一下，或者停够了）：正式开始这一关
+func _begin_after_wait() -> void:
+	if not _waiting_to_start:
+		return
+	_waiting_to_start = false
+	get_node("StartPrompt").queue_free()
+	if _cozy:
+		_cozy = false
+		_cozy_preview.queue_free()
+		_cozy_preview = null
+		hud.visible = true
+		Music.cozy_snap(lead_in_beats * 60.0 / chart.bpm)  # 八音盒戛然而止，倒带倒到第一拍
+		_cozy_break()
 		start_from(start_section)
+		_cozy_spin(lead_in_beats * 60.0 / chart.bpm)
+		return
+	if _breath_preview:
+		_breath_preview.queue_free()
+		_breath_preview = null
+		hud.visible = true
+	Music.bridge_go(lead_in_beats * 60.0 / chart.bpm)  # 数拍子，正好数到第一拍
+	start_from(start_section)
 
 
 ## 温馨开头被按破的那一下：闪一下（只闪一次、半透明的粉白，很快退掉；不做黑白频闪，太刺眼），

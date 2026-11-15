@@ -427,6 +427,9 @@ func _update_cat(dt: float) -> void:
 func _update_fly_in(beat: float, dt: float) -> void:
 	if _landed or fly_in_beats <= 0.0:
 		return
+	if not Conductor.playing:
+		_cat.visible = false  # 还没开始（两关之间的喘息）：洗衣机是空的，猫等开始了才飞进来
+		return
 	var t := (beat + fly_in_beats) / fly_in_beats
 	if t >= 1.0:
 		_landed = true
