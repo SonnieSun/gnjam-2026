@@ -176,6 +176,10 @@ func _process(_delta: float) -> void:
 			continue
 		if now - Conductor.beat_to_sec(n.beat) <= good_window_late:
 			break
+		if n.free:  # 不判定的音符：过了就过了，不算 Miss
+			n.judged = true
+			_next += 1
+			continue
 		_apply(n, NoteData.Result.MISS, good_window_late)
 
 
@@ -197,8 +201,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		var diff := now - Conductor.beat_to_sec(n.beat)
 		var r := _result_for(diff)
 		if r != NoteData.Result.NONE:
-			_apply(n, r, diff)
-			return
+			if n.free:
+				# 不判定的音符：这一下被它吃掉，当成空按交给关卡自己数（连按蓄力）
+				n.judged = true
+				while _next < notes.size() and notes[_next].judged:
+					_next += 1
+			else:
+				_apply(n, r, diff)
+				return
 	empty_hit.emit()
 
 
@@ -304,6 +314,14 @@ func _apply(n: NoteData, result: int, diff: float) -> void:
 	if result != NoteData.Result.MISS and combo in COMBO_MILESTONES:
 		combo_milestone.emit(combo)
 	stats_changed.emit()
+
+
+## 给一个“不判定的音符”（NoteData.free）补一个结果：连按这类玩法由关卡自己数按了几下，
+## 数完告诉这里算 Perfect / Good / Miss，照常计分、算连击、弹判定文字。
+func judge_free(n: NoteData, result: int) -> void:
+	if n == null or result == NoteData.Result.NONE:
+		return
+	_apply(n, result, 0.0)
 
 
 ## 按得分占满分的比例给评级（阈值见上面“计分”一栏）

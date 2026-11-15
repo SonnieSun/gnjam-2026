@@ -113,7 +113,8 @@ func fx(n: NoteData) -> Dictionary:
 	var lead := lead_of(n)
 	var since := beat - (n.beat - lead)  # 出现了多少拍
 	var p := pow(1.0 - fposmod(beat, 1.0), 3.0)
-	var c: Color = n.color if n.color.a > 0.0 else SOUND_COLORS[n.sound % SOUND_COLORS.size()]
+	var c: Color = n.color if n.color.a > 0.0 else (SpinSection.HOLD_COLOR if n.length > 0.0 \
+			else SOUND_COLORS[n.sound % SOUND_COLORS.size()])  # 长按没单独设颜色就是粉色
 	return {
 		"alpha": clampf(since / maxf(lead * 0.15, 0.01), 0.0, 1.0),
 		"scale": n.size * (1.0 + n.throb * p),

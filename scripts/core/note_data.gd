@@ -13,6 +13,10 @@ var section_index := 0
 var sound: int = Sound.KICK
 var judged := false
 var result: int = Result.NONE
+## 不判定的音符（连按 / 连打用）：到点没按不算 Miss，按到它也不计分、不算连击、不弹判定文字，
+## 只是把那一下按键“吃掉”（发 Judge.empty_hit），免得连按的时候误触后面真正要判的音符。
+## 由关卡脚本给自己的音符打上（见拍地球的蓄力连按）。
+var free := false
 
 # ---- 表现用的属性（谱面编辑器里按音符编辑，见 scripts/chart/chart_pattern.gd）----
 # 判定只看 beat 和 sound，这些都不影响判定；画音符的地方（NoteStyle 或关卡脚本）按需读。

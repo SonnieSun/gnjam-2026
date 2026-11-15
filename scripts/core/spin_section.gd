@@ -221,6 +221,24 @@ func draw_target_guides(ci: CanvasItem, center: Vector2, radius: float, travel: 
 			BeatGuides.draw_ring(ci, center, radius + a * travel, l, 3.0, squash, scale_x)
 
 
+## 缩圈音符的样子（第 1 关调好的手感，各关共用）：刚出现时半透明、细，越靠近判定圈越亮、越粗、略偏白，
+## 最后一段外面带一圈柔光。t = 远近（1 = 刚出现，0 = 到判定圈）。返回 {color, width, glow}
+func approach_ring_look(t: float, base: Color, far_alpha := 0.5, width_far := 8.0, width_near := 14.0) -> Dictionary:
+	var k := 1.0 - clampf(t, 0.0, 1.0)
+	var c := base.lerp(Color.WHITE, k * k * 0.3)
+	c.a = clampf((1.0 - t) / 0.15, 0.0, 1.0) * lerpf(far_alpha, 1.0, pow(k, 1.5))
+	return {"color": c, "width": lerpf(width_far, width_near, k), "glow": c.a * maxf(k - 0.5, 0.0) * 0.6}
+
+
+## 按 approach_ring_look 的样子画一圈（squash < 1 = 透视压扁的椭圆）
+func draw_approach_ring(ci: CanvasItem, center: Vector2, r: float, look: Dictionary, squash := 1.0, scale_x := 1.0) -> void:
+	var c: Color = look.color
+	if look.glow > 0.0:
+		BeatGuides.draw_ring(ci, center, r, {"color": Color(c, look.glow), "width": 1.0, "dashed": false},
+				look.width * 2.6, squash, scale_x)
+	BeatGuides.draw_ring(ci, center, r, {"color": c, "width": 1.0, "dashed": false}, look.width, squash, scale_x)
+
+
 ## 预亮的判定圈：平时的样子 + 音符快到时染色、变粗、外面一圈光晕
 func draw_lit_target(ci: CanvasItem, center: Vector2, radius: float, base := Color.WHITE, width := 3.0,
 		squash := 1.0, scale_x := 1.0) -> void:
@@ -354,6 +372,10 @@ func angle_until(note: NoteData) -> float:
 const SOUND_COLORS: Array[Color] = [
 	Color(1.0, 0.85, 0.2), Color(1.0, 0.45, 0.7), Color(0.4, 0.9, 1.0),
 ]
+
+
+## 所有长按音符统一用的颜色（亮粉，和画面里别的颜色拉开）：头圈、带子、辅助线、按住时的判定圈和进度圈
+const HOLD_COLOR := Color(1.0, 0.15, 0.7)
 
 
 func sound_color(note: NoteData) -> Color:

@@ -21,12 +21,23 @@ const MODEL := preload("res://assets/models/cat_earth_y2k/cat_earth_model.tscn")
 ## 原动画一轮 4 秒里挥两次爪，一次 2 秒；这是第一次碰到地球的时刻（秒）
 @export var contact_seconds := 29.0 / 24.0
 @export var swat_seconds := 2.0
-## 判定圈画在哪（模型自己的坐标，moumou 场景里的 Focus 标记）
+## 判定圈画在哪（模型自己的坐标，moumou 场景里的 Focus 标记）。下面 ring_on_earth 关掉时才用这个
 @export var focus := Vector3(1.11, 1.21, 0.56)
+## 判定圈套在地球上（圆心 = 地球球心）；earth_offset 是在球心基础上再挪多少（模型自己的坐标，米）
+@export var ring_on_earth := true
+@export var earth_offset := Vector3.ZERO
 
 @export_group("拍中反馈")
 ## 拍中时整套模型弹大多少（蓄力拍按力度放大）
 @export var hit_pulse := 0.04
+## 蓄力不够的那一下：镜头抖和模型弹只有平时的多少（软绵绵的一下）
+@export_range(0.0, 1.0) var weak_slap := 0.3
+
+@export_group("连按蓄力时越来越紧")
+## 蓄满时镜头推近多少（0.08 = 画面放大 8%）
+@export var charge_zoom := 0.08
+## 蓄满时镜头一直抖多少（米）
+@export var charge_shake := 0.025
 
 @export_group("猫 meme 纸片")
 ## 素材名字（写法见 MemeLib）
@@ -54,6 +65,11 @@ var _shake := 0.0
 var _pulse := 0.0
 var _cards: Array[Dictionary] = []  # {"node", "info", "from", "to", "t", "grow"}
 var _memes_on := false
+var _earth: Node3D
+var _earth_rest := Vector3.ZERO   # 地球球心（模型自己的坐标）：记爪子碰到地球那一刻的，圈不跟着动画晃
+var _earth_radius := 1.0          # 地球半径（米）
+var _charge := 0.0                # 关卡告诉的蓄力比例（0~1），平滑追过去
+var _charge_goal := 0.0
 
 
 func setup(host: Node2D) -> void:
@@ -107,6 +123,14 @@ func setup(host: Node2D) -> void:
 		if _clip != &"":
 			_animation.play(_clip)
 			_animation.pause()
+			_animation.seek(contact_seconds, true)
+	_earth = _model.find_child("EarthSpin", true, false) as Node3D
+	if _earth:
+		_earth_rest = _model.to_local(_earth.global_position)
+		var mesh := _earth.find_child("EarthMesh", true, false) as MeshInstance3D
+		if mesh and mesh.mesh:
+			var size := mesh.mesh.get_aabb().size * mesh.global_transform.basis.get_scale()
+			_earth_radius = maxf(size.x, maxf(size.y, size.z)) / 2.0
 
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -120,10 +144,10 @@ func setup(host: Node2D) -> void:
 
 # ---------------- 给关卡脚本的 ----------------
 
-## 拍中一次。power 0 = 轻拍，1 = 蓄满力的重拍
-func slap(power: float) -> void:
-	_shake = 1.0 + power * 2.0
-	_pulse = 1.0 + power * 2.0
+## 拍中一次。power 0 = 轻拍，1 = 蓄满力的重拍。weak = 蓄力不够：软绵绵的一下
+func slap(power: float, weak := false) -> void:
+	_shake = (1.0 + power * 2.0) * (weak_slap if weak else 1.0)
+	_pulse = (1.0 + power * 2.0) * (weak_slap if weak else 1.0)
 	var turn := deg_to_rad(meme_flip_degrees) * (1 + roundi(power * meme_extra_half_turns))
 	for c in _cards:
 		c.from = c.to
@@ -161,9 +185,23 @@ func show_memes() -> void:
 		_cards.append({"node": node, "info": info, "from": 0.0, "to": 0.0, "t": 1.0, "grow": -i * 0.12})
 
 
+## 连按蓄力蓄到多少了（1 = 达标；超过了还在按可以到 1.5）：镜头慢慢推近、越抖越厉害
+func set_charge(ratio: float) -> void:
+	_charge_goal = clampf(ratio, 0.0, 1.5)
+
+
 ## 判定圈中心在 2D 画面上的位置（相对屏幕中心）
 func focus_screen_pos() -> Vector2:
-	return camera.unproject_position(_model.to_global(focus)) - Vector2(world.size) / 2.0
+	var at := _earth_rest + earth_offset if ring_on_earth and _earth else focus
+	# 用摆好的镜头位置算，不跟着镜头抖
+	var rel := _model.to_global(at) - camera_position
+	var b := camera.global_transform.basis
+	return Vector2(rel.dot(b.x), -rel.dot(b.y)) * (world.size.y / camera_size)
+
+
+## 地球在画面上的半径（像素）
+func earth_screen_radius() -> float:
+	return _earth_radius * world.size.y / camera_size
 
 
 # ---------------- 每帧 ----------------
@@ -181,7 +219,11 @@ func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float) -
 	_pulse = maxf(_pulse - dt * 7.0, 0.0)
 	_model.scale = Vector3.ONE * (1.0 + hit_pulse * _pulse)
 	var ms := Time.get_ticks_msec() * 0.001
-	camera.position = camera_position + camera.global_transform.basis * Vector3(sin(ms * 90.0), cos(ms * 110.0), 0.0) * hit_shake * _shake
+	# 蓄力：推近得快、松掉得更快
+	_charge = lerpf(_charge, _charge_goal, 1.0 - exp(-dt * (10.0 if _charge_goal > _charge else 18.0)))
+	camera.size = camera_size * (1.0 - charge_zoom * _charge)
+	camera.position = camera_position + camera.global_transform.basis * Vector3(sin(ms * 90.0), cos(ms * 110.0), 0.0) \
+			* (hit_shake * _shake + charge_shake * _charge)
 	# 纸片：出场长大、翻转、播动图
 	for c in _cards:
 		var node: Sprite3D = c.node
