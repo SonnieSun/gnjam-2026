@@ -396,6 +396,28 @@ def merge_repeats(mel, octave):
     return out
 
 
+# Which meow sings the fast notes of a mi_attack tune, and from where in it: "<pool><index>@<seconds in>",
+# pool L = LONG, S = SHORT, A = ACCENT (e.g. "S2@0" = the third short cat from its start, "S1@0.22" = the
+# second short cat starting 0.22 s into its meow). Measured (share of energy at 2-8 kHz in the first 0.18 s,
+# pitched to C5-A5): S2 87 %, S3 77-91 %, S1 1-17 % from its start but 73 % from 0.22 s in, S0 0-24 %.
+# The "nearest short cat" picked S0, the dullest. CAT_QUICK in the environment overrides it for test renders.
+# "own+mi" = no other cat: the phrase's cat sings the fast notes as before and a kitten's 'mi' is layered on
+# the front of each of them (long notes get no 'mi'). "own+mi_all" = the same, and on the long notes too.
+QUICK = os.environ.get('CAT_QUICK', 'own+mi_all')   # picked by ear on 2026-11-16 out of six test renders (make_quick_tests.py)
+
+
+def quick_cat(mid, shorts):
+    if QUICK.startswith('own+mi'):   # the phrase's own cat keeps the fast notes; a kitten 'mi' is layered on each
+        return None, 0.0
+    pool = {'L': LONG, 'S': SHORT, 'A': ACCENT}[QUICK[0]]
+    name, _, off = QUICK.partition('@')
+    c = pool[int(name[1:])]
+    v = (c.mean(axis=1) if c.ndim == 2 else c)[int(float(off or 0) * SR):].copy()
+    f = min(t2n(0.003), len(v) // 4)
+    v[:f] *= np.linspace(0, 1, f)
+    return v, native(c)
+
+
 def cat_leads(song, bars, last_in_phrase):
     """The cat versions of a tune: {'L3_cat', 'L3_cat_flow', 'L3_cat_pool', 'L3_cat_classic',
     'L3_cat_kichiku'}. song needs 'melody' [(16th step, note name, length in 16ths)] and 'cat_octave'."""
@@ -464,12 +486,15 @@ def cat_leads(song, bars, last_in_phrase):
         # Fast notes (mi_attack tunes): the phrase's cat only gets through the dull front of its meow in an
         # eighth note ("mm", never reaching the bright part), so a run of them is a row of thuds. They go to a
         # short cat instead, whose meow starts on the 'mi': the one nearest the phrase, the same for the phrase.
-        quick, quick_own = min(shorts, key=lambda c: abs(c[1] - mid))
+        quick, quick_own = quick_cat(mid, shorts)
         for i in idx:
             s, p, ln = mel[i]
             m = nm(p) + song['cat_octave']
             end = i in last_in_phrase and ln >= 2
-            if bright and ln * STEP < 0.25:
+            if bright and ln * STEP < 0.25 and quick is None:
+                v = resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)
+                place(x, stereo(resonate(mi(m, 0.07), lift(m), 1.0)), t2n(s * STEP), 0.75)
+            elif bright and ln * STEP < 0.25:
                 v = resonate(hit(quick, quick_own, m, ln * STEP * 0.95), m, even=True)
             else:
                 v = resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)
@@ -481,6 +506,8 @@ def cat_leads(song, bars, last_in_phrase):
                 env = np.zeros(len(v))
                 env[:n0] = np.linspace(1.0, 0.0, n0) ** 0.7
                 v = v + bandpass(v, 2500, 7000) * env * 1.6
+                if QUICK == 'own+mi_all':
+                    place(x, stereo(resonate(mi(m, 0.07), lift(m), 1.0)), t2n(s * STEP), 0.75)
             place(x, stereo(v), t2n(s * STEP), 1.3 if end else 1.0)
             if end:
                 place(x, stereo(resonate(hit(sample, own, m - 12, ln * STEP * 0.95), m - 12, even=True)), t2n(s * STEP), 0.6)
