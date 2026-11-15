@@ -402,11 +402,13 @@ func cozy_intro() -> void:
 	_bridge.play()
 
 
-## 玩家按下去了，画风突变：八音盒戛然而止，一声 glitch 喵，一段倒带正好倒到第一拍（seconds 秒后）
+## 玩家按下去了，画风突变：八音盒戛然而止，一记镲 + 乐队重音 + glitch 喵，一段倒带正好倒到第一拍（seconds 秒后）
 func cozy_snap(seconds := 1.5) -> void:
 	if _bridge_fade:
 		_bridge_fade.kill()
 	_bridge.stop()
+	play_sfx("crash", -2.0)
+	play_sfx("orch_hit_Bb", -3.0)
 	play_sfx("glitch_meow", -3.0)
 	play_sfx("rewind_1b", -5.0, seconds)
 
