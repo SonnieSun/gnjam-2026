@@ -39,6 +39,12 @@ var _pattern_k := 0
 var _section_index := 0
 var _section_notes: Array[NoteData] = []
 
+# 长按（见 begin_hold）：开头那一下照常当普通音符判，按住的部分也在这里盯，用的是同一个判定时钟
+var _hold_note: NoteData
+var _hold_end := 0.0
+var _hold_grace := 0.0
+var _hold_done := Callable()
+
 
 func _ready() -> void:
 	ensure_input()
@@ -73,6 +79,7 @@ func reset(_from_beat: float = 0.0) -> void:
 	_next = 0
 	_pattern = []
 	_section_notes = []
+	cancel_hold()
 	stats_changed.emit()
 
 
@@ -82,6 +89,7 @@ func reset(_from_beat: float = 0.0) -> void:
 func begin_section(index: int, def: SectionDef, beats_per_bar: int,
 		start_beat: float, first_note_beat: float) -> Array[NoteData]:
 	_drop_notes_from(start_beat)
+	cancel_hold()
 	_section_index = index
 	_pattern = def.parse_notes(beats_per_bar)
 	_pattern_len = def.length_beats(beats_per_bar)
@@ -112,6 +120,7 @@ func _generate() -> void:
 		n.beat = beat
 		n.sound = d.sound
 		n.section_index = _section_index
+		n.apply_props(d)  # 谱面编辑器里给的表现属性（不影响判定）
 		notes.append(n)
 		_section_notes.append(n)
 		_pattern_k += 1
@@ -127,6 +136,9 @@ func _process(_delta: float) -> void:
 	if not Conductor.playing:
 		return
 	_generate()
+	# 长按按到了尾巴：成功
+	if _hold_note and Conductor.input_beat() >= _hold_end:
+		_finish_hold(true, _hold_end)
 	# 过了判定窗口还没按的算 Miss（可能有后面的音符已经先被判掉了，跳过它们）
 	var now := Conductor.input_time()
 	while _next < notes.size():
@@ -140,7 +152,15 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not Conductor.playing or not event.is_action_pressed(HIT_ACTION):
+	if not Conductor.playing:
+		return
+	if event.is_action_released(HIT_ACTION):
+		# 松手的那一刻（不是下一帧）按判定时钟算；绑了好几个键时，全松开才算松手
+		if _hold_note and not Input.is_action_pressed(HIT_ACTION):
+			var b := Conductor.input_beat()
+			_finish_hold(b >= _hold_end - _hold_grace, b)
+		return
+	if not event.is_action_pressed(HIT_ACTION):
 		return
 	var now := Conductor.input_time()
 	pressed.emit(_sound_for_press(now))
@@ -152,6 +172,39 @@ func _unhandled_input(event: InputEvent) -> void:
 			_apply(n, r, diff)
 			return
 	empty_hit.emit()
+
+
+## 开始盯一个长按：开头那一下已经判成打中之后，由关卡调用（一般在 note_judged 的处理里）。
+## 按住到 end_beat 算成功；在 end_beat - release_grace_beats 之后松手也算成功；更早松手算失败。
+## 结束时调 on_done(success: bool, release_beat: float)（按到尾巴时 release_beat = end_beat）。
+## 时间都用判定时钟（Conductor.input_beat()：扣了按键延迟，不含画面提前量），和按下的判定是同一把尺子。
+## 同一时间只盯一个长按；新的会顶掉旧的（旧的不回调）。换小关、重开时自动取消。
+func begin_hold(note: NoteData, end_beat: float, release_grace_beats: float, on_done: Callable) -> void:
+	_hold_note = note
+	_hold_end = end_beat
+	_hold_grace = release_grace_beats
+	_hold_done = on_done
+	if not Input.is_action_pressed(HIT_ACTION):
+		# 开头那一下判完就已经松开了（比如点得特别快）
+		_finish_hold(Conductor.input_beat() >= _hold_end - _hold_grace, Conductor.input_beat())
+
+
+## 不再盯现在这个长按（不回调）
+func cancel_hold() -> void:
+	_hold_note = null
+	_hold_done = Callable()
+
+
+## 正在盯的长按音符（没有就是 null）
+func holding() -> NoteData:
+	return _hold_note
+
+
+func _finish_hold(success: bool, release_beat: float) -> void:
+	var cb := _hold_done
+	cancel_hold()
+	if cb.is_valid():
+		cb.call(success, release_beat)
 
 
 ## 离 now 最近的音符（包括刚判过的上一个）。最近的是已经判过的 = 这一下算多按的，不去抢下一个音符。

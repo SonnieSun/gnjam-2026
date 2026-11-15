@@ -25,6 +25,8 @@ var cats := {}
 var active := {}
 ## 每个在播片段的音量（dB），名字同上
 var gain_db := {}
+## 由玩家打中来唱的片段（名字同上）：它们不自己按格子响，打中一下才唱出离现在最近的那个音（见 sing_hit）
+var by_hit := {}
 
 var _voices: Array[AudioStreamPlayer] = []
 var _voice_end := PackedFloat32Array()     # 这个播放器到第几拍要停（-1 = 放完为止）
@@ -78,16 +80,45 @@ static func list_patterns() -> PackedStringArray:
 
 
 ## 让一个谱子片段开始 / 停止跟着节拍播（pattern 为空 = 停）
-func set_active(key: String, pattern: Dictionary, db := 0.0) -> void:
+func set_active(key: String, pattern: Dictionary, db := 0.0, sung_by_hit := false) -> void:
 	for k in _phrase_cat.keys():
 		if k.begins_with(key + "/"):
 			_phrase_cat.erase(k)
+	by_hit.erase(key)
 	if pattern.is_empty():
 		active.erase(key)
 		gain_db.erase(key)
 	else:
 		active[key] = pattern
 		gain_db[key] = db
+		if sung_by_hit:
+			by_hit[key] = true
+
+
+## 玩家打中了一下：每个"由打中来唱"的旋律片段，唱出离现在最近的那个音（前后 3 格以内）。
+## 有片段唱了就返回 true（这时就不用再放普通的打中喵了）。
+func sing_hit() -> bool:
+	if by_hit.is_empty() or not running():
+		return false
+	var sang := false
+	var step := roundi(now_beat() * 4.0)
+	for key: String in by_hit:
+		var pattern: Dictionary = active.get(key, {})
+		var total: int = maxi(int(pattern.get("bars", 1)), 1) * STEPS_PER_BAR
+		var at := posmod(step, total)
+		var best: Array = []
+		var best_d := 4
+		for note: Array in pattern.get("notes", []):
+			var d := absi(int(note[0]) - at)
+			d = mini(d, total - d)                 # 谱子是循环的：末尾和开头挨着
+			if d < best_d:
+				best_d = d
+				best = note
+		if not best.is_empty():
+			_play(_cat_for(key, pattern, int(best[0])), float(best[1]), false,
+					gain_db.get(key, 0.0) + float(pattern.get("gain_db", 0.0)), now_beat() + float(best[2]) * 0.95 / 4.0)
+			sang = true
+	return sang
 
 
 ## 不放曲子，按 bpm 自己走（从第 0 拍开始）
@@ -146,7 +177,8 @@ func _process(_delta: float) -> void:
 		_last_step = step - 1
 	for s in range(_last_step + 1, step + 1):
 		for key: String in active:
-			_trigger(key, active[key], s)
+			if not by_hit.has(key):
+				_trigger(key, active[key], s)
 	_last_step = step
 
 

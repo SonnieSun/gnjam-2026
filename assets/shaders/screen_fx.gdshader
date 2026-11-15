@@ -24,6 +24,8 @@ uniform float rgb_split = 0.0;
 uniform float zoom = 1.0;
 // 反色的浓度
 uniform float invert : hint_range(0.0, 1.0) = 0.0;
+// 鲜艳程度：1 = 原样，大于 1 更鲜艳（连击高了），小于 1 褪色（连击断了的一瞬间）
+uniform float saturation = 1.0;
 // 白闪（切换镜头的一瞬间）
 uniform float flash = 0.0;
 // 格子之间的缝，占一格的比例
@@ -72,5 +74,6 @@ void fragment() {
 		col = mix(col, sample_rgb(local * kaleido_zoom / vec2(aspect, 1.0) + 0.5), kaleido);
 	}
 	col = mix(col, 1.0 - col, invert);
+	col = max(mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, saturation), vec3(0.0));
 	COLOR = vec4(col + flash, 1.0);
 }

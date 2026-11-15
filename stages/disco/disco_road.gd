@@ -171,6 +171,15 @@ var _fruit_light: OmniLight3D
 var _plaza_cats: Array[Dictionary] = []  # {holder: Node3D, sprite: Sprite3D, h: 高度, phase: 错开的拍数, frames: 帧数}
 var _plaza_slots := PackedVector3Array()  # 观众站位（按出现的先后），第一次用到时排好
 var _ball_scale := 1.0
+## 节拍辅助线（路上滑行那段）：横在路面上的线，在每一拍水果会飞到的位置。关卡脚本按自己的设置填
+var beat_guides := true
+var guide_every := 1.0
+var _guides: BeatGuideStrips
+## 路面白圈的半径（米）
+var guide_ring_radius := 1.9
+## 判定圈：猫脚底的绿圈（和水果底下的白圈一样大），水果的白圈滑到和它重合的那一拍按
+var judge_ring_color := Color(0.3, 1.0, 0.4)
+var _judge_ring: BeatGuideStrips
 
 
 func setup(cat: KisaSpinCat3D, stage: KisaDiscoStage) -> void:
@@ -428,6 +437,7 @@ func update(beat: float, notes: Array[NoteData]) -> void:
 			if _travel > 140.0:
 				_room.visible = false
 		_update_fruits(beat, notes)
+		_update_guides(beat, notes)
 		_update_cat(beat, notes, delta)
 		_update_side_balls(beat)
 
@@ -508,6 +518,66 @@ func _input(event: InputEvent) -> void:
 		_press = 1.0
 
 
+## 节拍辅助线（规则见 BeatGuides）：路面上的白圈，和水果同一套远近。
+##   要按的拍子：每个水果正下方一个白色实线圈，越近越亮越粗；
+##   不用按的拍子：一个空着的白色虚线圈，摆在「后面最近那个水果」的那条道上，
+##   所以一排空拍会和后面要来的水果竖着对齐，看得出下一个水果从哪条道来。
+func _update_guides(beat: float, notes: Array[NoteData]) -> void:
+	if _guides == null:
+		_guides = BeatGuideStrips.new()
+		_cat.world.add_child(_guides)
+	_guides.begin()
+	if beat_guides and phase == Phase.RUN:
+		var fruit_notes: Array[NoteData] = []
+		for n in notes:
+			if uses_fruit(n) and not n.judged:
+				fruit_notes.append(n)
+		for g in BeatGuides.compute(fruit_notes, beat, fruit_lead_beats, guide_every,
+				func(_n: NoteData) -> Color: return Color.WHITE):
+			if not g.solid and g.beat >= _fruit_until:
+				continue  # 到了圆台就换回缩圈的辅助线
+			var z := -clampf(g.a, -0.1, 1.0) * fruit_lead_beats * units_per_beat
+			var l := BeatGuides.look(g)
+			if g.solid:
+				for n: NoteData in g.notes:
+					_guides.circle(Vector3(_lane_of(n), FLOOR_Y + 0.06, z), guide_ring_radius, l, 0.22)
+			else:
+				_guides.circle(Vector3(_next_lane_x(fruit_notes, g.beat), FLOOR_Y + 0.06, z), guide_ring_radius, l, 0.22)
+	_guides.finish()
+	_update_judge_ring(beat, notes)
+
+
+## 猫脚底的绿色判定圈：跟着猫换道，就在水果到猫身上的那个位置（z = 0），大小和水果的白圈一样，
+## 所以水果的白圈滑过来和它重合时就是该按的时候。下一个水果不到一拍就到时变粗变亮。
+func _update_judge_ring(beat: float, notes: Array[NoteData]) -> void:
+	if _judge_ring == null:
+		_judge_ring = BeatGuideStrips.new()
+		_cat.world.add_child(_judge_ring)
+	_judge_ring.begin()
+	if beat_guides and phase == Phase.RUN:
+		var fruit_notes: Array[NoteData] = []
+		for n in notes:
+			if uses_fruit(n):
+				fruit_notes.append(n)
+		var k: float = BeatGuides.anticipation(fruit_notes, beat).k
+		var c := judge_ring_color.lerp(Color.WHITE, k * 0.3)
+		c.a = 0.85 + 0.15 * k
+		var x := _cat.pose_position.x
+		_judge_ring.circle(Vector3(x, FLOOR_Y + 0.08, 0.0), guide_ring_radius,
+				{"color": c, "width": 1.0 + k * 1.2, "dashed": false}, 0.28)
+	_judge_ring.finish()
+
+
+## 空拍的圈摆在哪条道上：beat 之后最近的那个水果的道（后面没水果了就用前面最近的）
+func _next_lane_x(fruit_notes: Array[NoteData], b: float) -> float:
+	var prev := 0.0
+	for n in fruit_notes:
+		if n.beat > b + 0.001:
+			return _lane_of(n)
+		prev = _lane_of(n)
+	return prev
+
+
 func _update_fruits(beat: float, notes: Array[NoteData]) -> void:
 	_press = maxf(_press - get_process_delta_time() / maxf(fruit_press_seconds, 0.01), 0.0)
 	for n in notes:
@@ -525,9 +595,12 @@ func _update_fruits(beat: float, notes: Array[NoteData]) -> void:
 		# 跟着拍子动：每拍落地一次（整拍在最低点），左右两拍歪一个来回。发光和胀缩由水果身上的 BeatGlow 管
 		fruit.position = Vector3(_lane_of(n), fruit_height + absf(sin(beat * PI)) * fruit_beat_hop, -ahead * units_per_beat)
 		fruit.rotation = Vector3(0.0, beat * 1.5 + n.beat, sin(beat * PI) * deg_to_rad(fruit_beat_sway_degrees))
-	# 没打中、已经飞到身后的收掉
+	# 没打中、已经飞到身后的收掉；音符被撤掉了（关卡歇一会儿时）的水果也收掉，不让它空飞过来
+	var current := {}
+	for n in notes:
+		current[n] = true
 	for n: NoteData in _fruits.keys():
-		if n.beat - beat < -1.5:
+		if n.beat - beat < -1.5 or not current.has(n):
 			(_fruits[n] as Node3D).queue_free()
 			_fruits.erase(n)
 

@@ -29,6 +29,8 @@ func _ready() -> void:
 	if _stage == null:
 		_stage = AbductionStage.new()
 		add_child(_stage)
+	_stage.beat_guides = beat_guides and draws_own_notes()
+	_stage.guide_every = guide_every
 
 
 func hit_position(_note: NoteData = null) -> Vector2:
@@ -42,7 +44,7 @@ func hit_radius() -> float:
 func _update_spin(_local_beat: float, _angle: float) -> void:
 	center_on_screen()
 	if _stage:
-		_stage.update(song_beat(), notes, approach_beats)
+		_stage.update(song_beat(), own_notes(), approach_beats)
 		if autoplay:
 			_autoplay()
 	_flash = maxf(_flash - get_process_delta_time() * 2.5, 0.0)

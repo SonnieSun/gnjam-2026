@@ -3,7 +3,8 @@ extends SpinSection
 ## 电视墙关开场：画面中间一台洗衣机，圆圈收到门框上时按键。
 ## 单点：舱门里的猫脸原地转一小段。长按时猫脸一直转、越转越快。长按（谱面里音符后面接 "="）：按住到尾巴才算成，中途松手变灰失败、不能补按。
 ## 每完整按完一次长按推进一步：前 3 次镜头拉远，之后每次洗衣机发电、亮两台电视，直到全部亮起（见 TvWallIntroStage）。
-## 判定用框架的 Judge（不改）：长按的开头由 Judge 当普通音符判，按住的部分由这里自己盯（和迪斯科关同一种写法）。
+## 判定用框架的 Judge：长按的开头由 Judge 当普通音符判，按住的部分交给 Judge.begin_hold 盯
+## （松手时间和按下用同一个判定时钟，和迪斯科关同一种写法）。
 ## 3D 画面和可调参数都在 Stage 节点里。编辑器预览里不跑 3D，只显示一行说明。
 
 ## 圆圈提前几拍出现
@@ -92,8 +93,13 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 			_failed[note] = true
 		return
 	if is_hold:
+		var j := main_judge()
+		if j == null:
+			_stage.tap()
+			return
 		_holding = note
 		_stage.hold_begin()
+		j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
 	else:
 		_stage.tap()
 
@@ -115,32 +121,20 @@ func hold_beats(n: NoteData) -> float:
 func _parse_holds() -> void:
 	var bpb: int = Conductor.chart.beats_per_bar
 	_pattern_len = def.length_beats(bpb)
+	_hold_lens = def.hold_lengths(bpb)  # 老鼓谱的 "=" 或谱面编辑器里的长按
 	_hold_lens[-1] = 0.0  # 占个位，表示已经找过了
-	for bar_i in def.bars.size():
-		var s := def.bars[bar_i]
-		var cell := float(bpb) / maxi(s.length(), 1)
-		var i := 0
-		while i < s.length():
-			var run := 0
-			while i + 1 + run < s.length() and s[i + 1 + run] == "=":
-				run += 1
-			if run > 0 and SectionDef._char_to_sound(s[i]) >= 0:
-				_hold_lens[roundi((bar_i * bpb + i * cell) * 1000.0)] = run * cell
-			i += 1 + run
 
 
-## 盯着正在进行的长按：按到尾巴算成；提前松手算失败
+## 正在按住：只更新画面上的进度（画面时间）。按到尾巴 / 松手由 Judge 按判定时钟判，结束时回调 _on_hold_done
 func _update_hold() -> void:
 	var length := hold_beats(_holding)
-	var end := _holding.beat + length
-	var now := song_beat()
-	if now >= end:
-		_finish_hold(true)
-		return
-	if not Input.is_action_pressed(Judge.HIT_ACTION):
-		_finish_hold(now >= end - hold_release_grace)
-		return
+	var now := minf(song_beat(), _holding.beat + length)
 	_stage.hold_update((now - _holding.beat) / maxf(length, 0.001), (now - _holding.beat) * Conductor.sec_per_beat())
+
+
+func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:
+	if note == _holding:
+		_finish_hold(success)
 
 
 func _finish_hold(success: bool) -> void:
@@ -170,8 +164,9 @@ func _draw() -> void:
 	var center := hit_position()
 	var radius := maxf(hit_radius(), 1.0)
 	var travel := approach_travel_ratio * size.y
-	draw_arc(center, radius, 0.0, TAU, 96, Color(1.0, 0.62, 0.18, 0.95), 4.0)
-	for n in notes:
+	draw_lit_target(self, center, radius, Color(1.0, 0.62, 0.18, 0.95), 4.0)
+	draw_target_guides(self, center, radius, travel, approach_beats)
+	for n in own_notes():
 		var length := hold_beats(n)
 		var ahead := beats_until(n)
 		if ahead > approach_beats:

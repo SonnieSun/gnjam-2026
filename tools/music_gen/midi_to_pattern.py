@@ -5,14 +5,16 @@ Meow page, ready to add to a lane. Needs nothing but Python (no samples, no nump
 
 What it does with the file:
   - takes one track (the one with the most notes, or --track N),
+  - with --min-pitch N, drops every note below MIDI pitch N first (a piano file has the left hand in
+    the same track: 60 = middle C usually separates it from the tune),
   - keeps one note at a time: where several start together, the highest,
   - snaps every note to the 16th-note grid (the game's step),
   - moves the tune by whole octaves so it sits in the cats' range (A3-E6); single notes still outside
     are folded in by an octave,
   - a note lasts until its note-off or the next note, whichever comes first.
 
-usage: python midi_to_pattern.py <file.mid> [--name NAME] [--track N] [--transpose SEMITONES]
-                                 [--bars N] [--cat ID|auto] [--out DIR]
+usage: python midi_to_pattern.py <file.mid> [--name NAME] [--track N] [--min-pitch N]
+                                 [--transpose SEMITONES] [--bars N] [--cat ID|auto] [--out DIR]
 """
 import argparse
 import json
@@ -75,10 +77,12 @@ def read_midi(path):
     return division, tracks
 
 
-def to_melody(notes, division, transpose=0):
+def to_melody(notes, division, transpose=0, min_pitch=0):
     step = division / 4.0
     by_step = {}
     for tick, key, length in notes:
+        if key < min_pitch:
+            continue
         s = int(round(tick / step))
         if s not in by_step or key > by_step[s][0]:
             by_step[s] = (key, max(1, int(round(length / step))))
@@ -115,6 +119,7 @@ if __name__ == '__main__':
     ap.add_argument('--name')
     ap.add_argument('--track', type=int)
     ap.add_argument('--transpose', type=int, default=0)
+    ap.add_argument('--min-pitch', type=int, default=0, help='drop notes below this MIDI pitch (the left hand)')
     ap.add_argument('--bars', type=int, help='keep only the first N bars')
     ap.add_argument('--cat', default='auto')
     ap.add_argument('--out', default=os.path.join(os.path.dirname(__file__), '..', '..', 'levels', 'music', 'patterns'))
@@ -123,7 +128,7 @@ if __name__ == '__main__':
     for i, t in enumerate(tracks):
         print(f'track {i}: {len(t)} notes')
     k = a.track if a.track is not None else max(range(len(tracks)), key=lambda i: len(tracks[i]))
-    notes = to_melody(tracks[k], division, a.transpose)
+    notes = to_melody(tracks[k], division, a.transpose, a.min_pitch)
     assert notes, f'track {k} has no notes'
     bars = int(math.ceil((notes[-1][0] + notes[-1][2]) / 16))
     if a.bars:
