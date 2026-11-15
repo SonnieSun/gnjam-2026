@@ -387,6 +387,8 @@ func _spawn_planet(n: NoteData) -> void:
 		body.scale = Vector3.ONE * radius
 		body.rotation = Vector3(rng.randf_range(-0.5, 0.5), rng.randf() * TAU, rng.randf_range(-0.5, 0.5))
 	root.add_child(body)
+	# 跟拍：每颗星球随机拿一种节奏胀（正拍、反拍、每两拍、跟鼓……），一大片的时候错落着动
+	BeatDecor.stagger(body, rng.randi() % 100, 0.1)
 
 	# 彗星尾巴：一头粗一头尖的发光锥，粗的那头贴着星球
 	var tail := MeshInstance3D.new()

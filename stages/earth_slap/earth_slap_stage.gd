@@ -111,6 +111,14 @@ func setup(host: Node2D) -> void:
 
 	_model = MODEL.instantiate() as Node3D
 	world.add_child(_model)
+	# 跟拍：模型里的星星一颗接一颗闪着胀过去，小光点跟军鼓（猫和地球是主体，不动）
+	var stars: Array = []
+	for n in _model.get_children():
+		if String(n.name).begins_with("Star"):
+			stars.append(n)
+		elif String(n.name).begins_with("Glint"):
+			BeatDecor.stagger(n, 5 if String(n.name).ends_with("1") else 9, 0.25)  # 一个在小节最后一拍闪，一个在小节头
+	BeatDecor.wave(stars, 0.3, 4.0)
 	_animation = _model.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if _animation:
 		_clip = animation_clip
@@ -183,6 +191,8 @@ func show_memes() -> void:
 		node.scale = Vector3.ONE * 0.01
 		holder.add_child(node)
 		_cards.append({"node": node, "info": info, "from": 0.0, "to": 0.0, "t": 1.0, "grow": -i * 0.12})
+		# 跟拍：每张纸片用不同的节奏胀（接在外面这层上，里面那层自己在做翻转和长大）
+		BeatDecor.stagger(holder, i * 3 + 1, 0.11)
 
 
 ## 连按蓄力蓄到多少了（1 = 达标；超过了还在按可以到 1.5）：镜头慢慢推近、越抖越厉害
