@@ -231,7 +231,9 @@ func show_note(text: String) -> void:
 	_judge_tween.tween_property(judge_label, "modulate:a", 0.0, 0.5).set_delay(1.0)
 
 
+## 屏幕底下那行调试文字（小节、拍数、积累条、快捷键）：只在编辑器里运行时显示，导出的版本里藏起来
 func set_debug(text: String) -> void:
+	debug_label.visible = OS.has_feature("editor")
 	debug_label.text = text
 
 
