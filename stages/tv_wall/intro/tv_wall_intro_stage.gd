@@ -56,6 +56,14 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 ## 顺时针转
 @export var clockwise := true
 
+@export_group("结尾：进屏幕")
+## 没有下一个小关时屏幕上显示的图（有下一个小关就直接显示它的实时画面）
+@export var finale_image: Texture2D
+## 其他电视往外散开多远（米）
+@export var scatter_distance := 5.0
+## 洗衣机往哪边退场
+@export var machine_exit := Vector3(0.0, -3.0, 0.0)
+
 @export_group("发电")
 ## 发电时画面震动最大多少像素
 @export var holding_shake_pixels := 5.0
@@ -73,6 +81,8 @@ var camera: Camera3D
 var grid: TvGrid
 ## 已经完整按完几次长按
 var holds_done := 0
+## 全亮之后那次长按按完了，等关卡脚本调 start_finale()
+var finale_pending := false
 
 var _sprite: Sprite2D
 var _machine: Node3D
@@ -91,6 +101,13 @@ var _pending_lights: Array[Dictionary] = []  # {"tv": 序号, "wait": 还要等�
 var _just_lit: Array[int] = []
 var _beat_pulse := 0.0
 var _look := -1
+var _env: Environment
+var _finale_hold := false
+var _finale_from := INF
+var _finale_to := INF
+var _finale_cam: Transform3D
+var _center_tv := 0
+var _machine_home := Vector3.ZERO
 
 
 func setup(host: Node2D) -> void:
@@ -135,6 +152,7 @@ func _build_env() -> void:
 	env.glow_intensity = 0.9
 	env.glow_bloom = 0.2
 	we.environment = env
+	_env = env
 	world.add_child(we)
 	# 只照洗衣机的一盏主灯（范围小，照不到远处的电视）
 	var key := SpotLight3D.new()
@@ -223,6 +241,7 @@ func tap() -> void:
 ## 长按开头打中，开始按住
 func hold_begin() -> void:
 	_hold_progress = 0.0
+	_finale_hold = all_lit() and not finale_pending and not finale_active()
 	_hold_seconds = 0.0
 	_head_click = 0.0
 
@@ -230,6 +249,8 @@ func hold_begin() -> void:
 ## 按住的过程中每帧告诉舞台按到了百分之几、按了几秒
 func hold_update(progress: float, seconds: float) -> void:
 	_hold_progress = clampf(progress, 0.0, 1.0)
+	if _finale_hold:
+		grid.flicker = _hold_progress
 	_hold_seconds = seconds
 
 
@@ -239,6 +260,11 @@ func hold_end(success: bool) -> Array[int]:
 	_release_age = 0.0
 	_hold_progress = -1.0
 	var lit: Array[int] = []
+	if _finale_hold:
+		_finale_hold = false
+		grid.flicker = 0.0
+		finale_pending = success
+		return lit
 	if not success:
 		return lit
 	holds_done += 1
@@ -309,6 +335,8 @@ func update(beat: float, dt: float) -> void:
 	_update_cat(dt)
 	_update_shake()
 	_update_camera(dt)
+	if finale_active():
+		_update_finale(beat)
 
 
 func _update_lights(dt: float) -> void:
@@ -360,7 +388,8 @@ func _update_camera(dt: float) -> void:
 	if _hold_progress >= 0.0 and holds_done < zoom_holds:
 		target += _hold_progress
 	_zoom = lerpf(_zoom, target, minf(1.0, dt * camera_follow))
-	_place_camera(_zoom)
+	if not finale_active():
+		_place_camera(_zoom)
 
 
 func _place_camera(zoom: float) -> void:
@@ -370,6 +399,9 @@ func _place_camera(zoom: float) -> void:
 	var k := smoothstep(0.0, 1.0, clampf(zoom - i, 0.0, 1.0))
 	var look: Vector3 = (shots[i][0] as Vector3).lerp(shots[j][0], k)
 	var frame_h := lerpf(shots[i][1], shots[j][1], k)
+	# 档位是按 16:9 的画面定的；画面更窄（比如 4:3）时把镜头再拉远一点，两边的电视才不会出画
+	var vp := Vector2(world.size)
+	frame_h *= maxf(1.0, (16.0 / 9.0) / maxf(vp.x / maxf(vp.y, 1.0), 0.1))
 	var dist := frame_h * 0.5 / tan(deg_to_rad(camera_fov) * 0.5)
 	camera.fov = camera_fov
 	camera.position = look + Vector3(0.0, 0.0, dist)
@@ -381,3 +413,64 @@ func _apply_look() -> void:
 	_look = ComicStyle.style
 	ComicStyle.apply(_machine, camera)
 	ComicStyle.apply(grid, camera)
+
+
+# ---------------- 结尾：电视闪烁 → 换成下一个玩法的画面 → 散开 → 镜头钻进中间那台电视 ----------------
+
+func finale_active() -> bool:
+	return not is_inf(_finale_from)
+
+
+## 开始结尾演出：from_beat 到 to_beat 之间放完，to_beat 那一刻屏幕里的画面正好铺满全屏。
+## live = 下一个小关的实时画面（没有就只显示图）。
+func start_finale(from_beat: float, to_beat: float, live: Texture2D) -> void:
+	finale_pending = false
+	_finale_from = from_beat
+	_finale_to = maxf(to_beat, from_beat + 0.01)
+	_finale_cam = camera.global_transform
+	_machine_home = Vector3.ZERO
+	_center_tv = grid.nearest_to(Vector3(0.0, shots[shots.size() - 1][0].y + 0.3, 0.0))
+	grid.show_image(finale_image)
+	if live:
+		# 所有屏幕直接显示下一个小关的实时画面
+		var s := Vector2(world.size)
+		for i in grid.count():
+			var m := grid.screen_material(i)
+			m.set_shader_parameter("live", live)
+			m.set_shader_parameter("live_aspect", s.x / maxf(s.y, 1.0))
+			m.set_shader_parameter("live_mix", 1.0)
+	# 屏幕里的画面要和真正的小关一模一样，所以这里把色调映射换成线性（趁白闪换，看不出来）
+	_env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+
+
+func _update_finale(beat: float) -> void:
+	var p := clampf((beat - _finale_from) / (_finale_to - _finale_from), 0.0, 1.0)
+	# 散开
+	var a := smoothstep(0.2, 0.7, p)
+	a = a * a
+	grid.scatter(_center_tv, a, scatter_distance)
+	_machine.position = machine_exit * a
+	# 辉光慢慢关掉，屏幕从电视感变成画面原样，占位图换成实时画面
+	_env.glow_intensity = 0.9 * (1.0 - smoothstep(0.2, 0.6, p))
+	_env.glow_enabled = p < 0.6
+	var m := grid.screen_material(_center_tv)
+	m.set_shader_parameter("fit", smoothstep(0.4, 0.85, p))  # 中间这台从裁边铺满慢慢变成完整画面
+	m.set_shader_parameter("crt", 1.0 - smoothstep(0.6, 0.92, p))
+	grid.set_cover_visible(_center_tv, p < 0.6)
+	# 镜头：从现在的位置钻到「画面正好铺满全屏」的位置（宽度对齐屏幕宽度），角度跟电视的歪斜对齐
+	var tv_xf: Transform3D = (grid.tvs[_center_tv].root as Node3D).global_transform
+	var vp := Vector2(world.size)
+	var frame_h := grid.screen_size(_center_tv).x * vp.y / maxf(vp.x, 1.0)
+	var dist := frame_h * 0.5 / tan(deg_to_rad(camera_fov) * 0.5)
+	var target := Transform3D(tv_xf.basis.orthonormalized(), grid.screen_center(_center_tv) + tv_xf.basis.z.normalized() * dist)
+	var k := smoothstep(0.35, 1.0, p)
+	k = k * k * (3.0 - 2.0 * k)
+	camera.global_transform = _finale_cam.interpolate_with(target, k)
+
+
+## 调试用：直接跳到镜头拉到最远、电视全亮
+func skip_to_all_lit() -> void:
+	holds_done = maxi(holds_done, zoom_holds)
+	_pending_lights.clear()
+	for i in grid.unlit():
+		grid.light_up(i)

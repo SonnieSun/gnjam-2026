@@ -32,6 +32,19 @@ signal level_cleared
 @export_range(-30.0, 6.0) var phase_sound_db := -10.0
 @export_group("")
 
+## 一路连着玩：第 1 大关打完硬切到第 2 大关……一直到这一关（0 起）为止，打完它才出最终结算。
+## 之后的大关只能从 Esc 暂停转盘里选；从那里选进去的关打完也直接出结算。
+@export var flow_last_level := 2
+
+## 一路连着玩时，前面几关的成绩（Perfect / Great / Good / Miss 个数、最大连击），最终结算时合在一起算总分
+static var run_counts := {}
+static var run_max_combo := 0
+## 一路连着玩时，前面几关已经拿到的分和那几关的满分（左上角显示累计分、最终评级用）
+static var run_score := 0
+static var run_possible := 0.0
+## 现在是不是在一路连着玩（从第 1 关开始的）
+static var in_run := true
+
 @onready var section_host: Node2D = $SectionHost
 @onready var fx_layer: Node2D = $FxLayer
 @onready var judge: Judge = $Judge
@@ -53,6 +66,7 @@ var chart: SongChart
 var _index := -1
 var _current: SpinSection
 var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = 还没满）
+var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比例（计分用）
 var _cleared := false
 
 
@@ -82,11 +96,14 @@ func _ready() -> void:
 	judge.empty_hit.connect(_on_empty_hit)
 	judge.combo_milestone.connect(func(combo: int): hud.show_combo_milestone(combo))
 	judge.combo_milestone.connect(hit_meow.milestone)  # 连击里程碑：转圈喵（oiia），连击够高再送一段鬼畜全开
-	judge.stats_changed.connect(func(): hud.set_stats(judge.score, judge.combo))
+	judge.stats_changed.connect(func(): hud.set_stats(judge.score + (run_score if in_run else 0), judge.combo))
 	judge.stats_changed.connect(func(): screen_fx.set_combo(judge.combo))  # 连击越高画面越热闹
 	gauge.changed.connect(_on_gauge_changed)
 	gauge.event.connect(_on_gauge_event)
 	gauge.filled.connect(_on_gauge_filled)
+
+	# Esc 暂停转盘（暂停时也要能收键，所以挂一个不受暂停影响的层）
+	add_child(preload("res://scripts/pause_menu.gd").new())
 
 	start_from(start_section)
 
@@ -96,6 +113,7 @@ func start_from(index: int) -> void:
 	index = clampi(index, 0, chart.sections.size() - 1)
 	judge.reset()
 	screen_fx.reset_heat()
+	_stage_weights = _compute_stage_weights()
 	hud.reset()
 	_cleared = false
 	_switch_at = -1.0
@@ -137,6 +155,9 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 	def.start_beat = at_beat
 	var first_note := at_beat + chart.rest_bars_on_switch * chart.beats_per_bar
 	_current = def.scene.instantiate() as SpinSection
+	# 计分：上一个阶段（小关）打完，按准确率入账；新阶段从零开始记
+	judge.bank_stage()
+	judge.begin_stage(_stage_weights[index] if index < _stage_weights.size() else 0.0)
 	_current.setup(def, judge.begin_section(index, def, chart.beats_per_bar, at_beat, first_note))
 	section_host.add_child(_current)
 	_current.enter()
@@ -181,8 +202,84 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 func _clear_level() -> void:
 	_cleared = true
 	judge.stop_notes()
+	judge.bank_stage()  # 最后一个阶段入账
+	level_cleared.emit()  # 关卡在这里可以再用 judge.add_bonus() 加别的分（比如飞船打星球）
+	# 一路连着玩：还没到最后一关就把这关成绩记下来，硬切到下一个大关
+	if in_run and Levels.selected < mini(flow_last_level, Levels.count() - 1):
+		for r in judge.counts:
+			run_counts[r] = run_counts.get(r, 0) + judge.counts[r]
+		run_max_combo = maxi(run_max_combo, judge.max_combo)
+		run_score += judge.score
+		run_possible += judge.possible
+		Levels.selected += 1
+		Conductor.stop()
+		get_tree().change_scene_to_file.call_deferred(Levels.GAME_SCENE)
+		return
+	# 最终结算：一路连着玩的话把前面几关的成绩合进来
+	if in_run:
+		for r in run_counts:
+			judge.counts[r] += run_counts[r]
+		judge.max_combo = maxi(judge.max_combo, run_max_combo)
+		judge.score += run_score
+		judge.possible += run_possible
 	hud.show_result(judge)
-	level_cleared.emit()
+
+
+## 每个阶段（小关）占这一大关满分的比例 = 这个阶段大约要点几下 ÷ 整关大约要点几下。
+## 鼓谱是循环到积累条满为止的，所以「要点几下」按全打 Perfect 打满积累条估算：
+##   要循环几遍 = 满条值 ÷ (Perfect 加的条 × 一遍里会涨条的音符数)，向上取整；要点几下 = 一遍的音符数 × 遍数。
+## 关卡脚本里可以写两个常量改变估算（不写就按上面算）：
+##   const SCORE_BY_PATTERN := true   这一段不靠积累条推进，谱子放一遍就完，按一遍的音符数算（比如电视墙开场）
+##   const SCORE_GAUGE_SOUNDS := "ks"  只有这些鼓会涨积累条（比如拍地球的踩镲只蓄力不涨条）
+## 满条值的取法和 _enter 里一样：谱面填了用谱面的，否则用关卡场景根节点上填的，都没填用 Gauge 默认值。
+func _compute_stage_weights() -> Array[float]:
+	var clicks: Array[float] = []
+	var total := 0.0
+	for def in chart.sections:
+		var m := def.gauge_max
+		var consts := {}
+		if def.scene:
+			var state := def.scene.get_state()
+			for i in state.get_node_property_count(0):
+				var pname := state.get_node_property_name(0, i)
+				if pname == &"gauge_max_override" and m <= 0:
+					m = state.get_node_property_value(0, i)
+				elif pname == &"script":
+					var s: Script = state.get_node_property_value(0, i)
+					if s:
+						consts = s.get_script_constant_map()
+		if m <= 0:
+			m = gauge.default_max
+		var per_pass := 0
+		var gauge_per_pass := 0
+		var gauge_sounds: String = consts.get("SCORE_GAUGE_SOUNDS", "ksxh")
+		for bar in def.bars:
+			for ch in bar:
+				if ch in "ksxh":
+					per_pass += 1
+					if ch in gauge_sounds:
+						gauge_per_pass += 1
+		var c := float(per_pass)
+		if not consts.get("SCORE_BY_PATTERN", false) and gauge_per_pass > 0:
+			c = per_pass * ceilf(float(m) / (gauge.perfect_gain * gauge_per_pass))
+		clicks.append(maxf(c, 1.0))
+		total += clicks[-1]
+	var out: Array[float] = []
+	for c in clicks:
+		out.append(c / total if total > 0.0 else 0.0)
+	return out
+
+
+## 从第 1 大关重新开始一路连着玩
+static func restart_run(tree: SceneTree) -> void:
+	run_counts = {}
+	run_max_combo = 0
+	run_score = 0
+	run_possible = 0.0
+	in_run = true
+	Levels.selected = 0
+	Conductor.stop()
+	tree.change_scene_to_file(Levels.GAME_SCENE)
 
 
 func _on_gauge_changed(value: int, max_value: int) -> void:
@@ -276,6 +373,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
+	if key.physical_keycode == KEY_ESCAPE:
+		return  # Esc 归暂停转盘管（scripts/pause_menu.gd）
+	if _cleared and hud.result_label.visible:
+		# 最终结算画面：按任意键从第 1 大关重新开始
+		restart_run(get_tree())
+		return
 	if key.physical_keycode == KEY_TAB and OS.is_debug_build():
 		toggle_editor()
 	elif key.physical_keycode == KEY_R:
@@ -289,8 +392,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		# 调试：直接把积累条加满，跳到下一个小关
 		while not gauge.full and not _cleared:
 			gauge.apply(NoteData.Result.PERFECT)
-	elif key.physical_keycode == KEY_ESCAPE:
-		back_to_menu()
 	elif OS.is_debug_build():
 		var n := key.physical_keycode - KEY_1
 		if n >= 0 and n < chart.sections.size():
