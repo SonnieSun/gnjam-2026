@@ -1,23 +1,52 @@
 class_name SpaceShooterScore
 extends Resource
-## 太空打飞机这一关自己的算分规则（只管数，不管显示）。
-## 准确率部分照常由 Judge 在小关打完时入账，但只占这一大关满分的 accuracy_share（默认 80%）；
-## 剩下的靠打星球：每打掉一颗立刻加 kill_points，被星球撞到一次立刻扣 crash_penalty（不算进准确率）。
-## 评级按「拿到的分 ÷ 能拿的分」算，所以每颗有了结果的星球都会把 kill_points 记进“能拿的分”。
+## 太空打飞机这一段自己的算分规则（只管数，不管显示）。
+## 这一段的分数完全看打掉了多少星球，和 Perfect / Miss 无关：进关时把 Judge.accuracy_share 设成 0，
+## 每打掉一颗星球立刻用 Judge.add_bonus() 加 kill_points()，加满 stage_points 为止。
+## 被星球撞到一次立刻扣 crash_penalty。
 
-## 准确率部分占这一大关满分的比例
-@export_range(0.0, 1.0, 0.05) var accuracy_share := 0.8
-## 打掉一颗星球立刻加多少分。
-## 现在第 3 大关有两段，打星球这段占大关满分约 28.6 万（按两段满条值 100 : 250 分），
-## 其中 20% ≈ 5.7 万留给星球；这一段大约飞来 19 颗，所以每颗 3000。两段的满条值或星球数变了要跟着改。
-@export var kill_points := 3000
+## 这一段的满分。进关时会换成 Judge.stage_max()（大关满分 × 这一段的占比），这里只是读不到时的备用值
+@export var stage_points := 285000
+## 这一段大约会飞来多少颗星球；全打掉正好拿满 stage_points
+@export var expected_planets := 20
 ## 猫被星球撞到一次扣多少分
-@export var crash_penalty := 3000
+@export var crash_penalty := 5000
 
 var kills := 0     # 打掉的星球
 var escaped := 0   # 没打掉、飞走的星球
 var crashes := 0   # 撞到猫的星球
+var awarded := 0   # 打星球已经加了多少分
+var counted := 0   # 已经记进“能拿的分”的有多少
+
+## 交给下一段（披萨猫过圈）的接力数据：这一段结束时镜头相对猫的位置，下一段从这个机位开始移动
+static var handoff := {}
 
 
 func planets_done() -> int:
 	return kills + escaped + crashes
+
+
+## 打掉一颗值多少分
+func kill_points() -> int:
+	return roundi(float(stage_points) / maxi(expected_planets, 1))
+
+
+## 打掉一颗：返回这次实际加多少（总共不超过 stage_points）
+func take_kill() -> int:
+	var p := mini(kill_points(), stage_points - awarded)
+	awarded += p
+	return p
+
+
+## 一颗星球有了结果：返回要记进“能拿的分”的数（总共不超过 stage_points）
+func take_possible() -> int:
+	var p := mini(kill_points(), stage_points - counted)
+	counted += p
+	return p
+
+
+## 这一段结束时，还没记进“能拿的分”的剩下多少（一次补齐，评级才不会偏高）
+func take_rest_possible() -> int:
+	var p := stage_points - counted
+	counted = stage_points
+	return p

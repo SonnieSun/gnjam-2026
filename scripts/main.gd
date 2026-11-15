@@ -76,6 +76,8 @@ var _current: SpinSection
 var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = 还没满）
 var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比例（计分用）
 var _cleared := false
+var _gauge_offset := 0  # 共用积累条：这一段前面的几段一共多少分
+var _gauge_total := 0   # 共用积累条：整条一共多少分
 
 
 func _ready() -> void:
@@ -239,14 +241,22 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 	_index = index
 	var def := chart.sections[index]
 	def.start_beat = at_beat
-	var first_note := at_beat + chart.rest_bars_on_switch * chart.beats_per_bar
-	_current = def.scene.instantiate() as SpinSection
+	# 接着上一个小关继续（同一个场景、勾了 joins_previous）：不换场景、不转场，只换谱面
+	var joined := animate and old != null and _joins(index)
+	var rest_bars := def.join_rest_bars if joined else chart.rest_bars_on_switch
+	var first_note := at_beat + rest_bars * chart.beats_per_bar
+	if not joined:
+		_current = def.scene.instantiate() as SpinSection
 	# 计分：上一个阶段（小关）打完，按准确率入账；新阶段从零开始记
 	judge.bank_stage()
 	judge.begin_stage(_stage_weights[index] if index < _stage_weights.size() else 0.0)
-	_current.setup(def, judge.begin_section(index, def, chart.beats_per_bar, at_beat, first_note))
-	section_host.add_child(_current)
-	_current.enter()
+	var section_notes := judge.begin_section(index, def, chart.beats_per_bar, at_beat, first_note)
+	if joined:
+		_current.rejoin(def, section_notes)
+	else:
+		_current.setup(def, section_notes)
+		section_host.add_child(_current)
+		_current.enter()
 	# 这一关的满条值和事件分数线：谱面里填了用谱面的，否则用关卡场景里填的，都没填用默认值
 	var g_max := def.gauge_max if def.gauge_max > 0 else _current.gauge_max_override
 	var g_events: Variant = null
@@ -256,11 +266,15 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 		g_events = _current.gauge_events
 	screen_fx.begin(def.fx_cues, _current)
 	memes.begin(def.meme_cues)
-	hud.reset_gauge()
+	if not joined:
+		hud.reset_gauge()
+	_group_gauge(index, g_max)
 	gauge.begin(g_max, g_events)
 	_current.gauge_event_values = gauge.events
 	section_entered.emit(index)
 
+	if joined:
+		return
 	if old:
 		old.exit()
 	if not animate:
@@ -376,8 +390,49 @@ static func restart_run(tree: SceneTree) -> void:
 	tree.change_scene_to_file(Levels.GAME_SCENE)
 
 
+## 第 index 个小关是不是接着前一个小关继续的（勾了 joins_previous，而且两个用的是同一个场景）
+func _joins(index: int) -> bool:
+	if index <= 0 or index >= chart.sections.size():
+		return false
+	var def := chart.sections[index]
+	return def.joins_previous and def.scene != null and def.scene == chart.sections[index - 1].scene
+
+
+## 一个小关的满条值（还没进这个小关时估的：谱面填了用谱面的，否则看场景根节点，都没填用默认值）
+func _gauge_max_of(def: SectionDef) -> int:
+	if def.gauge_max > 0:
+		return def.gauge_max
+	if def.scene:
+		var state := def.scene.get_state()
+		for i in state.get_node_property_count(0):
+			if state.get_node_property_name(0, i) == &"gauge_max_override" and int(state.get_node_property_value(0, i)) > 0:
+				return state.get_node_property_value(0, i)
+	return gauge.default_max
+
+
+## 连着的几个小关在画面上共用一条积累条：算出这一段前面已经有多少、整条一共多少、每段在哪交接，告诉 HUD
+func _group_gauge(index: int, current_max: int) -> void:
+	var first := index
+	while _joins(first):
+		first -= 1
+	var last := index
+	while _joins(last + 1):
+		last += 1
+	_gauge_offset = 0
+	_gauge_total = 0
+	var bounds := PackedInt32Array()
+	for i in range(first, last + 1):
+		if i == index:
+			_gauge_offset = _gauge_total
+		_gauge_total += current_max if i == index else _gauge_max_of(chart.sections[i])
+		if i < last:
+			bounds.append(_gauge_total)
+	hud.gauge_offset = _gauge_offset
+	hud.gauge_bounds = bounds
+
+
 func _on_gauge_changed(value: int, max_value: int) -> void:
-	hud.set_gauge(value, max_value)
+	hud.set_gauge(value + _gauge_offset, maxi(_gauge_total, max_value))
 	if _current:
 		_current.notify_gauge(value, max_value)
 	var p := float(value) / maxi(max_value, 1)
@@ -407,7 +462,7 @@ func _on_gauge_event(index: int, value: int) -> void:
 
 ## 满条了：定在下一个小节线切关（这之前剩下的几个音符照常打、照常计分，只是积累条不再动）
 func _on_gauge_filled() -> void:
-	hud.pulse_gauge(true)
+	hud.pulse_gauge(not _joins(_index + 1))  # 后面还接着同一段：只当过了一条线，不当满条
 	_phase_impact()
 	if _current:
 		_current.notify_gauge_filled()

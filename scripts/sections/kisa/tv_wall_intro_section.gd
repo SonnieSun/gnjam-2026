@@ -13,6 +13,17 @@ extends SpinSection
 @export var approach_travel_ratio := 0.45
 ## 长按离尾巴不到这么多拍时松手也算成
 @export var hold_release_grace := 0.3
+## 长按按完（可以松手了）时：判定圈闪绿光、响一声的颜色和持续时间（秒）
+@export var hold_ok_color := Color(0.35, 1.0, 0.45)
+@export var hold_ok_seconds := 0.6
+## 判定圈（舱门那一圈）的粗细（像素），颜色用上面的 hold_ok_color
+@export var judge_ring_width := 15.0
+## 按住时判定圈外面那圈进度的颜色（要和画面里别的颜色都拉开，默认亮粉）
+@export var hold_progress_color := SpinSection.HOLD_COLOR
+## 进度圈跟着拍子胀缩：每拍往外胀多少（占判定圈半径的比例）
+@export_range(0.0, 0.4) var hold_progress_pulse := 0.12
+## 进度圈颜色随按住的进度变化：色相一共转多少（0.45 ≈ 粉 → 紫 → 蓝 → 青；0 = 不变色）
+@export_range(0.0, 1.0) var hold_progress_hue_shift := 0.45
 ## 没打中时整个画面红闪的强度
 @export_range(0.0, 1.0) var miss_flash := 0.2
 ## 调试用：自动按键（看演出用，正式玩要关掉）
@@ -36,6 +47,7 @@ var _auto_down := false
 var _finale := false
 var _fill_at := INF
 var _next_view: SubViewport
+var _hold_ok_age := INF  # 长按刚按完过了几秒（INF = 没在闪）
 
 
 func _ready() -> void:
@@ -80,6 +92,7 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 		if song_beat() > n.beat + hold_beats(n):
 			_failed.erase(n)
 	_flash = maxf(_flash - dt * 2.5, 0.0)
+	_hold_ok_age += dt
 	queue_redraw()
 
 
@@ -141,6 +154,10 @@ func _finish_hold(success: bool) -> void:
 	if not success:
 		_failed[_holding] = true
 		_flash = 1.0
+	else:
+		# 「可以松手了」：判定圈闪绿光 + 叮一声（按到尾巴那一拍由 Judge 判定成功时触发）
+		_hold_ok_age = 0.0
+		Sfx.play("good")
 	_holding = null
 	_stage.hold_end(success)
 	if _stage.finale_pending:
@@ -165,7 +182,7 @@ func _draw() -> void:
 	var radius := maxf(hit_radius(), 1.0)
 	var travel := approach_travel_ratio * size.y
 	draw_focus(self, center, radius)
-	draw_lit_target(self, center, radius, Color(1.0, 0.62, 0.18, 0.95), 4.0)
+	draw_lit_target(self, center, radius, Color(hold_ok_color, 0.95), judge_ring_width)  # 默认的判定圈：粗的绿圈
 	draw_target_guides(self, center, radius, travel, approach_beats, Callable(), 1.0, 1.0, false)  # 只补空拍的虚线
 	for n in own_notes():
 		var length := hold_beats(n)
@@ -182,12 +199,17 @@ func _draw() -> void:
 		if failed and tail_ahead < 0.0:
 			continue
 		var k := maxf(ahead, 0.0) / maxf(approach_beats, 0.01)
-		var c := Color(0.5, 0.5, 0.5) if failed else sound_color(n)
-		c.a = clampf(1.0 - k * 0.6, 0.0, 1.0)
-		draw_arc(center, radius + k * travel, 0.0, TAU, 96, c, 8.0 if length > 0.0 else 5.0)
+		# 和第 1 关一样：越靠近判定圈越亮越粗，最后一段带柔光（长按的头圈更粗一点；断掉的长按是灰的、淡一点）
+		var base := Color(0.5, 0.5, 0.5) if failed else note_color(n)
+		var look := approach_ring_look(k, base, 0.35 if failed else 0.5,
+				10.0 if length > 0.0 else 8.0, 16.0 if length > 0.0 else 14.0)
+		draw_approach_ring(self, center, radius + k * travel, look)
 	if _holding:
-		draw_arc(center, radius, 0.0, TAU, 96, sound_color(_holding), 7.0)
+		draw_arc(center, radius, 0.0, TAU, 96, hold_progress_color, 7.0)
 		_draw_ring_lightning(center, radius)
+		_draw_hold_progress(center, radius, _holding)
+	if _hold_ok_age < hold_ok_seconds:
+		_draw_hold_ok(center, radius)
 	for b in _bolts:
 		_draw_bolt(center, _stage.tv_screen_pos(b.to), 1.0 - b.age / 0.35)
 	if tap_age < 0.15:
@@ -199,21 +221,56 @@ func _draw() -> void:
 ## 长按的拖尾：从头到尾巴的一条半透明带子 + 提示文字
 func _draw_hold_tail(center: Vector2, radius: float, travel: float, n: NoteData,
 		ahead: float, tail_ahead: float, failed: bool, holding_this: bool) -> void:
+	# 长按 = 两个节拍圈 + 中间填满：头圈收到判定圈时按下，尾圈收到判定圈时松手，
+	# 两个圈之间整段填上（一直填到尾圈，不再限宽），整个长按有多长一眼看得出来
 	var inner := radius + maxf(ahead, 0.0) / maxf(approach_beats, 0.01) * travel
-	var outer := radius + tail_ahead / maxf(approach_beats, 0.01) * travel
-	outer = minf(outer, inner + screen_size().y * 0.07)  # 带子不要太宽，免得盖住猫头
-	var c := Color(0.48, 0.48, 0.48) if failed else sound_color(n)
-	if outer > inner + 0.5:
-		c.a = 0.15 if failed else (0.3 if holding_this else 0.2)
-		draw_arc(center, (inner + outer) / 2.0, 0.0, TAU, 96, c, outer - inner)
-		c.a = 0.75
-		draw_arc(center, outer, 0.0, TAU, 96, c, 3.0)
-	var seconds := (tail_ahead if holding_this else hold_beats(n)) * Conductor.sec_per_beat()
-	var label := "HOLD FAILED" if failed else "HOLD %.1fs" % seconds
-	var pos := center + Vector2(-120.0, -radius * 0.6)
-	c.a = 1.0
-	draw_string_outline(ThemeDB.fallback_font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 240, 24, 6, Color(0.02, 0.02, 0.04, 0.95))
-	draw_string(ThemeDB.fallback_font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 240, 24, c)
+	var tail_t := maxf(tail_ahead, 0.0) / maxf(approach_beats, 0.01)
+	var tail_r := minf(radius + tail_t * travel, screen_size().length())
+	var c := Color(0.48, 0.48, 0.48) if failed else hold_progress_color
+	if tail_r > inner + 0.5:
+		c.a = 0.15 if failed else (0.32 if holding_this else 0.22)
+		draw_arc(center, (inner + tail_r) / 2.0, 0.0, TAU, 128, c, tail_r - inner)
+	if not failed and tail_t <= 1.0:
+		# 尾圈：和头圈一样的节拍圈（越靠近判定圈越亮越粗），收到判定圈的那一拍松手
+		draw_approach_ring(self, center, tail_r, approach_ring_look(tail_t, hold_progress_color, 0.5, 10.0, 16.0))
+	if failed:
+		# 只在失败时提示一句
+		var pos := center + Vector2(-120.0, -radius * 0.6)
+		c.a = 1.0
+		draw_string_outline(ThemeDB.fallback_font, pos, "HOLD FAILED", HORIZONTAL_ALIGNMENT_CENTER, 240, 24, 6, Color(0.02, 0.02, 0.04, 0.95))
+		draw_string(ThemeDB.fallback_font, pos, "HOLD FAILED", HORIZONTAL_ALIGNMENT_CENTER, 240, 24, c)
+
+
+## 按住时判定圈外面一圈进度（亮粉色，和画面里别的颜色拉开）：从正上方顺时针填满，满了 = 可以松手。
+## 底下的浅色圈上每一拍一个刻度，可以跟着数拍子
+func _draw_hold_progress(center: Vector2, radius: float, n: NoteData) -> void:
+	var length := maxf(hold_beats(n), 0.001)
+	var p := clampf((song_beat() - n.beat) / length, 0.0, 1.0)
+	# 和按完时的绿圈一样：就画在判定圈上、一样粗。
+	# 跟着拍子：拍点上往外胀、变粗、外面闪一圈光，拍子之间缩回来；颜色随按住的进度从粉慢慢转到青
+	var beat_k := pow(1.0 - fposmod(song_beat(), 1.0), 3.0)
+	var r := radius * (1.0 + hold_progress_pulse * beat_k)
+	var w := 15.0 * (1.0 + 0.5 * beat_k)
+	var c := Color.from_hsv(fposmod(hold_progress_color.h - hold_progress_hue_shift * p, 1.0),
+			hold_progress_color.s, hold_progress_color.v)
+	if beat_k > 0.02:
+		draw_arc(center, r * (1.0 + 0.08 * beat_k), 0.0, TAU, 96, Color(c, 0.35 * beat_k), w * 1.8, true)
+	draw_arc(center, r, 0.0, TAU, 96, Color(1, 1, 1, 0.18), w, true)
+	var beats := int(round(length))
+	for b in range(1, beats):
+		var ang := -PI / 2.0 + TAU * b / length
+		var dir := Vector2.from_angle(ang)
+		draw_line(center + dir * (r - w * 0.7), center + dir * (r + w * 0.7), Color(1, 1, 1, 0.55), 2.0, true)
+	if p > 0.0:
+		draw_arc(center, r, -PI / 2.0, -PI / 2.0 + TAU * p, maxi(8, int(96 * p)), c, w, true)
+
+
+## 长按按完：判定圈闪一圈绿光往外扩
+func _draw_hold_ok(center: Vector2, radius: float) -> void:
+	var t := clampf(_hold_ok_age / maxf(hold_ok_seconds, 0.01), 0.0, 1.0)
+	var c := Color(hold_ok_color, 1.0 - t)
+	draw_arc(center, radius, 0.0, TAU, 96, c, 12.0 * (1.0 - t) + 3.0, true)
+	draw_arc(center, radius * (1.0 + t * 0.9), 0.0, TAU, 96, Color(c, c.a * 0.7), 8.0 * (1.0 - t) + 1.0, true)
 
 
 ## 按住时贴着判定圈的一圈细闪电
@@ -224,7 +281,7 @@ func _draw_ring_lightning(center: Vector2, radius: float) -> void:
 		var zig := sin(float(i * 17 + phase * 11)) * 4.0 + (2.0 if i % 2 == 0 else -2.0)
 		pts.append(center + Vector2.from_angle(TAU * i / 64.0) * (radius * 1.055 + zig))
 	pts[64] = pts[0]
-	var c := sound_color(_holding).lerp(Color(0.55, 0.9, 1.0), 0.45)
+	var c := hold_progress_color.lerp(Color(1.0, 0.8, 0.95), 0.35)
 	c.a = 0.2
 	draw_polyline(pts, c, 8.0, true)
 	c.a = 0.95
@@ -356,3 +413,13 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 ## 计分用（见 main.gd 的 _compute_stage_weights）：这一段不靠积累条推进，谱子放一遍就完，按一遍的音符数算它占这关满分的比例
 const SCORE_BY_PATTERN := true
+
+
+## 音符的颜色：长按统一是粉色，点按按音色
+func note_color(n: NoteData) -> Color:
+	return hold_progress_color if hold_beats(n) > 0.0 else sound_color(n)
+
+
+## 辅助线 / 预亮也用同一套颜色（长按的拍子是粉色）
+func guide_color(n: NoteData) -> Color:
+	return note_color(n)

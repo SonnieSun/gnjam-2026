@@ -176,6 +176,10 @@ func _process(_delta: float) -> void:
 			continue
 		if now - Conductor.beat_to_sec(n.beat) <= good_window_late:
 			break
+		if n.free:  # 不判定的音符：过了就过了，不算 Miss
+			n.judged = true
+			_next += 1
+			continue
 		_apply(n, NoteData.Result.MISS, good_window_late)
 
 
@@ -197,8 +201,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		var diff := now - Conductor.beat_to_sec(n.beat)
 		var r := _result_for(diff)
 		if r != NoteData.Result.NONE:
-			_apply(n, r, diff)
-			return
+			if n.free:
+				# 不判定的音符：这一下被它吃掉，当成空按交给关卡自己数（连按蓄力）
+				n.judged = true
+				while _next < notes.size() and notes[_next].judged:
+					_next += 1
+			else:
+				_apply(n, r, diff)
+				return
 	empty_hit.emit()
 
 
@@ -306,6 +316,14 @@ func _apply(n: NoteData, result: int, diff: float) -> void:
 	stats_changed.emit()
 
 
+## 给一个“不判定的音符”（NoteData.free）补一个结果：连按这类玩法由关卡自己数按了几下，
+## 数完告诉这里算 Perfect / Good / Miss，照常计分、算连击、弹判定文字。
+func judge_free(n: NoteData, result: int) -> void:
+	if n == null or result == NoteData.Result.NONE:
+		return
+	_apply(n, result, 0.0)
+
+
 ## 按得分占满分的比例给评级（阈值见上面“计分”一栏）
 func rank() -> String:
 	var r := float(score) / possible if possible > 0.0 else 0.0
@@ -322,6 +340,13 @@ func rank() -> String:
 func begin_stage(weight: float) -> void:
 	stage_counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GREAT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
 	_stage_weight = weight
+
+
+## 当前阶段（小关）的满分 = level_max × 它的占比（不乘 accuracy_share）。
+## 阶段入账之后（切到下一个小关之前那一下）会变成 0。
+## 某个阶段想把分数全换成别的玩法（比如打星球）时用：accuracy_share 设 0，再按这个满分用 add_bonus 加。
+func stage_max() -> float:
+	return level_max * _stage_weight
 
 
 ## 当前阶段的准确率（0~1，还没判定过音符 = 0）

@@ -25,6 +25,11 @@ enum Transition { ZOOM, CUT }
 @export var chart: ChartPattern
 
 @export var transition: Transition = Transition.ZOOM
+## 勾上 = 这个小关接着上一个小关继续，中间没有“换关”的感觉（要和上一个小关用同一个场景才生效）：
+## 画面不重新加载、不转场不白闪，只换谱面；连着的这几个小关在画面上共用一条积累条（一段接一段往上涨）。
+@export var joins_previous := false
+## 接着上一段时，换谱面之前空几小节（大关里的 rest_bars_on_switch 是普通换关用的，一般更长）
+@export var join_rest_bars := 1
 
 ## 这个小关的积累条满条值。0 = 不指定（用关卡场景里填的，场景也没填就用 Gauge 节点的默认值）
 @export var gauge_max := 0

@@ -1,13 +1,13 @@
 @tool
 extends Spin3DSection
 ## 太空打飞机：做披萨的猫站在披萨上，左右键（← → / A D）移动。
-## 每按一次键猫转一圈，往前发射一个食物；食物打中星球，星球一击就碎（飘 +100）。
-## 每个音符对应一颗带拖尾的星球：在左 / 中 / 右三条路里挑一条直着飞下来（不拐弯），
-## 音符那一拍正好飞到猫前面不远的地方。猫是自由平移的，对准那条路按键就能打中。星球身上没有判定圈。
-## 没打掉的星球会继续往下飞，撞到猫算一次 Miss（只扣分，不进准确率）。
+## 猫身上有跟着音乐节拍收缩的判定圈（和第 1 关一样的缩圈）：按在拍子上猫转一圈并往前发射食物，
+## Perfect 5 发大扇形、Great 3 发小扇形、Good 正前方 1 发，Miss / 空按不发射。
+## 星球在左 / 中 / 右三条路里挑一条直着飞下来（不拐弯），被食物打中一击就碎。
+## 没打掉的星球会继续往下飞，撞到猫飘 MISS 并扣分。
 ##
-## 这一关的分数（见 stages/space_shooter/space_shooter_score.gd）：准确率部分只占 80%（进关时设 Judge.accuracy_share），
-## 打掉星球 / 被撞的分用 Judge.add_bonus() 立刻加到总分上。
+## 这一段的分数完全看打掉了多少星球（见 stages/space_shooter/space_shooter_score.gd）：
+## 进关时把 Judge.accuracy_share 设成 0，打掉星球的分用 Judge.add_bonus() 立刻加到总分上。
 ## 猫、披萨、灯光、天空都在场景 space_shooter.tscn 里摆，这里只负责让它们动和玩法。
 
 @export_group("移动")
@@ -33,7 +33,7 @@ extends Spin3DSection
 ## 星球半径（最小 / 最大）
 @export var planet_radius := Vector2(0.9, 1.3)
 ## 星球提前几拍出现
-@export var planet_beats := 4.0
+@export var planet_beats := 6.0
 ## 星球刚出现时在猫前方多远
 @export var spawn_distance := 34.0
 ## 音符那一拍，星球正好飞到猫前方多远
@@ -47,16 +47,30 @@ extends Spin3DSection
 @export var food_models: Array[PackedScene] = []
 ## 食物大小（模型最长边是 1 米，这里是放大倍数）
 @export var food_size := 1.0
-@export var bullet_speed := 36.0
+@export var bullet_speed := 24.0
 ## 子弹最远飞多远
 @export var bullet_range := 30.0
 ## 同时最多有几个食物在飞（连按太快时多出来的不发射；一个食物只打掉一颗星球）
-@export var max_bullets := 6
+@export var max_bullets := 20
+## Perfect 的扇形：每一发偏离正前方多少度（负 = 往左）。中间直射，两发斜着，最外面两发几乎横着飞
+@export var perfect_fan: Array[float] = [-72.0, -32.0, 0.0, 32.0, 72.0]
+## Great 的扇形：直射一发，左右各斜一发，比 Perfect 窄
+@export var great_fan: Array[float] = [-24.0, 0.0, 24.0]
+## Good：只有正前方一发
+@export var good_fan: Array[float] = [0.0]
 @export_group("计分")
-## 这一关的算分规则；空着用默认值（准确率占 80%，打掉一颗 +3000，被撞一次 −3000）
+## 这一段的算分规则；空着用默认值（全部按打掉的星球算，见 SpaceShooterScore）
 @export var score_rule: SpaceShooterScore
 ## 猫被撞的判定半径
 @export var cat_radius := 0.9
+@export_group("转圈星星")
+## 每转一圈撒几颗发光四芒星
+@export var star_count := 6
+## 星星大小（最小 / 最大，米）
+@export var star_size := Vector2(0.5, 1.1)
+## 星星外光的颜色，每颗随机挑一个
+@export var star_colors: Array[Color] = [Color(0.35, 0.6, 1.0), Color(1.0, 0.45, 0.8), Color(0.7, 0.45, 1.0),
+		Color(0.3, 1.0, 0.9), Color(1.0, 0.85, 0.3), Color(0.5, 1.0, 0.5), Color(1.0, 0.55, 0.45)]
 @export_group("")
 ## 猫的动作（模型自带的动画名）；一个小节做一遍
 @export var cat_animation := "ARM-CATS-Scratch|ACT-CATS-LeftPaw-Scratch"
@@ -86,6 +100,12 @@ var _judge: Judge
 var _score: SpaceShooterScore
 var _auto_i := 0
 var _auto_release := false
+var _stars: Array[Dictionary] = []
+var _star_mesh: Mesh
+var _fx_layer: Node
+
+const STAR_SCENE := preload("res://stages/space_shooter/star/four_point_star.glb")
+const STAR_SHADER := preload("res://stages/space_shooter/star/star_glow.gdshader")
 
 
 func _on_enter() -> void:
@@ -100,7 +120,16 @@ func _on_enter() -> void:
 		n = n.get_parent()
 	if n:
 		_judge = n.judge
-		_judge.accuracy_share = _score.accuracy_share
+		_judge.accuracy_share = 0.0  # 这一段不按准确率给分，全部靠打星球
+		_score.stage_points = roundi(_judge.stage_max())
+		# 框架每次打中会在猫身上放 2D 命中特效，这一段换成 3D 发光星星，所以把它们拿掉
+		if "fx_layer" in n:
+			_fx_layer = n.fx_layer
+			_fx_layer.child_entered_tree.connect(_on_fx_added)
+	var star := STAR_SCENE.instantiate()
+	for mi: MeshInstance3D in star.find_children("*", "MeshInstance3D", true, false):
+		_star_mesh = mi.mesh
+	star.free()
 
 
 ## 离开这一关：准确率占比还回 100%，后面的小关回到通常的按段计分。
@@ -108,6 +137,23 @@ func _on_enter() -> void:
 func _on_exit() -> void:
 	if _judge:
 		_judge.accuracy_share = 1.0
+		if _score:
+			_judge.add_bonus(0, _score.take_rest_possible())
+	if _fx_layer and _fx_layer.child_entered_tree.is_connected(_on_fx_added):
+		_fx_layer.child_entered_tree.disconnect(_on_fx_added)
+	# 把镜头相对猫的位置交给下一段，它从这个机位开始移动，画面不跳
+	if camera and _posed:
+		var at := Vector3(_x, 0.0, 0.0)
+		SpaceShooterScore.handoff = {
+			"pos": camera.global_position - at,
+			"look": Vector3(_x * camera_follow + camera_side, 0.0, -look_ahead) - at,
+			"fov": camera.fov,
+		}
+
+
+func _on_fx_added(node: Node) -> void:
+	if node is StarBurst:
+		node.queue_free()
 
 
 func _camera_pose(_p: float, _t: float) -> Dictionary:
@@ -151,6 +197,7 @@ func _update_view(t: float) -> void:
 		_update_planets(dt)
 		_update_bullets(dt)
 		_update_shards(dt)
+		_update_stars(dt)
 	for i in range(_popups.size() - 1, -1, -1):
 		_popups[i].age += dt
 		if _popups[i].age > 0.7:
@@ -173,28 +220,73 @@ func _play_cat() -> void:
 # ---- 按键 = 转圈 + 发射 ----
 
 func _on_note_judged(_note: NoteData, result: int) -> void:
-	if result != NoteData.Result.MISS:
-		_fire()
+	match result:
+		NoteData.Result.PERFECT: _fire(perfect_fan)
+		NoteData.Result.GREAT: _fire(great_fan)
+		NoteData.Result.GOOD: _fire(good_fan)
 
 
+## 空按：猫照样转一圈，但不发射
 func _on_empty_hit() -> void:
-	_fire()
+	_fire([])
 
 
-func _fire() -> void:
+## 猫转一圈、撒星星，按 fan 里的角度（度，0 = 正前方）扇形发射食物
+func _fire(fan: Array) -> void:
 	_spin_age = 0.0
-	if _dyn == null or _bullets.size() >= max_bullets:
+	if _dyn == null:
 		return
-	var node: Node3D
-	if food_models.is_empty():
-		node = _placeholder_food()
-	else:
-		node = food_models[_food_i % food_models.size()].instantiate() as Node3D
-	_food_i += 1
-	node.scale = Vector3.ONE * food_size
-	_dyn.add_child(node)
-	node.position = Vector3(_x, 0.9, -1.2)
-	_bullets.append({"node": node, "x": _x, "z": -1.2})
+	_spawn_stars()
+	for deg: float in fan:
+		if _bullets.size() >= max_bullets:
+			break
+		var node: Node3D
+		if food_models.is_empty():
+			node = _placeholder_food()
+		else:
+			node = food_models[_food_i % food_models.size()].instantiate() as Node3D
+		_food_i += 1
+		node.scale = Vector3.ONE * food_size
+		_dyn.add_child(node)
+		var a := deg_to_rad(deg)
+		node.position = Vector3(_x, 0.9, -1.2)
+		_bullets.append({"node": node, "x": _x, "z": -1.2, "dir": Vector2(sin(a), -cos(a)), "gone": 0.0})
+
+
+## 转圈时从猫身上甩出去的发光四芒星：大小、颜色各自随机
+func _spawn_stars() -> void:
+	if _star_mesh == null:
+		return
+	for i in star_count:
+		var mi := MeshInstance3D.new()
+		mi.mesh = _star_mesh
+		var mat := ShaderMaterial.new()
+		mat.shader = STAR_SHADER
+		if not star_colors.is_empty():
+			mat.set_shader_parameter("glow_color", star_colors[randi() % star_colors.size()])
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_dyn.add_child(mi)
+		var a := randf() * TAU
+		mi.position = Vector3(_x, 1.0, 0.0)
+		mi.rotation = Vector3(-0.9, 0.0, randf() * TAU)  # 大致朝着镜头
+		_stars.append({"node": mi, "age": 0.0, "size": randf_range(star_size.x, star_size.y),
+				"vel": Vector3(cos(a), randf_range(0.1, 0.6), sin(a)) * randf_range(3.5, 7.0)})
+
+
+func _update_stars(dt: float) -> void:
+	for i in range(_stars.size() - 1, -1, -1):
+		var s := _stars[i]
+		s.age += dt
+		var node: Node3D = s.node
+		if s.age > 0.6:
+			node.queue_free()
+			_stars.remove_at(i)
+			continue
+		var k: float = s.age / 0.6
+		node.position += (s.vel as Vector3) * dt * (1.0 - k)
+		node.rotate_object_local(Vector3.BACK, dt * 4.0)
+		node.scale = Vector3.ONE * s.size * sin(minf(k * 1.4 + 0.25, 1.0) * PI)
 
 
 ## 没有食物模型时的占位：彩色方块
@@ -213,20 +305,22 @@ func _update_bullets(dt: float) -> void:
 	for i in range(_bullets.size() - 1, -1, -1):
 		var b := _bullets[i]
 		var node: Node3D = b.node
-		var prev: float = b.z
-		b.z = prev - bullet_speed * dt
-		node.position.z = b.z
+		var step: Vector2 = (b.dir as Vector2) * bullet_speed * dt
+		b.x += step.x
+		b.z += step.y
+		b.gone += bullet_speed * dt
+		node.position = Vector3(b.x, 0.9, b.z)
 		node.rotate_y(dt * 9.0)
 		node.rotate_x(dt * 5.0)
 		var hit := false
 		for j in range(_planets.size() - 1, -1, -1):
 			var p := _planets[j]
 			var reach: float = p.radius + food_size * 0.5
-			if absf(p.x - b.x) < reach and p.z <= prev + reach and p.z >= b.z - reach:
+			if absf(p.x - b.x) < reach and absf(p.z - b.z) < reach:
 				_kill_planet(j)
 				hit = true
 				break
-		if hit or b.z < -bullet_range:
+		if hit or b.gone > bullet_range:
 			node.queue_free()
 			_bullets.remove_at(i)
 
@@ -341,10 +435,10 @@ func _kill_planet(i: int) -> void:
 	var p := _planets[i]
 	var pos: Vector3 = (p.node as Node3D).position
 	_burst(pos, p.color, p.radius)
-	_popups.append({"pos": pos, "age": 0.0, "text": "+%d" % _score.kill_points, "color": Color(1.0, 0.95, 0.4)})
+	_popups.append({"pos": pos, "age": 0.0, "text": "+%d" % _score.kill_points(), "color": Color(1.0, 0.95, 0.4)})
 	_score.kills += 1
 	_remove_planet(i)
-	_bank(_score.kill_points)
+	_bank(_score.take_kill())
 
 
 ## 撞到猫：算一次 Miss，只扣分
@@ -363,7 +457,7 @@ func _crash(i: int) -> void:
 ## 一颗星球有了结果：分数立刻加到（或扣在）左上角的总分上
 func _bank(points: int) -> void:
 	if _judge:
-		_judge.add_bonus(points, _score.kill_points)
+		_judge.add_bonus(points, _score.take_possible())
 
 
 ## 碎片：一把小方块往四周飞、越飞越小
@@ -455,9 +549,9 @@ func _draw_overlay() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1.0, 20, Color(1, 1, 1, 0.85))
 	if _flash > 0.0:
 		_overlay.draw_rect(Rect2(-size / 2.0, size), Color(1.0, 0.15, 0.2, _flash * 0.3))
-	if tap_age < 0.15:
-		_overlay.draw_arc(hit_position(), hit_radius() * (1.0 + tap_age), 0.0, TAU, 64,
-				Color(1, 1, 1, 1.0 - tap_age / 0.15), 5.0)
+	# 猫身上的判定圈：每个音符一个从外面收过来的圈，收到和判定圈重合时按
+	draw_approach_rings(_overlay, hit_position(), hit_radius(), approach_beats,
+			approach_travel_ratio * size.y)
 
 
 func _on_restore() -> void:

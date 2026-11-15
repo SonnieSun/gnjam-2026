@@ -64,6 +64,22 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 ## 洗衣机往哪边退场
 @export var machine_exit := Vector3(0.0, -3.0, 0.0)
 
+@export_group("跟拍运镜")
+## 镜头跟着音乐动：每 change_beats 拍（默认一小节）在小节开头换一个随机的角度和远近（很快滑过去），
+## 每一拍再往里推一下。随机是按小节定的，每次玩都一样。判定圈跟着洗衣机门在画面上的位置走，不会对不上
+@export var beat_camera := true
+@export var beat_change_beats := 4.0
+## 换角度用几拍滑过去
+@export var beat_ease_beats := 0.6
+## 随机角度的范围（度）：左右绕、上下绕、歪头
+@export var beat_yaw_degrees := 14.0
+@export var beat_pitch_degrees := 8.0
+@export var beat_roll_degrees := 5.0
+## 随机远近（镜头距离的倍数，小于 1 = 推近）
+@export var beat_zoom_range := Vector2(0.85, 1.1)
+## 每一拍往里推多少（0.05 = 推近 5%）
+@export_range(0.0, 0.3) var beat_zoom_punch := 0.05
+
 @export_group("发电")
 ## 发电时画面震动最大多少像素
 @export var holding_shake_pixels := 5.0
@@ -78,6 +94,7 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 
 var world: SubViewport
 var camera: Camera3D
+var _beat := 0.0
 var grid: TvGrid
 ## 已经完整按完几次长按
 var holds_done := 0
@@ -334,6 +351,7 @@ func update(beat: float, dt: float) -> void:
 	grid.update(dt, _beat_pulse)
 	_update_cat(dt)
 	_update_shake()
+	_beat = beat
 	_update_camera(dt)
 	if finale_active():
 		_update_finale(beat)
@@ -406,6 +424,41 @@ func _place_camera(zoom: float) -> void:
 	camera.fov = camera_fov
 	camera.position = look + Vector3(0.0, 0.0, dist)
 	camera.rotation = Vector3.ZERO
+	if beat_camera and _beat >= 0.0:
+		var m := _beat_pose()
+		var orbit := Basis.from_euler(Vector3(deg_to_rad(m.pitch), deg_to_rad(m.yaw), 0.0))
+		camera.position = look + orbit * Vector3(0.0, 0.0, dist * m.scale)
+		camera.look_at(look, Vector3.UP)
+		camera.rotate_object_local(Vector3(0.0, 0.0, 1.0), deg_to_rad(m.roll))
+
+
+## 现在的跟拍姿势：从上一小节的随机姿势很快滑到这一小节的（先快后慢），再叠上每拍往里推一下
+func _beat_pose() -> Dictionary:
+	var step := maxf(beat_change_beats, 0.5)
+	var bar := floori(_beat / step)
+	var a := _bar_pose(bar - 1)
+	var b := _bar_pose(bar)
+	var t := clampf((_beat - bar * step) / maxf(beat_ease_beats, 0.01), 0.0, 1.0)
+	t = 1.0 - pow(1.0 - t, 3.0)
+	var punch := pow(1.0 - fposmod(_beat, 1.0), 4.0) * beat_zoom_punch
+	return {
+		"yaw": lerpf(a.yaw, b.yaw, t), "pitch": lerpf(a.pitch, b.pitch, t), "roll": lerpf(a.roll, b.roll, t),
+		"scale": lerpf(a.scale, b.scale, t) * (1.0 - punch),
+	}
+
+
+## 第 i 小节的随机姿势（按小节号定种子：同一小节每次都一样）。开始之前是正面
+func _bar_pose(i: int) -> Dictionary:
+	if i < 0:
+		return {"yaw": 0.0, "pitch": 0.0, "roll": 0.0, "scale": 1.0}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = i * 9973 + 17
+	return {
+		"yaw": rng.randf_range(-beat_yaw_degrees, beat_yaw_degrees),
+		"pitch": rng.randf_range(-beat_pitch_degrees, beat_pitch_degrees),
+		"roll": rng.randf_range(-beat_roll_degrees, beat_roll_degrees),
+		"scale": rng.randf_range(beat_zoom_range.x, beat_zoom_range.y),
+	}
 
 
 ## 按 ComicStyle 现在选的风格给洗衣机和电视套上（或拿掉）漫画材质。框架按 C 切换风格后这里跟着换。
