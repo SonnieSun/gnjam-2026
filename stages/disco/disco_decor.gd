@@ -103,6 +103,23 @@ func _orbit(props: Dictionary) -> void:
 	_orbits.append(o)
 
 
+# 一圈发光转圈猫绕着猫飞（tabby_orbit_3d.gd），参数和 _orbit 一样（大小按"猫的几倍"写）
+func _cat_orbit(props: Dictionary) -> void:
+	var cat := _find_cat()
+	if cat == null:
+		return
+	var h: float = cat.cat_view_height
+	var o := TabbyOrbit3D.new()
+	for k in props:
+		o.set(k, props[k])
+	o.radius = float(props.get("radius", 1.8)) * h
+	o.item_height = float(props.get("item_height", 0.45)) * h
+	o.lift = float(props.get("lift", 0.0)) * h
+	o.center = cat.focus + cat.pose_position
+	cat.world.add_child(o)
+	_orbits.append(o)
+
+
 func _find_cat() -> KisaSpinCat3D:
 	for c in get_parent().get_children():
 		if c is KisaSpinCat3D:
@@ -119,7 +136,7 @@ func _process(_delta: float) -> void:
 	for o in _orbits:
 		if is_instance_valid(o):
 			# 绕猫飞的圈跟着猫；冒出来的那些留在场景里自己的位置
-			o.center = cat.focus + (cat.pose_position if o is MemeOrbit3D else o.get_meta("at"))
+			o.center = cat.focus + (cat.pose_position if (o is MemeOrbit3D or o is TabbyOrbit3D) else o.get_meta("at"))
 
 
 # 猫图在场景的空间里莫名其妙地冒出来（meme_field_3d.gd）。大小都按"猫的几倍"写（item_height、box、clear_width、flow、at）。
@@ -169,8 +186,7 @@ func _set_for(tier: int) -> void:
 			_field(_with(ROAD, {"memes": ["oiia", "nyan"], "count": 7, "item_height": 1.0, "flow": Vector3(0, 0, 3.0)}))
 		8:  # 广场，猫清唱：远处慢慢冒出两只很大的、在唱歌的猫
 			_field(_with(PLAZA, {"memes": ["meow"], "count": 2, "item_height": 2.2, "size_jitter": 0.2, "life_beats": 6.0, "beat_pulse": 0.08}))
-		9:  # 广场 FEVER：一圈绕着猫飞，四周再冒几只
-			_orbit({"meme": "oiia", "count": 8, "radius": 2.0, "tilt": 22.0, "turns_per_beat": 0.07})
-			_field(_with(PLAZA, {"memes": ["popcat", "catjam", "lick"], "count": 6, "item_height": 1.2, "life_beats": 2.0, "beat_pulse": 0.3}))
+		9:  # 广场 FEVER：一圈发光转圈猫绕着猫飞（tabby_orbit_3d.gd）
+			_cat_orbit({"count": 8, "radius": 2.0, "tilt": 22.0, "turns_per_beat": 0.07})
 		_:
 			pass  # 0 开头、1 星星灯、5 房子打开的转场、10 结尾：干净的画面

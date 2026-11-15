@@ -135,7 +135,7 @@ func _draw() -> void:
 			break
 		var t := ahead / approach_beats  # 1 = 刚出现，0 = 重合，负数 = 已经过了
 		var r := maxf(target_radius + t * (from_r - target_radius), 4.0)
-		var c := RING_COLORS[n.sound % RING_COLORS.size()]
+		var c := guide_color(n)
 		c.a = clampf((1.0 - t) / 0.2, 0.0, 1.0)
 		draw_arc(hit_position(n), r, 0.0, TAU, 96, c, 6.0)
 	# 标题
@@ -146,4 +146,6 @@ func _draw() -> void:
 
 ## 辅助线和缩圈用同一套颜色
 func guide_color(note: NoteData) -> Color:
+	if note.color.a > 0.0:
+		return note.color  # 谱子里给这个音符单独指定了颜色
 	return RING_COLORS[note.sound % RING_COLORS.size()]

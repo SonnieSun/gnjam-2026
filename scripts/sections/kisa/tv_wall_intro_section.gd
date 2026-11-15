@@ -428,6 +428,8 @@ const SCORE_BY_PATTERN := true
 
 ## 音符的颜色：长按统一是粉色，点按按音色
 func note_color(n: NoteData) -> Color:
+	if n.color.a > 0.0:
+		return n.color  # 谱子里给这个音符单独指定了颜色
 	return hold_progress_color if hold_beats(n) > 0.0 else sound_color(n)
 
 

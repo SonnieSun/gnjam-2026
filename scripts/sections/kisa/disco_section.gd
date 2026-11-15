@@ -182,7 +182,7 @@ func _start_abduction() -> void:
 	add_child(_abduct)
 	# 两边的飞碟摆在各自坐标里的同一个相对位置：差多少就整体平移多少
 	_abduct.embed(_spin_cat.world, _spin_cat.camera, saucer, _road.saucer_position - _abduct.saucer_position)
-	_rest_until(song_beat() + abduction_quiet_beats, abduction_bars)
+	_rest_until(song_beat() + abduction_quiet_beats, abduction_bars, "abduct")
 	# 积累条不再按判定加减，改成跟着吸猫的进度走：吸到第几格，就涨到剩下那段的几成，
 	# 吸满那一下正好到顶（full 先保持 true，免得框架提前过关；猫真被吸进去时再正式满条）
 	var g := _main_gauge()
@@ -233,7 +233,7 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		_stage.enter_stage(index)
 	elif index == 5:
 		# 拆房子转镜头这段不出音符，让玩家歇一下；上路的第一个水果落在歇完那个小节的第 1 拍
-		var resume := _rest_until(song_beat() + _road.unfold_beats + road_quiet_beats, DiscoMusic.road_bars())
+		var resume := _rest_until(song_beat() + _road.unfold_beats + road_quiet_beats, DiscoMusic.road_bars(), "road")
 		_road.start(song_beat(), resume)
 	elif index == 6 or index == 7:
 		_road.set_floor(index - 5)
@@ -243,7 +243,7 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		# 滑到圆台这段先歇一会儿（不直接接着出音符），歇完在小节线上接着打路上那套鼓谱
 		var bpb: int = Conductor.chart.beats_per_bar
 		var rest := plaza_rest_seconds / Conductor.sec_per_beat()
-		_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars())
+		_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars(), "plaza")
 		_road.enter_plaza(song_beat())
 
 
@@ -359,7 +359,7 @@ func _draw() -> void:
 			continue
 		var head_r := target_radius if holding_this else _ring_radius(beats_until(n), from_r)
 		var tail_r := _ring_radius(end - song_beat(), from_r)
-		var c := HOLD_COLOR  # 长按统一是粉色
+		var c := guide_color(n)  # 长按统一是粉色（谱子里单独指定了颜色的用指定的）
 		var center := hit_position(n)
 		if tail_r > head_r:
 			c.a = hold_band_alpha
@@ -504,9 +504,31 @@ func _leave_crossfade() -> void:
 	t.tween_callback(layer.queue_free)
 
 
+## 这个小关里换谱子的几个玩法阶段（配拍编辑器 scenes/tools/kisa/beat_editor.tscn 读这个，给每个阶段单独配一份谱子）。
+## id = "" 是开头用的主谱（小关的 chart / bars）；event = 积累条第几个事件起换成这一段（见 _on_gauge_event）。
+## 某个阶段的谱子存在 levels/charts/<大关>_<第几个小关>_<id>.tres；没有这个文件就和以前一样。
+static func chart_phases() -> Array:
+	return [
+		{"id": "", "name": "房间（缩圈）", "event": 0},
+		{"id": "road", "name": "水果路", "event": 5},
+		{"id": "plaza", "name": "圆台（缩圈）", "event": 8},
+		{"id": "abduct", "name": "吸猫（光圈）", "event": 9},
+	]
+
+
+## 配拍编辑器给这个阶段单独存的谱子（没存过返回 null）
+func _phase_chart(phase: String) -> ChartPattern:
+	var main := get_parent().get_parent() if get_parent() else null
+	if phase == "" or main == null or main.get("_index") == null:
+		return null
+	var file := "res://levels/charts/%s_%d_%s.tres" % [Levels.current_path().get_file().get_basename(), int(main.get("_index")), phase]
+	return load(file) as ChartPattern if ResourceLoader.exists(file) else null
+
+
 ## 歇一会儿：从现在到 until_beat 之后的第一个小节线都不出音符，那个小节线起鼓谱从头接着来。
+## phase：这之后是哪个玩法阶段（见 chart_phases），配拍编辑器给它存了谱子就换成那一份。
 ## 返回恢复出音符的那一拍。做法是让 Judge 把这一小关的鼓谱从那一拍重新开始（调它现成的 begin_section）。
-func _rest_until(until_beat: float, bars := PackedStringArray()) -> float:
+func _rest_until(until_beat: float, bars := PackedStringArray(), phase := "") -> float:
 	var main := get_parent().get_parent()
 	var bpb: int = Conductor.chart.beats_per_bar
 	var resume := ceilf(until_beat / bpb) * bpb
@@ -514,7 +536,11 @@ func _rest_until(until_beat: float, bars := PackedStringArray()) -> float:
 		return resume
 	var index: int = main.get("_index") if main.get("_index") != null else 0
 	var d: SectionDef = def
-	if not bars.is_empty():
+	var phase_chart := _phase_chart(phase)
+	if phase_chart:
+		d = def.duplicate()
+		d.chart = phase_chart
+	elif not bars.is_empty():
 		# 换一份鼓谱接着打（只换这一小关自己用的副本，不改原来的谱面资源）
 		d = def.duplicate()
 		d.bars = bars
@@ -528,4 +554,6 @@ func _rest_until(until_beat: float, bars := PackedStringArray()) -> float:
 func guide_color(note: NoteData) -> Color:
 	if not _holds_parsed and def:
 		_parse_holds()
+	if note.color.a > 0.0:
+		return note.color  # 谱子里给这个音符单独指定了颜色
 	return HOLD_COLOR if _hold_ends.has(note) else super(note)
