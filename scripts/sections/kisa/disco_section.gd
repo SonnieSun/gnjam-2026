@@ -316,6 +316,13 @@ func _parse_holds() -> void:
 
 func _draw() -> void:
 	# 不调用 ring_section 的画法：自己画白色判定圈和往里收的圈，好单独调圈的透明度
+	if def and _stage:
+		# 视觉焦点：判定点（猫）周围保持原样，外面压暗。房间 / 圆台里是透视的椭圆，路上和吸猫时是正圆
+		var ring_phase := _abduct == null and (_road == null or _road.rings_visible(song_beat()))
+		if ring_phase:
+			draw_focus(self, target_position(0), target_radius * judge_scale, _stage.ring_squash())
+		else:
+			draw_focus(self, target_position(0), hit_radius() * 1.4)
 	_draw_rings()
 	if def == null:
 		return
@@ -367,7 +374,7 @@ func _draw_rings() -> void:
 		for n in own_notes():
 			if not (_road and _road.uses_fruit(n)):
 				ring_notes.append(n)
-		for g in guide_list(approach_beats, ring_notes):
+		for g in guide_list(approach_beats, ring_notes, false):  # 音符就是缩圈，只补空拍的虚线
 			var r := maxf(target_radius + clampf(g.a, 0.0, 1.0) * (from_r - target_radius), 4.0)
 			BeatGuides.draw_ring(self, target_position(0), r, BeatGuides.look(g), 4.0, squash, judge_scale)
 	for n in own_notes():

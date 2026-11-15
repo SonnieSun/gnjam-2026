@@ -558,7 +558,7 @@ func _update_guides(beat: float, notes: Array[NoteData], approach_beats: float) 
 	if beat_guides and _phase == Phase.LIFT and _beam_fade > 0.5:
 		var cat_c := _cat.position - _rig.position
 		for g in BeatGuides.compute(notes, beat, approach_beats, guide_every,
-				func(n: NoteData) -> Color: return SpinSection.SOUND_COLORS[n.sound % 3]):
+				func(n: NoteData) -> Color: return SpinSection.SOUND_COLORS[n.sound % 3], Callable(), false):  # 光圈本身就在这个位置
 			var h := lerpf(_beam_top.y, cat_c.y, 1.0 - clampf(g.a, 0.0, 1.0))
 			var u := clampf((h - beam_bottom_center.y) / maxf(_beam_top.y - beam_bottom_center.y, 0.01), 0.0, 1.0)
 			var center := beam_bottom_center.lerp(_beam_top, u)

@@ -109,3 +109,8 @@ func _place_note(n: NoteData, node: Node3D, f: Dictionary) -> void:
 	ring.scale = Vector3.ONE * radius
 	ring.rotation = Vector3(deg_to_rad(12.0), f.angle, 0.0)
 	apply_look(node, f)
+
+
+## 音符本身就是一圈：不画实线，只补空拍的虚线
+func _solid_guides() -> bool:
+	return false

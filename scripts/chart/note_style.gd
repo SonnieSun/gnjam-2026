@@ -168,7 +168,7 @@ func guides() -> Array[Dictionary]:
 		var none: Array[Dictionary] = []
 		return none
 	var list := BeatGuides.compute(notes, beat, pattern.default_lead, pattern.guide_every,
-			func(n: NoteData) -> Color: return fx(n).color, lead_of)
+			func(n: NoteData) -> Color: return fx(n).color, lead_of, _solid_guides())
 	for g in list:
 		var ls := []
 		for n: NoteData in g.notes:
@@ -185,6 +185,11 @@ func guide_look(g: Dictionary) -> Dictionary:
 func _draw_guides() -> void:
 	for g in guides():
 		_draw_guide(g)
+
+
+## 要不要画实线：音符本身就是一圈线的表现方式（圆圈、光圈）返回 false，免得和音符叠在一起
+func _solid_guides() -> bool:
+	return true
 
 
 ## 子类实现：按自己的形状画一条辅助线

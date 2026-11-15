@@ -111,6 +111,7 @@ func _flash(cat: MemeSprite, c: Color) -> void:
 func _draw() -> void:
 	if def == null:
 		return
+	draw_focus(self, target_position(0), target_radius)
 	# 目标圆：圆盘 + 自转的辐条 + 白色判定轮廓
 	for k in _cats.size():
 		var offset := target_position(k)
@@ -125,7 +126,7 @@ func _draw() -> void:
 	if from_r <= 0.0:
 		from_r = screen_size().length() / 2.0 + 40.0
 	draw_target_guides(self, target_position(0), target_radius, from_r - target_radius, approach_beats,
-			func(n: NoteData) -> Array: return [hit_position(n), target_radius])
+			Callable(), 1.0, 1.0, false)  # 音符就是缩圈，只补空拍的虚线
 	for n in own_notes():
 		if n.judged:
 			continue

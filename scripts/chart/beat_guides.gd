@@ -10,8 +10,11 @@ extends RefCounted
 ##   beat 第几拍  a 远近（1 = 刚出现，0 = 判定点）  solid 是不是要按的拍子  color 颜色
 ##   k 有多近（0 远 ~ 1 到了）  notes 这一拍的音符（虚线是空的）
 ## lead = 提前几拍出现；color_of(note) -> Color；lead_of(note) -> float（每个音符可以有自己的出现时间，不给就用 lead）
+## include_solid = false：不画实线（音符本身就是一圈线的关卡用：实线和音符完全重合，画了只会叠成好几圈）；
+##   有音符的拍子照样不画虚线。
+## dashed_ahead = 虚线只画接下来几拍（远处的淡入），免得判定点周围一圈圈太多
 static func compute(notes: Array, beat: float, lead: float, step := 1.0,
-		color_of := Callable(), lead_of := Callable()) -> Array[Dictionary]:
+		color_of := Callable(), lead_of := Callable(), include_solid := true, dashed_ahead := 3.0) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var solid := {}
 	for n: NoteData in notes:
@@ -33,12 +36,15 @@ static func compute(notes: Array, beat: float, lead: float, step := 1.0,
 		var g := {"beat": n.beat, "a": a, "solid": true, "color": c, "k": 1.0 - clampf(a, 0.0, 1.0), "notes": [n]}
 		solid[key] = g
 		out.append(g)
+	if not include_solid:
+		out.clear()
 	step = maxf(step, 0.125)
 	var b := ceilf(beat / step) * step
-	while b <= beat + lead:
+	var reach := minf(lead, dashed_ahead)
+	while b <= beat + reach:
 		if not solid.has(roundi(b * 100.0)):
 			out.append({"beat": b, "a": (b - beat) / maxf(lead, 0.01), "solid": false, "color": Color.WHITE,
-					"k": 0.0, "notes": []})
+					"k": 0.0, "notes": [], "fade": clampf(reach - (b - beat), 0.0, 1.0)})
 		b += step
 	out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return x.a > y.a)
 	return out
@@ -53,7 +59,7 @@ static func look(g: Dictionary) -> Dictionary:
 		c.a = 0.3 + 0.7 * k * k
 		return {"color": c, "width": 1.0 + k * 1.2, "dashed": false}
 	# 远处也要看得清（原来远处几乎看不见）：基础更亮，远处只淡一点
-	return {"color": Color(1, 1, 1, 0.42 * (1.0 - a * 0.3)), "width": 0.7, "dashed": true}
+	return {"color": Color(1, 1, 1, 0.42 * (1.0 - a * 0.3) * float(g.get("fade", 1.0))), "width": 0.7, "dashed": true}
 
 
 ## 判定点预亮：{k: 0~1（0 = 一拍内没有要按的）, color}。filter(note) -> bool 可以只看一部分音符（比如某条轨道）
