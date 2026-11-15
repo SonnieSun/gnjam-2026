@@ -175,27 +175,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		start_from(start_section)
 
 
-## 温馨开头被按破的那一下，要炸：全白 → 黑 → 亮粉 → 全白慢慢退（频闪），画面猛地放大弹回来、抖几下，再给一记画面冲击
+## 温馨开头被按破的那一下：闪一下（只闪一次、半透明的粉白，很快退掉；不做黑白频闪，太刺眼），
+## 画面猛地放大弹回来、抖几下，再给一记画面冲击。闪多亮、多久在下面两个数上调。
+@export_range(0.0, 1.0) var cozy_flash_strength := 0.55
+@export var cozy_flash_seconds := 0.3
+
 func _cozy_break() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 30
-	add_child(layer)
-	var rect := ColorRect.new()
-	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rect.color = Color.WHITE
-	layer.add_child(rect)
-	var t := create_tween()
-	t.tween_interval(0.07)
-	t.tween_callback(func(): rect.color = Color(0.0, 0.0, 0.0, 0.92))
-	t.tween_interval(0.05)
-	t.tween_callback(func(): rect.color = Color(1.0, 0.1, 0.55))
-	t.tween_interval(0.05)
-	t.tween_callback(func(): rect.color = Color(0.0, 0.0, 0.0, 0.85))
-	t.tween_interval(0.04)
-	t.tween_callback(func(): rect.color = Color.WHITE)
-	t.tween_property(rect, "color:a", 0.0, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	t.tween_callback(layer.queue_free)
+	hud.flash(Color(1.0, 0.86, 0.92), cozy_flash_strength, cozy_flash_seconds)
 	# 画面放大弹回来 + 抖
 	var home := section_host.position
 	section_host.scale = Vector2.ONE * 1.35
