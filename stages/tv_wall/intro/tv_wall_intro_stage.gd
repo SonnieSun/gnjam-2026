@@ -35,9 +35,9 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 ## 舱门洞口中心和半径（洗衣机自己的坐标，照原洗衣机关的数值）
 @export var opening_center := Vector3(0.004025, 0.02949, 0.2456)
 @export var opening_radius := 0.145
-## 对齐 v8 门框灯带的几何中心、中线半径和前表面。
-@export var judgement_center := Vector3(0.0063975, 0.0296535, 0.312)
-@export var judgement_radius := 0.176728
+## 判定圈画在门框上
+@export var judgement_center := Vector3(0.004025, 0.02949, 0.2495)
+@export var judgement_radius := 0.176
 
 @export_group("猫脸")
 ## 猫脸（按宽和高里较短的一边算）是洞口直径的几倍；>= 1 时脸填满舱门，多出来的边角被机身挡住
@@ -191,7 +191,11 @@ func _build_env() -> void:
 
 func _build_machine() -> void:
 	_machine = MACHINE.instantiate() as Node3D
-	# 保留 v8 的三组表面材质；整网格覆盖会抹掉灯带颜色动画。
+	# 洗衣机场景里材质是挂在表面上的，挪到 material_override 上，漫画滤镜才认得
+	for mi in _machine.find_children("*", "MeshInstance3D", true, false):
+		var m := (mi as MeshInstance3D).get_surface_override_material(0)
+		if m:
+			(mi as MeshInstance3D).material_override = m
 	world.add_child(_machine)
 	# 猫脸：外面一层 _cat 放在舱门正中央、负责原地旋转；里面一层把模型摆正、缩到填满舱门
 	_cat = Node3D.new()

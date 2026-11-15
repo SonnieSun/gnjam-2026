@@ -2,7 +2,7 @@
 
 Only the top-left score and top-right live combo use `ui/score_combo_widget.tscn` and `scripts/ui/score_combo_widget.gd`. Judgment, result text, combo milestone pop-up, menu and other UI keep their existing rendering.
 
-Current artwork uses the latest approved jelly faces and layered dark/color rims. Assets live in `assets/ui/score_combo/jelly/`; `jelly_palette.gdshader` preserves smooth baked highlights, shades and dark rims while selecting the six colors. No glitter shader is attached to the widgets. The previous glitter assets remain unused.
+Current artwork uses the latest approved jelly faces and layered dark/color rims. Assets live in `assets/ui/score_combo/jelly/`; `jelly_palette.gdshader` preserves smooth baked highlights, shades and dark rims while selecting the six colors. No glitter shader is attached to the widgets. Unused glitter assets are excluded.
 
 The tightly joined source digit specimen is deskewed for extraction and restored to its original italic angle. Shared rims are rebuilt into complete antialiased glyphs so arbitrary values do not show clipped neighboring digits. The bitmap font uses proportional advances with 9 source pixels of rim overlap, matching the compact specimen instead of padded monospace cells; 1 is narrower than 0. Both SCORE and COMBO now use size 84 digits above their titles. SCORE has a wider 340-pixel layout box so normal five-digit scores match the combo digit size. Very long numeric values shrink only as needed to remain within their widget. The corner star remains attached to the combo number's right edge. Values have no zero padding. SCORE starts at 0 in pale yellow; COMBO is shown from 1 and hidden at 0. Color selection recalculates from the current value on restart and combo breaks.
 
