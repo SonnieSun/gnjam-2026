@@ -157,29 +157,20 @@ func _with(base: Dictionary, more: Dictionary) -> Dictionary:
 
 
 func _set_for(tier: int) -> void:
+	# 故意放得少：每一档只有一两样，数量也少，让画面有点东西但不挡视线
 	match tier:
-		1:  # 星星灯：房间里开始莫名其妙地冒出几只猫图
-			_field(_with(ROOM, {"memes": ["popcat"], "count": 3}))
-		2:  # 灯球出现：多几只、多几种
-			_field(_with(ROOM, {"memes": ["popcat", "oiia"], "count": 6}))
-		3:  # 跳舞猫，第一个小高潮：一圈 oiia 绕着猫飞，四周还在冒
-			_orbit({"meme": "oiia", "count": 8, "radius": 1.8, "tilt": 18.0})
-			_field(_with(ROOM, {"memes": ["catjam", "popcat", "lick"], "count": 7, "item_height": 0.7}))
-		4:  # 漂移：再加上面流过去的一串彩虹猫
-			_orbit({"meme": "oiia", "count": 8, "radius": 1.8, "tilt": 18.0})
-			_field(_with(ROOM, {"memes": ["catjam", "popcat", "lick"], "count": 7, "item_height": 0.7, "life_beats": 2.0}))
-			_add("stream", -700, -290, {"meme": "nyan", "count": 5, "distance": 1400.0, "item_height": 70.0,
-					"from_scale": 1.0, "to_scale": 1.0, "beats_per_lap": 8.0})
-		6:  # 舞池：猫图从前面迎面飞过来
-			_field(_with(ROAD, {"memes": ["oiia", "popcat"], "count": 10, "item_height": 0.9}))
-		7:  # 网格：更多更快，再加一个竖着的圈从猫头顶翻过去
-			_field(_with(ROAD, {"memes": ["oiia", "catjam", "nyan", "lick"], "count": 16, "item_height": 1.0, "flow": Vector3(0, 0, 3.2)}))
-			_orbit({"meme": "oiia", "count": 6, "radius": 1.6, "tilt": 72.0, "lift": 0.3, "turns_per_beat": 0.08})
-		8:  # 广场，猫清唱：安静下来，四周慢慢冒出几只很大的、在唱歌的猫
-			_field(_with(PLAZA, {"memes": ["meow"], "count": 4, "item_height": 2.2, "size_jitter": 0.2, "life_beats": 6.0, "beat_pulse": 0.08}))
-		9:  # 广场 FEVER：到处都在冒，外加两个圈
-			_field(_with(PLAZA, {"memes": ["oiia", "popcat", "catjam", "lick", "nyan", "grumpy"], "count": 22, "item_height": 1.2, "life_beats": 2.0, "beat_pulse": 0.3}))
-			_orbit({"meme": "oiia", "count": 12, "radius": 2.0, "tilt": 22.0, "turns_per_beat": 0.07})
-			_orbit({"meme": "lick", "count": 6, "radius": 1.4, "item_height": 0.5, "tilt": 75.0, "lift": 0.3, "turns_per_beat": 0.09})
+		2:  # 灯球出现：房间里偶尔冒出一两只猫图
+			_field(_with(ROOM, {"memes": ["popcat"], "count": 2}))
+		3, 4:  # 跳舞猫，第一个小高潮：几只 oiia 绕着猫飞
+			_orbit({"meme": "oiia", "count": 4, "radius": 1.8, "tilt": 18.0})
+		6:  # 舞池：猫图从前面迎面飞过来，稀稀拉拉的
+			_field(_with(ROAD, {"memes": ["oiia"], "count": 4, "item_height": 0.9}))
+		7:  # 网格：多一点、快一点
+			_field(_with(ROAD, {"memes": ["oiia", "nyan"], "count": 7, "item_height": 1.0, "flow": Vector3(0, 0, 3.0)}))
+		8:  # 广场，猫清唱：远处慢慢冒出两只很大的、在唱歌的猫
+			_field(_with(PLAZA, {"memes": ["meow"], "count": 2, "item_height": 2.2, "size_jitter": 0.2, "life_beats": 6.0, "beat_pulse": 0.08}))
+		9:  # 广场 FEVER：一圈绕着猫飞，四周再冒几只
+			_orbit({"meme": "oiia", "count": 8, "radius": 2.0, "tilt": 22.0, "turns_per_beat": 0.07})
+			_field(_with(PLAZA, {"memes": ["popcat", "catjam", "lick"], "count": 6, "item_height": 1.2, "life_beats": 2.0, "beat_pulse": 0.3}))
 		_:
-			pass  # 0 开头、5 房子打开的转场、10 结尾：干净的画面
+			pass  # 0 开头、1 星星灯、5 房子打开的转场、10 结尾：干净的画面
