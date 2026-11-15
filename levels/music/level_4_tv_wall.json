@@ -23,6 +23,10 @@
     {
      "id": "bass",
      "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
+    },
+    {
+     "id": "cat_bass",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_bass_4b.wav"
     }
    ]
   },
@@ -34,6 +38,10 @@
     {
      "id": "chip_keys",
      "file": "res://assets/audio/music/scene1/style_chip/s1_chip_L0_keys_4b.wav"
+    },
+    {
+     "id": "cat_stabs",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav"
     }
    ]
   },
@@ -84,6 +92,18 @@
      "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_kichiku_4b.wav"
     }
    ]
+  },
+  {
+   "id": "hit",
+   "name": "打中唱",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "hit_riff",
+     "pattern": "res://levels/music/patterns/kichiku_riff.json",
+     "by_hit": true
+    }
+   ]
   }
  ],
  "sections": [
@@ -98,35 +118,43 @@
     ],
     "bass": [
      [
-      0.15,
+      0.0,
       "bass"
+     ],
+     [
+      0.7,
+      "cat_bass"
      ]
     ],
     "bed": [
      [
       0.0,
       "chip_keys"
+     ],
+     [
+      0.7,
+      "cat_stabs"
      ]
     ],
     "lead": [
      [
-      0.25,
+      0.2,
       "chip_hook"
      ],
      [
-      0.5,
+      0.7,
       "cat_lead"
      ]
     ],
     "peak": [
      [
-      0.75,
+      0.45,
       "chip_peak"
      ]
     ],
     "meow": [
      [
-      0.25,
+      0.45,
       "cat_drums"
      ]
     ],
@@ -135,8 +163,24 @@
       0.9,
       "cat_kichiku"
      ]
+    ],
+    "hit": [
+     [
+      0.2,
+      "hit_riff"
+     ],
+     [
+      0.7,
+      ""
+     ]
     ]
-   }
+   },
+   "tiers": [
+    0.2,
+    0.45,
+    0.7,
+    0.9
+   ]
   }
  ]
 }
