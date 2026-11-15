@@ -1,8 +1,8 @@
 {
 	"kind": "melody",
 	"bars": 8,
-	"cat": "auto",
-	"gain_db": 0.0,
+	"cat": "01",
+	"gain_db": -3.0,
 	"notes": [
 		[
 			2,

@@ -380,6 +380,20 @@ def halves(song):
 VOICES = {}          # lead name -> [(note index, start sample, mono sound)], for check_cat_cleanup.py
 
 
+def merge_repeats(mel, octave):
+    """For the flow lead (whole meows, legato): two notes in a row on the same pitch become one long note
+    when the first is only a pickup (an eighth or shorter) or the pitch is high (from HIGH_FROM up, where
+    every note is doubled by a hard-cut meow). Sung as written, D5 D5 or G5 G5 came out as a meow chopped
+    in two; one meow held through reads as the same tune and sounds like singing."""
+    out = []
+    for s, p, ln in mel:
+        if out and out[-1][1] == p and out[-1][0] + out[-1][2] == s and (out[-1][2] <= 2 or nm(p) + octave >= HIGH_FROM):
+            out[-1] = (out[-1][0], p, out[-1][2] + ln)
+        else:
+            out.append((s, p, ln))
+    return out
+
+
 def cat_leads(song, bars, last_in_phrase):
     """The cat versions of a tune: {'L3_cat', 'L3_cat_flow', 'L3_cat_pool', 'L3_cat_classic',
     'L3_cat_kichiku'}. song needs 'melody' [(16th step, note name, length in 16ths)] and 'cat_octave'."""
@@ -393,7 +407,10 @@ def cat_leads(song, bars, last_in_phrase):
     for name, style, flow in (('L3_cat', 'mix', False), ('L3_cat_flow', 'mix', True),
                               ('L3_cat_pool', 'pool', False), ('L3_cat_classic', 'classic', False)):
         x = blank(bars)
-        for i, (s, p, ln) in enumerate(song['melody']):
+        mel = merge_repeats(song['melody'], song['cat_octave']) if flow else song['melody']
+        ends = ({max(i for i, (s, _, _) in enumerate(mel) if s // 16 == b)
+                 for b in range(3, bars, 4) if any(s // 16 == b for s, _, _ in mel)} if flow else last_in_phrase)
+        for i, (s, p, ln) in enumerate(mel):
             m = nm(p) + song['cat_octave']
             nxt = mel[i + 1][0] if i + 1 < len(mel) else mel[0][0] + bars * 16
 
@@ -409,7 +426,10 @@ def cat_leads(song, bars, last_in_phrase):
             if m >= HIGH_FROM:
                 k = hit(high_cat[0], high_cat[1], m, max(ln * STEP * 0.95, 0.09))
                 put(resonate(k, m, even=True), t2n(s * STEP), float(np.interp(m, [HIGH_FROM, HIGH_FROM + 9], [0.5, 0.95])))
-            if i in last_in_phrase and ln >= 2:              # mi-mi-mi-MIAO, #6 shouting the end
+            if flow and i in ends and ln >= 2:              # the flow lead ends a phrase on one held MIAO, no stutter
+                put(resonate(shout(m, max(0.12, ln * STEP)), lift(m), FX), t2n(s * STEP), 1.25)
+                put(resonate(shout(m - 12, max(0.12, ln * STEP), 'shout_lo'), lift(m - 12), FX), t2n(s * STEP), 0.55)
+            elif i in ends and ln >= 2:                    # mi-mi-mi-MIAO, #6 shouting the end
                 for k in range(3):
                     put(resonate(mi(m), lift(m), FX), t2n(s * STEP + k * STEP / 2), 0.9)
                 sec, at = max(0.12, ln * STEP - 1.5 * STEP), t2n(s * STEP + 1.5 * STEP)
@@ -424,6 +444,8 @@ def cat_leads(song, bars, last_in_phrase):
     # phrase, never the same cat two phrases running), every note restarts its meow from the start,
     # pitched by playing it faster / slower, and is cut hard at the end of the note. Full pitch FX.
     x = blank(bars)
+    mel = song['melody']
+    bright = song.get('mi_attack', False)
     prev = None
     for ph in range(0, bars, 4):
         idx = [i for i, (s, _, _) in enumerate(mel) if ph <= s // 16 < ph + 4]
@@ -436,7 +458,16 @@ def cat_leads(song, bars, last_in_phrase):
             s, p, ln = mel[i]
             m = nm(p) + song['cat_octave']
             end = i in last_in_phrase and ln >= 2
-            place(x, stereo(resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)), t2n(s * STEP), 1.3 if end else 1.0)
+            v = resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)
+            if bright and ln >= 4:
+                # A long note whose meow opens dull ("mmao") and only blooms in its tail: give it a 'mi'.
+                # A kitten's 'mi' on the attack, and more presence on the first tenth of a second of the meow.
+                n0 = min(len(v), t2n(0.11))
+                env = np.zeros(len(v))
+                env[:n0] = np.linspace(1.0, 0.0, n0) ** 0.7
+                v = v + bandpass(v, 2500, 7000) * env * 1.6
+                place(x, stereo(resonate(mi(m, 0.07), lift(m), 1.0)), t2n(s * STEP), 0.75)
+            place(x, stereo(v), t2n(s * STEP), 1.3 if end else 1.0)
             if end:
                 place(x, stereo(resonate(hit(sample, own, m - 12, ln * STEP * 0.95), m - 12, even=True)), t2n(s * STEP), 0.6)
     L['L3_cat_kichiku'] = match_rms(finish(reverb(punch(highpass(x, 120)), 0.6, 0.2, mix=0.06)[: len(x)], bars), 0.135)
@@ -648,7 +679,7 @@ SONGS = {
             [(0, 'C5', 4), (4, 'B4', 2), (6, 'A4', 1), (7, 'B4', 1), (8, 'A4', 4),
              (12, 'B4', 1), (13, 'A4', 1), (14, 'G#4', 1), (15, 'A4', 1)],
         ]),
-        cat_octave=0, drum_notes=(nm('E4'), nm('A4'))),
+        cat_octave=0, drum_notes=(nm('E4'), nm('A4')), mi_attack=True),
 }
 
 # Toby Fox, "Your Best Friend" (Undertale, 2015). NOT public domain: for the team's internal playtest

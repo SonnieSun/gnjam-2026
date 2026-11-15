@@ -24,6 +24,11 @@ with contextlib.redirect_stdout(io.StringIO()):
 
 OUT = os.path.join(PROJECT, 'levels', 'music', 'patterns')
 LOW, HIGH = 60, 71
+# Per tune: which cat sings the backing vocals ('auto' = the player picks one per four-bar phrase, never the
+# same twice running) and how loud. Ode to Joy: on 'auto' the second phrase went to a brighter cat that stuck
+# out over the tune, so it keeps the soft low cat all the way and sits 3 dB lower.
+CAT = {'ode_to_joy': '01'}
+GAIN_DB = {'ode_to_joy': -3.0}
 for key in ('ode_to_joy', 'your_best_friend', 'mountain_king', 'can_can', 'turkish_march'):
     song = cc.SONGS[key]
     if key in cc.SPEED:
@@ -55,7 +60,7 @@ for key in ('ode_to_joy', 'your_best_friend', 'mountain_king', 'can_can', 'turki
             while m > HIGH:
                 m -= 12
             notes.append([h * 8, m, 4])
-    body = {'kind': 'melody', 'bars': bars, 'cat': 'auto', 'gain_db': 0.0, 'notes': notes}
+    body = {'kind': 'melody', 'bars': bars, 'cat': CAT.get(key, 'auto'), 'gain_db': GAIN_DB.get(key, 0.0), 'notes': notes}
     path = os.path.join(OUT, f'harm_{key}.json')
     with open(path, 'w', encoding='utf-8', newline='\n') as f:
         json.dump(body, f, indent='\t', ensure_ascii=False)
