@@ -309,8 +309,8 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
                'cat_bass': 'cc_cat_bass', 'kichiku': 'cc_kichiku'})}]}
 
 # --- level 1, the disco litter box: a song arc that follows the level's story (160 BPM) -------------
-# The stage's gauge lines (scenes/sections/kisa/disco.tscn: gauge_max_override 400, gauge_events
-# 20 40 60 80 | 110 140 190 250 | 320) are the music's lines; keep D in step with them.
+# The stage's gauge lines (scenes/sections/kisa/disco.tscn: gauge_max_override 430, gauge_events
+# 20 40 60 80 | 110 140 190 250 | 350) are the music's lines; keep D in step with them.
 # (Until 2026-11-16 the runway was longer: 140 220 320 | 390 of 470. All Perfect at 160 BPM it took 24 s
 # from the house opening to the plaza; now 18 s.)
 #   start        CALM         half-time beat and bass
@@ -325,8 +325,8 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
 #   8 plaza      A CAPPELLA   the band stops, only the cat choir (cat chords, cat bass, cat lead)
 #   PLAZA_FEVER  transition bar, then FEVER: breakbeat, full band, cat lead with the kichiku lead on top
 #   9 finale     the UFO: everything drops to the half-time beat, chords and the seal event track
-D = [v / 400 for v in (20, 40, 60, 80, 110, 140, 190, 250, 320)]
-PLAZA_FEVER = 280 / 400          # the plaza is a cappella from 250 to here, fever from here to the finale line
+D = [v / 430 for v in (20, 40, 60, 80, 110, 140, 190, 250, 350)]
+PLAZA_FEVER = 280 / 430          # the plaza is a cappella from 250 to here, fever from here to the finale line
 SETS[6] = {'title': 'DISCO', 'use': True,
            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
                       t('club', RV + 'Rclub_L1_groove_4b.wav', 'groove'), t('break', RV + 'Rbreak_L1_groove_4b.wav', 'groove'),
