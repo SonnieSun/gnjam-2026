@@ -2,6 +2,7 @@
 
 [ext_resource type="Shader" uid="uid://b0bbypebhrfj8" path="res://assets/menu/vinyl.gdshader" id="2_vinyl"]
 [ext_resource type="Shader" uid="uid://djb0rorlq822y" path="res://assets/menu/beam.gdshader" id="3_beam"]
+[ext_resource type="PackedScene" uid="uid://eyyfsehfg5ag" path="res://assets/menu/vinyl/vinyl_matte.glb" id="7_vinyl_model"]
 [ext_resource type="PackedScene" path="res://scenes/menu_cat_3d.tscn" id="4_cat"]
 [ext_resource type="Shader" uid="uid://pte0icqqhg84" path="res://assets/menu/spot_beam.gdshader" id="5_spot_beam"]
 
@@ -51,7 +52,7 @@ render_priority = 0
 shader = ExtResource("3_beam")
 shader_parameter/color = Color(1, 0.48, 0.16, 1)
 shader_parameter/core_color = Color(1, 0.8, 0.55, 1)
-shader_parameter/intensity = 0.85
+shader_parameter/intensity = 0.45
 shader_parameter/half_angle_deg = 17.0
 shader_parameter/edge_softness = 0.45
 shader_parameter/core_width = 0.25
@@ -68,7 +69,7 @@ center_offset = Vector3(0, 0, -11)
 render_priority = 0
 shader = ExtResource("5_spot_beam")
 shader_parameter/beam_color = Color(1, 0.85, 0.62, 1)
-shader_parameter/opacity = 0.28
+shader_parameter/opacity = 0.14
 shader_parameter/beam_height = 7.5
 shader_parameter/soft_distance = 1.2
 
@@ -100,9 +101,8 @@ fov = 65.8
 
 [node name="Record" type="Node3D" parent="." unique_id=1536617729]
 
-[node name="DiscMesh" type="MeshInstance3D" parent="Record" unique_id=1107874015]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
-mesh = SubResource("CylinderMesh_disc")
+[node name="DiscMesh" parent="Record" unique_id=1107874015 instance=ExtResource("7_vinyl_model")]
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 0, -0.16, 0)
 
 [node name="Labels" type="Node3D" parent="." unique_id=1236214958]
 
@@ -238,14 +238,14 @@ mesh = SubResource("PlaneMesh_beam")
 [node name="BeamLight" type="SpotLight3D" parent="." unique_id=439089409]
 transform = Transform3D(1, 0, 0, 0, 0.9945219, 0.104528464, 0, -0.104528464, 0.9945219, 0, 1.6900737, 0)
 light_color = Color(1, 0.55, 0.22, 1)
-light_energy = 6.0
+light_energy = 2.0
 spot_range = 16.0
 spot_angle = 20.0
 
 [node name="BeamLight2" type="SpotLight3D" parent="." unique_id=1162864697]
 transform = Transform3D(0.9805807, 0.1824612, -0.071899, 0, 0.366614, 0.930373, 0.1961161, -0.9123061, 0.359495, -0.5, 6.5, -5.5)
 light_color = Color(1, 0.86, 0.65, 1)
-light_energy = 5.5
+light_energy = 1.6
 light_size = 0.25
 shadow_enabled = true
 shadow_opacity = 0.65

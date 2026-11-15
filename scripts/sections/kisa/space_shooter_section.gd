@@ -537,6 +537,9 @@ func _draw_overlay() -> void:
 		return
 	var size := screen_size()
 	var font := ThemeDB.fallback_font
+	# 猫身上的判定圈：每个音符一个从外面收过来的圈，收到和判定圈重合时按（先画，压在飘字下面）
+	draw_approach_rings(_overlay, hit_position(), hit_radius(), approach_beats,
+			approach_travel_ratio * size.y)
 	for pop in _popups:
 		var c := _screen(pop.pos) + Vector2(-180.0, -30.0 - pop.age * 80.0)
 		var col: Color = pop.color
@@ -549,9 +552,6 @@ func _draw_overlay() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1.0, 20, Color(1, 1, 1, 0.85))
 	if _flash > 0.0:
 		_overlay.draw_rect(Rect2(-size / 2.0, size), Color(1.0, 0.15, 0.2, _flash * 0.3))
-	# 猫身上的判定圈：每个音符一个从外面收过来的圈，收到和判定圈重合时按
-	draw_approach_rings(_overlay, hit_position(), hit_radius(), approach_beats,
-			approach_travel_ratio * size.y)
 
 
 func _on_restore() -> void:
