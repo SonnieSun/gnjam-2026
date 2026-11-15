@@ -300,7 +300,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                    'groove': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]], 'mk_cat_drums': [[0, 1]],
                    'mk_pluck': [[0, 0.4]], 'mk_cats': [[0.4, 1]], 'mk_harm': [[0.4, 1]], 'mk_peak': [[0.75, 1]]}},
                {'title': 'SLAP / POWER', 'tiers': (0.35, 0.7), 'transition_tiers': (), 'fever': (0.7, 1.0),
-                'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_mk_to_cc', 'rules': {
+                'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_mk_to_cc', 'exit': 'end_g_major', 'rules': {
                    'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]], 'cc_cat_drums': [[0, 1]],
                    'cc_cats': [[0, 1]], 'cc_harm': [[0, 1]], 'cc_peak': [[0.35, 1]], 'cc_double': [[0.7, 1]]}}]}
 
@@ -329,7 +329,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
                        t('ode_cat_drums', OJ + 'C_drums_8b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_8b.wav', 'kiai'),
                        pattern('ode_by_hit', 'ode_to_joy', 'hit', by_hit=True), pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
                        t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_8b.wav', 'event')] + FILL,
-            'sections': [{'title': 'SKY', 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
+            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
                 'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
                 'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
@@ -377,7 +377,7 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                    'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], 1]], 'tm_harm': [[T3[2], 1]], 'tm_peak': [[T3[3], 1]],
                    'cat_drums': [[T3[1], 1]]}},
                {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[2], 1.0),
-                'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_tm_to_cc', 'rules': {
+                'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_tm_to_cc', 'exit': 'end_g_major', 'rules': {
                    'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]],
                    'cat_drums': [[0, R[2]]], 'cc_cat_drums': [[R[2], 1]],
                    'cc_pluck': [[0, R[1]]], 'cc_lead': [[R[1], 1]], 'cc_harm': [[R[1], 1]],
@@ -420,6 +420,9 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
+        for k in ('exit', 'carry'):                      # exit: the ending one-shot when the level clears on this section;
+            if k in sec:                                 # carry: how much of the last section's fullness comes along (0-1)
+                out[k] = sec[k]
         if 'enter' in sec:
             out['enter'] = sec['enter']               # a designed one-bar transition into this section (a new tune)
         if 'own' in sec:

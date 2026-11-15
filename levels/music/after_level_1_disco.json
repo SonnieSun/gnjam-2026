@@ -270,6 +270,7 @@
     0.85,
     1.0
    ],
+   "exit": "end_c_major",
    "tier_sfx": {
     "1": "none",
     "2": "sky_holy_hit"

@@ -159,6 +159,7 @@
  "sections": [
   {
    "title": "DISCO",
+   "exit": "end_g_minor",
    "cues": {
     "beat": [
      [

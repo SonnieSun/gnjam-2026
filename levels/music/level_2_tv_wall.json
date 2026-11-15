@@ -441,6 +441,7 @@
     0.7,
     1.0
    ],
+   "exit": "end_g_major",
    "enter": "tr_mk_to_cc",
    "own": {
     "kiai": "cc_double",

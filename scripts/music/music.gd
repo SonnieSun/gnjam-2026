@@ -145,6 +145,7 @@ static func write(path: String, d: Dictionary) -> Error:
 
 ## 按配置建同步流（全部静音），返回它，交给 Conductor 放。
 func build(d: Dictionary) -> AudioStreamSynchronized:
+	_carry = 0.0
 	data = d
 	stream = AudioStreamSynchronized.new()
 	_slot_lane = PackedStringArray()
@@ -201,6 +202,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 
 ## 这一关不用叠轨音乐：把上一关留下的东西清掉（不然上一关的喵谱子、KIAI、打中唱会跟到这一关来）
 func clear() -> void:
+	_carry = 0.0
 	_end_fever()
 	data = {}
 	stream = null
@@ -222,6 +224,10 @@ func bpm() -> float:
 func set_section(index: int) -> void:
 	progress_override = -1.0
 	var changed := index != section
+	# 换小关不从"全开"一下掉到"什么都没有"：上一个小关走的时候有多满，新小关就先带着它的几成进来
+	# （过门那一小节之后），再用 CARRY_BARS 小节慢慢落回玩家在新小关里真正的进度。
+	# （积累条在换小关的同一帧先清零了，所以看的是这一拍开头记下的值）
+	var leaving := maxf(maxf(effective, _carry_level()), _effective_at_beat)
 	_end_fever()
 	section = index
 	progress = 0.0
@@ -229,6 +235,10 @@ func set_section(index: int) -> void:
 	_riser_for = -1
 	_fill_done_for = -1
 	_quiet_tier_change = true
+	_carry = 0.0
+	if changed and dynamics() and Conductor.playing and Conductor.song_beat > 1.0:
+		_carry = leaving * _carry_amount()
+		_carry_from = (floorf(Conductor.song_beat / 4.0) + 1.0) * 4.0  # 过门那一小节之后才开始往下落
 	_queue()
 	# 换小关是在小节线上发生的：这一小节放过门，下一个小节线（上面排好的）新小关的音乐才进来
 	if changed and dynamics() and Conductor.playing and Conductor.song_beat > 1.0:
@@ -242,6 +252,27 @@ func set_section(index: int) -> void:
 		elif _fill_clip() != "":
 			_play_fill_bar()
 			play_sfx("crash", -9.0)
+
+
+## 换小关时带过来的"满的程度"（见 set_section）。只影响各条轨道响哪一段，不算档位、不触发 fever 和升降档的音效。
+## 带几成：小关里写 "carry"（0 = 这个小关要从头安静地起，比如故意的反差），不写就用整关的 "carry"，再不写是 CARRY_DEFAULT。
+const CARRY_DEFAULT := 0.6
+const CARRY_BARS := 8.0
+var _carry := 0.0
+var _carry_from := 0.0
+var _effective_at_beat := 0.0  # 最近一拍开头时有多满
+
+func _carry_amount() -> float:
+	var secs: Array = data.get("sections", [])
+	var d: Dictionary = secs[section] if section >= 0 and section < secs.size() else {}
+	return clampf(float(d.get("carry", data.get("carry", CARRY_DEFAULT))), 0.0, 1.0)
+
+
+func _carry_level() -> float:
+	if _carry <= 0.0 or not Conductor.playing:
+		return 0.0
+	var t := (Conductor.song_beat - _carry_from) / (CARRY_BARS * 4.0)
+	return _carry * clampf(1.0 - t, 0.0, 1.0)
 
 
 ## 小关自己报进度，不看积累条（比如洗衣机那一段：积累条不涨，进度是按完了几次长按）。
@@ -387,6 +418,15 @@ func _enter_sfx() -> String:
 	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
 
 
+## 这个小关打完（整关过关）时的收尾音效（"" = 没有，用通用的）
+func _exit_sfx() -> String:
+	var secs: Array = data.get("sections", [])
+	if section < 0 or section >= secs.size():
+		return ""
+	var sfx_name := str(secs[section].get("exit", ""))
+	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
+
+
 func _fill_clip() -> String:
 	for lane in data.get("lanes", []):
 		if lane.id == FILL_LANE and not lane.get("clips", []).is_empty():
@@ -472,7 +512,10 @@ func bridge_out() -> void:
 		_bridge_fade.kill()
 	if Time.get_ticks_msec() - _whoosh_ms > 5000:      # 关卡自己刚放过"飞走"（猫飞出屏幕）就不再放一遍
 		play_sfx("sky_whoosh_up", -3.0)
-	play_sfx("level_clear", -4.0)  # 过关的一声，转场不至于一下子空掉
+	# 过关的一声，转场不至于一下子空掉。这个小关有自己的收尾（"exit": "end_g_major"，曲子的调上的一个收束和弦 +
+	# 猫的一声 MIAO，tools/music_gen/make_transitions.py 做的）就放它，没有就放通用的
+	var ending := _exit_sfx()
+	play_sfx(ending if ending != "" else "level_clear", -1.0 if ending != "" else -4.0)
 	play_sfx("crash", -8.0)
 	_tease_stop(0.0)
 	_bridge.stream = load(BRIDGE_LOOP)
@@ -685,12 +728,17 @@ func _queue() -> void:
 
 
 func _on_beat(index: int) -> void:
+	_effective_at_beat = effective
 	var expired := false
 	for lane_id: String in _force.keys():
 		if index >= int(round(_force[lane_id][1])):
 			_force.erase(lane_id)
 			expired = true
-	if expired or (_pending and index >= int(round(_next_beat))):
+	# 带过来的那几成在往下落：每条小节线重新排一次（落到玩家真正的进度以下就不管了）
+	var carrying := _carry > 0.0 and index % 4 == 0 and index >= int(round(_carry_from))
+	if carrying and _carry_level() <= effective:
+		_carry = 0.0
+	if expired or carrying or (_pending and index >= int(round(_next_beat))):
 		_apply_now(index)
 
 
@@ -721,7 +769,7 @@ func _apply_now(beat_index := -1) -> void:
 			and not _force.has("kiai") and _first_clip("kiai") != "" and _tier_sfx(going_to) == "":
 		_force["kiai"] = [_first_clip("kiai"), float(beat_index) + base]
 	for lane in data.get("lanes", []):
-		var c := clip_at(section, lane.id, effective)
+		var c := clip_at(section, lane.id, maxf(effective, _carry_level()))
 		if fever_now and c == "" and lane.id in FEVER_LANES and not lane.get("clips", []).is_empty():
 			c = _first_clip(lane.id)
 		if _force.has(lane.id):
