@@ -20,6 +20,7 @@ func _on_enter() -> void:
 	super._on_enter()
 	if Engine.is_editor_hint() or camera == null:
 		return
+	_beat_decor()
 	_from = SpaceShooterScore.handoff
 	SpaceShooterScore.handoff = {}
 	if _from.is_empty():
@@ -71,3 +72,24 @@ func _update_view(t: float) -> void:
 	super._update_view(t)
 	if not _from.is_empty():
 		camera.fov = lerpf(_from.get("fov", _to_fov), _to_fov, _handoff_k())
+
+
+## 装饰跟拍（BeatFx，见 stages/shared/beat_fx）：光环的砖一块接一块胀过去；光球的芯各用各的节奏，灯跟底鼓。
+## 光球 / 气泡 / 云本身每帧被这一关挪位置，所以接在它们里面的零件上。披萨、猫、判定圈是主体，不接。
+var _decor_done := false
+
+func _beat_decor() -> void:
+	if _decor_done:
+		return
+	_decor_done = true
+	BeatDecor.wave(_halo.get_children(), 0.2, 2.0)
+	var k := 0
+	for orb in _orbs.get_children():
+		k += 1
+		var core := orb.get_node_or_null("Core")
+		if core:
+			BeatDecor.stagger(core, k * 3, 0.25)  # 每个光球的芯用不同的节奏
+		var lamp := orb.get_node_or_null("Light")
+		if lamp:
+			BeatDecor.light(lamp, 0.9)
+
