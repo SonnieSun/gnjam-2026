@@ -90,6 +90,7 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		_bump[target_index(note)] = 0.25
 	match result:
 		NoteData.Result.PERFECT: _flash(cat, Color(1.0, 0.9, 0.2))
+		NoteData.Result.GREAT: _flash(cat, Color(0.3, 0.85, 1.0))
 		NoteData.Result.GOOD: _flash(cat, Color(0.4, 1.0, 0.5))
 		NoteData.Result.MISS: _flash(cat, Color(1.0, 0.3, 0.3))
 

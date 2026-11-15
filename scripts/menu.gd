@@ -5,6 +5,8 @@ extends Node2D
 
 ## 场景是按这个画面大小摆的；窗口比例不同时整体居中
 const BASE_SIZE := Vector2(960, 720)
+## 按 O 进延迟校准
+const CALIBRATE_SCENE := "res://scenes/calibrate.tscn"
 
 ## 转盘转一格用多久（秒）
 @export var turn_time := 0.35
@@ -43,6 +45,19 @@ func _ready() -> void:
 	_left.pressed.connect(turn.bind(-1))
 	_right.pressed.connect(turn.bind(1))
 	_refresh()
+	_add_calibrate_hint()
+
+
+## 左下角的“[O] 校准”提示
+func _add_calibrate_hint() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	var l := Label.new()
+	l.text = "[O] CALIBRATE LATENCY"
+	l.modulate.a = 0.6
+	l.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	l.position += Vector2(16, -36)
+	layer.add_child(l)
 
 
 func _process(_delta: float) -> void:
@@ -114,6 +129,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		turn(1)
 	elif event.is_action_pressed("ui_accept") or _is_click(event):
 		start()
+	elif event is InputEventKey and event.pressed and event.physical_keycode == KEY_O and not _starting:
+		get_tree().change_scene_to_file(CALIBRATE_SCENE)
 
 
 ## 鼠标左键点在空白处（没点到箭头）也算确认

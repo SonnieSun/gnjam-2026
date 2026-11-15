@@ -48,6 +48,7 @@ func set_stats(score: int, combo: int) -> void:
 func show_judgement(result: int, diff_sec: float) -> void:
 	match result:
 		NoteData.Result.PERFECT: judge_label.text = "PERFECT"
+		NoteData.Result.GREAT: judge_label.text = "GREAT  %s" % ("LATE" if diff_sec > 0 else "EARLY")
 		NoteData.Result.GOOD: judge_label.text = "GOOD  %s" % ("LATE" if diff_sec > 0 else "EARLY")
 		NoteData.Result.MISS: judge_label.text = "MISS"
 	judge_label.modulate.a = 1.0
@@ -109,10 +110,15 @@ func set_debug(text: String) -> void:
 
 
 func show_result(judge: Judge) -> void:
-	result_label.text = "LEVEL CLEAR!\nSCORE %d   MAX COMBO %d\nPERFECT %d   GOOD %d   MISS %d\n\n[R] restart   [Esc] menu" % [
+	# 平均偏差：明显偏早 / 偏晚就该去主菜单按 O 重新校准
+	var ms := judge.mean_offset() * 1000.0
+	var lean := "LATE" if ms > 0.0 else "EARLY"
+	result_label.text = "LEVEL CLEAR!\nSCORE %d   MAX COMBO %d\nPERFECT %d   GREAT %d   GOOD %d   MISS %d\nAVG %+.0f ms %s\n\n[R] restart   [Esc] menu" % [
 		judge.score, judge.max_combo,
 		judge.counts[NoteData.Result.PERFECT],
+		judge.counts[NoteData.Result.GREAT],
 		judge.counts[NoteData.Result.GOOD],
 		judge.counts[NoteData.Result.MISS],
+		ms, lean if absf(ms) >= 1.0 else "",
 	]
 	result_label.visible = true

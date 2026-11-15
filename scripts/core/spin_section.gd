@@ -123,7 +123,10 @@ func notify_judged(note: NoteData, result: int) -> void:
 		hit_age = 0.0
 		tap_age = 0.0
 		step_rot_target += step_angle
-		free_spin_vel += 6.0 if result == NoteData.Result.PERFECT else 3.5
+		match result:
+			NoteData.Result.PERFECT: free_spin_vel += 6.0
+			NoteData.Result.GREAT: free_spin_vel += 5.0
+			_: free_spin_vel += 3.5
 	_on_note_judged(note, result)
 
 
@@ -181,6 +184,7 @@ func sound_color(note: NoteData) -> Color:
 static func result_color(result: int) -> Color:
 	match result:
 		NoteData.Result.PERFECT: return Color(1.0, 0.9, 0.2)
+		NoteData.Result.GREAT: return Color(0.3, 0.85, 1.0)
 		NoteData.Result.GOOD: return Color(0.4, 1.0, 0.5)
 		NoteData.Result.MISS: return Color(1.0, 0.3, 0.3)
 	return Color(0.6, 0.6, 0.6)

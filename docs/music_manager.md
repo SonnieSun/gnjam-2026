@@ -1,9 +1,9 @@
-> **注意（后来的改动）**：Music Director 面板和它的编辑器插件已经删掉了。按进度切换片段现在在游戏里按 Tab 调出的面板上编辑（`scripts/tools/game_editor.gd`）；加轨道、加片段直接改 `levels/music/` 里的 json。下文里关于 Music Director 的部分只作历史记录。
+> **注意（后来的改动）**：Music Director 面板和它的编辑器插件已经删掉了（它的"曲库"页留着：打开 `scenes/tools/jukebox.tscn` 按 F6）。按进度切换片段现在在游戏里按 Tab 调出的面板上编辑（`scripts/tools/game_editor.gd`）；加轨道、加片段直接改 `levels/music/` 里的 json。下文里关于 Music Director 的部分只作历史记录。
 
 # 叠轨音乐播放管理（设计）
 
 > **已经做了的（2026-11-15）**：`Music` autoload（`scripts/music/music.gd`）和 Music Director 面板
-> （`scenes/tools/music_director.tscn`，F6 运行）。每个大关的配置在 `levels/music/<大关文件名>.json`（如 `level_1.json`）。
+> （`scenes/tools/music_director.tscn`，F6 运行）。每个大关的配置在 `levels/music/<大关文件名>.json`（如 `level_5.json`）。
 > 下面"运行时"一节写的四个旋钮，第一版统一成了更简单的东西：**几条轨道，每条放几段 loop，同一时刻
 > 只响一段；每个小关里写"积累条进度到哪儿换成哪段"**。详见文末"Music Director"。
 
@@ -147,7 +147,7 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
   **EXPORT MIX**（录一遍 AUTO，也就是这个小关从 0% 到 100%，存成 `levels/music/exports/level_<n>_<小关>.wav`，不进 git）。
 - 快捷键：Space 播放 / 停止，← → 进度 ±5%，↑ ↓ 换小关，Ctrl+S 保存。
 
-配置和大关文件同名：`levels/level_1.tres` 的音乐是 `levels/music/level_1.json`，以此类推。
+配置和大关文件同名：`levels/level_5.tres` 的音乐是 `levels/music/level_5.json`，以此类推。
 新加一个大关，面板里打开它就会新建一份空配置。第 3、4 关都是 MV：`level_3.json` 是 future bass 版，`level_4.json` 是 eurobeat 版。
 
 配置格式：
@@ -168,7 +168,7 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 
 游戏里（`scripts/main.gd`）：配置开了 `use_in_game` 的大关，谱面的伴奏换成这套同步流、BPM 换成配置的；
 进小关时（`section_entered`）`Music.set_section(i)`，积累条变化时（`gauge.changed`）`Music.set_progress(值 / 满条值)`。
-没开的大关用谱面自己的伴奏和 BPM。谱面默认是 160；Kisa 的四关（迪斯科、飞船、电视墙、吸猫）原来是按 120 做的，它们的 `.tres` 里写着 `bpm = 120`。
+没开的大关用谱面自己的伴奏和 BPM。现在五个大关都开了。第 5 大关（披萨）谱面的 BPM 是 160；第 1 到 4 大关（Kisa 的四关）谱面 BPM 是 120（它们原来伴奏的速度），开着叠轨音乐时按配置里的走。
 
 ## 速度（BPM）
 
@@ -182,16 +182,15 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 共鸣提前烤进采样）。好处是变速不用重渲染、可以做成"打中才唱出这个音"。做好后和预渲染的 `L3_cat_kichiku` 对比，一样好再替换它。
 普通猫版（拉长的 Miiiiao、互相叠）运行时做不了，继续用预渲染的音轨。
 
-## Kisa 的四关（现在是 level_2、3、4 和 level_8_abduction）
+## Kisa 的四关（现在是第 1 到 4 大关）
 
-这四关也用这套音乐系统（配置在 `levels/music/level_2.json` 等，都开了 USE IN GAME；关掉就回到关卡原来的音乐和 120 的速度）。
-最早它们是 level_6 到 level_9，后来 Kisa 重排成了第 2、3、4 关，配置跟着改了名。
+这四关现在也用这套音乐系统（配置在 `levels/music/level_1_disco.json` 等，都开了 USE IN GAME；关掉就回到关卡原来的音乐）。
 
-- **level_2 迪斯科（120 BPM）**：保持它原来的速度，用我们第 1 关素材的 120 版（`assets/audio/music/scene1_120/`）。
+- **level_1_disco（120 BPM）**：保持它原来的速度，用我们第 1 关素材的 120 版（`assets/audio/music/scene1_120/`）。
   和它原来的配乐一样，积累条每过一条事件线加一层：星星灯 = 和声，灯球 = 旋律，跳舞猫 = 猫鼓，漂移 = 高潮；
   拆房子上路时鼓和低音换成 club 节奏、和声旋律换成 future bass；舞池 = 猫旋律，网格 = 高潮回来，圆台 = 猫和声 + 猫低音，飞碟 = 喵事件轨。
   吸猫小关是全猫乐队配半拍节奏。关卡自己的分轨控制（`DiscoMusic`）在我们的音乐开着时让开，只改了它一处。
-- **level_3 飞船 / level_4 电视墙 / level_8_abduction 吸猫（160 BPM）**：分别放 Eurobeat、山魔王（后段鬼畜猫）、Chip。注意它们原来是 120，开着我们的音乐整关会变快；
+- **level_2 飞船 / level_3 吸猫 / level_4 电视墙（160 BPM）**：分别放 Eurobeat、山魔王（后段鬼畜猫）、Chip。注意它们原来是 120，开着我们的音乐整关会变快；
   嫌快就在配置里把 `use_in_game` 关掉。
 - 连击到里程碑（10、20、50……）会响一声转圈喵（"oiia"），在 main.tscn 的 HitMeow 节点上调或关。
 
@@ -219,7 +218,7 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 
 每条轨道同一时刻只响一段，所以要"叠"就得放在不同轨道：配置里多了一条 **KIAI 鬼畜** 轨道，里面只有鬼畜猫旋律，
 切换点放在很靠后的进度；旋律轨道上的猫主旋律照常响，两条就叠在一起了。KIAI 轨道音量 -2 dB。
-现在用上的：迪斯科关的飞碟结尾（最后 5%）和吸猫小关的最后 15%；第 7、9 关最后 10%；第 8 关山魔王最后 10%。
+现在用上的：迪斯科关的飞碟结尾（最后 5%）和吸猫小关的最后 15%；第 2、4 关最后 10%；第 3 关山魔王最后 10%。
 
 ### 以后再做（现在没做）
 
@@ -228,4 +227,3 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 - 小关之间的过门：切小关前一小节放 riser / 倒放，切过去第一拍放 crash 和一声长喵。
 - 掉血时的反应：连续 Miss 时退一档，而不只是跟着积累条慢慢掉。
 - 运行时猫旋律（见上一节）做好之后，KIAI 的鬼畜层可以换成玩家打出来的。
-

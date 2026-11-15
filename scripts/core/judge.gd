@@ -11,8 +11,12 @@ signal stats_changed
 ## 连击数刚好达到 COMBO_MILESTONES 里的某个值
 signal combo_milestone(combo: int)
 
-const PERFECT_WINDOW := 0.08
-const GOOD_WINDOW := 0.2
+## 判定窗口（秒，按早 / 晚的绝对值）。在 main.tscn 里选中 Judge 节点调。
+@export var perfect_window := 0.045
+@export var great_window := 0.09
+## Good 的窗口早晚分开：人更容易按晚，晚的一侧稍宽
+@export var good_window_early := 0.12
+@export var good_window_late := 0.14
 const HIT_ACTION := "hit"
 const COMBO_MILESTONES: Array[int] = [10, 20, 50, 100, 200, 300, 400, 500]
 
@@ -21,6 +25,8 @@ var score := 0
 var combo := 0
 var max_combo := 0
 var counts := {}
+## 打中的音符各偏了多少秒（正 = 晚），结算时算平均偏差用
+var hit_offsets: Array[float] = []
 
 var _next := 0  # 第一个还没判定的音符
 
@@ -35,7 +41,11 @@ var _section_notes: Array[NoteData] = []
 
 
 func _ready() -> void:
-	# 在代码里注册按键，省得手改 project.godot；之后想改键可以挪到项目设置里
+	ensure_input()
+
+
+## 在代码里注册按键，省得手改 project.godot；之后想改键可以挪到项目设置里
+static func ensure_input() -> void:
 	if not InputMap.has_action(HIT_ACTION):
 		InputMap.add_action(HIT_ACTION)
 		for code in [KEY_SPACE, KEY_Z, KEY_X, KEY_J, KEY_K]:
@@ -57,7 +67,8 @@ func reset(_from_beat: float = 0.0) -> void:
 	score = 0
 	combo = 0
 	max_combo = 0
-	counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
+	counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GREAT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
+	hit_offsets = []
 	notes = []
 	_next = 0
 	_pattern = []
@@ -116,38 +127,80 @@ func _process(_delta: float) -> void:
 	if not Conductor.playing:
 		return
 	_generate()
-	# 过了判定窗口还没按的算 Miss
+	# 过了判定窗口还没按的算 Miss（可能有后面的音符已经先被判掉了，跳过它们）
+	var now := Conductor.input_time()
 	while _next < notes.size():
 		var n := notes[_next]
-		if Conductor.song_time - Conductor.beat_to_sec(n.beat) <= GOOD_WINDOW:
+		if n.judged:
+			_next += 1
+			continue
+		if now - Conductor.beat_to_sec(n.beat) <= good_window_late:
 			break
-		_apply(n, NoteData.Result.MISS, GOOD_WINDOW)
+		_apply(n, NoteData.Result.MISS, good_window_late)
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not Conductor.playing or not event.is_action_pressed(HIT_ACTION):
 		return
-	pressed.emit(_sound_for_press())
-	if _next < notes.size():
-		var n := notes[_next]
-		var diff := Conductor.song_time - Conductor.beat_to_sec(n.beat)
-		if absf(diff) <= PERFECT_WINDOW:
-			_apply(n, NoteData.Result.PERFECT, diff)
-			return
-		if absf(diff) <= GOOD_WINDOW:
-			_apply(n, NoteData.Result.GOOD, diff)
+	var now := Conductor.input_time()
+	pressed.emit(_sound_for_press(now))
+	var n := _nearest_note(now)
+	if n:
+		var diff := now - Conductor.beat_to_sec(n.beat)
+		var r := _result_for(diff)
+		if r != NoteData.Result.NONE:
+			_apply(n, r, diff)
 			return
 	empty_hit.emit()
 
 
+## 离 now 最近的音符（包括刚判过的上一个）。最近的是已经判过的 = 这一下算多按的，不去抢下一个音符。
+## 这样一个音符的判定窗口最多延伸到和相邻音符间隔的一半，密的时候也不会吃错音符。
+func _nearest_note(now: float) -> NoteData:
+	var best: NoteData = null
+	var best_d := INF
+	for i in range(maxi(_next - 1, 0), notes.size()):
+		var n := notes[i]
+		var d := now - Conductor.beat_to_sec(n.beat)
+		if d < -good_window_early:
+			break  # 后面的更远
+		if absf(d) < best_d:
+			best_d = absf(d)
+			best = n
+	if best == null or best.judged:
+		return null
+	return best
+
+
+func _result_for(diff: float) -> int:
+	var a := absf(diff)
+	if a <= perfect_window:
+		return NoteData.Result.PERFECT
+	if a <= great_window:
+		return NoteData.Result.GREAT
+	if diff >= -good_window_early and diff <= good_window_late:
+		return NoteData.Result.GOOD
+	return NoteData.Result.NONE
+
+
+## 打中的平均偏差（秒，正 = 偏晚）。没打中过返回 0。
+func mean_offset() -> float:
+	if hit_offsets.is_empty():
+		return 0.0
+	var sum := 0.0
+	for d in hit_offsets:
+		sum += d
+	return sum / hit_offsets.size()
+
+
 ## 按下时该发哪种鼓：取时间上离现在最近的那个音符的音色（空按也一样会响）
-func _sound_for_press() -> int:
+func _sound_for_press(now: float) -> int:
 	if notes.is_empty():
 		return NoteData.Sound.KICK
 	var i := mini(_next, notes.size() - 1)
 	if i > 0:
-		var to_next := absf(Conductor.beat_to_sec(notes[i].beat) - Conductor.song_time)
-		var to_prev := absf(Conductor.beat_to_sec(notes[i - 1].beat) - Conductor.song_time)
+		var to_next := absf(Conductor.beat_to_sec(notes[i].beat) - now)
+		var to_prev := absf(Conductor.beat_to_sec(notes[i - 1].beat) - now)
 		if to_prev < to_next:
 			i -= 1
 	return notes[i].sound
@@ -156,14 +209,19 @@ func _sound_for_press() -> int:
 func _apply(n: NoteData, result: int, diff: float) -> void:
 	n.judged = true
 	n.result = result
-	_next += 1
+	while _next < notes.size() and notes[_next].judged:
+		_next += 1
 	counts[result] += 1
 	if result == NoteData.Result.MISS:
 		combo = 0
 	else:
 		combo += 1
 		max_combo = maxi(max_combo, combo)
-		score += 100 if result == NoteData.Result.PERFECT else 50
+		hit_offsets.append(diff)
+		match result:
+			NoteData.Result.PERFECT: score += 100
+			NoteData.Result.GREAT: score += 80
+			_: score += 50
 	note_judged.emit(n, result, diff)
 	if result != NoteData.Result.MISS and combo in COMBO_MILESTONES:
 		combo_milestone.emit(combo)

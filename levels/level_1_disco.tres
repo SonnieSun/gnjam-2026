@@ -6,7 +6,6 @@
 [ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_omfhc"]
 [ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_040w3"]
 [ext_resource type="PackedScene" path="res://scenes/sections/kisa/disco.tscn" id="6_dpbs3"]
-[ext_resource type="PackedScene" path="res://scenes/sections/kisa/abduction.tscn" id="7_mhdd1"]
 [ext_resource type="AudioStream" path="res://assets/disco_layers/room_00_base.ogg" id="8_7n276"]
 [ext_resource type="AudioStream" path="res://assets/disco_layers/room_01_stars.ogg" id="9_iev57"]
 [ext_resource type="AudioStream" path="res://assets/disco_layers/road_09_ufo.ogg" id="10_o2070"]
@@ -26,15 +25,7 @@ scene = ExtResource("6_dpbs3")
 beats_per_rev = 8.0
 bars = PackedStringArray("k.......k.......", "k...k...k...k...", "k...s...k...s...", "k...s...k.k.s...")
 gauge_events = PackedInt32Array()
-
-[sub_resource type="Resource" id="Resource_t5d3j"]
-script = ExtResource("5_040w3")
-title = "ABDUCTION"
-scene = ExtResource("7_mhdd1")
-beats_per_rev = 8.0
-bars = PackedStringArray("................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................")
-transition = 1
-gauge_events = PackedInt32Array()
+gauge_event_names = PackedStringArray("Stars", "Ball", "Dancers", "Drift", "Road", "Dance floor", "Grid", "Plaza", "Finale")
 
 [sub_resource type="AudioStreamSynchronized" id="AudioStreamSynchronized_h72cn"]
 stream_count = 11
@@ -69,4 +60,4 @@ bpm = 120.0
 drum_kick = ExtResource("2_f6828")
 drum_snare = ExtResource("3_1d3ri")
 drum_hat = ExtResource("1_sbfc8")
-sections = Array[ExtResource("5_040w3")]([SubResource("Resource_8ib6d"), SubResource("Resource_t5d3j")])
+sections = Array[ExtResource("5_040w3")]([SubResource("Resource_8ib6d")])

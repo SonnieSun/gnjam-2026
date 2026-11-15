@@ -69,6 +69,8 @@ signal stage_changed(stage: int)
 ## 现成灯球模型的镜面颜色和平时的自发光强度（每拍会再亮一下）
 @export var ball_tint := Color(0.85, 0.72, 0.98)
 @export var ball_glow := 0.35
+## 灯球镜片的材质（金属镜面 + 假的环境反射，参数在这个材质文件里调）。留空 = 用原来那种带自发光的亮紫镜面
+@export var ball_material: ShaderMaterial = preload("res://stages/disco/disco_ball_mirror.tres")
 ## 夜晚的环境光颜色和主光（月光）颜色
 @export var night_ambient_color := Color(0.42, 0.36, 0.78)
 @export var moon_color := Color(0.55, 0.6, 1.0)
@@ -105,6 +107,29 @@ signal stage_changed(stage: int)
 @export var prop_pulse := 1.5
 ## 灯球转一圈用几拍
 @export var ball_beats_per_rev := 8.0
+
+@export_group("灯球光束和闪光")
+## 灯球往地上打的光束：有几根、用哪些颜色（每隔 beam_color_beats 拍颜色整体轮换一格）
+@export var beam_count := 14
+@export var beam_colors: Array[Color] = [
+	Color(1.0, 0.2, 0.75), Color(0.2, 0.9, 1.0), Color(1.0, 0.85, 0.2), Color(0.6, 0.3, 1.0),
+	Color(1.0, 0.45, 0.15), Color(0.3, 1.0, 0.5), Color(1.0, 0.25, 0.3), Color(0.3, 0.5, 1.0),
+]
+@export var beam_color_beats := 2.0
+## 光束亮度、每拍多亮一下、自己闪烁的幅度（0 = 不闪）
+@export var ball_beam_strength := 0.55
+@export var ball_beam_pulse := 0.5
+@export_range(0.0, 1.0) var ball_beam_flicker := 0.45
+## 光束落到地上那头有多粗（3D 单位）；光束打在地上的彩色光斑多亮
+@export var ball_beam_radius := 0.9
+@export var ball_beam_light := 6.0
+## 灯球表面的十字星光：同时最多几颗、多大（灯球半径的倍数）、每颗亮多久（秒）
+@export var glint_count := 9
+@export var glint_size := 1.5
+@export var glint_life := 0.5
+## 灯球镜片自己的闪烁强度（参数更多在 disco_ball_mirror.gdshader 里），每拍开头再加多少
+@export var ball_sparkle := 5.0
+@export var ball_sparkle_pulse := 6.0
 
 @export_group("2D 跳舞猫")
 ## MemeLib 里的名字，从左到右
@@ -155,10 +180,23 @@ var _star_lights: Array[OmniLight3D] = []
 var _ball: Node3D
 var _ball_rest := Vector3.ZERO
 var _ball_mats: Array[StandardMaterial3D] = []
+var _ball_mirror: ShaderMaterial  # 用了 ball_material 时，所有镜片共用的那一份
 var _prop_mats: Array[StandardMaterial3D] = []
 var _prop_base: Array[float] = []
 var _spot_rig: Node3D
 var _ball_light: OmniLight3D
+## 灯球整体还剩多少（1 = 正常，0 = 完全消失）：球本身、彩色光束、射灯、星光一起淡。结尾飞碟出现时 DiscoRoad 把它淡到 0
+var ball_fade := 1.0
+var _ball_fade_applied := 1.0
+var _ball_center: Node3D  # 灯球球心（灯球节点的原点在吊线上面，不在球心）
+var _ball_radius := 1.0  # 球半径（_ball_center 的局部单位）
+var _beam_rig: Node3D
+var _ball_beams: Array[MeshInstance3D] = []
+var _ball_beam_lights: Array[SpotLight3D] = []
+var _glints: Array[MeshInstance3D] = []
+var _glint_t: Array[float] = []  # 每颗星光现在亮到哪了（0..1，>= 1 = 等下一次）
+var _glint_dir: Array[Vector3] = []
+var _glint_scale: Array[float] = []
 var _cat_rim: ShaderMaterial
 var _cat_light: OmniLight3D
 var _top_light: SpotLight3D
@@ -250,6 +288,12 @@ func setup(cat: KisaSpinCat3D) -> void:
 				var src := m.mesh.surface_get_material(s) as StandardMaterial3D
 				if src == null or src.metallic < 0.5:
 					continue
+				if ball_material:
+					if _ball_mirror == null:
+						_ball_mirror = ball_material.duplicate()
+						_ball_mirror.set_shader_parameter("glow_color", ball_tint)
+					m.set_surface_override_material(s, _ball_mirror)
+					continue
 				var mat := src.duplicate() as StandardMaterial3D
 				mat.albedo_color = ball_tint
 				mat.metallic = 0.6
@@ -259,9 +303,12 @@ func setup(cat: KisaSpinCat3D) -> void:
 				mat.emission_energy_multiplier = ball_glow
 				m.set_surface_override_material(s, mat)
 				_ball_mats.append(mat)
-	# 彩色射灯：挂在灯球上，跟着灯球转，在地板和墙上扫出光斑
+	_setup_ball_center()
+	# 彩色射灯：挂在灯球球心，跟着灯球转，在地板和墙上扫出光斑
 	_spot_rig = Node3D.new()
-	_ball.add_child(_spot_rig)
+	_ball_center.add_child(_spot_rig)
+	_setup_ball_beams()
+	_setup_glints(cat)
 	for i in spot_colors.size():
 		var spot := SpotLight3D.new()
 		spot.light_color = spot_colors[i]
@@ -413,10 +460,21 @@ func update(beat: float) -> void:
 		_ball.scale = Vector3.ONE * (1.0 + pulse * 0.08)
 		for mat in _ball_mats:
 			mat.emission_energy_multiplier = ball_glow + pulse * 1.2
+		if _ball_mirror:
+			_ball_mirror.set_shader_parameter("glow", ball_glow * 0.3 + pulse * 0.5)
 		for spot in _spot_rig.get_children():
-			(spot as SpotLight3D).light_energy = spot_energy + pulse * spot_pulse
-		_ball_light.light_energy = ball_light_energy * (0.6 + pulse)
-		_ball_light.light_color = spot_colors[int(beat) % spot_colors.size()]
+			(spot as SpotLight3D).light_energy = (spot_energy + pulse * spot_pulse) * ball_fade
+		_ball_light.light_energy = ball_light_energy * (0.6 + pulse) * ball_fade
+		_ball_light.light_color = beam_colors[int(beat) % beam_colors.size()]
+		if _ball_mirror:
+			_ball_mirror.set_shader_parameter("sparkle", ball_sparkle)
+			_ball_mirror.set_shader_parameter("sparkle_boost", pulse * ball_sparkle_pulse)
+		_update_ball_beams(beat, now, pulse)
+		_update_glints(delta, pulse)
+	_apply_ball_fade()
+	_beam_rig.visible = stage >= 2 and _ball.visible
+	for g in _glints:
+		g.visible = stage >= 2 and _ball.visible and ball_fade > 0.3
 	for i in _dancers.size():
 		var d := _dancers[i]
 		d.set_progress(beat / dancer_loop_beats + i * 0.25)
@@ -513,6 +571,8 @@ func _leave_stage(which: int) -> void:
 			for spot in _spot_rig.get_children():
 				(spot as SpotLight3D).light_energy = 0.0
 			_ball_light.light_energy = 0.0
+			for light in _ball_beam_lights:
+				light.light_energy = 0.0
 		3:
 			for d in _dancers:
 				var t := _tween(d)
@@ -598,6 +658,148 @@ func _make_cord(length: float, gap: float) -> MeshInstance3D:
 	cord.mesh = mesh
 	cord.position.y = gap + length / 2.0
 	return cord
+
+
+## 找出灯球的球心和半径：用镜面那几块网格的包围盒（顶上的吊环 / 吊线不算，球心按水平宽度从底往上推）
+func _setup_ball_center() -> void:
+	_ball_center = Node3D.new()
+	_ball.add_child(_ball_center)
+	var box := AABB()
+	var first := true
+	for mi in _ball.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		var local := _ball.global_transform.affine_inverse() * m.global_transform * m.get_aabb()
+		box = local if first else box.merge(local)
+		first = false
+	if first:
+		return
+	_ball_radius = maxf(box.size.x, box.size.z) / 2.0
+	var c := box.get_center()
+	_ball_center.position = Vector3(c.x, box.position.y + _ball_radius, c.z)
+
+
+## 灯球往地上打的一圈彩色光束（看得见的光柱 + 打在地上的光斑），挂在球心、跟着灯球转
+func _setup_ball_beams() -> void:
+	_beam_rig = Node3D.new()
+	_ball_center.add_child(_beam_rig)
+	# 下面全用世界单位：抵消房间的放大
+	var world_scale := _ball_center.global_transform.basis.get_scale().x
+	_beam_rig.scale = Vector3.ONE / world_scale
+	var height := maxf(_ball_center.global_position.y, 4.0)  # 球心离地多高（地面 y = 0）
+	var start := _ball_radius * world_scale * 0.9
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://stages/disco/disco_ball_beam.gdshader")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var tilts := PackedFloat32Array([38.0, 52.0, 66.0, 46.0, 74.0, 58.0])
+	for i in beam_count:
+		var tilt := deg_to_rad(tilts[i % tilts.size()] + rng.randf_range(-4.0, 4.0))
+		var yaw := TAU * i / beam_count + rng.randf_range(-0.15, 0.15)
+		var dir := Vector3(cos(tilt) * sin(yaw), -sin(tilt), cos(tilt) * cos(yaw))
+		var length := height / sin(tilt) * 1.04 - start
+		var cone := CylinderMesh.new()
+		cone.top_radius = 0.1
+		cone.bottom_radius = ball_beam_radius
+		cone.height = length
+		cone.radial_segments = 16
+		cone.rings = 1
+		cone.cap_top = false
+		cone.cap_bottom = false
+		var beam := MeshInstance3D.new()
+		beam.mesh = cone
+		beam.material_override = mat
+		beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# 圆柱的 +Y（顶）朝灯球，底朝地面
+		beam.transform = Transform3D(Basis(Quaternion(Vector3.UP, -dir)), dir * (start + length / 2.0))
+		_beam_rig.add_child(beam)
+		_ball_beams.append(beam)
+		var light := SpotLight3D.new()
+		light.light_energy = 0.0
+		light.spot_range = length + start + 6.0
+		light.spot_angle = rad_to_deg(atan(ball_beam_radius / (length + start))) * 1.6
+		light.spot_attenuation = 0.3
+		light.spot_angle_attenuation = 0.6
+		_beam_rig.add_child(light)
+		light.transform = Transform3D(Basis.looking_at(dir), Vector3.ZERO)
+		_ball_beam_lights.append(light)
+	_beam_rig.visible = false
+
+
+func _update_ball_beams(beat: float, now: float, pulse: float) -> void:
+	var shift := int(beat / beam_color_beats)
+	for i in _ball_beams.size():
+		var color := beam_colors[(i + shift) % beam_colors.size()]
+		# 自己的闪烁（两个不同频率的波相乘，忽明忽暗）+ 每半拍绕一圈追着亮
+		var shimmer := 0.5 + 0.5 * sin(now * 11.0 + i * 1.7) * sin(now * 6.3 + i * 2.9)
+		var chase := exp(-fposmod(beat * 2.0 - float(i) / _ball_beams.size() * 2.0, 1.0) * 4.0)
+		var k := (1.0 - ball_beam_flicker) + ball_beam_flicker * (shimmer * 0.7 + chase * 0.9)
+		k *= 1.0 + pulse * ball_beam_pulse
+		var beam := _ball_beams[i]
+		beam.set_instance_shader_parameter("beam_color", color)
+		beam.set_instance_shader_parameter("strength", ball_beam_strength * k * ball_fade)
+		_ball_beam_lights[i].light_color = color
+		_ball_beam_lights[i].light_energy = ball_beam_light * k * ball_fade
+
+
+## 灯球的模型（球、吊绳）跟着 ball_fade 变透明；完全淡没就藏起来
+func _apply_ball_fade() -> void:
+	if is_equal_approx(ball_fade, _ball_fade_applied):
+		return
+	_ball_fade_applied = ball_fade
+	for g in _ball.find_children("*", "GeometryInstance3D", true, false):
+		if g.get_parent() == _beam_rig:
+			continue  # 光束自己按 strength 淡
+		(g as GeometryInstance3D).transparency = 1.0 - ball_fade
+	_ball.visible = ball_fade > 0.01
+
+
+## 灯球表面的十字星光：几颗轮流在朝镜头的那半边随机冒出来，亮一下就灭
+func _setup_glints(cat: KisaSpinCat3D) -> void:
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://stages/disco/disco_glint.gdshader")
+	for i in glint_count:
+		var g := MeshInstance3D.new()
+		g.mesh = quad
+		g.material_override = mat
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		g.visible = false
+		cat.world.add_child(g)
+		_glints.append(g)
+		_glint_t.append(randf() * 2.0 + 1.0)  # 一开始错开
+		_glint_dir.append(Vector3.UP)
+		_glint_scale.append(1.0)
+
+
+func _update_glints(delta: float, pulse: float) -> void:
+	var center := _ball_center.global_position
+	var radius := _ball_radius * _ball_center.global_transform.basis.get_scale().x
+	var to_cam := (_cat.camera.global_position - center).normalized()
+	if _cat.camera.projection == Camera3D.PROJECTION_ORTHOGONAL:
+		to_cam = _cat.camera.global_transform.basis.z
+	for i in _glints.size():
+		_glint_t[i] += delta / glint_life
+		if _glint_t[i] >= 1.0:
+			# 等一会儿再冒（拍子开头更容易冒出来）
+			if randf() > delta * (2.5 + pulse * 25.0):
+				_glints[i].set_instance_shader_parameter("glint", 0.0)
+				continue
+			_glint_t[i] = 0.0
+			var rand := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1))
+			_glint_dir[i] = (to_cam * 1.2 + rand).normalized()
+			_glint_scale[i] = randf_range(0.6, 1.0) * (1.0 + pulse * 0.5)
+			var color := beam_colors[randi() % beam_colors.size()].lerp(Color.WHITE, 0.45)
+			_glints[i].set_instance_shader_parameter("glint_color", color)
+		var t := _glint_t[i]
+		var amount := sin(t * PI)
+		amount *= amount
+		var g := _glints[i]
+		# 稍微往镜头那边挪一点，免得被球面挡住一半
+		g.global_position = center + _glint_dir[i] * radius * 1.02 + to_cam * radius * 0.25
+		g.scale = Vector3.ONE * radius * glint_size * _glint_scale[i] * (0.4 + 0.6 * amount)
+		g.set_instance_shader_parameter("glint", amount)
+		g.set_instance_shader_parameter("spin", t * 0.6 + i)
 
 
 ## 镜头要多大才能刚好装下 node（一般是房间空壳；吊线、藏在天花板上的灯不算），以猫为中心

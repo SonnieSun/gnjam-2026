@@ -2,7 +2,7 @@ class_name DiscoMusic
 extends RefCounted
 ## 迪斯科的分层循环配乐（assets/disco_layers，说明见那里的 README.md）：11 条分轨同长度（8 小节）、同步循环，
 ## 逐条调音量。前 5 条是房间那一套，后 6 条是上路以后那一套；哪条开哪条关由关卡脚本按积累条来定。
-## 合成好的那条 AudioStreamSynchronized 存在大关文件 levels/level_2.tres 的 stream 里；
+## 合成好的那条 AudioStreamSynchronized 存在大关文件 levels/level_1_disco.tres 的 stream 里；
 ## 这里只记分轨的顺序，并直接调「正在播的那条」（Conductor.chart.stream）里各分轨的音量。
 
 const LAYERS: Array[String] = [

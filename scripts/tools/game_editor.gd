@@ -5,6 +5,8 @@ extends CanvasLayer
 ##   最上面一根“积累条”进度条：拖它 = 假装玩家把积累条打到了这么满，画面、镜头特效、猫图、音乐都会跟着变。
 ##   面板开着的时候，打中 / 漏打不再改积累条。
 ##
+##   Phases       这个小关的积累条分数线（阶段）：改名字、改分数、增删；点“Jump”把小关重开并直接跳到那个阶段。
+##                进度条往前拖过一条线会触发那个阶段，往回拖不会撤销（要回去就用 Jump）。
 ##   Camera       点一个特效 = 从当前进度起切到它（再点一次 = 从这里起回到原样）；
 ##                细条上的白线是切换点，拖动改位置，右键删掉。
 ##   Memes        左边点缩略图选素材，在当前进度加一只；选中后在画面上拖动摆位置，
@@ -12,7 +14,7 @@ extends CanvasLayer
 ##   音乐         每条轨道点一段 = 从当前进度起换成它。
 ##   谱子         点格子写这个小关循环的鼓谱。
 ##
-## 改动先只在这次运行里生效，点“保存”才写进文件：镜头 / 猫图 / 谱子 / 满条值写进大关的 .tres，
+## 改动先只在这次运行里生效，点“保存”才写进文件：阶段 / 镜头 / 猫图 / 谱子 / 满条值写进大关的 .tres，
 ## 音乐写进 levels/music/ 里对应的 .json。
 
 const Grid := preload("res://scripts/tools/pattern_grid.gd")
@@ -32,6 +34,13 @@ var _status: Label
 var _gauge_max: SpinBox
 var _progress: HSlider
 var _progress_lcd: Label
+var _ticks: Control
+var _phase_chips: HFlowContainer
+var _phase_box: HBoxContainer
+var _phase_name: LineEdit
+var _phase_at: SpinBox
+var _phase_pct: Label
+var _phase_sel := 0
 var _fx_strip: Control
 var _fx_buttons := {}
 var _meme_chips: HFlowContainer
@@ -127,14 +136,25 @@ func _build_ui() -> void:
 	_progress.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_progress.focus_mode = Control.FOCUS_NONE
 	_progress.value_changed.connect(_on_progress)
-	bar.add_child(_progress)
+	var track := VBoxContainer.new()
+	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track.add_theme_constant_override("separation", 0)
+	bar.add_child(track)
+	track.add_child(_progress)
+	# 进度条下面一排小刻度：每条分数线（阶段）一个编号，已经触发过的是亮的
+	_ticks = Control.new()
+	_ticks.custom_minimum_size.y = 14
+	_ticks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ticks.draw.connect(_draw_ticks)
+	track.add_child(_ticks)
 	_progress_lcd = _lbl("0%")
-	_progress_lcd.custom_minimum_size.x = 48
+	_progress_lcd.custom_minimum_size.x = 150
 	bar.add_child(_progress_lcd)
 
 	var tabs := TabContainer.new()
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(tabs)
+	tabs.add_child(_build_phase_tab())
 	tabs.add_child(_build_fx_tab())
 	tabs.add_child(_build_meme_tab())
 	tabs.tab_changed.connect(func(tab: int) -> void:
@@ -142,6 +162,45 @@ func _build_ui() -> void:
 			_fill_thumbnails())
 	tabs.add_child(_build_music_tab())
 	tabs.add_child(_build_pattern_tab())
+
+
+func _build_phase_tab() -> Control:
+	var v := VBoxContainer.new()
+	v.name = "Phases"
+	v.add_theme_constant_override("separation", 6)
+	_phase_chips = HFlowContainer.new()
+	v.add_child(_phase_chips)
+	_phase_box = HBoxContainer.new()
+	_phase_box.add_theme_constant_override("separation", 6)
+	v.add_child(_phase_box)
+	_btn(_phase_box, "▶ Jump here", func() -> void: _jump_phase(_phase_sel),
+			"Restart this stage and go straight to the selected phase (earlier phases are triggered in order)")
+	_phase_box.add_child(_lbl("  Name"))
+	_phase_name = LineEdit.new()
+	_phase_name.custom_minimum_size.x = 130
+	_phase_name.text_changed.connect(_rename_phase)
+	_phase_box.add_child(_phase_name)
+	_phase_box.add_child(_lbl("Starts at"))
+	_phase_at = SpinBox.new()
+	_phase_at.min_value = 1
+	_phase_at.step = 1
+	_phase_at.custom_arrow_step = 5
+	_phase_at.suffix = "pts"
+	_phase_at.tooltip_text = "Gauge points where this phase starts (a Perfect is +5)"
+	_phase_at.value_changed.connect(_move_phase)
+	_phase_box.add_child(_phase_at)
+	_phase_pct = _lbl("")
+	_phase_box.add_child(_phase_pct)
+	_btn(_phase_box, "Delete", _remove_phase, "Remove this gauge line. Later phases move up one slot")
+	var row := HBoxContainer.new()
+	v.add_child(row)
+	_btn(row, "+ Add phase at current gauge", _add_phase, "Add a gauge line at the current gauge position")
+	var hint := _lbl("   Dragging the gauge forward past a line triggers that phase; dragging back does not undo it. Use Jump to go back.")
+	hint.modulate.a = 0.6
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(hint)
+	return v
 
 
 func _build_fx_tab() -> Control:
@@ -355,6 +414,8 @@ func _load_section() -> void:
 	_grid.set_bars(def.bars)
 	_loading = false
 	_meme_sel = -1
+	_phase_sel = clampi(_phase_sel, 0, main.gauge.events.size())
+	_fill_phases()
 	_fill_memes()
 	_fill_music()
 	_refresh()
@@ -382,12 +443,18 @@ func _on_progress(v: float) -> void:
 		return
 	_progress_lcd.text = "%d%%" % int(v)
 	main.gauge.set_value(roundi(v / 100.0 * main.gauge.max_value))
+	main.gauge.fire_passed_events()
 	_refresh()
 
 
 ## 进度条位置变了 / 数据变了之后，更新细条和按钮的高亮
 func _refresh() -> void:
 	var p := _p()
+	var phase := _phase_now()
+	_progress_lcd.text = "%d%%" % int(_progress.value) + ("  ·  %s" % _phase_title(phase) if not main.gauge.events.is_empty() else "")
+	_ticks.queue_redraw()
+	for i in _phase_chips.get_child_count():
+		_phase_chips.get_child(i).modulate.a = 1.0 if i <= main.gauge.events_fired else 0.55
 	_fx_strip.playhead = p
 	_fx_strip.queue_redraw()
 	var now := ScreenFx.effect_at(_def().fx_cues, p)
@@ -430,6 +497,151 @@ func _put_cue(list: Array, now: String, id: String) -> void:
 func _mark_dirty() -> void:
 	dirty = true
 	_status.text = "● Unsaved changes"
+
+
+# ---------------------------------------------------------------- 阶段（积累条的分数线）
+
+## 第 i 个阶段叫什么（0 = 第一条线之前）
+func _phase_title(i: int) -> String:
+	if i <= 0:
+		return "Start"
+	var names := _def().gauge_event_names
+	return names[i - 1] if i - 1 < names.size() and names[i - 1] != "" else "Phase %d" % i
+
+
+## 积累条现在的数值落在第几个阶段里
+func _phase_now() -> int:
+	var n := 0
+	for v in main.gauge.events:
+		if main.gauge.value >= v:
+			n += 1
+	return n
+
+
+func _draw_ticks() -> void:
+	var font := _panel.get_theme_default_font()
+	var grab := 8.0  # 滑块两头各留半个把手的宽度
+	var events: PackedInt32Array = main.gauge.events
+	for i in events.size():
+		var x := grab + (_ticks.size.x - grab * 2.0) * events[i] / maxf(main.gauge.max_value, 1.0)
+		var c := Color(1, 0.36, 0.56) if i < main.gauge.events_fired else Color(1, 1, 1, 0.45)
+		if i + 1 == _phase_sel:
+			c = Color("ffd23f")
+		_ticks.draw_line(Vector2(x, 0), Vector2(x, 4), c, 2.0)
+		_ticks.draw_string(font, Vector2(x - 10, 14), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 10, c)
+
+
+func _fill_phases() -> void:
+	for c in _phase_chips.get_children():
+		_phase_chips.remove_child(c)
+		c.queue_free()
+	var events: PackedInt32Array = main.gauge.events
+	for i in events.size() + 1:
+		var text := "Start" if i == 0 else "%d  %s · %d" % [i, _phase_title(i), events[i - 1]]
+		var b := _btn(_phase_chips, text, func() -> void: _select_phase(i), "Click to select, double-click to jump there")
+		b.toggle_mode = true
+		b.button_pressed = i == _phase_sel
+		b.gui_input.connect(func(e: InputEvent) -> void:
+			var m := e as InputEventMouseButton
+			if m and m.pressed and m.double_click and m.button_index == MOUSE_BUTTON_LEFT:
+				_jump_phase(i))
+	var on := _phase_sel > 0 and _phase_sel <= events.size()
+	for c in _phase_box.get_children().slice(1):
+		c.visible = on
+	if on:
+		_loading = true
+		if _phase_name.text != _phase_title(_phase_sel) and not _phase_name.has_focus():
+			_phase_name.text = _phase_title(_phase_sel)
+		_phase_at.max_value = main.gauge.max_value
+		_phase_at.value = events[_phase_sel - 1]
+		_phase_pct.text = "= %d%%" % roundi(100.0 * events[_phase_sel - 1] / maxi(main.gauge.max_value, 1))
+		_loading = false
+	_ticks.queue_redraw()
+	if _fx_strip:
+		_fx_strip.markers = _markers()
+		_fx_strip.queue_redraw()
+	for lid: String in _music_strips:
+		_music_strips[lid].markers = _markers()
+
+
+func _select_phase(i: int) -> void:
+	_phase_sel = i
+	_phase_name.release_focus()
+	_fill_phases()
+	_refresh()
+
+
+func _jump_phase(i: int) -> void:
+	_phase_sel = i
+	main.jump_to_phase(i)
+	_load_section()
+
+
+## 分数线改了：记到这个小关的定义里（以后以它为准，不再用场景里填的），并马上用到正在跑的积累条上
+func _apply_phases(events: PackedInt32Array, names: PackedStringArray) -> void:
+	var def := _def()
+	def.gauge_events = events
+	def.use_gauge_events = true
+	def.gauge_event_names = names
+	main.gauge.set_events(events)
+	main._current.gauge_event_values = main.gauge.events
+	_mark_dirty()
+	_fill_phases()
+	_refresh()
+
+
+## 现在所有阶段的名字（补齐到和分数线一样多）
+func _phase_names() -> PackedStringArray:
+	var out := PackedStringArray()
+	for i in main.gauge.events.size():
+		out.append(_phase_title(i + 1))
+	return out
+
+
+func _rename_phase(text: String) -> void:
+	if _loading or _phase_sel <= 0:
+		return
+	var names := _phase_names()
+	names[_phase_sel - 1] = text
+	_apply_phases(main.gauge.events.duplicate(), names)
+
+
+## 改分数：不能越过前后两条线（阶段的先后顺序不变）
+func _move_phase(v: float) -> void:
+	if _loading or _phase_sel <= 0:
+		return
+	var events: PackedInt32Array = main.gauge.events.duplicate()
+	var i := _phase_sel - 1
+	var lo := events[i - 1] + 1 if i > 0 else 1
+	var hi: int = events[i + 1] - 1 if i + 1 < events.size() else main.gauge.max_value
+	events[i] = clampi(int(v), lo, hi)
+	_apply_phases(events, _phase_names())
+
+
+func _add_phase() -> void:
+	var at := clampi(main.gauge.value, 1, main.gauge.max_value)
+	var events: PackedInt32Array = main.gauge.events.duplicate()
+	if events.has(at):
+		return
+	var names := _phase_names()
+	var i := 0
+	while i < events.size() and events[i] < at:
+		i += 1
+	events.insert(i, at)
+	names.insert(i, "Phase %d" % (i + 1))
+	_phase_sel = i + 1
+	_apply_phases(events, names)
+
+
+func _remove_phase() -> void:
+	if _phase_sel <= 0 or _phase_sel > main.gauge.events.size():
+		return
+	var events: PackedInt32Array = main.gauge.events.duplicate()
+	var names := _phase_names()
+	events.remove_at(_phase_sel - 1)
+	names.remove_at(_phase_sel - 1)
+	_phase_sel = mini(_phase_sel, events.size())
+	_apply_phases(events, names)
 
 
 # ---------------------------------------------------------------- 镜头
@@ -639,6 +851,9 @@ func save() -> void:
 			src.sections[i].meme_cues = from.meme_cues.duplicate(true)
 			src.sections[i].bars = from.bars.duplicate()
 			src.sections[i].gauge_max = from.gauge_max
+			src.sections[i].gauge_events = from.gauge_events.duplicate()
+			src.sections[i].use_gauge_events = from.use_gauge_events
+			src.sections[i].gauge_event_names = from.gauge_event_names.duplicate()
 		err = ResourceSaver.save(src, path)
 	var saved := path.get_file()
 	if err == OK and Music.enabled_for(Levels.selected) and Music.stream != null:
