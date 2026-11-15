@@ -46,6 +46,8 @@ static var run_possible := 0.0
 static var in_run := true
 ## 两关之间：等玩家按一下才开始这一关
 var _waiting_to_start := false
+## 两关之间的黑幕落下来用几秒（落完才换关）
+@export var curtain_seconds := 0.6
 ## 第 1 关的温馨开头：先假装是一个温馨的养猫小游戏（八音盒、粉粉的画面），玩家按一下，画风突变，正式开始。
 ## 只在一路连着玩、从第 1 关起步的时候出现，这次运行里只出现一次（重开不再放）。关掉 = 直接开始
 @export var cozy_intro := true
@@ -158,6 +160,11 @@ func _wait_for_start() -> void:
 	label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	label.add_theme_font_size_override("font_size", 40)
 	layer.add_child(label)
+	# 提示字慢慢一明一暗；下一关的声音从等待的循环里透出来一点
+	var blink := label.create_tween().set_loops()
+	blink.tween_property(label, "modulate:a", 0.45, 0.75).set_trans(Tween.TRANS_SINE)
+	blink.tween_property(label, "modulate:a", 1.0, 0.75).set_trans(Tween.TRANS_SINE)
+	Music.bridge_tease()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -346,7 +353,13 @@ func _clear_level() -> void:
 			Levels.selected += 1
 		Conductor.stop()
 		Music.bridge_out()  # 过门：飞走的音效 + 等待的循环，一直响到下一关玩家按下开始
-		get_tree().change_scene_to_file.call_deferred(Levels.GAME_SCENE)
+		# 每个接口都一样：黑幕从上往下落下来盖住画面再换关（关卡自己已经落过了，比如迪斯科结尾，就直接换）
+		if get_tree().root.has_node("StageCurtain"):
+			get_tree().change_scene_to_file.call_deferred(Levels.GAME_SCENE)
+		else:
+			StageCurtain.drop(get_tree(), curtain_seconds)
+			get_tree().create_timer(curtain_seconds + 0.05).timeout.connect(
+					get_tree().change_scene_to_file.bind(Levels.GAME_SCENE))
 		return
 	# 最终结算：一路连着玩的话把前面几关的成绩合进来
 	if in_run:
