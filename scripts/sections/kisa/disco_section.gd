@@ -37,6 +37,8 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var crossfade_seconds := 1.2
 ## 拆完房子上路后，先空滑几拍才来第一个水果
 @export var road_quiet_beats := 8.0
+## 水果路滑到圆台（舞台）时歇多久再出音符（秒，大概值：会对到最近的小节线上）
+@export var plaza_rest_seconds := 5.0
 
 @export_group("结尾接着玩吸猫")
 ## 结尾镜头放完后不切小关，直接用降下来的那架飞碟接着玩吸猫（玩法和吸猫小关一样）。关掉 = 结尾放完就过关
@@ -218,6 +220,10 @@ func _on_gauge_event(index: int, _value: int) -> void:
 	elif index == 9:
 		_start_finale()
 	elif index == 8:
+		# 滑到圆台这段先歇一会儿（不直接接着出音符），歇完在小节线上接着打路上那套鼓谱
+		var bpb: int = Conductor.chart.beats_per_bar
+		var rest := plaza_rest_seconds / Conductor.sec_per_beat()
+		_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars())
 		_road.enter_plaza(song_beat())
 
 

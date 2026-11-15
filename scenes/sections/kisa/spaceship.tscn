@@ -52,6 +52,7 @@ glow_color = Color(0.4, 0.38, 1, 0.7)
 
 [node name="SpaceshipSection" type="Node2D"]
 script = ExtResource("1")
+screen_punch = 0.6
 
 [node name="Stage" type="Node" parent="."]
 script = ExtResource("2")

@@ -25,6 +25,8 @@ extends Node
 @export_range(-30.0, 6.0) var volume_db := -1.0
 ## 音高随机上下多少（0.03 = ±3%，大约半个半音；0 = 不变）
 @export_range(0.0, 0.2, 0.005) var pitch_random := 0.03
+## Perfect 比 Great 高多少音高（0.06 ≈ 高一个半音，听得出“这一下更准”；0 = 一样）
+@export_range(0.0, 0.3, 0.005) var perfect_pitch_up := 0.06
 ## 音量随机上下多少 dB
 @export_range(0.0, 6.0, 0.1) var volume_random_db := 1.0
 ## 连击到里程碑（10、20、50……）时的转圈喵（"oiia"那种，用我们自己的喵做的），两个轮流放；清空 = 不放
@@ -76,7 +78,8 @@ func play(result: int) -> void:
 	if Music.meow.sing_hit():      # 这一下由旋律来唱，不放随机的打中喵
 		return
 	match result:
-		NoteData.Result.PERFECT, NoteData.Result.GREAT: _play_from(perfect_sounds, "perfect")
+		NoteData.Result.PERFECT: _play_from(perfect_sounds, "perfect", 1.0 + perfect_pitch_up)
+		NoteData.Result.GREAT: _play_from(perfect_sounds, "perfect")
 		NoteData.Result.GOOD: _play_from(good_sounds, "good")
 
 
@@ -111,7 +114,7 @@ func spin() -> void:
 	_spin_player.play()
 
 
-func _play_from(sounds: Array[AudioStream], group: String) -> void:
+func _play_from(sounds: Array[AudioStream], group: String, pitch: float = 1.0) -> void:
 	if sounds.is_empty():
 		return
 	var i := randi() % sounds.size()
@@ -122,6 +125,6 @@ func _play_from(sounds: Array[AudioStream], group: String) -> void:
 	var p := _players[_next]
 	_next = (_next + 1) % _players.size()
 	p.stream = sounds[i]
-	p.pitch_scale = 1.0 + randf_range(-pitch_random, pitch_random)
+	p.pitch_scale = pitch * (1.0 + randf_range(-pitch_random, pitch_random))
 	p.volume_db = volume_db + randf_range(-volume_random_db, volume_random_db)
 	p.play()

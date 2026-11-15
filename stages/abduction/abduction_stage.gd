@@ -86,6 +86,15 @@ signal progress_changed(value: int, needed: int)
 @export var ring_scale := 1.15
 ## 光圈粗细（相对半径）
 @export_range(0.02, 0.5) var ring_thickness := 0.08
+## 判定线：一圈绿色的环，和落下来的光圈平行，摆在光圈套到猫身上的位置（大小、高度都一样），
+## 光圈落到和它重合的那一拍按。跟着猫一起升。
+@export var judge_ring := true
+@export var judge_ring_color := Color(0.3, 1.0, 0.4)
+## 判定线粗细（相对半径），比光圈细，看起来是一根线
+@export_range(0.01, 0.2) var judge_ring_thickness := 0.035
+## 平时多亮、下一个光圈快到时最多再亮多少（不要太大，否则泛光会糊成一片）
+@export var judge_ring_glow := 1.1
+@export var judge_ring_prelight := 0.6
 
 @export_group("吸进去以后")
 ## 猫被吸上去用几拍
@@ -176,6 +185,8 @@ var _press_boost := 0.0  # 0~1，按键加速还剩多少
 var beat_guides := true
 var guide_every := 1.0
 var _guides: BeatGuideStrips
+var _judge_ring: MeshInstance3D
+var _judge_mat: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -258,6 +269,7 @@ func update(beat: float, notes: Array[NoteData], approach_beats: float) -> void:
 	_update_phase(beat)
 	_update_rings(beat, notes, approach_beats, dt)
 	_update_guides(beat, notes, approach_beats)
+	_update_judge_ring(beat, notes)
 	_update_cat(beat, dt)
 	_update_rig(beat, pulse, dt)
 	if not embedded:
@@ -553,6 +565,36 @@ func _update_guides(beat: float, notes: Array[NoteData], approach_beats: float) 
 			var radius := lerpf(beam_bottom_radius, beam_top_radius, u) * ring_scale
 			_guides.circle(center, radius, BeatGuides.look(g), 0.1)
 	_guides.finish()
+
+
+## 判定线：和光圈套到猫身上时一样大、一样高、一样平放（光圈落到和它重合 = 该按了）。
+## 下一个光圈不到一拍就到时稍微变亮、变粗一点；打中时闪一下
+func _update_judge_ring(beat: float, notes: Array[NoteData]) -> void:
+	if _judge_ring == null:
+		var torus := TorusMesh.new()
+		torus.inner_radius = 1.0 - judge_ring_thickness
+		torus.outer_radius = 1.0
+		torus.rings = 96
+		torus.ring_segments = 8
+		_judge_mat = StandardMaterial3D.new()
+		_judge_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_judge_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_judge_ring = MeshInstance3D.new()
+		_judge_ring.mesh = torus
+		_judge_ring.material_override = _judge_mat
+		_judge_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_rig.add_child(_judge_ring)
+	_judge_ring.visible = judge_ring and _phase == Phase.LIFT and _beam_fade > 0.3
+	if not _judge_ring.visible:
+		return
+	var cat_c := _cat.position - _rig.position
+	_place_ring(_judge_ring, cat_c.y)  # 和光圈落到猫身上时完全一样的位置和大小
+	var k: float = BeatGuides.anticipation(notes, beat).k
+	# 只把环的「粗细」方向加粗一点（竖直方向），半径不变，免得和光圈对不上
+	_judge_ring.scale.y *= 1.0 + k * 1.5
+	var bright := judge_ring_glow + k * judge_ring_prelight + _pop * 0.4
+	_judge_mat.albedo_color = Color(judge_ring_color.r * bright, judge_ring_color.g * bright,
+			judge_ring_color.b * bright, (0.8 + 0.2 * k) * _beam_fade)
 
 
 func _make_ring() -> Dictionary:
