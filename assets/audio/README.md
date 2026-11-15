@@ -26,6 +26,12 @@
 | `rhythm_variants` | 换 L1 + L2 | `Rhalf` 半速、`Rbreak` 2-step、`Rclub` jersey club；玩家底鼓位置跟着变 |
 | `entertainer_leads` | 16 小节 L3 | Entertainer 旋律：拨弦 / 猫，用第 1 关的和弦 |
 
+## `meows/runtime/`：游戏里按格子触发的喵
+
+每只阵容里的猫一个 `meow_<编号>.wav`（原音高、共鸣烤进去、响度统一）和一个 `tick_<编号>.wav`（只有开头 70 毫秒的"mi"），
+`meows.json` 记着每只猫原本的音高。给 Tab 面板 Meow 页写的谱子片段用（`scripts/music/meow_player.gd`）。
+由 `tools/music_gen/make_runtime_meows.py` 生成。
+
 ## `music/scene1_120/`：第 1 关素材的 120 BPM 版
 
 给 Kisa 的迪斯科关（它是 120 BPM）用的 17 条音轨，`s120_*`，每条 4 小节 = 8 秒，内容和 `scene1/` 里同名的一样：

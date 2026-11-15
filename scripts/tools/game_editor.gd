@@ -17,6 +17,7 @@ extends CanvasLayer
 
 const Grid := preload("res://scripts/tools/pattern_grid.gd")
 const CueStrip := preload("res://scripts/music/cue_strip.gd")
+const MeowTab := preload("res://scripts/music/meow_pattern_tab.gd")
 const THEME := preload("res://assets/ui/theme.tres")
 const PALETTE := [Color("ffd23f"), Color("ff5d8f"), Color("7fd1ff"), Color("86ffa3"), Color("b38cff"),
 		Color("ff9a3c"), Color("5ee6d0"), Color("f2f2f2")]
@@ -142,6 +143,7 @@ func _build_ui() -> void:
 			_fill_thumbnails())
 	tabs.add_child(_build_music_tab())
 	tabs.add_child(_build_pattern_tab())
+	tabs.add_child(MeowTab.new(self))   # meow patterns: meow drums and the kichiku cat melody, saved as new clips
 
 
 func _build_fx_tab() -> Control:

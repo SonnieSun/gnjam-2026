@@ -22,6 +22,9 @@
 
 - **改音乐**：运行游戏后按 **Tab** 调出编辑面板，"音乐"页里每条轨道点一段 = 从当前进度起换成它；最上面的 Gauge 条就是积累条。改完点 Save。
   加轨道、加片段直接改 `levels/music/` 里的 json（原来的 Music Director 面板已经被这个面板取代）。
+- **写猫鼓 / 鬼畜猫旋律**：Tab 面板的 **Meow** 页。点格子写谱子，Listen 边改边听，Save 存成
+  `levels/music/patterns/` 里的 json，Add to lane 把它作为新片段放进轨道，再到 Music 页选它。不替换原来的片段。
+  有 MIDI 的话：`python tools/music_gen/midi_to_pattern.py 曲子.mid --name 名字`。
 - **只想听**：编辑面板最上面一排点 **Jukebox**，或者在 Godot 里打开 `scenes/tools/jukebox.tscn` 按 F6。
   点一首就放，下面的按钮开关每条音轨，最下面是所有音效。不改任何东西；Esc 回主菜单。
 - 配置格式和设计见 `docs/music_manager.md`，素材清单见 `assets/audio/README.md`。

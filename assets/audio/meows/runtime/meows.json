@@ -1,0 +1,88 @@
+{
+ "cats": [
+  {
+   "id": "01",
+   "file": "meow_01.wav",
+   "tick": "tick_01.wav",
+   "midi": 64.66,
+   "seconds": 1.173,
+   "roles": [
+    "long"
+   ]
+  },
+  {
+   "id": "06",
+   "file": "meow_06.wav",
+   "tick": "tick_06.wav",
+   "midi": 77.04,
+   "seconds": 1.493,
+   "roles": [
+    "long",
+    "accent"
+   ]
+  },
+  {
+   "id": "10",
+   "file": "meow_10.wav",
+   "tick": "tick_10.wav",
+   "midi": 70.32,
+   "seconds": 0.863,
+   "roles": [
+    "long"
+   ]
+  },
+  {
+   "id": "13",
+   "file": "meow_13.wav",
+   "tick": "tick_13.wav",
+   "midi": 66.77,
+   "seconds": 1.039,
+   "roles": [
+    "long",
+    "accent"
+   ]
+  },
+  {
+   "id": "14",
+   "file": "meow_14.wav",
+   "tick": "tick_14.wav",
+   "midi": 72.29,
+   "seconds": 0.481,
+   "roles": [
+    "long",
+    "short"
+   ]
+  },
+  {
+   "id": "15",
+   "file": "meow_15.wav",
+   "tick": "tick_15.wav",
+   "midi": 61.92,
+   "seconds": 1.076,
+   "roles": [
+    "long",
+    "short"
+   ]
+  },
+  {
+   "id": "08",
+   "file": "meow_08.wav",
+   "tick": "tick_08.wav",
+   "midi": 76.5,
+   "seconds": 1.393,
+   "roles": [
+    "short"
+   ]
+  },
+  {
+   "id": "11",
+   "file": "meow_11.wav",
+   "tick": "tick_11.wav",
+   "midi": 85.27,
+   "seconds": 0.885,
+   "roles": [
+    "short"
+   ]
+  }
+ ]
+}

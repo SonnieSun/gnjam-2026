@@ -96,5 +96,8 @@ if len(sys.argv) > 3:
         n += 1
 n += copy_tree(os.path.join(D, 'sfx'), os.path.join(A, 'sfx'), loop=False)
 n += copy_tree(os.path.join(D, 'meows'), os.path.join(A, 'meows'), loop=False)
+if os.path.isdir(os.path.join(D, 'meows_runtime')):       # the per-cat meows the game plays note by note
+    n += copy_tree(os.path.join(D, 'meows_runtime'), os.path.join(A, 'meows', 'runtime'), loop=False)
+    shutil.copy(os.path.join(D, 'meows_runtime', 'meows.json'), os.path.join(A, 'meows', 'runtime', 'meows.json'))
 size = sum(os.path.getsize(f) for f in glob.glob(os.path.join(A, '**', '*.wav'), recursive=True))
 print(f'{n} files, {size / 1e6:.0f} MB -> {A}')
