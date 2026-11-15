@@ -51,6 +51,7 @@ var _waiting_to_start := false
 @export var cozy_intro := true
 static var _cozy_seen := false
 var _cozy := false
+var _cozy_preview: SpinSection
 
 @onready var section_host: Node2D = $SectionHost
 @onready var fx_layer: Node2D = $FxLayer
@@ -133,16 +134,23 @@ func _wait_for_start() -> void:
 	layer.name = "StartPrompt"
 	add_child(layer)
 	if _cozy:
-		# 温馨开头的画面（先放一个粉色的占位：一块底色和两行字；正式的美术换掉这一段就行）
-		var bg := ColorRect.new()
-		bg.color = Color("ffe9f3")
-		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-		layer.add_child(bg)
+		# 温馨开头：画面就是第 1 关真正的场景（先摆出来，不开始），上面盖一层粉粉的滤镜、贴纸和一句提示
+		# （scripts/cozy_overlay.gd）。分数、积累条这些先藏起来。
+		var def := chart.sections[0]
+		_cozy_preview = def.scene.instantiate() as SpinSection
+		_cozy_preview.setup(def, judge.begin_section(0, def, chart.beats_per_bar, 0.0, 0.0))
+		section_host.add_child(_cozy_preview)
+		_cozy_preview.enter()
+		hud.visible = false
+		_cozy_preview.self_modulate.a = 0.0  # 判定圈和辅助线先不画（猫和房间是它的子节点，不受影响）
+		var overlay: Control = preload("res://scripts/cozy_overlay.gd").new()
+		for c in _cozy_preview.get_children():
+			if c is KisaSpinCat3D:
+				overlay.cat = c  # 有这只猫的 3D 舞台就做特写运镜
+		layer.add_child(overlay)
+		return
 	var label := Label.new()
 	label.text = "%s\n\nPRESS TO START" % Levels.title()
-	if _cozy:
-		label.text = "MY SWEET KITTY\n\na cozy little pet game\n\n\npress SPACE to pet the cat"
-		label.add_theme_color_override("font_color", Color("ff7fb0"))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -157,6 +165,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		if _cozy:
 			_cozy = false
+			_cozy_preview.queue_free()
+			_cozy_preview = null
+			hud.visible = true
 			Music.cozy_snap(lead_in_beats * 60.0 / chart.bpm)  # 八音盒戛然而止，倒带倒到第一拍
 			hud.flash(Color.WHITE, 0.9, 0.35)
 		else:
