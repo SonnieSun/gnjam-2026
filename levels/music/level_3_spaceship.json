@@ -25,28 +25,12 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "bass",
-     "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
-    },
-    {
      "id": "tm_bass",
      "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L2_bass_16b.wav"
     },
     {
-     "id": "ybf_bass",
-     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L2_bass_8b.wav"
-    },
-    {
-     "id": "mk_bass",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L2_bass_4b.wav"
-    },
-    {
      "id": "cc_bass",
      "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav"
-    },
-    {
-     "id": "oj_bass",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L2_bass_8b.wav"
     }
    ]
   },
@@ -60,24 +44,8 @@
      "file": "res://assets/audio/music/classics/turkish_march/turkish_march_fb_L0_keys_16b.wav"
     },
     {
-     "id": "disco_keys",
-     "file": "res://assets/audio/music/scene1/style_disco/s1_B_L0_keys_4b.wav"
-    },
-    {
-     "id": "ybf_keys",
-     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_fb_L0_keys_8b.wav"
-    },
-    {
-     "id": "mk_keys",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L0_keys_4b.wav"
-    },
-    {
      "id": "cc_keys",
      "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav"
-    },
-    {
-     "id": "oj_keys",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L0_keys_8b.wav"
     }
    ]
   },
@@ -91,24 +59,12 @@
      "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_pluck_16b.wav"
     },
     {
-     "id": "cat_lead",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
-    },
-    {
-     "id": "ybf_cats",
-     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_kichiku_8b.wav"
-    },
-    {
-     "id": "mk_lead",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
+     "id": "cc_pluck",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav"
     },
     {
      "id": "cc_lead",
      "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav"
-    },
-    {
-     "id": "oj_cats",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_flow_8b.wav"
     }
    ]
   },
@@ -122,16 +78,8 @@
      "file": "res://assets/audio/music/classics/turkish_march/turkish_march_fb_L4_peak_16b.wav"
     },
     {
-     "id": "mk_peak",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L4_peak_4b.wav"
-    },
-    {
      "id": "cc_peak",
      "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav"
-    },
-    {
-     "id": "oj_peak",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L4_peak_8b.wav"
     }
    ]
   },
@@ -143,6 +91,10 @@
     {
      "id": "cat_drums",
      "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+    },
+    {
+     "id": "cc_cat_drums",
+     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav"
     }
    ]
   },
@@ -156,8 +108,8 @@
      "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_cat_kichiku_16b.wav"
     },
     {
-     "id": "oj_kichiku",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_kichiku_8b.wav"
+     "id": "cc_double",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav"
     }
    ]
   },
@@ -234,9 +186,7 @@
     0.7,
     0.9
    ],
-   "transition_tiers": [
-    3
-   ],
+   "transition_tiers": [],
    "fever": [
     0.9,
     1.0
@@ -258,126 +208,61 @@
     "bass": [
      [
       0.0,
-      "bass"
-     ],
-     [
-      0.15,
-      "ybf_bass"
-     ],
-     [
-      0.3,
-      "mk_bass"
-     ],
-     [
-      0.5,
       "cc_bass"
-     ],
-     [
-      0.75,
-      "oj_bass"
      ]
     ],
     "bed": [
      [
       0.0,
-      "disco_keys"
-     ],
-     [
-      0.15,
-      "ybf_keys"
-     ],
-     [
-      0.3,
-      "mk_keys"
-     ],
-     [
-      0.5,
       "cc_keys"
-     ],
-     [
-      0.75,
-      "oj_keys"
      ]
     ],
     "lead": [
      [
       0.0,
-      "cat_lead"
-     ],
-     [
-      0.15,
-      "ybf_cats"
-     ],
-     [
-      0.3,
-      "mk_lead"
+      "cc_pluck"
      ],
      [
       0.5,
       "cc_lead"
-     ],
-     [
-      0.75,
-      "oj_cats"
-     ],
-     [
-      0.88,
-      ""
      ]
     ],
     "peak": [
      [
-      0.3,
-      "mk_peak"
-     ],
-     [
-      0.5,
+      0.25,
       "cc_peak"
-     ],
-     [
-      0.75,
-      "oj_peak"
      ]
     ],
     "meow": [
      [
       0.0,
       "cat_drums"
+     ],
+     [
+      0.75,
+      "cc_cat_drums"
      ]
     ],
     "kiai": [
      [
-      0.88,
-      "oj_kichiku"
+      0.75,
+      "cc_double"
      ]
     ]
    },
    "tiers": [
-    0.15,
-    0.3,
+    0.25,
     0.5,
-    0.75,
-    0.88
+    0.75
    ],
-   "transition_tiers": [
-    1,
-    2,
-    3,
-    4
-   ],
+   "transition_tiers": [],
    "fever": [
-    0.88,
+    0.75,
     1.0
    ],
    "own": {
-    "kiai": "oj_kichiku",
+    "kiai": "cc_double",
     "hit": ""
-   },
-   "tier_sfx": {
-    "1": "crash",
-    "2": "crash",
-    "3": "crash",
-    "4": "sky_holy_hit"
    }
   }
  ]

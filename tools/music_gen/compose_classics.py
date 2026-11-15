@@ -190,16 +190,17 @@ def turn(pool, key, midi=None):
     return pool[_turns[key] % len(pool)]
 
 
-def miao(midi, seconds, style='mix', flow=False):
+def miao(midi, seconds, style='mix', flow=0.0):
     """One note of the kichiku cat. Short notes: the short cats take turns, sped up. Long notes:
       'mix'      the accent cats wherever the note is at or below E5; the long cats above that
       'pool'     the long cats taking turns
       'classic'  the first long cat alone
     All keep part of their own slide and hold the 'iii' on long notes.
-    flow: the meow keeps at least 80% of its own length even on a short note, so it rings on past the
-    next note (the caller fades that tail) instead of being squeezed and cut."""
+    flow: seconds until the next note starts (0 = off). The meow is then squeezed less than the note
+    asks for: it keeps up to 80% of its own length, but no more than 1.5x the room it has, so most of
+    the 'miao' is heard before the caller fades it out at the next note (see tail_cut)."""
     def fit(sample, sec):
-        return max(sec, 0.8 * len(sample) / SR) if flow else sec
+        return max(sec, min(0.8 * len(sample) / SR, 1.5 * flow)) if flow else sec
     midi = lift(midi)
     if seconds < 0.33:                 # an 8th or shorter; a quarter note already gets a whole 'Miiiiao'
         s = turn(SHORT, 'short', midi)
@@ -213,14 +214,20 @@ def miao(midi, seconds, style='mix', flow=False):
     return sing_miao(s, midi, fit(s, seconds * 0.97), keep=0.4)
 
 
-def tail_under(v, note_n):
-    """After the next note starts, the meow drops to 60% for 0.35 s, then fades out over 0.15 s: it
-    overlaps the next meow instead of being cut, without piling up into mush."""
-    g = np.ones(len(v))
-    if len(v) > note_n:
-        k = np.arange(len(v) - note_n) / SR
-        g[note_n:] = np.where(k < 0.35, 1 - 0.4 * np.clip(k / 0.01, 0, 1), np.clip(0.6 * (1 - (k - 0.35) / 0.15), 0, None))
-    return v * g
+TAIL_FADE = 0.04     # a flow meow is gone this long after the next note starts
+
+
+def tail_cut(v, note_n):
+    """The meow (with its pitch-FX ring) fades out over TAIL_FADE once the next note has started, so
+    only one meow sounds at a time on fast notes; a note with room after it rings out as before.
+    (It used to stay at 60% for 0.35 s and then fade: three meows deep on 8th notes, which was mush.)"""
+    f = t2n(TAIL_FADE)
+    if len(v) <= note_n:
+        return v
+    out = v[: note_n + f].copy()
+    k = len(out) - note_n
+    out[note_n:] *= np.linspace(1, 0, f)[:k]
+    return out
 
 
 def shout(midi, seconds, key='shout'):
@@ -359,9 +366,18 @@ def match_rms(x, target):
     return x * (target / (np.sqrt(np.mean(x ** 2)) + 1e-9))
 
 
+# Levels of the cat chords and the cat bass. Their notes are shorter than they were, so the same RMS
+# would make every hit louder: these keep each hit about as loud as before (both were 0.079 and 0.386).
+STABS_RMS = 0.062
+BASS_RMS = 0.350
+
+
 def halves(song):
     """[(start step, chord notes, root)] one per half bar."""
     return [(i * 8, *chord(c)) for i, c in enumerate(song['chords'])]
+
+
+VOICES = {}          # lead name -> [(note index, start sample, mono sound)], for check_cat_cleanup.py
 
 
 def cat_leads(song, bars, last_in_phrase):
@@ -379,24 +395,30 @@ def cat_leads(song, bars, last_in_phrase):
         x = blank(bars)
         for i, (s, p, ln) in enumerate(song['melody']):
             m = nm(p) + song['cat_octave']
+            nxt = mel[i + 1][0] if i + 1 < len(mel) else mel[0][0] + bars * 16
+
+            def put(v, at, gain=1.0):
+                """Place one sound of this note; in the flow lead it ends just after the next note starts."""
+                if flow:
+                    v = tail_cut(v, max(0, t2n(nxt * STEP) - at))
+                VOICES.setdefault(name, []).append((i, at, v * gain))
+                place(x, stereo(v), at, gain)
             # High notes: a formant-kept meow gets thin up there and stops reading as a note, so from
             # HIGH_FROM up a kichiku meow (played faster, full pitch FX, cut to the note) doubles it,
             # louder the higher the note.
             if m >= HIGH_FROM:
                 k = hit(high_cat[0], high_cat[1], m, max(ln * STEP * 0.95, 0.09))
-                place(x, stereo(resonate(k, m, even=True)), t2n(s * STEP), float(np.interp(m, [HIGH_FROM, HIGH_FROM + 9], [0.5, 0.95])))
+                put(resonate(k, m, even=True), t2n(s * STEP), float(np.interp(m, [HIGH_FROM, HIGH_FROM + 9], [0.5, 0.95])))
             if i in last_in_phrase and ln >= 2:              # mi-mi-mi-MIAO, #6 shouting the end
                 for k in range(3):
-                    place(x, stereo(resonate(mi(m), lift(m), FX)), t2n(s * STEP + k * STEP / 2), 0.9)
+                    put(resonate(mi(m), lift(m), FX), t2n(s * STEP + k * STEP / 2), 0.9)
                 sec, at = max(0.12, ln * STEP - 1.5 * STEP), t2n(s * STEP + 1.5 * STEP)
-                place(x, stereo(resonate(shout(m, sec), lift(m), FX)), at, 1.25)
-                place(x, stereo(resonate(shout(m - 12, sec, 'shout_lo'), lift(m - 12), FX)), at, 0.55)
+                put(resonate(shout(m, sec), lift(m), FX), at, 1.25)
+                put(resonate(shout(m - 12, sec, 'shout_lo'), lift(m - 12), FX), at, 0.55)
             elif flow:
-                nxt = mel[i + 1][0] if i + 1 < len(mel) else mel[0][0] + bars * 16
-                v = miao(m, ln * STEP, style, flow=True)
-                place(x, stereo(resonate(tail_under(v, t2n((nxt - s) * STEP)), lift(m), FX)), t2n(s * STEP))
+                put(resonate(miao(m, ln * STEP, style, flow=(nxt - s) * STEP), lift(m), FX), t2n(s * STEP))
             else:
-                place(x, stereo(resonate(miao(m, ln * STEP, style), lift(m), FX)), t2n(s * STEP))
+                put(resonate(miao(m, ln * STEP, style), lift(m), FX), t2n(s * STEP))
         L[name] = match_rms(finish(reverb(punch(highpass(x, 120)), 0.6, 0.2, mix=0.06)[: len(x)], bars), 0.135)
     # the kichiku cat lead: one cat sings a whole 4-bar phrase (the one whose own pitch is nearest the
     # phrase, never the same cat two phrases running), every note restarts its meow from the start,
@@ -474,28 +496,33 @@ def build(song):
             # the off-beat "mi" a fourth above the high drum (it was an octave up: a shrill kitten)
             place(x, stereo(lowpass(mi(hi + 5, 0.045), 5000), 0.3 if beat % 2 else -0.3), t2n(b * BAR + beat * BEAT + 2 * STEP), 0.35)
     L['C_drums'] = match_rms(finish(highpass(x, 120), bars), 0.10)
-    # cat stabs: three cats on the off-beat 8ths, the chord of that half bar
+    # cat stabs: two cats on the off-beat 8ths, the top two notes of that half bar's chord. Thin on
+    # purpose so they sit under a cat lead: two voices (were three), 0.09 s (was 0.12), each sung by a
+    # cat whose own pitch is near the note (any short cat used to take it, growling when pushed down),
+    # the low-mids cut (high-pass 280, was 140) and half the room.
     x = blank(bars)
     for s, notes, _ in H:
-        top3 = [m + 12 for m in notes[-3:]]
         for o in (2, 6):
-            for m, side in zip(top3, (-0.5, 0.0, 0.5)):
-                place(x, stereo(sing_miao(turn(SHORT, 'stab'), m, 0.12, keep=0.2), side), t2n((s + o) * STEP), 0.6)
-    L['C_stabs'] = match_rms(finish(reverb(highpass(x, 140), 0.5, 0.15, mix=0.06)[: len(x)], bars), 0.079)
+            for m, side in zip([m + 12 for m in notes[-2:]], (-0.35, 0.35)):
+                place(x, stereo(sing_miao(turn(SHORT, 'stab', m), m, 0.09, keep=0.2), side), t2n((s + o) * STEP), 0.6)
+    L['C_stabs'] = match_rms(finish(reverb(highpass(x, 280), 0.5, 0.15, mix=0.03)[: len(x)], bars), STABS_RMS)
     # cat bass: real bass on the beat, a cat on the off-beat octave (near its own pitch)
+    # Shorter and thinner than it was, so it leaves room for a lead: notes of 1.25 16ths (were 1.6), the
+    # cat 0.13 s (was 0.18), sung by a cat near the note and high-passed, and 200-500 Hz taken down 3 dB.
     x = blank(bars)
     for s, _, root in H:
         f = mtof(root + 12)
         for e in range(4):
             at = t2n((s + e * 2) * STEP)
-            n = t2n(STEP * 1.6)
+            n = t2n(STEP * 1.25)
             if e % 2 == 0:
                 place(x, pan(bass_note(f, n), 0.0), at)
             else:
                 m = root + 36
-                place(x, stereo(sing_miao(turn(SHORT, 'bass'), m, 0.18, keep=0.3)), at, 0.9)
+                place(x, stereo(highpass(sing_miao(turn(SHORT, 'bass', m), m, 0.13, keep=0.3), 250)), at, 0.9)
                 place(x, pan(osc_sine(f, n) * adsr(n, 0.003, 0.05, 0.7, 0.03) * 0.6, 0.0), at)
-    L['C_bass'] = match_rms(finish(softclip(x * 1.2, 1.2), bars), 0.386)
+    x = softclip(x * 1.2, 1.2)
+    L['C_bass'] = match_rms(finish(x - 0.3 * bandpass(x, 200, 500), bars), BASS_RMS)
     L['L1_groove'] = GROOVE
     return L
 
