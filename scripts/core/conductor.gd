@@ -169,6 +169,11 @@ func _update_clock() -> void:
 	song_beat = song_time / sec_per_beat()
 
 
+## 判定用的拍数（input_time() 换算成拍）
+func input_beat() -> float:
+	return input_time() / sec_per_beat()
+
+
 ## 判定用的时间：此刻（不是这帧开头）音乐放到哪了，扣掉按键延迟，不含画面提前量。
 ## 输入事件是在 _process 之前分发的，那时 song_time 还是上一帧的值，所以要按系统时钟补上这段。
 func input_time() -> float:

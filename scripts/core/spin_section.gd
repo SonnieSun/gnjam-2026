@@ -22,6 +22,12 @@ extends Node2D
 ## 这一关的事件分数线：积累条涨到这些分数时各触发一次 _on_gauge_event，
 ## 想要几个事件就填几个数（留空 = 这一关没有事件）。谱面里可以再单独覆盖。
 @export var gauge_events := PackedInt32Array()
+@export_group("节拍辅助线")
+## 每拍一条辅助线：要按的拍子是音符颜色的实线（越靠近判定越亮越粗），不用按的拍子是淡虚线；
+## 判定点在音符到之前一拍开始染色变亮。规则统一在 scripts/chart/beat_guides.gd
+@export var beat_guides := true
+## 虚线隔几拍一条（1 = 每拍，0.5 = 每半拍）
+@export_range(0.125, 4.0, 0.125) var guide_every := 1.0
 @export_group("编辑器预览")
 ## 勾上 = 预览自动循环播放；取消 = 停在下面指定的那一拍
 @export var preview_playing := true
@@ -74,12 +80,101 @@ func setup(section_def: SectionDef, section_notes: Array[NoteData]) -> void:
 
 func enter() -> void:
 	active = true
+	_start_note_style()
 	_on_enter()
 
 
 func exit() -> void:
 	active = false
+	if _style_layer:
+		_style_layer.queue_free()
+		_style_layer = null
+		note_style = null
 	_on_exit()
+
+
+# ---- 谱面编辑器的表现方式（ChartPattern.use_style）----
+
+## 谱子勾了“游戏里用这个表现方式”时，音符由它画（叠在关卡画面上）
+var note_style: NoteStyle
+## 关掉 = 不自己叠表现方式（谱面编辑器的预览自己叠一层，就把这个关掉）
+var allow_note_style := true
+var _style_layer: CanvasLayer
+
+
+## 关卡自己要不要画音符：谱子交给表现方式画时返回 false
+func draws_own_notes() -> bool:
+	return not (def and def.chart and def.chart.use_style)
+
+
+## 关卡画音符时用这个代替 notes：表现方式接管时是空的，关卡自己的圆圈 / 水果 / 光圈就都不出来了
+func own_notes() -> Array[NoteData]:
+	if draws_own_notes():
+		return notes
+	var none: Array[NoteData] = []
+	return none
+
+
+# ---- 节拍辅助线（规则在 BeatGuides）----
+
+## 现在要画的辅助线（见 BeatGuides.compute）。lead = 这一关音符提前几拍出现
+func guide_list(lead: float, note_list: Variant = null) -> Array[Dictionary]:
+	if not beat_guides or not draws_own_notes():
+		var none: Array[Dictionary] = []
+		return none
+	return BeatGuides.compute(note_list if note_list != null else notes, song_beat(), lead, guide_every, guide_color)
+
+
+## 辅助线（和预亮）用什么颜色：和关卡画音符的颜色一致。关卡用自己的一套颜色时重写这个
+func guide_color(note: NoteData) -> Color:
+	return sound_color(note)
+
+
+## 判定圈 / 判定线预亮后的样子（见 BeatGuides.target_look）。base = 判定圈平时的颜色
+func target_look(base := Color.WHITE, filter := Callable()) -> Dictionary:
+	if not beat_guides or not draws_own_notes():
+		return {"color": base, "width": 1.0, "k": 0.0}
+	return BeatGuides.target_look(BeatGuides.anticipation(notes, song_beat(), guide_color, filter), base)
+
+
+## 通用画法：判定点外面一圈圈的辅助线，和“缩圈音符”同一种几何（远近 a 的那一拍在 radius + a × travel）。
+## 音符不是缩圈的关卡也用这个：辅助线围着判定点收过来，提示「第几拍该按」。
+## note_target(note) -> [圆心, 半径]：每个音符的判定点不一样时给（实线画在音符自己的判定点上）
+func draw_target_guides(ci: CanvasItem, center: Vector2, radius: float, travel: float, lead: float,
+		note_target := Callable(), squash := 1.0, scale_x := 1.0) -> void:
+	for g in guide_list(lead):
+		var l := BeatGuides.look(g)
+		var a := clampf(g.a, 0.0, 1.0)
+		if g.solid and note_target.is_valid():
+			var done := {}
+			for n: NoteData in g.notes:
+				var tgt: Array = note_target.call(n)
+				if done.has(tgt[0]):
+					continue
+				done[tgt[0]] = true
+				BeatGuides.draw_ring(ci, tgt[0], float(tgt[1]) + a * travel, l, 3.0, squash, scale_x)
+		else:
+			BeatGuides.draw_ring(ci, center, radius + a * travel, l, 3.0, squash, scale_x)
+
+
+## 预亮的判定圈：平时的样子 + 音符快到时染色、变粗、外面一圈光晕
+func draw_lit_target(ci: CanvasItem, center: Vector2, radius: float, base := Color.WHITE, width := 3.0,
+		squash := 1.0, scale_x := 1.0) -> void:
+	var t := target_look(base)
+	BeatGuides.draw_target_glow(ci, center, radius, t, squash, scale_x)
+	BeatGuides.draw_ring(ci, center, radius, {"color": Color(t.color, base.a), "width": t.width, "dashed": false},
+			width, squash, scale_x)
+
+
+func _start_note_style() -> void:
+	if draws_own_notes() or not allow_note_style or Engine.is_editor_hint():
+		return
+	_style_layer = CanvasLayer.new()
+	_style_layer.layer = 5
+	add_child(_style_layer)
+	note_style = NoteStyle.create(def.chart.style)
+	note_style.pattern = def.chart
+	_style_layer.add_child(note_style)
 
 
 ## 当前歌曲拍数。关卡脚本里要用拍数时调这个，不要直接读 Conductor（编辑器里没有它）。
@@ -127,6 +222,8 @@ func notify_judged(note: NoteData, result: int) -> void:
 			NoteData.Result.PERFECT: free_spin_vel += 6.0
 			NoteData.Result.GREAT: free_spin_vel += 5.0
 			_: free_spin_vel += 3.5
+	if note_style:
+		note_style.judged(note, result)
 	_on_note_judged(note, result)
 
 
@@ -134,6 +231,14 @@ func notify_judged(note: NoteData, result: int) -> void:
 ## 判定与成绩仍由 Judge 统一处理，其他小关默认沿用原规则。
 func gauge_result(_note: NoteData, result: int) -> int:
 	return result
+
+
+## 主场景里的 Judge（编辑器预览里没有，返回 null）
+func main_judge() -> Judge:
+	var main := get_parent().get_parent() if get_parent() else null
+	if main == null:
+		return null
+	return main.get("judge") as Judge
 
 
 ## 蓄力段可以保留鼓声与判定，只在正式击打时播放喵声和大范围命中特效。
@@ -206,8 +311,9 @@ static func result_color(result: int) -> Color:
 ## ci 是画在哪个节点上（一般传 self）；travel 是圆环最远离判定圈多少像素。
 func draw_approach_rings(ci: CanvasItem, center: Vector2, radius: float,
 		approach_beats: float, travel: float) -> void:
-	ci.draw_arc(center, radius, 0.0, TAU, 64, Color(1, 1, 1, 0.9), 3.0)
-	for n in notes:
+	draw_lit_target(ci, center, radius, Color(1, 1, 1, 0.9))
+	draw_target_guides(ci, center, radius, travel, approach_beats)
+	for n in own_notes():
 		if n.judged:
 			continue
 		var ahead := beats_until(n)
@@ -257,6 +363,8 @@ func _process(delta: float) -> void:
 	_gauge_smooth = lerpf(_gauge_smooth, float(gauge_value) / maxi(gauge_max, 1), minf(1.0, delta * 4.0))
 	if def:
 		_update_spin(local_beat(), spin_angle())
+	if note_style:
+		note_style.update_notes(song_beat(), notes)
 
 
 # ---- 编辑器预览 ----

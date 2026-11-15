@@ -171,6 +171,10 @@ var _fruit_light: OmniLight3D
 var _plaza_cats: Array[Dictionary] = []  # {holder: Node3D, sprite: Sprite3D, h: 高度, phase: 错开的拍数, frames: 帧数}
 var _plaza_slots := PackedVector3Array()  # 观众站位（按出现的先后），第一次用到时排好
 var _ball_scale := 1.0
+## 节拍辅助线（路上滑行那段）：横在路面上的线，在每一拍水果会飞到的位置。关卡脚本按自己的设置填
+var beat_guides := true
+var guide_every := 1.0
+var _guides: BeatGuideStrips
 
 
 func setup(cat: KisaSpinCat3D, stage: KisaDiscoStage) -> void:
@@ -428,6 +432,7 @@ func update(beat: float, notes: Array[NoteData]) -> void:
 			if _travel > 140.0:
 				_room.visible = false
 		_update_fruits(beat, notes)
+		_update_guides(beat, notes)
 		_update_cat(beat, notes, delta)
 		_update_side_balls(beat)
 
@@ -506,6 +511,27 @@ func _arrive_plaza() -> void:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed(Judge.HIT_ACTION):
 		_press = 1.0
+
+
+## 节拍辅助线：路面上一条条横线，在每一拍水果会到的地方（和水果同一套远近），规则见 BeatGuides
+func _update_guides(beat: float, notes: Array[NoteData]) -> void:
+	if _guides == null:
+		_guides = BeatGuideStrips.new()
+		_cat.world.add_child(_guides)
+	_guides.begin()
+	if beat_guides and phase == Phase.RUN:
+		var fruit_notes: Array[NoteData] = []
+		for n in notes:
+			if uses_fruit(n):
+				fruit_notes.append(n)
+		var half := minf(_half_width, 24.0)
+		for g in BeatGuides.compute(fruit_notes, beat, fruit_lead_beats, guide_every,
+				func(n: NoteData) -> Color: return SpinSection.SOUND_COLORS[n.sound % 3]):
+			if not g.solid and g.beat >= _fruit_until:
+				continue  # 到了圆台就换回缩圈的辅助线
+			var z := -clampf(g.a, -0.1, 1.0) * fruit_lead_beats * units_per_beat
+			_guides.line(Vector3(-half, FLOOR_Y + 0.06, z), Vector3(half, FLOOR_Y + 0.06, z), BeatGuides.look(g), 0.35)
+	_guides.finish()
 
 
 func _update_fruits(beat: float, notes: Array[NoteData]) -> void:
