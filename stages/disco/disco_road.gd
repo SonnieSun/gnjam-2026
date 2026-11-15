@@ -38,13 +38,26 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 ## 水果离地多高
 @export var fruit_height := 2.0
 ## 水果自己发多亮（暗场景里看得清）
-@export var fruit_glow := 0.55
+@export var fruit_glow := 1.3
 ## 水果表面多光滑（越小越反光）、边缘光多强
 @export_range(0.0, 1.0) var fruit_roughness := 0.12
 @export_range(0.0, 1.0) var fruit_rim := 0.3
+## 水果每拍再亮多少（加在 fruit_glow 上，材质自己发光，和彩色舞池地板区分开）
+@export var fruit_glow_pulse := 0.9
+## 水果跟着拍子：每拍胀大多少、跳多高、左右歪多少度
+@export var fruit_beat_pulse := 0.4
+@export var fruit_beat_hop := 0.5
+@export var fruit_beat_sway_degrees := 14.0
+## 玩家按键时所有水果胀一下：胀多少（每个水果再随机一点）、多久缩回去（秒）
+@export var fruit_press_pop := 0.8
+@export var fruit_press_seconds := 0.3
 ## 照水果的那盏灯（挂在猫前上方，给水果打出高光）：亮度、颜色
 @export var fruit_light_energy := 0.9
 @export var fruit_light_color := Color(1.0, 0.95, 0.9)
+
+@export_group("路上的背景")
+## 撞水果那一段的背景（彩虹 + 描边几何体），东西摆在这个场景里；留空 = 不要
+@export var backdrop: PackedScene = preload("res://stages/disco/road_backdrop.tscn")
 
 @export_group("镜头（透视）")
 ## 路上：镜头在猫背后多远、俯视角（度）、视野（度）、看向猫前面多远和多高
@@ -82,21 +95,31 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 @export var saucer_tilt_degrees := Vector3(16.0, 0.0, -8.0)
 @export var saucer_beam_color := Color(0.45, 1.0, 0.45)
 @export var saucer_scale := 1.0
+## 飞碟出现时迪斯科灯球淡没用几秒
+@export var ball_fade_seconds := 1.6
 
-@export_group("圆台上的猫 meme")
-## MemeLib 里的名字，按出现的先后
-@export var plaza_memes := PackedStringArray(["banana", "apple", "oiia", "nyan", "flower", "popcat", "nyanrun"])
-## 每只出现在屏幕上哪里（相对屏幕中心，像素）和多高（像素），和 plaza_memes 一一对应
-@export var plaza_meme_positions := PackedVector2Array([
-	Vector2(-431, -74), Vector2(396, -4), Vector2(-167, -191), Vector2(113, -138),
-	Vector2(-243, 213), Vector2(194, 238), Vector2(6, 256),
-])
-@export var plaza_meme_heights := PackedFloat32Array([160, 235, 130, 125, 170, 150, 130])
-## 在圆台上打出第几个 Perfect 时出现第一只；之后每个 Perfect 再出一只
+@export_group("圆台上的猫 meme（2.5D 观众）")
+## MemeLib 里的名字，按顺序轮流用
+@export var plaza_memes := PackedStringArray(["banana", "apple", "oiia", "nyan", "flower", "popcat", "nyanrun", "catjam"])
+## 在圆台上打出第几个 Perfect（Great 也算）时开始出现；之后每打中一个再出 plaza_crowd_per_hit 只
 @export var plaza_meme_first_perfect := 2
-## 每拍跳起来多高（像素）、动图放一遍用几拍
-@export var plaza_meme_hop := 18.0
+@export var plaza_crowd_per_hit := 4
+## 最多几只
+@export var plaza_crowd_max := 56
+## 站在离主角猫多远的一圈里（3D 单位）：最近、最远
+@export var plaza_crowd_near := 6.0
+@export var plaza_crowd_far := 21.0
+## 镜头和主角猫之间留出多宽的空（3D 单位），观众不站进去挡猫
+@export var plaza_crowd_clear := 6.0
+## 每只多高（3D 单位），随机上下浮动 plaza_crowd_height_random 倍
+@export var plaza_crowd_height := 3.2
+@export_range(0.0, 0.8) var plaza_crowd_height_random := 0.3
+## 每拍跳起来多高（3D 单位）、落地压扁多少、动图放一遍用几拍
+@export var plaza_meme_hop := 0.9
+@export_range(0.0, 0.5) var plaza_meme_squash := 0.15
 @export var plaza_meme_loop_beats := 2.0
+## 玩家按键时大家一起多蹦多高（3D 单位）
+@export var plaza_press_hop := 0.6
 
 const FRUITS: Array[PackedScene] = [
 	preload("res://stages/disco/model/fruit_apple.glb"),
@@ -138,9 +161,15 @@ var _fallers: Array = []  # [节点, 原来的全局变换, 铰链点, 轴]
 var _fall := 0.0       # 后墙倒了多少（0~1）
 var _fall_left := 0.0  # 左墙倒了多少
 var _saucer_node: Node3D
+var _backdrop: RoadBackdrop
+var _press := 0.0  # 玩家刚按键：1 然后很快掉回 0
+var _finale_beam: MeshInstance3D
+var _finale_beam_mat: ShaderMaterial
+var _finale_glow: OmniLight3D
 var _plaza_perfects := 0
 var _fruit_light: OmniLight3D
-var _plaza_cats: Array[MemeSprite] = []
+var _plaza_cats: Array[Dictionary] = []  # {holder: Node3D, sprite: Sprite3D, h: 高度, phase: 错开的拍数, frames: 帧数}
+var _plaza_slots := PackedVector3Array()  # 观众站位（按出现的先后），第一次用到时排好
 var _ball_scale := 1.0
 
 
@@ -272,6 +301,8 @@ func finale(seconds: float = 8.0) -> void:
 	if phase == Phase.FINALE or phase == Phase.ROOM:
 		return
 	phase = Phase.FINALE
+	if _backdrop:
+		_backdrop.hide_away()
 	for fruit: Node3D in _fruits.values():
 		fruit.queue_free()
 	_fruits.clear()
@@ -294,6 +325,10 @@ func finale(seconds: float = 8.0) -> void:
 	_saucer_node.transform = Transform3D(Basis.from_euler(tilt).scaled(Vector3.ONE * saucer_scale),
 			saucer_position + Vector3.UP * 60.0)
 	_cat.world.add_child(_saucer_node)
+	# 飞碟一出现，迪斯科灯球（连同光束、射灯）就慢慢淡没，给飞碟让位
+	var tball := create_tween()
+	tball.tween_interval(seconds * 0.08)
+	tball.tween_property(_stage, "ball_fade", 0.0, ball_fade_seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	var ts := create_tween()
 	ts.tween_interval(seconds * 0.08)
 	ts.tween_property(_saucer_node, "position", saucer_position, seconds * 0.35) \
@@ -322,6 +357,9 @@ func finale(seconds: float = 8.0) -> void:
 	# 光柱从飞碟肚子斜着罩到猫脚下
 	beam.transform = Transform3D(Basis(Quaternion(Vector3.UP, saucer_position.normalized())), saucer_position * 0.5)
 	_cat.world.add_child(beam)
+	_finale_beam = beam
+	_finale_beam_mat = beam_mat
+	_finale_glow = glow
 	var tb := create_tween().set_parallel()
 	tb.tween_interval(seconds * 0.4)
 	tb.chain().tween_method(func(v: float): beam_mat.set_shader_parameter("strength", v), 0.0, 0.5, 1.0)
@@ -402,10 +440,10 @@ func update(beat: float, notes: Array[NoteData]) -> void:
 		ball_home = Vector3(-6.0, 16.0, -6.0)
 	ball.position = ball.position.lerp(ball_home, 1.0 - exp(-2.0 * delta))
 	ball.scale *= _ball_scale  # 舞台每帧把灯球缩放设回 1 左右（跟拍一胀一缩），这里补上房间原来的放大倍数
-	ball.visible = ball.position.y < 45.0
-	if phase == Phase.FINALE:
-		ball.position.y += 20.0 * delta  # 给飞碟让位
+	ball.visible = ball.position.y < 45.0 and _stage.ball_fade > 0.01
 
+	if _backdrop:
+		_backdrop.update(beat)
 	_floor_mat.set_shader_parameter("half_width", _half_width)
 	_floor_mat.set_shader_parameter("reveal", _reveal)
 	_floor_mat.set_shader_parameter("travel", _travel)
@@ -436,6 +474,10 @@ func _begin_run(beat: float) -> void:
 	_fruit_light.omni_attenuation = 0.6
 	_fruit_light.position = Vector3(0.0, 12.0, -22.0)
 	_cat.world.add_child(_fruit_light)
+	if backdrop:
+		_backdrop = backdrop.instantiate() as RoadBackdrop
+		_cat.world.add_child(_backdrop)
+		_backdrop.show_up()
 	for i in 6:
 		var b := BALL.instantiate() as Node3D
 		b.scale = Vector3.ONE * 0.5
@@ -461,7 +503,13 @@ func _arrive_plaza() -> void:
 
 
 ## 按音符生成 / 移动水果：水果在 note.beat 那一拍正好到猫身上
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(Judge.HIT_ACTION):
+		_press = 1.0
+
+
 func _update_fruits(beat: float, notes: Array[NoteData]) -> void:
+	_press = maxf(_press - get_process_delta_time() / maxf(fruit_press_seconds, 0.01), 0.0)
 	for n in notes:
 		var ahead := n.beat - beat
 		if ahead > fruit_lead_beats:
@@ -474,8 +522,9 @@ func _update_fruits(beat: float, notes: Array[NoteData]) -> void:
 		if fruit == null:
 			fruit = _make_fruit(n)
 			_fruits[n] = fruit
-		fruit.position = Vector3(_lane_of(n), fruit_height + sin(beat * PI + n.beat) * 0.3, -ahead * units_per_beat)
-		fruit.rotation.y = beat * 1.5 + n.beat
+		# 跟着拍子动：每拍落地一次（整拍在最低点），左右两拍歪一个来回。发光和胀缩由水果身上的 BeatGlow 管
+		fruit.position = Vector3(_lane_of(n), fruit_height + absf(sin(beat * PI)) * fruit_beat_hop, -ahead * units_per_beat)
+		fruit.rotation = Vector3(0.0, beat * 1.5 + n.beat, sin(beat * PI) * deg_to_rad(fruit_beat_sway_degrees))
 	# 没打中、已经飞到身后的收掉
 	for n: NoteData in _fruits.keys():
 		if n.beat - beat < -1.5:
@@ -486,31 +535,19 @@ func _update_fruits(beat: float, notes: Array[NoteData]) -> void:
 func _make_fruit(n: NoteData) -> Node3D:
 	var kind := (n.sound + (3 if roundi(n.beat) % 5 == 0 else 0)) % FRUITS.size()
 	var fruit := FRUITS[kind].instantiate() as Node3D
-	fruit.scale = Vector3.ONE * 1.3
+	fruit.scale = Vector3.ONE * FRUIT_SCALE
 	_cat.world.add_child(fruit)
-	# 水果换成亮面反光的材质：很光滑 + 清漆高光 + 边缘光，再用自己的贴图微微发光（暗场景里颜色才鲜）
-	for mi in fruit.find_children("*", "MeshInstance3D", true, false):
-		var m := mi as MeshInstance3D
-		for s in m.mesh.get_surface_count():
-			var src := m.mesh.surface_get_material(s) as StandardMaterial3D
-			if src == null:
-				continue
-			var mat := src.duplicate() as StandardMaterial3D
-			mat.emission_enabled = true
-			mat.emission = Color.WHITE if src.albedo_texture else src.albedo_color
-			mat.emission_texture = src.albedo_texture
-			mat.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY  # 默认是相加，会把颜色冲白
-			mat.emission_energy_multiplier = fruit_glow
-			mat.roughness = fruit_roughness
-			mat.metallic_specular = 0.9
-			mat.clearcoat_enabled = true
-			mat.clearcoat = 1.0
-			mat.clearcoat_roughness = 0.08
-			mat.rim_enabled = true
-			mat.rim = fruit_rim
-			mat.rim_tint = 1.0
-			m.set_surface_override_material(s, mat)
+	# 亮面反光、用自己的贴图发光、每拍亮一下胀一下、按键时胀一下：通用效果 BeatGlow（scripts/fx/beat_glow.gd）
+	BeatGlow.attach(fruit, {
+		"glow": fruit_glow, "glow_pulse": fruit_glow_pulse,
+		"roughness": fruit_roughness, "rim": fruit_rim,
+		"scale_pulse": fruit_beat_pulse, "press_seconds": fruit_press_seconds,
+		"press_pop": fruit_press_pop * (0.6 + 0.8 * fposmod(n.beat * 0.618, 1.0)),  # 每个水果胀的多少不一样
+	})
 	return fruit
+
+
+const FRUIT_SCALE := 1.3
 
 
 ## 这个音符的水果在哪条道上（每 lane_change_beats 拍换一次，同一段里的水果排成一串）
@@ -601,6 +638,23 @@ func _apply_camera(pulse: float) -> void:
 	cam.look_at(look)
 
 
+## 结尾镜头放完，接着在这里玩吸猫：把停好的飞碟交出去（吸猫舞台接手），自己的光柱和站着的猫收掉
+## （吸猫舞台在同一个位置放它自己的光束和猫）。只在结尾阶段能调，返回飞碟节点。
+func hand_over_saucer() -> Node3D:
+	if phase != Phase.FINALE or _saucer_node == null:
+		return null
+	if _finale_beam_mat:
+		var t := create_tween().set_parallel()
+		t.tween_method(func(v: float): _finale_beam_mat.set_shader_parameter("strength", v), 0.5, 0.0, 0.4)
+		t.tween_property(_finale_glow, "light_energy", 0.0, 0.4)
+		t.chain().tween_callback(_finale_beam.queue_free)
+	_saucer_node.position = saucer_position
+	_cat._pivot.visible = false
+	var out := _saucer_node
+	_saucer_node = null
+	return out
+
+
 ## 把转圈的猫换成站立的猫（吸猫关卡的模型，只读取用）
 func _swap_to_standing_cat() -> void:
 	var pivot := _cat._pivot
@@ -625,41 +679,101 @@ func _swap_to_standing_cat() -> void:
 	_cat.pose_tilt = Vector2.ZERO
 
 
-## 在圆台上打出一个 Perfect：攒够了就多出来一只猫 meme，站在周围跟着一起跳
+## 在圆台上打中一个 Perfect（或 Great）：攒够了就多出来几只猫 meme，站在圆台上围着主角猫一起跳。
+## 它们是立在 3D 世界里的纸片（永远正对镜头），远的小、近的大，像一群观众。
 func plaza_perfect() -> void:
 	if phase != Phase.PLAZA:
 		return
 	_plaza_perfects += 1
-	var i := _plaza_cats.size()
-	if _plaza_perfects < plaza_meme_first_perfect + i or i >= plaza_memes.size():
+	if _plaza_perfects < plaza_meme_first_perfect or plaza_memes.is_empty():
 		return
-	if not MemeLib.has(plaza_memes[i]):
-		return
-	var h := plaza_meme_heights[i] if i < plaza_meme_heights.size() else 150.0
-	var cat := MemeSprite.create(plaza_memes[i], h)
-	cat.position = plaza_meme_positions[i] if i < plaza_meme_positions.size() else Vector2.ZERO
-	cat.flip_h = cat.position.x > 0.0
-	var full := cat.scale
-	cat.scale = Vector2.ZERO
-	_stage.add_child(cat)  # 舞台节点是 2D 的，原点在屏幕中心
-	_plaza_cats.append(cat)
-	cat.create_tween().tween_property(cat, "scale", full, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if _plaza_slots.is_empty():
+		_plaza_slots = _make_plaza_slots()
+	for k in plaza_crowd_per_hit:
+		var i := _plaza_cats.size()
+		if i >= mini(plaza_crowd_max, _plaza_slots.size()):
+			return
+		_spawn_plaza_cat(i)
 
 
-## 圆台上的猫 meme 跟拍跳（每帧调）
+func _spawn_plaza_cat(i: int) -> void:
+	var info := MemeLib.find(plaza_memes[i % plaza_memes.size()])
+	if info.is_empty():
+		return
+	var tex: Texture2D = load(info.path)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1000 + i
+	var h := plaza_crowd_height * (1.0 + rng.randf_range(-plaza_crowd_height_random, plaza_crowd_height_random))
+	var sprite := Sprite3D.new()
+	sprite.texture = tex
+	sprite.hframes = info.cols
+	sprite.vframes = info.rows
+	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y  # 正对镜头但不往后仰，像立着的纸片
+	sprite.shaded = false
+	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_OPAQUE_PREPASS  # 一大群叠在一起时前后遮挡不会乱
+	sprite.pixel_size = h / (tex.get_height() / float(info.rows))
+	sprite.offset.y = tex.get_height() / float(info.rows) / 2.0  # 原点在脚底
+	var pos := _plaza_slots[i]
+	# 素材默认朝右；站在画面右边的翻过来，都朝着中间的主角猫
+	var right := Vector3(cos(deg_to_rad(plaza_yaw)), 0.0, -sin(deg_to_rad(plaza_yaw)))
+	sprite.flip_h = pos.dot(right) > 0.0
+	var holder := Node3D.new()
+	holder.position = pos
+	holder.scale = Vector3.ZERO
+	holder.add_child(sprite)
+	_cat.world.add_child(holder)
+	holder.create_tween().tween_property(holder, "scale", Vector3.ONE, 0.35) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_plaza_cats.append({"holder": holder, "sprite": sprite, "h": h,
+			"phase": rng.randf_range(0.0, 0.25), "frames": int(info.frames)})
+
+
+## 观众站位：主角猫周围一圈圈散开，近的先来；镜头和猫之间那条“视线”上不站人
+func _make_plaza_slots() -> PackedVector3Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var yaw := deg_to_rad(plaza_yaw)  # 镜头在猫的这个方向上（见 _apply_camera）
+	var slots: Array[Vector3] = []
+	var tries := 0
+	while slots.size() < plaza_crowd_max and tries < 4000:
+		tries += 1
+		# 半径按面积均匀撒，近处不会挤成一团
+		var r := sqrt(rng.randf_range(plaza_crowd_near * plaza_crowd_near, plaza_crowd_far * plaza_crowd_far))
+		var a := rng.randf() * TAU
+		var rel := wrapf(a - yaw, -PI, PI)
+		if cos(rel) > 0.0 and absf(sin(rel)) * r < plaza_crowd_clear:
+			continue  # 挡在镜头和猫中间
+		var p := Vector3(sin(a) * r, FLOOR_Y, cos(a) * r)
+		var crowded := false
+		for q in slots:
+			if q.distance_to(p) < plaza_crowd_height * 0.65:
+				crowded = true
+				break
+		if not crowded:
+			slots.append(p)
+	slots.sort_custom(func(x: Vector3, y: Vector3) -> bool: return x.length() < y.length())
+	return PackedVector3Array(slots)
+
+
+## 圆台上的猫 meme 跟拍跳（每帧调）：每拍蹦一下、落地压扁、动图跟着拍子放；玩家按键时一起多蹦一下
 func _update_plaza_cats(beat: float) -> void:
-	for i in _plaza_cats.size():
-		var cat := _plaza_cats[i]
-		cat.set_progress(beat / plaza_meme_loop_beats + i * 0.3)
-		cat.offset.y = -absf(sin((beat + i * 0.5) * PI)) * plaza_meme_hop / maxf(cat.scale.y, 0.01)
+	for c in _plaza_cats:
+		var b: float = beat + c.phase
+		var hop := absf(sin(b * PI))  # 每拍落地一次
+		var land := pow(1.0 - hop, 4.0)  # 刚落地那一下
+		var sprite: Sprite3D = c.sprite
+		sprite.frame = mini(int(fposmod(b / plaza_meme_loop_beats, 1.0) * c.frames), c.frames - 1)
+		sprite.position.y = hop * plaza_meme_hop + _press * plaza_press_hop
+		var sq := plaza_meme_squash * land
+		sprite.scale = Vector3(1.0 + sq, 1.0 - sq, 1.0)
 
 
-## 结尾镜头开始时，猫 meme 缩小淡出
+## 结尾镜头开始时，猫 meme 一只只缩没
 func _dismiss_plaza_cats() -> void:
 	for i in _plaza_cats.size():
-		var cat := _plaza_cats[i]
-		var t := cat.create_tween().set_parallel()
-		t.tween_property(cat, "scale", Vector2.ZERO, 0.6).set_delay(i * 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-		t.tween_property(cat, "modulate:a", 0.0, 0.6).set_delay(i * 0.08)
-		t.chain().tween_callback(cat.queue_free)
+		var holder: Node3D = _plaza_cats[i].holder
+		var t := holder.create_tween()
+		t.tween_property(holder, "scale", Vector3.ZERO, 0.5).set_delay(i * 0.03) \
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		t.tween_callback(holder.queue_free)
 	_plaza_cats.clear()

@@ -1,0 +1,287 @@
+{
+ "title": "DISCO",
+ "bpm": 120,
+ "use_in_game": true,
+ "quantize_beats": 4,
+ "lanes": [
+  {
+   "id": "beat",
+   "name": "节奏",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "jazz_groove",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L1_groove_4b.wav"
+    },
+    {
+     "id": "groove",
+     "file": "res://assets/audio/music/scene1_120/s120_L1_groove_4b.wav"
+    },
+    {
+     "id": "club",
+     "file": "res://assets/audio/music/scene1_120/s120_Rclub_L1_groove_4b.wav"
+    },
+    {
+     "id": "half",
+     "file": "res://assets/audio/music/scene1_120/s120_Rhalf_L1_groove_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "bass",
+   "name": "低音",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "jazz_bass",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L2_bass_4b.wav"
+    },
+    {
+     "id": "bass",
+     "file": "res://assets/audio/music/scene1_120/s120_L2_bass_4b.wav"
+    },
+    {
+     "id": "club_bass",
+     "file": "res://assets/audio/music/scene1_120/s120_Rclub_L2_bass_4b.wav"
+    },
+    {
+     "id": "cat_bass",
+     "file": "res://assets/audio/music/scene1_120/s120_C_bass_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "bed",
+   "name": "和声",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "jazz_piano",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L0_piano_4b.wav"
+    },
+    {
+     "id": "disco_keys",
+     "file": "res://assets/audio/music/scene1_120/s120_B_L0_keys_4b.wav"
+    },
+    {
+     "id": "fb_keys",
+     "file": "res://assets/audio/music/scene1_120/s120_fb_L0_keys_4b.wav"
+    },
+    {
+     "id": "cat_stabs",
+     "file": "res://assets/audio/music/scene1_120/s120_C_stabs_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "lead",
+   "name": "旋律",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "jazz_sax",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L3_sax_4b.wav"
+    },
+    {
+     "id": "disco_hook",
+     "file": "res://assets/audio/music/scene1_120/s120_B_L3_hook_4b.wav"
+    },
+    {
+     "id": "fb_hook",
+     "file": "res://assets/audio/music/scene1_120/s120_fb_L3_hook_4b.wav"
+    },
+    {
+     "id": "cat_flow",
+     "file": "res://assets/audio/music/scene1_120/s120_C_lead_flow_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "peak",
+   "name": "高潮",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "jazz_shout",
+     "file": "res://assets/audio/music/scene1_120/s120_J_L4_shout_4b.wav"
+    },
+    {
+     "id": "disco_peak",
+     "file": "res://assets/audio/music/scene1_120/s120_B_L4_peak_4b.wav"
+    },
+    {
+     "id": "fb_peak",
+     "file": "res://assets/audio/music/scene1_120/s120_fb_L4_peak_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "meow",
+   "name": "猫鼓",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cat_drums",
+     "file": "res://assets/audio/music/scene1_120/s120_C_drums_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "kiai",
+   "name": "KIAI 鬼畜",
+   "gain_db": -2.0,
+   "clips": [
+    {
+     "id": "cat_kichiku",
+     "file": "res://assets/audio/music/scene1_120/s120_C_lead_kichiku_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "fx",
+   "name": "事件",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "ev_meow",
+     "file": "res://assets/audio/music/scene1_120/s120_X_meow_4b.wav"
+    },
+    {
+     "id": "ev_seal",
+     "file": "res://assets/audio/music/scene1_120/s120_X_seal_4b.wav"
+    }
+   ]
+  }
+ ],
+ "sections": [
+  {
+   "title": "DISCO",
+   "cues": {
+    "beat": [
+     [
+      0.0,
+      "jazz_groove"
+     ],
+     [
+      0.234,
+      "club"
+     ],
+     [
+      0.842,
+      "half"
+     ]
+    ],
+    "bass": [
+     [
+      0.0,
+      "jazz_bass"
+     ],
+     [
+      0.234,
+      "club_bass"
+     ],
+     [
+      0.68,
+      "cat_bass"
+     ],
+     [
+      0.842,
+      "bass"
+     ]
+    ],
+    "bed": [
+     [
+      0.042,
+      "jazz_piano"
+     ],
+     [
+      0.234,
+      "fb_keys"
+     ],
+     [
+      0.68,
+      "cat_stabs"
+     ],
+     [
+      0.842,
+      "fb_keys"
+     ]
+    ],
+    "lead": [
+     [
+      0.17,
+      "cat_flow"
+     ],
+     [
+      0.234,
+      "fb_hook"
+     ],
+     [
+      0.297,
+      "cat_flow"
+     ],
+     [
+      0.842,
+      ""
+     ],
+     [
+      0.893,
+      "cat_flow"
+     ]
+    ],
+    "peak": [
+     [
+      0.085,
+      "jazz_shout"
+     ],
+     [
+      0.234,
+      ""
+     ],
+     [
+      0.468,
+      "fb_peak"
+     ],
+     [
+      0.842,
+      ""
+     ]
+    ],
+    "meow": [
+     [
+      0.127,
+      "cat_drums"
+     ]
+    ],
+    "kiai": [
+     [
+      0.829,
+      "cat_kichiku"
+     ],
+     [
+      0.842,
+      ""
+     ],
+     [
+      0.976,
+      "cat_kichiku"
+     ]
+    ],
+    "fx": [
+     [
+      0.829,
+      "ev_meow"
+     ],
+     [
+      0.842,
+      ""
+     ],
+     [
+      0.948,
+      "ev_seal"
+     ]
+    ]
+   }
+  }
+ ]
+}

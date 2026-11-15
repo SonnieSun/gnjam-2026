@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="SongChart" format=3]
+
+[ext_resource type="AudioStream" path="res://assets/fantasy/hat.wav" id="1_mrbuc"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/kick.wav" id="2_oce7n"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/snare.wav" id="3_4r5xl"]
+[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_q3vbg"]
+[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_35tcx"]
+[ext_resource type="PackedScene" path="res://scenes/sections/cat_earth.tscn" id="6_32tqp"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="14_yiqag"]
+
+[sub_resource type="Resource" id="Resource_flxvl"]
+script = ExtResource("5_35tcx")
+title = "ORBIT / WARM UP"
+scene = ExtResource("6_32tqp")
+beats_per_rev = 8.0
+bars = PackedStringArray("h.h.h.h.s.......", "h.h.h.h.s.......")
+transition = 1
+gauge_max = 20
+use_gauge_events = true
+gauge_events = PackedInt32Array(10)
+fx_cues = []
+meme_cues = []
+
+[sub_resource type="Resource" id="Section_orbit_charge"]
+script = ExtResource("5_35tcx")
+title = "ORBIT / CHARGE UP"
+scene = ExtResource("6_32tqp")
+beats_per_rev = 8.0
+bars = PackedStringArray("h.hhhhh.s.......", "hh.hhhh.s.......")
+transition = 1
+gauge_max = 30
+use_gauge_events = true
+gauge_events = PackedInt32Array(15)
+fx_cues = []
+meme_cues = []
+
+[sub_resource type="Resource" id="Section_orbit_supernova"]
+script = ExtResource("5_35tcx")
+title = "ORBIT / SUPERNOVA"
+scene = ExtResource("6_32tqp")
+beats_per_rev = 8.0
+bars = PackedStringArray("hhhhhhhhs.......", "hhhhhhhhs.......")
+transition = 1
+gauge_max = 40
+use_gauge_events = true
+gauge_events = PackedInt32Array(20)
+fx_cues = []
+meme_cues = []
+
+[resource]
+script = ExtResource("4_q3vbg")
+title = "ORBIT CAT"
+look = "OFF"
+bpm = 120.0
+beats_per_bar = 4
+rest_bars_on_switch = 1
+stream = ExtResource("14_yiqag")
+drum_kick = ExtResource("2_oce7n")
+drum_snare = ExtResource("3_4r5xl")
+drum_hat = ExtResource("1_mrbuc")
+sections = Array[ExtResource("5_35tcx")]([SubResource("Resource_flxvl"), SubResource("Section_orbit_charge"), SubResource("Section_orbit_supernova")])

@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/models/cat_earth_y2k/cat_basecolor_512.png" id="1_vasfj"]
+
+[resource]
+resource_name = "Cat · original texture"
+albedo_texture = ExtResource("1_vasfj")
+metallic_specular = 0.15
+roughness = 0.9

@@ -38,6 +38,20 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 ## 拆完房子上路后，先空滑几拍才来第一个水果
 @export var road_quiet_beats := 8.0
 
+@export_group("结尾接着玩吸猫")
+## 结尾镜头放完后不切小关，直接用降下来的那架飞碟接着玩吸猫（玩法和吸猫小关一样）。关掉 = 结尾放完就过关
+@export var abduction_after_finale := true
+## 吸猫这一段的鼓谱（打中 8 下猫就被吸进去，整关结束；没吸进去之前鼓谱循环）
+@export var abduction_bars := PackedStringArray(["................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................"])
+## 光圈提前几拍从飞碟出发
+@export var abduction_approach_beats := 3.0
+## 飞碟接手后先空几拍再出第一个光圈
+@export var abduction_quiet_beats := 2.0
+## 猫平时慢慢自转（度 / 秒）
+@export var abduction_idle_spin := 30.0
+## 每按一下键猫快速转一整圈，用几秒
+@export var abduction_press_turn_seconds := 0.3
+
 var _spin_cat: KisaSpinCat3D
 var _stage: KisaDiscoStage
 var _hold_ends := {}  # NoteData -> 长按结束的拍数（绝对拍数）
@@ -47,7 +61,9 @@ var _hold_ticks := 0  # 这次长按已经给过几次「按住满 1 拍」的�
 var _circle_pos := Vector2.ZERO
 var _road: DiscoRoad
 var _layer_gain := PackedFloat32Array()  # 每条分轨现在的音量（0~1）
-var _fill_at := INF  # 结尾镜头放到这一拍，就把积累条顶满（下一个小节线切小关）
+var _fill_at := INF  # 结尾镜头放到这一拍：接着玩吸猫（或者把积累条顶满过关）
+var _abduct: AbductionStage  # 结尾之后接着玩的吸猫舞台（嵌在迪斯科的 3D 世界里）
+var _abduct_gauge_from := 0  # 开始吸猫时积累条的值
 
 
 func _ready() -> void:
@@ -96,7 +112,13 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	_road.update(song_beat(), notes)
 	_update_layers()
 	if song_beat() >= _fill_at:
-		_fill_gauge_now()
+		_fill_at = INF
+		if abduction_after_finale:
+			_start_abduction()
+		else:
+			_fill_gauge_now()
+	if _abduct:
+		_abduct.update(song_beat(), notes, abduction_approach_beats)
 	# 判定圈（和缩过来的圈、命中特效）跟着猫走
 	_circle_pos = _stage.ring_screen_offset()
 	if _holding:
@@ -105,7 +127,74 @@ func _update_spin(local_beat: float, angle: float) -> void:
 
 ## 判定圈的位置：跟着 3D 猫在屏幕上的位置（编辑器预览里没有 3D 猫，就用场景里摆的）
 func target_position(i: int) -> Vector2:
+	if _abduct:
+		return _abduct.hit_screen_offset()
 	return _circle_pos if _stage else super(i)
+
+
+func hit_radius() -> float:
+	return _abduct.ring_screen_radius() if _abduct else super()
+
+
+## 结尾镜头放完：飞碟已经停在猫头顶了，直接接着玩吸猫。吸猫舞台嵌进这里的 3D 世界，接手这架飞碟，
+## 鼓谱换成吸猫的；积累条接着涨，涨满就过关。
+func _start_abduction() -> void:
+	var saucer := _road.hand_over_saucer()
+	if saucer == null:
+		_fill_gauge_now()
+		return
+	_abduct = AbductionStage.new()
+	_abduct.embedded = true
+	_abduct.repeat_rounds = false  # 只吸一次：猫被吸进去，整关就结束
+	_abduct.idle_spin_speed = abduction_idle_spin
+	_abduct.press_spin_speed = 0.0
+	_abduct.press_full_turn = true
+	_abduct.hit_spin_time = abduction_press_turn_seconds
+	_abduct.absorb_started.connect(_on_absorb_started)
+	_abduct.absorbed.connect(_on_absorbed)
+	_abduct.progress_changed.connect(_on_abduct_progress)
+	add_child(_abduct)
+	# 两边的飞碟摆在各自坐标里的同一个相对位置：差多少就整体平移多少
+	_abduct.embed(_spin_cat.world, _spin_cat.camera, saucer, _road.saucer_position - _abduct.saucer_position)
+	_rest_until(song_beat() + abduction_quiet_beats, abduction_bars)
+	# 积累条不再按判定加减，改成跟着吸猫的进度走：吸到第几格，就涨到剩下那段的几成，
+	# 吸满那一下正好到顶（full 先保持 true，免得框架提前过关；猫真被吸进去时再正式满条）
+	var g := _main_gauge()
+	if g:
+		g.full = true
+		_abduct_gauge_from = g.value
+
+
+## 吸猫进度变了：积累条从开始吸猫时的值涨到满条，按吸了几格算
+func _on_abduct_progress(value: int, needed: int) -> void:
+	var g := _main_gauge()
+	if g == null:
+		return
+	var p := float(value) / maxi(needed, 1)
+	g.value = _abduct_gauge_from + roundi((g.max_value - _abduct_gauge_from) * p)
+	g.changed.emit(g.value, g.max_value)
+
+
+## 攒满了，猫开始往上吸：不再出音符
+func _on_absorb_started() -> void:
+	var main := get_parent().get_parent()
+	if main and main.get("judge"):
+		main.judge.stop_notes()
+
+
+## 猫被吸进飞碟：顶满积累条，框架在下一个小节线结算过关
+func _on_absorbed() -> void:
+	var g := _main_gauge()
+	if g:
+		g.full = false
+	_fill_gauge_now()
+
+
+func _main_gauge() -> Gauge:
+	var main := get_parent().get_parent()
+	if main == null or not main.get("gauge"):
+		return null
+	return main.gauge
 
 
 ## 积累条触发事件（分数线在 disco.tscn 根节点的 gauge_events 里）：
@@ -158,7 +247,10 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 	super(note, result)
 	if _stage == null:
 		return
-	if _road and result == NoteData.Result.PERFECT:
+	if _abduct:
+		_abduct.judge(note, result)
+		return
+	if _road and (result == NoteData.Result.PERFECT or result == NoteData.Result.GREAT):
 		_road.plaza_perfect()
 	if _road and _road.uses_fruit(note):
 		_road.fruit_judged(note, result)
@@ -249,8 +341,8 @@ func _ring_radius(ahead: float, from_r: float) -> float:
 
 ## 白色判定圈 + 往里收的圈（画法同 ring_section，只是收的圈乘上 ring_alpha）
 func _draw_rings() -> void:
-	if def == null:
-		return
+	if def == null or _abduct:
+		return  # 吸猫那一段的光圈是 3D 的，由吸猫舞台自己画
 	var show_judge := _road == null or _road.rings_visible(song_beat())
 	for k in _cats.size():
 		if show_judge:

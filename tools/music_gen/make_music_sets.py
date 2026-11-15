@@ -146,6 +146,9 @@ def t120(id_, key, group):
     return t(id_, f'{S120}{key}_4b.wav', group)
 
 
+# NOTE: the level has since changed (gauge 470, lines 20 40 60 80 | 110 140 220 320 | 390, and the abduction part
+# now plays inside the DISCO section from 396 to 470), and levels/music/level_1_disco.json was re-aligned by hand.
+# Regenerating from this script would undo that: update E and fold the ABDUCTION rules in first.
 E = [v / 615 for v in (20, 40, 60, 80, 110, 170, 330, 530, 600)]   # disco.tscn: gauge_max_override and gauge_events
 SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
            'tracks': [t120('jazz_groove', 'J_L1_groove', 'groove'), t120('jazz_bass', 'J_L2_bass', 'bass'),
@@ -194,11 +197,10 @@ SETS[9] = {'title': 'TV WALL', 'use': True, 'tracks': SKELETON + style('chip', '
                'chip_hook': [[0.25, 0.5]], 'cat_drums': [[0.25, 1]], 'cat_lead': [[0.5, 1]], 'cat_kichiku': [[0.9, 1]], 'bass': [[0.15, 1]]})}]}
 
 # file = the level file it goes with (levels/<name>.tres)
-# Kisa's levels were level_6..9 at first and were then moved to slots 2, 3 and 4 (replacing the showcase
-# and the two MV levels, whose sets above are no longer written).
-for old in (2, 3, 4):
-    del SETS[old]
-NAMES = {1: 'level_1', 5: 'level_5', 6: 'level_2', 7: 'level_3', 9: 'level_4', 8: 'level_8_abduction'}
+# Sets 1-4 (the old pizza test levels) have no level file any more and are skipped;
+# sets 6, 7, 9 (Kisa's levels) are big levels 1, 2, 4; set 5 is still level 5.
+# Set 8 (ABDUCTION) is skipped: that level moved to levels/alternates/, slot 3 is now ORBIT CAT with its own backing.
+NAMES = {5: 'level_5', 6: 'level_1_disco', 7: 'level_2_spaceship', 9: 'level_4_tv_wall'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('fx', '事件', 'event')]
 LANE_GAIN = {'kiai': -2.0}   # stacked on the cat lead, so a little under it
@@ -230,6 +232,8 @@ def to_lanes(s):
 
 
 for n, s in SETS.items():
+    if n not in NAMES:
+        continue
     path = os.path.join(OUT, NAMES[n] + '.json')
     if os.path.exists(path) and not FORCE:
         print('kept', path)

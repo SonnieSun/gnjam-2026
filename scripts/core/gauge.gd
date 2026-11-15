@@ -23,8 +23,9 @@ signal filled
 @export var default_max := 60
 ## 默认的事件分数线：涨到这些分数时各触发一次事件。可以有任意多条，也可以一条都没有。
 @export var default_events := PackedInt32Array([20, 40])
-## Perfect / Good 各加多少
+## Perfect / Great / Good 各加多少
 @export var perfect_gain := 5
+@export var great_gain := 4
 @export var good_gain := 2
 ## Miss 扣多少（最低扣到 0）
 @export var miss_loss := 3
@@ -60,12 +61,35 @@ func set_value(new_value: int) -> void:
 	changed.emit(value, max_value)
 
 
+## 编辑面板拖进度条往前拖过了分数线：把还没触发过的线按顺序补触发（往回拖不会撤销已经触发的）
+func fire_passed_events() -> void:
+	while events_fired < events.size() and value >= events[events_fired]:
+		events_fired += 1
+		event.emit(events_fired, events[events_fired - 1])
+
+
+## 编辑面板“跳到第 count 个阶段”：积累条拨到第 count 条分数线上（0 = 开头），前面的线按顺序补触发
+func jump_to_event(count: int) -> void:
+	count = clampi(count, 0, events.size())
+	set_value(events[count - 1] if count > 0 else 0)
+	fire_passed_events()
+
+
+## 编辑面板改了分数线：换成新的一组（已经触发过几条不变）
+func set_events(list: PackedInt32Array) -> void:
+	list = list.duplicate()
+	list.sort()
+	events = list
+	events_fired = mini(events_fired, events.size())
+
+
 ## 按判定结果加减分。满条之后不再变化。
 func apply(result: int) -> void:
 	if full:
 		return
 	match result:
 		NoteData.Result.PERFECT: value += perfect_gain
+		NoteData.Result.GREAT: value += great_gain
 		NoteData.Result.GOOD: value += good_gain
 		NoteData.Result.MISS: value -= miss_loss
 		_: return

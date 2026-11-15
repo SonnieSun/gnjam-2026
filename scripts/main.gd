@@ -86,6 +86,13 @@ func start_from(index: int) -> void:
 	_enter(index, 0.0, false)
 
 
+## 编辑面板用：把当前小关从头重开，再把前 phase 条分数线的事件按顺序补触发，停在第 phase 个阶段的起点
+## （0 = 小关开头）。阶段的演出大多不能倒退（比如房子拆了就拆了），所以往回跳只能这样重来。
+func jump_to_phase(phase: int) -> void:
+	start_from(_index)
+	gauge.jump_to_event(phase)
+
+
 func _process(_delta: float) -> void:
 	if not Conductor.playing:
 		return
@@ -195,11 +202,12 @@ func _on_note_judged(note: NoteData, result: int, diff_sec: float) -> void:
 	hud.show_judgement(result, diff_sec)
 	if _current and note.section_index == _index:
 		if not editing:
-			gauge.apply(result)
+			gauge.apply(_current.gauge_result(note, result))
 		_current.notify_judged(note, result)
-		hit_meow.play(result)
-		if result == NoteData.Result.PERFECT or result == NoteData.Result.GOOD:
-			var fx := StarBurst.create(result == NoteData.Result.PERFECT)
+		if _current.wants_hit_effects(note):
+			hit_meow.play(result)
+		if _current.wants_hit_effects(note) and result != NoteData.Result.MISS:
+			var fx := StarBurst.create(result != NoteData.Result.GOOD)
 			fx_layer.add_child(fx)
 			fx.start_radius = _current.hit_radius()
 			fx.global_position = _current.to_global(_current.hit_position(note))

@@ -123,8 +123,22 @@ func notify_judged(note: NoteData, result: int) -> void:
 		hit_age = 0.0
 		tap_age = 0.0
 		step_rot_target += step_angle
-		free_spin_vel += 6.0 if result == NoteData.Result.PERFECT else 3.5
+		match result:
+			NoteData.Result.PERFECT: free_spin_vel += 6.0
+			NoteData.Result.GREAT: free_spin_vel += 5.0
+			_: free_spin_vel += 3.5
 	_on_note_judged(note, result)
+
+
+## 特殊小关可让蓄力音符只积攒力量，到正式击打时才推进过关条。
+## 判定与成绩仍由 Judge 统一处理，其他小关默认沿用原规则。
+func gauge_result(_note: NoteData, result: int) -> int:
+	return result
+
+
+## 蓄力段可以保留鼓声与判定，只在正式击打时播放喵声和大范围命中特效。
+func wants_hit_effects(_note: NoteData) -> bool:
+	return true
 
 
 ## 积累条的数值变了
@@ -181,6 +195,7 @@ func sound_color(note: NoteData) -> Color:
 static func result_color(result: int) -> Color:
 	match result:
 		NoteData.Result.PERFECT: return Color(1.0, 0.9, 0.2)
+		NoteData.Result.GREAT: return Color(0.3, 0.85, 1.0)
 		NoteData.Result.GOOD: return Color(0.4, 1.0, 0.5)
 		NoteData.Result.MISS: return Color(1.0, 0.3, 0.3)
 	return Color(0.6, 0.6, 0.6)

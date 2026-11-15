@@ -1,0 +1,71 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://stages/disco/road_backdrop.gd" id="1_backdrop"]
+[ext_resource type="Shader" path="res://stages/disco/rainbow_band.gdshader" id="2_rainbow"]
+[ext_resource type="Script" path="res://stages/disco/wire_shape.gd" id="3_wire"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_rainbow"]
+size = Vector2(2600, 300)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rainbow"]
+shader = ExtResource("2_rainbow")
+
+[node name="RoadBackdrop" type="Node3D"]
+script = ExtResource("1_backdrop")
+
+[node name="Rainbow" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.8480481, 0.52991927, 0, -0.52991927, 0.8480481, 0, 0, 0, 1, -40, 300, -900)
+cast_shadow = 0
+mesh = SubResource("QuadMesh_rainbow")
+material_override = SubResource("ShaderMaterial_rainbow")
+
+[node name="Shapes" type="Node3D" parent="."]
+
+[node name="Cube" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(0.8660254, -0.25, 0.4330127, 0.5, 0.4330127, -0.75, 0, 0.8660254, 0.5, 48, 11, -70)
+script = ExtResource("3_wire")
+beats_per_rev = 24.0
+size = 13.0
+
+[node name="Pyramid" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(0.9396926, 0.3420201, 0, -0.3420201, 0.9396926, 0, 0, 0, 1, -50, 10, -85)
+script = ExtResource("3_wire")
+beats_per_rev = 32.0
+shape = 1
+size = 15.0
+spin_axis = Vector3(0, 1, 0.3)
+
+[node name="RingBall" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 7, -32)
+script = ExtResource("3_wire")
+beats_per_rev = 12.0
+shape = 3
+size = 8.0
+thickness = 0.14
+spin_axis = Vector3(1, 1, 0)
+
+[node name="Octahedron" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38, 7, -28)
+script = ExtResource("3_wire")
+beats_per_rev = 16.0
+shape = 2
+size = 7.0
+thickness = 0.14
+spin_axis = Vector3(0, 1, 0)
+
+[node name="Prism" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(0.9063078, -0.4226183, 0, 0.4226183, 0.9063078, 0, 0, 0, 1, 95, 30, -200)
+script = ExtResource("3_wire")
+beats_per_rev = 40.0
+shape = 4
+size = 22.0
+thickness = 0.3
+spin_axis = Vector3(0.4, 1, 0)
+
+[node name="CubeFar" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(0.8660254, 0, 0.5, 0.25, 0.8660254, -0.4330127, -0.4330127, 0.5, 0.75, -110, 34, -220)
+script = ExtResource("3_wire")
+beats_per_rev = 48.0
+size = 24.0
+thickness = 0.3
+spin_axis = Vector3(1, 0.6, 0.2)

@@ -2,11 +2,19 @@ class_name AbductionStage
 extends Node2D
 ## 飞碟吸猫关卡的 3D 舞台：夜空、紫色云、飞碟、绿白色光束、站着的猫、仰拍镜头，外面套一层 VHS 效果。
 ## 每个音符是一个光圈，从飞碟顺着光束往下套，套到猫身上的那一拍按键。
-## 打中一下猫往上升一格，没打中掉一格；攒满 hits_needed 下猫被吸进飞碟，飞碟闪一下飞走，过几拍再飞回来重来一轮。
+## 打中一下猫往上升一格，没打中掉一格；攒满 hits_needed 下猫被吸进飞碟，飞碟闪一下飞走，过几拍再飞回来重来一轮
+## （repeat_rounds 关掉就只吸一次）。
 ## 判定不在这里做，关卡脚本（abduction_section.gd）把 Judge 的结果转过来。
 ## 测试用，只在本机 _sandbox 里，不进仓库。
 
 enum Phase { LIFT, ABSORB, AWAY, RETURN }
+
+## 攒满了，猫开始被吸上去
+signal absorb_started
+## 猫被吸进飞碟了（吸上去的动画放完、飞碟闪光那一刻）
+signal absorbed
+## 吸了几格变了（progress / hits_needed）
+signal progress_changed(value: int, needed: int)
 
 @export_group("猫")
 @export var cat_model: PackedScene = preload("res://stages/abduction/model/cat_stand.fbx")
@@ -27,6 +35,14 @@ enum Phase { LIFT, ABSORB, AWAY, RETURN }
 @export var hit_pop := 0.12
 ## 打中被吸一格时猫转一整圈，用几秒（和转圈猫的 spin_time 一样默认 0.225）
 @export_range(0.05, 2.0) var hit_spin_time := 0.225
+## 猫一直慢慢自转（度 / 秒）；0 = 不转
+@export var idle_spin_speed := 0.0
+## 按键时额外加的转速（度 / 秒）：按住一直这么快，松开后按 press_spin_decay 慢下来。
+## 大于 0 时打中不再转一整圈（点一下大约多转 press_spin_speed / press_spin_decay 度）
+@export var press_spin_speed := 0.0
+@export var press_spin_decay := 6.0
+## 打开后：每按一下键猫就快速转一整圈（用 hit_spin_time 秒），不管打没打中；打中时不再另外转
+@export var press_full_turn := false
 ## 猫自己亮多少（贴图自发光），夜里看得清脸
 @export_range(0.0, 2.0) var cat_self_light := 0.6
 
@@ -57,6 +73,8 @@ enum Phase { LIFT, ABSORB, AWAY, RETURN }
 @export var hits_needed := 8
 ## 没打中掉几格
 @export var miss_drop := 1
+## 吸进去以后飞碟飞走再飞回来，重来一轮；关掉 = 吸一次就完（飞碟飞走后不再回来）
+@export var repeat_rounds := true
 ## 攒满之前最高升到光束长度的几成
 @export_range(0.0, 1.0) var max_lift := 0.6
 ## 升降的跟随速度
@@ -119,6 +137,11 @@ enum Phase { LIFT, ABSORB, AWAY, RETURN }
 
 var camera: Camera3D
 var progress := 0
+## 嵌在别的关卡的 3D 世界里用（迪斯科结尾直接接着玩吸猫，见 embed()）。加进场景树之前设成 true，
+## 就不自己开视口、天空和镜头了。
+var embedded := false
+
+var _space: Node  # 3D 的东西都加到这里：自己玩时是自己的视口，嵌入时是别人世界里的一个定位点
 
 var _vp: SubViewport
 var _sprite: Sprite2D
@@ -148,10 +171,14 @@ var _shake := 0.0
 var _flash := 0.0
 var _beam_fade := 1.0
 var _cat_scale := 1.0
+var _press_boost := 0.0  # 0~1，按键加速还剩多少
 
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
+		return
+	Judge.ensure_input()  # 按键加速自转要读 "hit" 这个动作
+	if embedded:
 		return
 	z_index = -1  # 画在关卡脚本自己画的东西（红闪）下面
 	_vp = SubViewport.new()
@@ -163,6 +190,7 @@ func _ready() -> void:
 	_sprite.texture = _vp.get_texture()
 	_sprite.material = screen_material
 	add_child(_sprite)
+	_space = _vp
 
 	_make_environment()
 	_make_clouds()
@@ -183,20 +211,52 @@ func _ready() -> void:
 	camera.look_at(camera_target)
 
 
+## 嵌进别的 3D 世界接着玩：3D 的东西加到 host 里，整套坐标平移 origin（让这里的猫脚下对上那边的猫脚下）。
+## 飞碟用那边已经停好的 saucer_node（位置不变，只是接过来管），镜头用那边的 cam，这里不动它。
+## 天空不换，只补上云；光束从 0 淡入，猫和光圈照常。
+func embed(host: Node, cam: Camera3D, saucer_node: Node3D, origin: Vector3) -> void:
+	var space := Node3D.new()
+	space.position = origin
+	host.add_child(space)
+	_space = space
+	camera = cam
+	_make_clouds()
+	_rig = Node3D.new()
+	_space.add_child(_rig)
+	_saucer = saucer_node
+	_saucer.reparent(_rig, true)
+	_beam_top = _saucer.transform * beam_top_local
+	_saucer_light = OmniLight3D.new()
+	_saucer_light.light_color = beam_core_color
+	_saucer_light.light_energy = 0.0
+	_saucer_light.omni_range = 30.0
+	_saucer_light.position = _beam_top
+	_rig.add_child(_saucer_light)
+	_make_cat()
+	_make_beam()
+	_beam_fade = 0.0
+	_ring_mesh = TorusMesh.new()
+	_ring_mesh.inner_radius = 1.0 - ring_thickness
+	_ring_mesh.outer_radius = 1.0
+	_ring_mesh.rings = 48
+	_ring_mesh.ring_segments = 8
+
+
 ## 每帧由关卡脚本调用
 func update(beat: float, notes: Array[NoteData], approach_beats: float) -> void:
-	if _vp == null:
+	if _space == null:
 		return
 	var dt := get_process_delta_time()
 	var size := Vector2i(get_viewport_rect().size)
-	if _vp.size != size:
+	if _vp and _vp.size != size:
 		_vp.size = size
 	var pulse := pow(1.0 - fposmod(beat, 1.0), 3.0)
 	_update_phase(beat)
 	_update_rings(beat, notes, approach_beats, dt)
 	_update_cat(beat, dt)
 	_update_rig(beat, pulse, dt)
-	_apply_camera(beat, dt)
+	if not embedded:
+		_apply_camera(beat, dt)
 
 
 ## 音符判定结果（只在猫还在地上 / 光束里的时候算）
@@ -212,23 +272,37 @@ func judge(note: NoteData, result: int) -> void:
 		_fading.append(r)
 	if _phase != Phase.LIFT:
 		return
+	var before := progress
 	if hit:
 		progress = mini(progress + 1, hits_needed)
 		_pop = 1.0
-		_hit_start = wrapf(_hit_angle, -PI, PI)  # 正在转时再打中，从当前角度重新转一整圈
-		_hit_t = 0.0
+		if press_spin_speed <= 0.0 and not press_full_turn:
+			_hit_start = wrapf(_hit_angle, -PI, PI)  # 正在转时再打中，从当前角度重新转一整圈
+			_hit_t = 0.0
 		if progress >= hits_needed:
 			_start_phase(Phase.ABSORB)
+			absorb_started.emit()
 	else:
 		progress = maxi(progress - miss_drop, 0)
 		_shake = miss_shake
+	if progress != before:
+		progress_changed.emit(progress, hits_needed)
+
+
+func _input(event: InputEvent) -> void:
+	if not press_full_turn or _cat == null or Engine.is_editor_hint():
+		return
+	if event.is_action_pressed(Judge.HIT_ACTION) and not event.is_echo():
+		# 正在转时再按：从当前角度接着多转一整圈，不跳
+		_hit_start = _hit_angle - TAU if _hit_t >= 0.0 else 0.0
+		_hit_t = 0.0
 
 
 ## 猫中心在屏幕上的位置（相对屏幕中心），命中星星从这里飞出来
 func hit_screen_offset() -> Vector2:
 	if camera == null:
 		return Vector2.ZERO
-	return camera.unproject_position(_cat.global_position) - Vector2(_vp.size) / 2.0
+	return camera.unproject_position(_cat.global_position) - Vector2(camera.get_viewport().get_visible_rect().size) / 2.0
 
 
 func ring_screen_radius() -> float:
@@ -288,14 +362,15 @@ func _make_clouds() -> void:
 		mi.mesh = q
 		mi.material_override = m
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_vp.add_child(mi)
-		mi.look_at_from_position(Vector3(c.x, c.y, c.z), camera_position)
+		_space.add_child(mi)
+		mi.position = Vector3(c.x, c.y, c.z)
+		mi.basis = Basis.looking_at(camera_position - mi.position)
 		i += 1
 
 
 func _make_saucer() -> void:
 	_rig = Node3D.new()
-	_vp.add_child(_rig)
+	_space.add_child(_rig)
 	_saucer = saucer.instantiate() as Node3D
 	var tilt := saucer_tilt_degrees * (PI / 180.0)
 	_saucer.transform = Transform3D(Basis.from_euler(tilt).scaled(Vector3.ONE * saucer_scale), saucer_position)
@@ -311,7 +386,7 @@ func _make_saucer() -> void:
 
 func _make_cat() -> void:
 	_cat = Node3D.new()
-	_vp.add_child(_cat)
+	_space.add_child(_cat)
 	_cat_body = Node3D.new()
 	_cat.add_child(_cat_body)
 	var inst := cat_model.instantiate() as Node3D
@@ -383,7 +458,8 @@ func _make_beam() -> void:
 	_spot.spot_range = _beam_len * 1.5
 	_spot.spot_angle = rad_to_deg(atan(beam_bottom_radius / _beam_len)) * 1.3
 	_rig.add_child(_spot)
-	_spot.look_at_from_position(_beam_top, bottom)  # 聚光灯朝 -Z，对准地面上的光圈中心
+	_spot.position = _beam_top  # 聚光灯朝 -Z，对准地面上的光圈中心
+	_spot.basis = Basis.looking_at(bottom - _beam_top)
 
 
 # ---- 每帧 ----
@@ -404,8 +480,9 @@ func _update_phase(beat: float) -> void:
 				_flash = 1.0
 				_cat.visible = false
 				_start_phase(Phase.AWAY)
+				absorbed.emit()
 		Phase.AWAY:
-			if t >= away_beats + gone_beats:
+			if repeat_rounds and t >= away_beats + gone_beats:
 				progress = 0
 				_lift = 0.0
 				_cat.visible = true
@@ -504,7 +581,14 @@ func _update_cat(beat: float, dt: float) -> void:
 	var top := _beam_top + _rig.position - _axis * cat_height * 0.6
 	var pos := rest.lerp(top, _lift * max_lift)
 	pos += Vector3.UP * sin(beat * PI * 0.5) * cat_bob * minf(_lift * 4.0, 1.0)
-	var spin_speed := lift_spin_speed * _lift
+	var spin_speed := lift_spin_speed * _lift + idle_spin_speed
+	if press_spin_speed > 0.0:
+		# 按着就是最快，松开以后慢慢回到平时的慢转
+		if Input.is_action_pressed(Judge.HIT_ACTION):
+			_press_boost = 1.0
+		else:
+			_press_boost *= exp(-press_spin_decay * dt)
+		spin_speed += press_spin_speed * _press_boost
 	var tilt := sin(beat * PI * 0.5) * deg_to_rad(lift_wobble_degrees) * minf(_lift * 4.0, 1.0)
 	var size := 1.0 + hit_pop * _pop
 	match _phase:
@@ -513,7 +597,7 @@ func _update_cat(beat: float, dt: float) -> void:
 			var e := t * t
 			pos = pos.lerp(_beam_top + _rig.position, e)
 			size *= lerpf(1.0, 0.05, e)
-			spin_speed = lift_spin_speed + 720.0 * t
+			spin_speed += 720.0 * t
 		Phase.RETURN:
 			_cat_scale = minf(_cat_scale + dt * 4.0, 1.0)
 			size *= ease(_cat_scale, -2.0) if _cat_scale < 1.0 else 1.0
@@ -576,12 +660,15 @@ func _cat_rest() -> Vector3:
 	return cat_ground + Vector3.UP * cat_height * 0.5
 
 
+## 量 root 下所有网格的包围盒，用 root 自己的坐标（嵌进别的世界时整套坐标平移过，用世界坐标会把猫的中心算偏，
+## 猫就绕着一个圈转而不是原地自转）
 func _measure(root: Node3D) -> AABB:
 	var box := AABB()
 	var first := true
+	var to_root := root.global_transform.affine_inverse()
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
-		var b := m.global_transform * m.mesh.get_aabb()
+		var b := to_root * m.global_transform * m.mesh.get_aabb()
 		if first:
 			box = b
 			first = false

@@ -21,6 +21,13 @@ uniform vec3 tile_a : source_color = vec3(0.96, 0.62, 0.72);
 uniform vec3 tile_b : source_color = vec3(0.99, 0.90, 0.86);
 uniform vec3 grid_color : source_color = vec3(0.35, 0.75, 1.0);
 uniform vec3 grid_color2 : source_color = vec3(1.0, 0.35, 0.85);
+// 远处的格子挤成一片会闪（晃眼）：格子在屏幕上小到这个程度就开始化成一片均匀的暗光（数越小化得越早）
+uniform float far_soften = 0.1;
+// 化开以后远处还剩多亮（相对近处格线的亮度）
+uniform float far_glow = 0.1;
+// 从多远开始暗下去、到多远全黑
+uniform float fade_start = 60.0;
+uniform float fade_end = 260.0;
 
 varying vec3 world_pos;
 
@@ -42,12 +49,17 @@ void fragment() {
 	vec2 p = vec2(world_pos.x, world_pos.z - travel);  // 跟着滑行往后流的坐标
 	vec2 cell = floor(p / tile);
 	vec2 f = fract(p / tile);
+	// 一个像素跨了多少格：近处很小，越远越大。大到一定程度格子就画不清了，只会闪，这时把细节化掉
+	vec2 px = fwidth(p / tile);
+	float blur = max(px.x, px.y);
+	float detail = 1.0 - smoothstep(far_soften, far_soften * 4.0, blur);
 
 	// 方格
 	float checker = mod(cell.x + cell.y, 2.0);
 	vec3 base = mix(tile_a, tile_b, checker);
 	float seam = step(f.x, 0.04) + step(f.y, 0.04);
 	base *= 1.0 - clamp(seam, 0.0, 1.0) * 0.12;
+	base = mix((tile_a + tile_b) * 0.5, base, detail);
 
 	// 舞池：每格一个颜色，每拍换一批，格子中间亮、边上暗
 	float step_beat = floor(beat);
@@ -59,11 +71,18 @@ void fragment() {
 	float pad = 1.0 - smoothstep(0.75, 0.98, max(d.x, d.y));
 	float pulse = exp(-fract(beat) * 3.0);
 	vec3 dance_emit = dance_col * pad * (0.25 + lit * (0.55 + pulse * 0.6));
+	// 远处的舞池格子不再一格一格地闪，化成一片跟拍微微起伏的暗色
+	vec3 dance_far = hue(beat * 0.03) * dance_brightness * mix(1.0, dance_saturation, 0.5) * (0.22 + pulse * 0.08);
+	dance_emit = mix(dance_far, dance_emit, detail);
 
 	// 霓虹网格：只留格线发光
-	float line = 1.0 - smoothstep(0.0, 0.06, min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)));
+	// 两个方向的线分开算，各自按屏幕上的粗细抗锯齿；细到不到一个像素的线不再硬画（那样会一闪一闪）
+	vec2 edge = min(f, 1.0 - f);
+	vec2 lines = 1.0 - smoothstep(vec2(0.0), vec2(0.06) + px, edge);
+	lines *= clamp(0.06 / max(px, vec2(0.0001)), 0.0, 1.0);
+	float line = max(lines.x, lines.y);
 	vec3 line_col = mix(grid_color, grid_color2, 0.5 + 0.5 * sin(ahead * 0.02 + beat * 0.5));
-	vec3 grid_emit = line_col * line * (1.2 + pulse * 0.8);
+	vec3 grid_emit = line_col * mix(far_glow, line, detail) * (1.2 + pulse * 0.8);
 
 	// 哪些地方有地板：路 + 圆台
 	float side = 1.0 - smoothstep(half_width - 0.3, half_width, abs(world_pos.x));
@@ -84,7 +103,7 @@ void fragment() {
 	emit += grid_emit * grid;
 	emit += line_col * rim * 2.0;
 	// 远处渐渐暗下去，地平线不刺眼
-	float fog = 1.0 - smoothstep(180.0, 420.0, ahead);
+	float fog = 1.0 - smoothstep(fade_start, fade_end, ahead);
 	ALBEDO = albedo;
 	EMISSION = emit * fog;
 	ROUGHNESS = mix(0.6, 0.25, dance);

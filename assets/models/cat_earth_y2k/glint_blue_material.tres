@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "Glint · blue"
+albedo_color = Color(0.3811, 0.65, 0.8808, 1)
+metallic = 0.35
+roughness = 0.32
+emission_enabled = true
+emission = Color(0.3811, 0.65, 0.8808, 1)
+emission_energy_multiplier = 0.4

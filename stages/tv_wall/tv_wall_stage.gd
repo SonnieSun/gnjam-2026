@@ -218,7 +218,7 @@ func knock(n: NoteData, result: int) -> void:
 	(f.node as Node).queue_free()
 	var tv: int = f.tv
 	_broken[tv] = true
-	_flash[tv] = 1.0 if result == NoteData.Result.PERFECT else 0.7
+	_flash[tv] = 1.0 if result == NoteData.Result.PERFECT else (0.85 if result == NoteData.Result.GREAT else 0.7)
 	_shake = 1.0
 	_cat_spin_t = 0.0
 	_last_tv = tv

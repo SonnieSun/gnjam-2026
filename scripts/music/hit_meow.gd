@@ -51,7 +51,7 @@ func play(result: int) -> void:
 	if not enabled:
 		return
 	match result:
-		NoteData.Result.PERFECT: _play_from(perfect_sounds, "perfect")
+		NoteData.Result.PERFECT, NoteData.Result.GREAT: _play_from(perfect_sounds, "perfect")
 		NoteData.Result.GOOD: _play_from(good_sounds, "good")
 
 

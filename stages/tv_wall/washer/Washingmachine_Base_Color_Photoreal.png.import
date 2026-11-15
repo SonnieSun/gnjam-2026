@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgbeqaerhgjng"
-path="res://.godot/imported/collage1.png-209f6229a8c237cdef5b57b9799ee3e2.ctex"
+uid="uid://c6aq8muctj63y"
+path="res://.godot/imported/Washingmachine_Base_Color_Photoreal.png-34f30a00d135c39feb23951f725a7990.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/art/collage1.png"
-dest_files=["res://.godot/imported/collage1.png-209f6229a8c237cdef5b57b9799ee3e2.ctex"]
+source_file="res://stages/tv_wall/washer/Washingmachine_Base_Color_Photoreal.png"
+dest_files=["res://.godot/imported/Washingmachine_Base_Color_Photoreal.png-34f30a00d135c39feb23951f725a7990.ctex"]
 
 [params]
 
