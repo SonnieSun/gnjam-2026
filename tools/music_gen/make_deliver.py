@@ -23,6 +23,7 @@ GROUPS = {
     'style_chip': ['chip_L0_keys', 'chip_L3_hook', 'chip_L4_peak'],
     'style_jazz': ['J_L0_piano', 'J_L1_groove', 'J_L2_bass', 'J_L3_sax', 'J_L4_shout'],
     'cat_band': ['C_drums', 'C_stabs', 'C_lead', 'C_lead_flow', 'C_lead_kichiku', 'C_bass'],
+    'ask_answer': ['QA_B', 'QA_fb', 'QA_A', 'QA_chip'],
     'events': ['X_meow', 'X_seal', 'X_vox', 'X_fill'],
     'rhythm_variants': ['Rhalf_L1_groove', 'Rhalf_L2_bass', 'Rbreak_L1_groove', 'Rbreak_L2_bass', 'Rclub_L1_groove', 'Rclub_L2_bass'],
     'entertainer_leads': ['ent_fb_L3_lead', 'ent_cat_L3_lead', 'ent_A_L3_lead'],

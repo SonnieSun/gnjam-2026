@@ -249,7 +249,9 @@ func tier_lines(section_index: int) -> PackedFloat32Array:
 	var sec: Dictionary = secs[section_index]
 	if sec.has("tiers"):
 		for v in sec.tiers:
-			out.append(float(v))
+			var line := snappedf(float(v), 0.001)      # 和 fever 的两头用同一个精度，不然同一条线会算两次
+			if not out.has(line):
+				out.append(line)
 	else:
 		var seen := {}
 		for lane_cues: Array in sec.get("cues", {}).values():

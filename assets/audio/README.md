@@ -48,6 +48,7 @@
 它还有三个别的段落：`ybf_intro`（前奏 4 小节）、`ybf_b`（B 段 8 小节）、`ybf_end`（结尾 4 小节，放一遍不循环）；B 段和结尾是按它的和声给这个游戏写的。
 `scene1/events/s1_X_fill`（和 `scene1_120` 里的 `s120_X_fill`）是过门：每小节都一样，没有和声，放在配置的 `fill` 轨道里，换小关或升档前响一小节。
 猫旋律在 G5 以上会叠一声鬼畜喵把高音描清楚。
+`scene1/ask_answer/s1_QA_<风格>` 是"一问一答"：4 小节里前 2 小节乐器旋律、后 2 小节猫旋律，从现成音轨剪的（`make_ask_answer.py`）。
 所有曲子现在都是 160 BPM；致爱丽丝更适合 120，以后单独渲染（`tools/music_gen/compose_classics.py` 里的 `TEMPO` 是占位，还没用上）。
 律动用第 1 关的 `skeleton/s1_L1_groove_4b.wav`。
 

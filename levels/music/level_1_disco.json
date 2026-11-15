@@ -10,8 +10,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "jazz_groove",
-     "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L1_groove_4b.wav"
+     "id": "half",
+     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L1_groove_4b.wav"
     },
     {
      "id": "groove",
@@ -22,8 +22,8 @@
      "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rclub_L1_groove_4b.wav"
     },
     {
-     "id": "half",
-     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L1_groove_4b.wav"
+     "id": "break",
+     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rbreak_L1_groove_4b.wav"
     }
    ]
   },
@@ -33,8 +33,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "jazz_bass",
-     "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L2_bass_4b.wav"
+     "id": "half_bass",
+     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L2_bass_4b.wav"
     },
     {
      "id": "bass",
@@ -43,6 +43,10 @@
     {
      "id": "club_bass",
      "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rclub_L2_bass_4b.wav"
+    },
+    {
+     "id": "break_bass",
+     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rbreak_L2_bass_4b.wav"
     },
     {
      "id": "cat_bass",
@@ -55,10 +59,6 @@
    "name": "和声",
    "gain_db": 0.0,
    "clips": [
-    {
-     "id": "jazz_piano",
-     "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L0_piano_4b.wav"
-    },
     {
      "id": "disco_keys",
      "file": "res://assets/audio/music/scene1/style_disco/s1_B_L0_keys_4b.wav"
@@ -79,19 +79,15 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "jazz_sax",
-     "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L3_sax_4b.wav"
-    },
-    {
      "id": "disco_hook",
      "file": "res://assets/audio/music/scene1/style_disco/s1_B_L3_hook_4b.wav"
     },
     {
-     "id": "fb_hook",
-     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L3_hook_4b.wav"
+     "id": "ask_answer",
+     "file": "res://assets/audio/music/scene1/ask_answer/s1_QA_B_4b.wav"
     },
     {
-     "id": "cat_flow",
+     "id": "cat_lead",
      "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
     }
    ]
@@ -101,10 +97,6 @@
    "name": "高潮",
    "gain_db": 0.0,
    "clips": [
-    {
-     "id": "jazz_shout",
-     "file": "res://assets/audio/music/scene1/style_jazz/s1_J_L4_shout_4b.wav"
-    },
     {
      "id": "disco_peak",
      "file": "res://assets/audio/music/scene1/style_disco/s1_B_L4_peak_4b.wav"
@@ -167,84 +159,99 @@
  "sections": [
   {
    "title": "DISCO",
-   "fever": [0.681, 0.83],
    "cues": {
     "beat": [
      [
       0.0,
-      "jazz_groove"
+      "half"
+     ],
+     [
+      0.128,
+      "groove"
      ],
      [
       0.234,
       "club"
      ],
      [
-      0.842,
+      0.681,
+      ""
+     ],
+     [
+      0.745,
+      "break"
+     ],
+     [
+      0.83,
       "half"
      ]
     ],
     "bass": [
      [
       0.0,
-      "jazz_bass"
+      "half_bass"
+     ],
+     [
+      0.128,
+      "bass"
      ],
      [
       0.234,
       "club_bass"
      ],
      [
-      0.68,
+      0.681,
       "cat_bass"
      ],
      [
-      0.842,
-      "bass"
+      0.745,
+      "break_bass"
+     ],
+     [
+      0.83,
+      "half_bass"
      ]
     ],
     "bed": [
      [
-      0.042,
-      "jazz_piano"
+      0.043,
+      "disco_keys"
      ],
      [
       0.234,
       "fb_keys"
      ],
      [
-      0.68,
+      0.681,
       "cat_stabs"
      ],
      [
-      0.842,
+      0.745,
       "fb_keys"
      ]
     ],
     "lead": [
      [
-      0.17,
-      "cat_flow"
+      0.085,
+      "disco_hook"
      ],
      [
       0.234,
-      "fb_hook"
+      "ask_answer"
      ],
      [
-      0.297,
-      "cat_flow"
+      0.298,
+      "cat_lead"
      ],
      [
-      0.842,
+      0.83,
       ""
-     ],
-     [
-      0.893,
-      "cat_flow"
      ]
     ],
     "peak": [
      [
-      0.085,
-      "jazz_shout"
+      0.128,
+      "disco_peak"
      ],
      [
       0.234,
@@ -255,45 +262,70 @@
       "fb_peak"
      ],
      [
-      0.842,
+      0.681,
+      ""
+     ],
+     [
+      0.745,
+      "fb_peak"
+     ],
+     [
+      0.83,
       ""
      ]
     ],
     "meow": [
      [
-      0.127,
+      0.128,
       "cat_drums"
-     ]
-    ],
-    "kiai": [
-     [
-      0.829,
-      "cat_kichiku"
      ],
      [
-      0.842,
+      0.681,
       ""
      ],
      [
-      0.976,
-      "cat_kichiku"
+      0.745,
+      "cat_drums"
+     ],
+     [
+      0.83,
+      ""
      ]
     ],
     "fx": [
      [
-      0.829,
+      0.17,
       "ev_meow"
      ],
      [
-      0.842,
+      0.234,
       ""
      ],
      [
-      0.948,
+      0.83,
       "ev_seal"
      ]
     ]
-   }
+   },
+   "tiers": [
+    0.0425531914893617,
+    0.0851063829787234,
+    0.1276595744680851,
+    0.1702127659574468,
+    0.23404255319148937,
+    0.2978723404255319,
+    0.46808510638297873,
+    0.6808510638297872,
+    0.8297872340425532,
+    0.7446808510638298
+   ],
+   "transition_tiers": [
+    5
+   ],
+   "fever": [
+    0.7446808510638298,
+    0.8297872340425532
+   ]
   }
  ]
 }

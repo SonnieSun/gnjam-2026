@@ -262,6 +262,44 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
                'cat_drums': 'cc_cat_drums', 'cat_lead': 'cc_cat_flow', 'cat_stabs': 'cc_cat_stabs',
                'cat_bass': 'cc_cat_bass', 'kichiku': 'cc_kichiku'})}]}
 
+# --- level 1, the disco litter box: a song arc that follows the level's story (160 BPM) -------------
+# The stage's gauge lines (scenes/sections/kisa/disco.tscn: gauge_max_override 470, gauge_events
+# 20 40 60 80 | 110 140 220 320 | 390) are the music's lines; keep D in step with them.
+#   start        CALM         half-time beat and bass
+#   1 stars      + disco chords
+#   2 ball       + the tune on the instrument                       (the disco ball appears)
+#   3 dancers    FIRST PEAK   normal beat, peak layer, meow drums
+#   4 drift      + the meow event track
+#   5 house opens  transition bar, then ASK / ANSWER on the club beat: the instrument asks, the cats answer
+#                  (the cutscene has no notes, so the gauge and the music stay here while it plays)
+#   6 dance floor  the cats sing the whole tune                     (the runway)
+#   7 grid       + the future-bass peak layer
+#   8 plaza      A CAPPELLA   the band stops, only the cat choir (cat chords, cat bass, cat lead)
+#   PLAZA_FEVER  transition bar, then FEVER: breakbeat, full band, cat lead with the kichiku lead on top
+#   9 finale     the UFO: everything drops to the half-time beat, chords and the seal event track
+D = [v / 470 for v in (20, 40, 60, 80, 110, 140, 220, 320, 390)]
+PLAZA_FEVER = 350 / 470          # the plaza is a cappella from 320 to here, fever from here to the finale line
+RV = S1 + 'rhythm_variants/s1_'
+SETS[6] = {'title': 'DISCO', 'use': True,
+           'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
+                      t('club', RV + 'Rclub_L1_groove_4b.wav', 'groove'), t('break', RV + 'Rbreak_L1_groove_4b.wav', 'groove'),
+                      t('half_bass', RV + 'Rhalf_L2_bass_4b.wav', 'bass'), SKELETON[1],
+                      t('club_bass', RV + 'Rclub_L2_bass_4b.wav', 'bass'), t('break_bass', RV + 'Rbreak_L2_bass_4b.wav', 'bass'),
+                      CATS[3]]
+           + style('disco', 'style_disco', 'B')[:1] + style('fb', 'style_futurebass', 'fb')[:1] + CATS[1:2]
+           + style('disco', 'style_disco', 'B')[1:2] + [t('ask_answer', S1 + 'ask_answer/s1_QA_B_4b.wav', 'hook')] + CATS[2:3]
+           + style('disco', 'style_disco', 'B')[2:] + style('fb', 'style_futurebass', 'fb')[2:]
+           + CATS[:1] + KIAI + EVENTS + FILL,
+           'sections': [{'title': 'DISCO', 'tiers': D + [PLAZA_FEVER], 'transition_tiers': (5,), 'fever': (PLAZA_FEVER, D[8]), 'rules': {
+               'half': [[0, D[2]], [D[8], 1]], 'groove': [[D[2], D[4]]], 'club': [[D[4], D[7]]], 'break': [[PLAZA_FEVER, D[8]]],
+               'half_bass': [[0, D[2]], [D[8], 1]], 'bass': [[D[2], D[4]]], 'club_bass': [[D[4], D[7]]],
+               'cat_bass': [[D[7], PLAZA_FEVER]], 'break_bass': [[PLAZA_FEVER, D[8]]],
+               'disco_keys': [[D[0], D[4]]], 'fb_keys': [[D[4], D[7]], [PLAZA_FEVER, 1]], 'cat_stabs': [[D[7], PLAZA_FEVER]],
+               'disco_hook': [[D[1], D[4]]], 'ask_answer': [[D[4], D[5]]], 'cat_lead': [[D[5], D[8]]],
+               'disco_peak': [[D[2], D[4]]], 'fb_peak': [[D[6], D[7]], [PLAZA_FEVER, D[8]]],
+               'cat_drums': [[D[2], D[7]], [PLAZA_FEVER, D[8]]],
+               'ev_meow': [[D[3], D[4]]], 'ev_seal': [[D[8], 1]]}}]}
+
 # file = the level file it goes with (levels/<name>.tres)
 # Sets 1-4 (the old pizza test levels) have no level file any more and are skipped;
 # sets 6, 7, 9 (Kisa's levels) are big levels 1, 2, 4; set 5 is still level 5.
