@@ -1,0 +1,116 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/credits.gd" id="1_script"]
+[ext_resource type="Shader" path="res://assets/shaders/credits_stars.gdshader" id="2_stars"]
+[ext_resource type="Shader" path="res://assets/shaders/credits_crawl.gdshader" id="3_crawl"]
+[ext_resource type="Texture2D" path="res://assets/credits/mao_mao.png" id="4_cat"]
+
+[sub_resource type="ShaderMaterial" id="mat_stars"]
+shader = ExtResource("2_stars")
+
+[sub_resource type="ShaderMaterial" id="mat_crawl"]
+shader = ExtResource("3_crawl")
+
+[sub_resource type="LabelSettings" id="ls_title"]
+font_size = 128
+font_color = Color(1, 0.84, 0.2, 1)
+
+[sub_resource type="LabelSettings" id="ls_name"]
+font_size = 104
+font_color = Color(1, 0.84, 0.2, 1)
+
+[node name="Credits" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Stars" type="ColorRect" parent="."]
+material = SubResource("mat_stars")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="TextView" type="SubViewport" parent="."]
+unique_name_in_owner = true
+disable_3d = true
+transparent_bg = true
+size = Vector2i(960, 1900)
+render_target_update_mode = 4
+
+[node name="Text" type="VBoxContainer" parent="TextView"]
+offset_right = 960.0
+offset_bottom = 1900.0
+theme_override_constants/separation = 30
+
+[node name="Title" type="Label" parent="TextView/Text"]
+layout_mode = 2
+text = "Jam Team - 39"
+label_settings = SubResource("ls_title")
+horizontal_alignment = 1
+
+[node name="Gap" type="Control" parent="TextView/Text"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="Kisa" type="Label" parent="TextView/Text"]
+layout_mode = 2
+text = "Kisa"
+label_settings = SubResource("ls_name")
+horizontal_alignment = 1
+
+[node name="Even" type="Label" parent="TextView/Text"]
+layout_mode = 2
+text = "Even"
+label_settings = SubResource("ls_name")
+horizontal_alignment = 1
+
+[node name="Sonnie" type="Label" parent="TextView/Text"]
+layout_mode = 2
+text = "Sonnie"
+label_settings = SubResource("ls_name")
+horizontal_alignment = 1
+
+[node name="Angela" type="Label" parent="TextView/Text"]
+layout_mode = 2
+text = "Angela"
+label_settings = SubResource("ls_name")
+horizontal_alignment = 1
+
+[node name="EZ" type="Label" parent="TextView/Text"]
+layout_mode = 2
+text = "EZ"
+label_settings = SubResource("ls_name")
+horizontal_alignment = 1
+
+[node name="MaoMao" type="Label" parent="TextView/Text"]
+layout_mode = 2
+text = "and Mao Mao :3"
+label_settings = SubResource("ls_name")
+horizontal_alignment = 1
+
+[node name="Gap2" type="Control" parent="TextView/Text"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="Photo" type="TextureRect" parent="TextView/Text"]
+custom_minimum_size = Vector2(0, 520)
+layout_mode = 2
+texture = ExtResource("4_cat")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Crawl" type="TextureRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("mat_crawl")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+expand_mode = 1
