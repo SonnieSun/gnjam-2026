@@ -64,3 +64,8 @@ func _draw() -> void:
 		var k: float = fl.age / HIT_FLASH_SECONDS
 		draw_arc(target(clampi(fl.lane, 0, lanes() - 1)), r * (1.0 + k * 0.8), 0.0, TAU, 72,
 				Color(fl.color, 1.0 - k), 8.0 * (1.0 - k) + 1.0, true)
+
+
+## 音符本身就是一圈：不画实线，只补空拍的虚线
+func _solid_guides() -> bool:
+	return false

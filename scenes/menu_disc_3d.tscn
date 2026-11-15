@@ -129,7 +129,7 @@ font_size = 40
 outline_size = 10
 
 [node name="Item2" type="Node3D" parent="Labels" unique_id=38264407]
-transform = Transform3D(0.30901697, 0, -0.95105654, 0, 1, 0, 0.95105654, 0, 0.30901697, 0, 0, 0)
+transform = Transform3D(-0.5, 0, -0.8660254, 0, 1, 0, 0.8660254, 0, -0.5, 0, 0, 0)
 
 [node name="Anchor" type="Node3D" parent="Labels/Item2" unique_id=980666026]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
@@ -138,7 +138,7 @@ transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0
 double_sided = false
 modulate = Color(1, 0.97, 0.9, 1)
 outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "SPACESHIP"
+text = "TV WALL"
 font_size = 110
 outline_size = 10
 
@@ -147,12 +147,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
 double_sided = false
 modulate = Color(1, 0.97, 0.9, 1)
 outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "3 STAGES"
+text = "4 STAGES"
 font_size = 40
 outline_size = 10
 
 [node name="Item3" type="Node3D" parent="Labels" unique_id=1211890959]
-transform = Transform3D(-0.80901706, 0, -0.5877852, 0, 1, 0, 0.5877852, 0, -0.80901706, 0, 0, 0)
+transform = Transform3D(-0.5, 0, 0.8660254, 0, 1, 0, -0.8660254, 0, -0.5, 0, 0, 0)
 
 [node name="Anchor" type="Node3D" parent="Labels/Item3" unique_id=2125977670]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
@@ -161,7 +161,7 @@ transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0
 double_sided = false
 modulate = Color(1, 0.97, 0.9, 1)
 outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "ORBIT CAT"
+text = "SPACESHIP"
 font_size = 86
 outline_size = 10
 
@@ -170,53 +170,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
 double_sided = false
 modulate = Color(1, 0.97, 0.9, 1)
 outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "1 STAGE"
-font_size = 40
-outline_size = 10
-
-[node name="Item4" type="Node3D" parent="Labels" unique_id=1205487882]
-transform = Transform3D(-0.80901694, 0, 0.58778536, 0, 1, 0, -0.58778536, 0, -0.80901694, 0, 0, 0)
-
-[node name="Anchor" type="Node3D" parent="Labels/Item4" unique_id=919195903]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
-
-[node name="Title" type="Label3D" parent="Labels/Item4/Anchor" unique_id=1787542818]
-double_sided = false
-modulate = Color(1, 0.97, 0.9, 1)
-outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "TV WALL"
-font_size = 110
-outline_size = 10
-
-[node name="Sub" type="Label3D" parent="Labels/Item4/Anchor" unique_id=1966322400]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
-double_sided = false
-modulate = Color(1, 0.97, 0.9, 1)
-outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "1 STAGE"
-font_size = 40
-outline_size = 10
-
-[node name="Item5" type="Node3D" parent="Labels" unique_id=769085911]
-transform = Transform3D(0.30901712, 0, 0.9510565, 0, 1, 0, -0.9510565, 0, 0.30901712, 0, 0, 0)
-
-[node name="Anchor" type="Node3D" parent="Labels/Item5" unique_id=582635542]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
-
-[node name="Title" type="Label3D" parent="Labels/Item5/Anchor" unique_id=296482875]
-double_sided = false
-modulate = Color(1, 0.97, 0.9, 1)
-outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "LEVEL 5"
-font_size = 110
-outline_size = 10
-
-[node name="Sub" type="Label3D" parent="Labels/Item5/Anchor" unique_id=1419769442]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
-double_sided = false
-modulate = Color(1, 0.97, 0.9, 1)
-outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "1 STAGE"
+text = "2 STAGES"
 font_size = 40
 outline_size = 10
 

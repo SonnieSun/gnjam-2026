@@ -91,6 +91,7 @@ func _draw() -> void:
 				HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20)
 		return
 	if _stage:
+		draw_focus(self, hit_position(), hit_radius())
 		# 节拍辅助线：要按的拍子围着那只水果猫要砸的电视收过来；不用按的拍子围着上一台被砸的电视
 		draw_target_guides(self, hit_position(), hit_radius(), ring_travel, approach_beats,
 				func(n: NoteData) -> Array: return [_stage.screen_offset(n), _stage.screen_radius(n)])

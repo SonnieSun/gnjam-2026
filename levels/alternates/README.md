@@ -5,5 +5,7 @@
 - `disco.tres` + `disco_music.json`：远端合并时保存的旧 DISCO 版本。现在用的 DISCO 是 `levels/level_1_disco.tres`。
 - `orbit_cat.tres`：moumou 的 ORBIT CAT（拍地球猫三段），原来是第 3 格，没有单独的音乐配置。它的猫、地球、星系美术现在用在第 2 格电视机关卡钻进屏幕之后的拍地球小关里。
 
-现在主菜单的顺序（2026-11-15 按 Kisa 的要求重排）：1 DISCO / 2 TV WALL / 3 SPACESHIP / 4 ABDUCTION / 5 LEVEL 5（PIZZA CAT）。
-吸猫除了接在第 1 关 DISCO 的结尾，也单独放回了第 4 格（`levels/level_4_abduction.tres`）。
+- `abduction.tres` + `abduction_music.json`：单独的吸猫关（原来的第 4 格）。吸猫仍接在第 1 关 DISCO 的结尾。
+- `pizza_cat_level_5.tres` + `pizza_cat_level_5_music.json`：PIZZA CAT（原来的第 5 格）。
+
+现在主菜单只有三格（2026-11-15 按 Kisa 的要求）：1 DISCO / 2 TV WALL（洗衣机开场 + 拍地球）/ 3 SPACESHIP（星球 + 万花筒）。
