@@ -2,24 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ba2nby2c1nyv"
-path.s3tc="res://.godot/imported/planet_red_08_1.jpg-6e52bd6c852fa78d8d2914b18376d630.s3tc.ctex"
+uid="uid://d20qbe33uett0"
+path="res://.godot/imported/planet_saturn_saturn_2011_texture_map_by_askaniy_dc7weok.png-2151c6ed8ba0c6220cc829e757bcc737.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "f425252c540b9b23663989bdf258f369"
+"md5": "01ba66211d02c9014480e2389d264827"
 }
 
 [deps]
 
-source_file="res://stages/spaceship/planets/planet_red_08_1.jpg"
-dest_files=["res://.godot/imported/planet_red_08_1.jpg-6e52bd6c852fa78d8d2914b18376d630.s3tc.ctex"]
+source_file="res://stages/spaceship/planets/planet_saturn_saturn_2011_texture_map_by_askaniy_dc7weok.png"
+dest_files=["res://.godot/imported/planet_saturn_saturn_2011_texture_map_by_askaniy_dc7weok.png-2151c6ed8ba0c6220cc829e757bcc737.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,4 +40,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1
