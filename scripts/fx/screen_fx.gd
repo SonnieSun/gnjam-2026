@@ -47,6 +47,19 @@ const SHADER := preload("res://assets/shaders/screen_fx.gdshader")
 @export var punch_perfect := 1.0
 @export var punch_great := 0.5
 @export var punch_good := 0.0
+@export_group("特效上面的判定圈和命中反馈")
+## 九宫格、万花筒把画面切碎之后，判定圈和打中的特效都跟着变小变碎，看不清也没有打击感。
+## 所以套着这些特效时，在特效上面、屏幕正中再画一套完整大小的：缩圈 + 判定圈 + 打中的星星和冲击环。
+## 九宫格里上面这个判定圈和正中间那一格里的判定圈一样大，缩圈从外面跨过别的格子收过来。
+@export var top_rings_in_grid := true
+## 缩圈从多远收过来（占屏幕高度的比例）
+@export var top_ring_travel := 0.35
+## 打中 / 漏打时，上面的判定圈闪一圈的时长（秒）和打中时往外扩多少
+@export var top_hit_seconds := 0.22
+@export var top_hit_grow := 0.35
+## 九宫格里打中的瞬间每一格一起胀一下：胀多少（0.12 = 大 12%；Perfect 的量，Great 减半）、多久缩回去
+@export var grid_hit_pop := 0.12
+@export var grid_hit_pop_seconds := 0.2
 @export_group("连击越高越热闹")
 ## 连击到这个数算“全热”，中间按比例来（0 = 不要这个效果）
 @export var heat_full_combo := 50
@@ -80,6 +93,8 @@ var _punch_age := 99.0
 var _heat_goal := 0.0  # 按现在的连击数该有多热（0~1）
 var _heat := 0.0       # 实际热到哪了（平滑追过去）
 var _fade := 0.0       # 连击刚断：褪色还剩多少
+var _top_fx: Node2D    # 特效上面放命中特效的一层
+var _tile_pop := 0.0
 
 
 func _ready() -> void:
@@ -94,6 +109,8 @@ func _ready() -> void:
 	_rings = Node2D.new()
 	_rings.draw.connect(_draw_rings)
 	add_child(_rings)
+	_top_fx = Node2D.new()
+	add_child(_top_fx)
 
 
 ## 进了一个新的小关
@@ -151,9 +168,42 @@ func punch(strength: float = 1.0) -> void:
 ## 按判定结果顶一下（Miss 不顶）
 func punch_for(result: int) -> void:
 	match result:
-		NoteData.Result.PERFECT: punch(punch_perfect)
-		NoteData.Result.GREAT: punch(punch_great)
+		NoteData.Result.PERFECT:
+			punch(punch_perfect)
+			_tile_pop = 1.0
+		NoteData.Result.GREAT:
+			punch(punch_great)
+			_tile_pop = 0.5
 		NoteData.Result.GOOD: punch(punch_good)
+
+
+## 现在套着的特效是不是把画面切碎了（万花筒，或者 3×3、5×5 这种正中间是一整格的宫格），
+## 需要在特效上面另画一套判定圈和命中特效
+func covers() -> bool:
+	if effect == "kaleido":
+		return true
+	var tiles := int(EFFECTS[effect].get("tiles", 1))
+	return top_rings_in_grid and tiles >= 3 and tiles % 2 == 1
+
+
+## 特效上面那套判定圈的圆心（屏幕坐标）和半径（像素）
+func top_center() -> Vector2:
+	var size := _rect.get_viewport_rect().size
+	if effect == "kaleido" or not is_instance_valid(section):
+		return size / 2.0
+	return size / 2.0 + section.hit_position() / maxf(_now.tiles, 1.0)
+
+
+func top_radius() -> float:
+	var size := _rect.get_viewport_rect().size
+	if effect == "kaleido" or not is_instance_valid(section):
+		return top_ring_ratio * size.y
+	return section.hit_radius() / maxf(_now.tiles, 1.0)
+
+
+## 命中特效（星星、冲击环）该加到哪：画面被切碎时加到特效上面这一层（位置用屏幕坐标），否则返回 null
+func top_fx_layer() -> Node2D:
+	return _top_fx if covers() else null
 
 
 static func effect_at(list: Array, p: float) -> String:
@@ -206,6 +256,8 @@ func _process(delta: float) -> void:
 	if absf(sat - 1.0) > 0.003:
 		active = true
 	_mat.set_shader_parameter("saturation", sat)
+	_tile_pop = move_toward(_tile_pop, 0.0, delta / maxf(grid_hit_pop_seconds, 0.01))
+	_mat.set_shader_parameter("tile_pop", grid_hit_pop * _tile_pop * _tile_pop)
 	_flash = move_toward(_flash, 0.0, delta * 1.5)
 	_mat.set_shader_parameter("flash", _flash)
 	var step := section.step_rot if is_instance_valid(section) else 0.0
@@ -214,10 +266,26 @@ func _process(delta: float) -> void:
 	_rings.queue_redraw()
 
 
-## 万花筒里的缩圈：画在特效上面、屏幕正中
+## 画面被切碎时（万花筒 / 九宫格）：在特效上面画一套完整大小的缩圈和判定圈，打中 / 漏打时判定圈闪一圈
 func _draw_rings() -> void:
-	if effect != "kaleido" or not is_instance_valid(section) or section.def == null:
+	if not covers() or not is_instance_valid(section) or section.def == null:
 		return
 	var size := _rect.get_viewport_rect().size
-	var beats: float = section.get("approach_beats") if section.get("approach_beats") != null else 2.0
-	section.draw_approach_rings(_rings, size / 2.0, top_ring_ratio * size.y, beats, 0.35 * size.y)
+	var center := top_center()
+	var radius := top_radius()
+	var beats: float = 2.0
+	for key in ["approach_beats", "ring_beats"]:  # 各关给“提前几拍出现”起的名字不一样
+		if section.get(key) != null:
+			beats = section.get(key)
+			break
+	section.draw_approach_rings(_rings, center, radius, beats, top_ring_travel * size.y)
+	# 打中：亮一圈往外扩；漏打：红一圈抖一下
+	if section.hit_age < top_hit_seconds:
+		var k := section.hit_age / top_hit_seconds
+		var c := Color(1.0, 0.95, 0.6, (1.0 - k) * (1.0 - k))
+		_rings.draw_arc(center, radius * (1.0 + top_hit_grow * (1.0 - (1.0 - k) * (1.0 - k))), 0.0, TAU, 96, c, lerpf(14.0, 3.0, k), true)
+		_rings.draw_arc(center, radius, 0.0, TAU, 96, Color(1, 1, 1, 1.0 - k), lerpf(9.0, 3.0, k), true)
+	if section.miss_age < top_hit_seconds * 1.4:
+		var k := section.miss_age / (top_hit_seconds * 1.4)
+		var off := Vector2(sin(section.miss_age * 90.0), cos(section.miss_age * 70.0)) * 6.0 * (1.0 - k)
+		_rings.draw_arc(center + off, radius, 0.0, TAU, 96, Color(1.0, 0.25, 0.3, 1.0 - k), 7.0, true)

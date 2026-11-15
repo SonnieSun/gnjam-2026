@@ -51,6 +51,8 @@ var stage_counts := {}
 ## 已废弃（以前的“按关覆盖实时算分”钩子），现在不再使用，留着免得旧代码报错
 var score_rule := Callable()
 var _stage_weight := 0.0
+## 当前阶段预计要按多少下（main.gd 按谱子和满条值估的，和分配满分用的是同一个数）；实时显示分数用
+var _stage_expected := 0.0
 
 var _next := 0  # 第一个还没判定的音符
 
@@ -337,9 +339,10 @@ func rank() -> String:
 
 
 ## 开始一个新阶段（小关）：weight = 它占这一大关满分的比例（0~1）。main.gd 在进小关时调。
-func begin_stage(weight: float) -> void:
+func begin_stage(weight: float, expected_notes: float = 0.0) -> void:
 	stage_counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GREAT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
 	_stage_weight = weight
+	_stage_expected = expected_notes
 
 
 ## 当前阶段（小关）的满分 = level_max × 它的占比（不乘 accuracy_share）。
@@ -357,6 +360,22 @@ func stage_accuracy() -> float:
 		return 0.0
 	return (c[NoteData.Result.PERFECT] * perfect_weight + c[NoteData.Result.GREAT] * great_weight
 			+ c[NoteData.Result.GOOD] * good_weight) / total
+
+
+## 实时显示用的分数：已经入账的 + 当前阶段一路打下来的估计值
+## （阶段满分 × 打中的权重之和 ÷ 预计要按的下数，越打越多，最多到阶段满分；阶段结束入账时差不多就是这个数）。
+## 真正的成绩、评级还是按 bank_stage 入账的来算
+func live_score() -> int:
+	if _stage_weight <= 0.0 or stage_counts.is_empty():
+		return score
+	var c := stage_counts
+	var judged: int = c[NoteData.Result.PERFECT] + c[NoteData.Result.GREAT] + c[NoteData.Result.GOOD] + c[NoteData.Result.MISS]
+	var hits: float = c[NoteData.Result.PERFECT] * perfect_weight + c[NoteData.Result.GREAT] * great_weight \
+			+ c[NoteData.Result.GOOD] * good_weight
+	var expected := maxf(_stage_expected, float(judged))
+	if expected <= 0.0:
+		return score
+	return score + roundi(level_max * accuracy_share * _stage_weight * minf(hits / expected, 1.0))
 
 
 ## 当前阶段打完：按准确率入账（分数在这里跳一次）。main.gd 在切小关和通关时调；同一阶段只入账一次。

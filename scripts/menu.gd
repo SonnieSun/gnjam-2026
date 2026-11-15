@@ -46,19 +46,6 @@ func _ready() -> void:
 	_right.pressed.connect(turn.bind(1))
 	$MenuActions/Play.pressed.connect(start)
 	_refresh()
-	_add_calibrate_hint()
-
-
-## 左下角的“[O] 校准”提示
-func _add_calibrate_hint() -> void:
-	var layer := CanvasLayer.new()
-	add_child(layer)
-	var l := Label.new()
-	l.text = "[O] CALIBRATE LATENCY"
-	l.modulate.a = 0.6
-	l.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	l.position += Vector2(16, -36)
-	layer.add_child(l)
 
 
 func _process(_delta: float) -> void:
