@@ -122,6 +122,7 @@ func _build_ui() -> void:
 	head.add_child(_status)
 	_btn(head, "Jukebox", _open_jukebox, "Leave the game and listen to every song and sound we have")
 	_btn(head, "Meow", _open_meow_studio, "Leave the game and write meow drums / cat melodies (they become new clips for the Music page)")
+	_btn(head, "Chart", _open_chart_editor, "Leave the game and edit this section's chart: note timing, look, glow, spin, lanes (scenes/tools/chart_editor.tscn)")
 	_btn(head, "Save", save, "Write the changes of every stage to disk")
 	_btn(head, "Close (Tab)", func() -> void: main.toggle_editor())
 
@@ -402,6 +403,15 @@ func _meow_menu(lid: String, clips: Array) -> MenuButton:
 		_mark_dirty()
 		_fill_music.call_deferred())
 	return menu
+
+
+## 谱面编辑器：离开游戏，打开这一关、当前这个小关的谱子（scenes/tools/chart_editor.tscn）
+func _open_chart_editor() -> void:
+	var ChartEditor = load("res://scripts/tools/chart_editor.gd")
+	ChartEditor.open_level = Levels.selected
+	ChartEditor.open_section = main._index
+	Conductor.stop()
+	get_tree().change_scene_to_file("res://scenes/tools/chart_editor.tscn")
 
 
 ## 喵谱子工作室：离开游戏，去写猫鼓和鬼畜猫旋律（scenes/tools/meow_studio.tscn）

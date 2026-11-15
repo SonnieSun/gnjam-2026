@@ -172,6 +172,10 @@ var _flash := 0.0
 var _beam_fade := 1.0
 var _cat_scale := 1.0
 var _press_boost := 0.0  # 0~1，按键加速还剩多少
+## 节拍辅助线：光束上一圈圈的环，在每一拍光圈会套到的高度（规则见 BeatGuides）。关卡脚本按自己的设置填
+var beat_guides := true
+var guide_every := 1.0
+var _guides: BeatGuideStrips
 
 
 func _ready() -> void:
@@ -253,6 +257,7 @@ func update(beat: float, notes: Array[NoteData], approach_beats: float) -> void:
 	var pulse := pow(1.0 - fposmod(beat, 1.0), 3.0)
 	_update_phase(beat)
 	_update_rings(beat, notes, approach_beats, dt)
+	_update_guides(beat, notes, approach_beats)
 	_update_cat(beat, dt)
 	_update_rig(beat, pulse, dt)
 	if not embedded:
@@ -531,6 +536,23 @@ func _update_rings(beat: float, notes: Array[NoteData], approach_beats: float, d
 		if r.t >= 1.0:
 			node.queue_free()
 			_fading.remove_at(i)
+
+
+func _update_guides(beat: float, notes: Array[NoteData], approach_beats: float) -> void:
+	if _guides == null:
+		_guides = BeatGuideStrips.new()
+		_rig.add_child(_guides)
+	_guides.begin()
+	if beat_guides and _phase == Phase.LIFT and _beam_fade > 0.5:
+		var cat_c := _cat.position - _rig.position
+		for g in BeatGuides.compute(notes, beat, approach_beats, guide_every,
+				func(n: NoteData) -> Color: return SpinSection.SOUND_COLORS[n.sound % 3]):
+			var h := lerpf(_beam_top.y, cat_c.y, 1.0 - clampf(g.a, 0.0, 1.0))
+			var u := clampf((h - beam_bottom_center.y) / maxf(_beam_top.y - beam_bottom_center.y, 0.01), 0.0, 1.0)
+			var center := beam_bottom_center.lerp(_beam_top, u)
+			var radius := lerpf(beam_bottom_radius, beam_top_radius, u) * ring_scale
+			_guides.circle(center, radius, BeatGuides.look(g), 0.1)
+	_guides.finish()
 
 
 func _make_ring() -> Dictionary:

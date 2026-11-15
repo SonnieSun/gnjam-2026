@@ -137,7 +137,7 @@ func _play_cat() -> void:
 func _place_rings() -> void:
 	var used := 0
 	var count := _rings.get_child_count() if _phase != 2 else 0
-	for n in notes:
+	for n in own_notes():
 		if used >= count:
 			break
 		if n.judged:
@@ -166,7 +166,12 @@ func _set_param(mesh: MeshInstance3D, param: StringName, value: Variant) -> void
 
 ## 音符是 3D 圆环，这里只画按键时的一圈闪光（万花筒里的平面缩圈由特效层画）
 func _draw_overlay() -> void:
-	if def == null or _phase == 2 or tap_age >= 0.15:
+	if def == null or _phase == 2:
+		return
+	# 节拍辅助线：围着判定点收过来（3D 圆环各走各的路，这里给一个统一的「第几拍该按」）
+	draw_lit_target(_overlay, hit_position(), hit_radius(), Color(1, 1, 1, 0.5), 2.0)
+	draw_target_guides(_overlay, hit_position(), hit_radius(), 0.32 * screen_size().y, ring_beats)
+	if tap_age >= 0.15:
 		return
 	_overlay.draw_arc(hit_position(), hit_radius() * (1.0 + tap_age), 0.0, TAU, 64,
 			Color(1, 1, 1, 1.0 - tap_age / 0.15), 6.0)
