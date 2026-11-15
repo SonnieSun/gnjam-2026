@@ -616,6 +616,23 @@ SONGS = {
         cat_octave=0, drum_notes=(nm('E4'), nm('A4'))),
 }
 
+# Toby Fox, "Your Best Friend" (Undertale, 2015). NOT public domain: for the team's internal playtest
+# only. The tune comes from a piano MIDI (tools/music_gen/midi_to_pattern.py, right hand); the chords are
+# read off its left hand. Ab major, the first 8 bars. The original is at 120 BPM.
+SONGS['your_best_friend'] = dict(
+    chords=['Ab', 'Ab', 'Eb', 'Eb', 'Ab', 'Ab', 'Db', 'Eb7', 'Ab', 'Ab', 'Bbm', 'Eb', 'Db', 'Eb', 'Ab', 'Ab'],
+    melody=tune([
+            [(0, 'C5', 2), (4, 'C5', 1), (6, 'C#5', 1), (8, 'D#5', 2), (12, 'C5', 2)],
+            [(0, 'C#5', 2), (4, 'C#5', 1), (6, 'D#5', 1), (8, 'A#4', 2)],
+            [(0, 'C5', 2), (4, 'C5', 1), (6, 'C#5', 1), (8, 'D#5', 2), (12, 'G#5', 2)],
+            [(0, 'F5', 6), (8, 'D#5', 1), (12, 'D#6', 4)],
+            [(0, 'C5', 2), (4, 'C5', 1), (6, 'C#5', 1), (8, 'D#5', 2), (12, 'C5', 2)],
+            [(0, 'C#5', 2), (4, 'C#5', 1), (6, 'D#5', 1), (8, 'A#4', 2), (12, 'G4', 1)],
+            [(0, 'C5', 2), (4, 'C5', 1), (6, 'C#5', 1), (8, 'A#4', 2), (12, 'G4', 2)],
+            [(0, 'G#4', 6), (8, 'G#5', 1)],
+    ]),
+    cat_octave=0, drum_notes=(nm('D#4'), nm('G#4')))
+
 # Speed per song, over the same 160 BPM beat. Half time (2) plays the tune at half speed (an 8th
 # becomes a quarter, chords one per bar, loop twice as long): the Turkish March, all 16ths, needs it
 # and sounded best that way. The rest stay at their own speed: the 'flow' lead lets each meow ring

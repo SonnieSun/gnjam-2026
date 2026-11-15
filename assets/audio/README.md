@@ -44,6 +44,7 @@
 `L3_cat_flow`（每声喵叠着放完）、`L3_cat`（压到音符长度，更鬼畜）、`L3_cat_pool`（长音组轮流）。
 这三条都带一点点音高共鸣和咬字（让旋律听得出来），乐句结尾的"MIAO"按原音高唱、是全句最响的音，下面叠一声低八度。
 `L3_cat_kichiku` 是鬼畜版：每 4 小节固定一只猫（原本音高离这句最近的），每个音从喵的开头重新触发、变速变调、到音符结束硬切，共鸣全量。
+`your_best_friend` 是 Undertale 的《Your Best Friend》（Toby Fox，**有版权，只给内部试玩，公开发布前要拿掉或拿到许可**）：旋律来自一份钢琴 MIDI 的右手，和声是照左手配的，前 8 小节，降 A 大调。
 所有曲子现在都是 160 BPM；致爱丽丝更适合 120，以后单独渲染（`tools/music_gen/compose_classics.py` 里的 `TEMPO` 是占位，还没用上）。
 律动用第 1 关的 `skeleton/s1_L1_groove_4b.wav`。
 
