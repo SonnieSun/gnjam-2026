@@ -34,7 +34,7 @@
     },
     {
      "id": "ode_bass",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L2_bass_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L2_bass_16b.wav"
     }
    ]
   },
@@ -49,7 +49,7 @@
     },
     {
      "id": "ode_keys",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L0_keys_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L0_keys_16b.wav"
     }
    ]
   },
@@ -60,7 +60,7 @@
    "clips": [
     {
      "id": "ode_cats",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_flow_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_flow_16b.wav"
     }
    ]
   },
@@ -86,7 +86,7 @@
    "clips": [
     {
      "id": "ode_cat_drums",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_C_drums_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_C_drums_16b.wav"
     }
    ]
   },
@@ -109,7 +109,7 @@
    "clips": [
     {
      "id": "ode_kichiku",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_kichiku_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_kichiku_16b.wav"
     }
    ]
   },
@@ -141,7 +141,7 @@
     },
     {
      "id": "ode_peak",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L4_peak_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L4_peak_16b.wav"
     }
    ]
   },

@@ -80,9 +80,9 @@ def _backing(folder, tune, groove, bars_total, stem_bars):
     return x
 
 
-render('1_ode_to_joy_sky', 'ode_to_joy', 'L3_cat_flow', 16, 8)
+render('1_ode_to_joy_sky', 'ode_to_joy', 'L3_cat_flow', 16, 16)
 render('2_your_best_friend_washer', 'your_best_friend', 'L3_cat_kichiku', 16, 8)
-render('3_mountain_king_earth', 'mountain_king', 'L3_cat_kichiku', 8, 4)
+render('3_mountain_king_earth', 'mountain_king', 'L3_cat_kichiku', 8, 8)
 render('4_can_can_earth_and_pizza', 'can_can', 'L3_cat_kichiku', 16, 8)
 render('5_turkish_march_shooter', 'turkish_march', 'L3_cat_kichiku', 16, 16)
 render('6_turkish_march_b_shooter_fever', 'turkish_march_b', 'L3_cat_kichiku', 16, 8)

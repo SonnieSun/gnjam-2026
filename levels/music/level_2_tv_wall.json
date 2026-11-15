@@ -34,7 +34,7 @@
     },
     {
      "id": "mk_bass",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L2_bass_4b.wav"
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L2_bass_8b.wav"
     }
    ]
   },
@@ -49,7 +49,7 @@
     },
     {
      "id": "mk_keys",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L0_keys_4b.wav"
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L0_keys_8b.wav"
     },
     {
      "id": "cc_keys",
@@ -76,11 +76,11 @@
     },
     {
      "id": "mk_pluck",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_pluck_4b.wav"
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_pluck_8b.wav"
     },
     {
      "id": "mk_cats",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_8b.wav"
     }
    ]
   },
@@ -99,7 +99,7 @@
     },
     {
      "id": "mk_peak",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L4_peak_4b.wav"
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L4_peak_8b.wav"
     }
    ]
   },
@@ -118,7 +118,7 @@
     },
     {
      "id": "mk_cat_drums",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_C_drums_4b.wav"
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_C_drums_8b.wav"
     }
    ]
   },

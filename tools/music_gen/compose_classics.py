@@ -662,23 +662,42 @@ SONGS = {
         cat_octave=-12, drum_notes=(nm('E4'), nm('A4'))),
     # Grieg, "In the Hall of the Mountain King" (1875), the march theme in 8ths. A minor.
     'mountain_king': dict(
-        chords=['Am', 'Am', 'B7', 'Bb', 'Am', 'Am', 'C', 'G'],
+        # Bars 5-8 (added 2026-11-16): the answer, the same tune on the dominant, as the piece goes on (bars 10-13
+        # of the piano score; read off the Mutopia Project MIDI of op. 46 no. 4, public domain, moved from
+        # B minor to our A minor). The loop is now theme + answer, 8 bars.
+        chords=['Am', 'Am', 'B7', 'Bb', 'Am', 'Am', 'C', 'G', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E'],
         melody=tune([
             [(0, 'A4', 2), (2, 'B4', 2), (4, 'C5', 2), (6, 'D5', 2), (8, 'E5', 2), (10, 'C5', 2), (12, 'E5', 4)],
             [(0, 'D#5', 2), (2, 'B4', 2), (4, 'D#5', 4), (8, 'D5', 2), (10, 'Bb4', 2), (12, 'D5', 4)],
             [(0, 'A4', 2), (2, 'B4', 2), (4, 'C5', 2), (6, 'D5', 2), (8, 'E5', 2), (10, 'C5', 2), (12, 'E5', 2), (14, 'A5', 2)],
             [(0, 'G5', 2), (2, 'E5', 2), (4, 'C5', 2), (6, 'E5', 2), (8, 'G5', 8)],
+            [(0, 'E5', 2), (2, 'F#5', 2), (4, 'G#5', 2), (6, 'A5', 2), (8, 'B5', 2), (10, 'G#5', 2), (12, 'B5', 4)],
+            [(0, 'C6', 2), (2, 'G#5', 2), (4, 'C6', 4), (8, 'B5', 2), (10, 'G#5', 2), (12, 'B5', 4)],
+            [(0, 'E5', 2), (2, 'F#5', 2), (4, 'G#5', 2), (6, 'A5', 2), (8, 'B5', 2), (10, 'G#5', 2), (12, 'B5', 4)],
+            [(0, 'C6', 2), (2, 'G#5', 2), (4, 'C6', 4), (8, 'B5', 8)],
         ]),
         cat_octave=0, drum_notes=(nm('E4'), nm('A4'))),
     # Beethoven, Symphony No. 9, "Ode to Joy" (1824), on royal-road chords. C major, quarters.
     'ode_to_joy': dict(
-        chords=['C', 'C', 'G', 'G', 'Am', 'Am', 'Em', 'Em', 'F', 'F', 'C', 'C', 'Dm7', 'Dm7', 'G', 'C'],
+        chords=['C', 'C', 'G', 'G', 'Am', 'Am', 'Em', 'Em', 'F', 'F', 'C', 'C', 'Dm7', 'Dm7', 'G', 'C',
+                'G', 'G', 'G', 'C', 'G', 'G', 'Am', 'G', 'C', 'C', 'G', 'G', 'F', 'C', 'G', 'C'],
         melody=tune([
             [(0, 'E5', 4), (4, 'E5', 4), (8, 'F5', 4), (12, 'G5', 4)],
             [(0, 'G5', 4), (4, 'F5', 4), (8, 'E5', 4), (12, 'D5', 4)],
             [(0, 'C5', 4), (4, 'C5', 4), (8, 'D5', 4), (12, 'E5', 4)],
             [(0, 'E5', 6), (6, 'D5', 2), (8, 'D5', 8)],
             [(0, 'E5', 4), (4, 'E5', 4), (8, 'F5', 4), (12, 'G5', 4)],
+            [(0, 'G5', 4), (4, 'F5', 4), (8, 'E5', 4), (12, 'D5', 4)],
+            [(0, 'C5', 4), (4, 'C5', 4), (8, 'D5', 4), (12, 'E5', 4)],
+            [(0, 'D5', 6), (6, 'C5', 2), (8, 'C5', 8)],
+            # Bars 9-16 (added 2026-11-16): the middle phrase and the tune's return, so the loop is the whole
+            # hymn (A A B A), 16 bars. Read off the Mutopia Project MIDI of the hymn (public domain), moved from
+            # G to our C. The E at the end of bar 12 is tied over the bar line, as in the tune.
+            [(0, 'D5', 4), (4, 'D5', 4), (8, 'E5', 4), (12, 'C5', 4)],
+            [(0, 'D5', 4), (4, 'E5', 2), (6, 'F5', 2), (8, 'E5', 4), (12, 'C5', 4)],
+            [(0, 'D5', 4), (4, 'E5', 2), (6, 'F5', 2), (8, 'E5', 4), (12, 'D5', 4)],
+            [(0, 'C5', 4), (4, 'D5', 4), (8, 'G4', 4), (12, 'E5', 8)],
+            [(4, 'E5', 4), (8, 'F5', 4), (12, 'G5', 4)],
             [(0, 'G5', 4), (4, 'F5', 4), (8, 'E5', 4), (12, 'D5', 4)],
             [(0, 'C5', 4), (4, 'C5', 4), (8, 'D5', 4), (12, 'E5', 4)],
             [(0, 'D5', 6), (6, 'C5', 2), (8, 'C5', 8)],
