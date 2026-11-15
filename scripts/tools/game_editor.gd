@@ -111,6 +111,7 @@ func _build_ui() -> void:
 	head.add_child(_gauge_max)
 	_status = _lbl("")
 	head.add_child(_status)
+	_btn(head, "Jukebox", _open_jukebox, "Leave the game and listen to every song and sound we have")
 	_btn(head, "Save", save, "Write the changes of every stage to disk")
 	_btn(head, "Close (Tab)", func() -> void: main.toggle_editor())
 
@@ -311,6 +312,12 @@ func _lbl(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
 	return l
+
+
+## 曲库：离开游戏，去听所有做好的曲子和音效（scenes/tools/jukebox.tscn）。没保存的改动不会丢在文件里，但会丢在这次运行里。
+func _open_jukebox() -> void:
+	Conductor.stop()
+	get_tree().change_scene_to_file("res://scenes/tools/jukebox.tscn")
 
 
 func _btn(parent: Control, text: String, action: Callable, tip: String = "") -> Button:

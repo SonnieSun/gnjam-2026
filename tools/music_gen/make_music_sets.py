@@ -133,8 +133,8 @@ SETS[5] = {'title': 'LEVEL 5',
 
 # --- Kisa's levels -------------------------------------------------------------------------------
 # level 6, the disco litter box, stays at its own 120 BPM: the 120 render of scene 1 (scene1_120).
-# One layer per stage event, the way its own music did it (gauge 315, lines at 20 40 60 80 | 110 150
-# 190 230 | 300). The room is the jazz style, like its own swing-jazz room set (stars = piano, ball =
+# One layer per stage event, the way its own music did it (gauge 615, lines at 20 40 60 80 | 110 170
+# 330 530 | 600; they live in scenes/sections/kisa/disco.tscn, keep E below in step with them). The room is the jazz style, like its own swing-jazz room set (stars = piano, ball =
 # brass shout, dancers = sax + meow drums, drift = pad); when the house comes apart the beat turns
 # into the club groove with future bass, and the cats take over part by part; the UFO brings the meow
 # event track. The disco style stems are in the lanes too, to swap in from the panel.
@@ -146,7 +146,7 @@ def t120(id_, key, group):
     return t(id_, f'{S120}{key}_4b.wav', group)
 
 
-E = [v / 315 for v in (20, 40, 60, 80, 110, 150, 190, 230, 300)]
+E = [v / 615 for v in (20, 40, 60, 80, 110, 170, 330, 530, 600)]   # disco.tscn: gauge_max_override and gauge_events
 SETS[6] = {'title': 'DISCO', 'bpm': 120, 'use': True,
            'tracks': [t120('jazz_groove', 'J_L1_groove', 'groove'), t120('jazz_bass', 'J_L2_bass', 'bass'),
                       t120('jazz_piano', 'J_L0_piano', 'bed'), t120('jazz_sax', 'J_L3_sax', 'hook'), t120('jazz_shout', 'J_L4_shout', 'peak'),
@@ -194,8 +194,11 @@ SETS[9] = {'title': 'TV WALL', 'use': True, 'tracks': SKELETON + style('chip', '
                'chip_hook': [[0.25, 0.5]], 'cat_drums': [[0.25, 1]], 'cat_lead': [[0.5, 1]], 'cat_kichiku': [[0.9, 1]], 'bass': [[0.15, 1]]})}]}
 
 # file = the level file it goes with (levels/<name>.tres)
-NAMES = {n: f'level_{n}' for n in range(1, 6)}
-NAMES.update({6: 'level_6_disco', 7: 'level_7_spaceship', 8: 'level_8_abduction', 9: 'level_9_tv_wall'})
+# Kisa's levels were level_6..9 at first and were then moved to slots 2, 3 and 4 (replacing the showcase
+# and the two MV levels, whose sets above are no longer written).
+for old in (2, 3, 4):
+    del SETS[old]
+NAMES = {1: 'level_1', 5: 'level_5', 6: 'level_2', 7: 'level_3', 9: 'level_4', 8: 'level_8_abduction'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('fx', '事件', 'event')]
 LANE_GAIN = {'kiai': -2.0}   # stacked on the cat lead, so a little under it

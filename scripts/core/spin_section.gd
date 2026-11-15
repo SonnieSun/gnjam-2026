@@ -31,7 +31,7 @@ extends Node2D
 @export var preview_beats_per_rev := 8.0
 @export_group("")
 
-const PREVIEW_BPM := 120.0
+const PREVIEW_BPM := 160.0
 const PREVIEW_BEATS := 12.0
 const PREVIEW_BARS: Array[String] = ["k...s...k.h.s...", "k.h...s...k.s...", "k...s.h.....s..."]
 

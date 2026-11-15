@@ -20,6 +20,7 @@ gauge_events = PackedInt32Array()
 script = ExtResource("4_aulem")
 title = "ABDUCTION"
 stream = ExtResource("7_aq4do")
+bpm = 120.0
 drum_kick = ExtResource("2_rcm2n")
 drum_snare = ExtResource("3_mdlhf")
 drum_hat = ExtResource("1_5b11q")

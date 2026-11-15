@@ -4,25 +4,26 @@
 
 ## 我们做了什么
 
-1. **把 develop_framework 合并进来了**（正常的 git merge，没有冲突）。带来了：`Music` 自动加载、打中喵、Music Director 面板、
+1. **把 develop_framework 合并进来了**（正常的 git merge，没有冲突）。带来了：`Music` 自动加载、打中喵、曲库、
    全部音乐素材（`assets/audio/`）。
-2. **四个大关（level_6 到 level_9）的音乐换成了我们的叠轨音乐**，跟着积累条一层层加。迪斯科关保持 120 BPM；另外三关是 160（比原来快）。
+2. **Kisa 的四个大关（现在是 level_2 迪斯科、level_3 飞船、level_4 电视墙、level_8_abduction 吸猫）的音乐换成了我们的叠轨音乐**，跟着积累条一层层加。迪斯科关保持 120 BPM；另外三关是 160（比原来快）。
 3. **打中会喵**；连击到 10、20、50……会响一声转圈喵。
 4. 对原有文件只改了两处：`stages/disco/disco_music.gd` 加了 4 行（我们的音乐开着时它不去动音轨），`scripts/main.gd` 加了几行接音乐和喵。
    关卡场景、谱面、演出都没动。
 
 ## 怎么关掉 / 退回原来的音乐
 
-每个大关一个配置文件：`levels/music/<大关文件名>.json`（比如 `level_6_disco.json`）。
+每个大关一个配置文件：`levels/music/<大关文件名>.json`（比如 `level_2.json`）。
 把里面的 `"use_in_game": true` 改成 `false`，这一关就**完全回到原来的音乐和速度**。删掉这个文件效果一样。
 
 - 不想要打中喵 / 转圈喵：`main.tscn` 里选 HitMeow 节点，取消 `enabled`（或调 `volume_db`、清空 `spin_sounds`）。
 
 ## 怎么听、怎么改
 
-- Godot 顶部工具栏的 **"音乐"** 按钮打开 Music Director。
-  - **曲库** 页：点一首就放，下面的按钮开关每条音轨。只是听，不改东西。
-  - **编辑** 页：选大关和小关，每条轨道里点一段 = 从当前进度起换成它。下面的 PROGRESS 就是积累条。改完 SAVE。
+- **改音乐**：运行游戏后按 **Tab** 调出编辑面板，"音乐"页里每条轨道点一段 = 从当前进度起换成它；最上面的 Gauge 条就是积累条。改完点 Save。
+  加轨道、加片段直接改 `levels/music/` 里的 json（原来的 Music Director 面板已经被这个面板取代）。
+- **只想听**：编辑面板最上面一排点 **Jukebox**，或者在 Godot 里打开 `scenes/tools/jukebox.tscn` 按 F6。
+  点一首就放，下面的按钮开关每条音轨，最下面是所有音效。不改任何东西；Esc 回主菜单。
 - 配置格式和设计见 `docs/music_manager.md`，素材清单见 `assets/audio/README.md`。
 
 ## 它是怎么接进游戏的（排查用）
@@ -38,7 +39,7 @@
 | 现象 | 原因 / 办法 |
 |---|---|
 | 某一关变快了 | 它的音乐配置是 160。把 `use_in_game` 关掉，或者以后给它做 120 的素材 |
-| 迪斯科关没有声音或层不对 | 看 `levels/music/level_6_disco.json` 在不在、`use_in_game` 是不是 true；关掉就回到原来的 11 条分轨 |
+| 迪斯科关没有声音或层不对 | 看 `levels/music/level_2.json` 在不在、`use_in_game` 是不是 true；关掉就回到原来的 11 条分轨 |
 | 打开项目报找不到音频 | 重新导入一次（关掉 Godot 再开，或 项目 → 重新加载当前项目）；素材在 `assets/audio/music/` |
 | 主菜单转盘只有 5 格 | 原来就是这样（转盘没跟着加格子）。用顶部"关卡"页选大关点"试玩"，或在转盘上往右拨到第 6–9 关（没有格子亮） |
 | 导入时报几个模型贴图找不到 | 和音乐无关，是飞碟模型原有的 |

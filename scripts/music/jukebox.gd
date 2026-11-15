@@ -1,7 +1,7 @@
 extends VBoxContainer
-## 曲库：Music Director 里的"曲库"页。把现在做好的曲子列出来，点一首就放（它的几条音轨一起循环），
+## 曲库（嵌在 scenes/tools/jukebox.tscn 里，见 jukebox_scene.gd）。把现在做好的曲子列出来，点一首就放（它的几条音轨一起循环），
 ## 右边的按钮开关每条音轨；下面是所有一次性音效（喵、打中喵、SFX），点一下听一声。
-## 只是用来听的，不改任何配置；和游戏、和"编辑"页互不影响（自己一个播放器，不用 Conductor）。
+## 只是用来听的，不改任何配置；自己一个播放器，不用 Conductor。
 ## 加了新曲子 / 新音轨：在 _songs() 里加一行。
 
 const M := "res://assets/audio/music/"

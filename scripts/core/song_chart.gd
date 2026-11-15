@@ -15,7 +15,7 @@ extends Resource
 ## 背景音乐（不带鼓的版本，鼓由玩家打）。
 ## 留空时 Conductor 会自动生成占位伴奏，方便没有歌时先开发
 @export var stream: AudioStream
-@export var bpm := 120.0
+@export var bpm := 160.0
 @export var beats_per_bar := 4
 ## 音频文件里第一拍出现的时间（秒）
 @export var first_beat_offset_sec := 0.0
