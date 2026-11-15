@@ -58,6 +58,11 @@ func _ready() -> void:
 		_stage = TvWallIntroStage.new()
 		add_child(_stage)
 	_stage.setup(self)
+	# 开场猫飞进洗衣机：一声往下掉的喵正好掉到落进去那一下，落进去"咚"一声
+	_stage.cat_flying.connect(func(seconds: float) -> void: Music.play_sfx("catness_down", -5.0, seconds))
+	_stage.cat_landed.connect(func() -> void:
+		Music.play_sfx("kick", -2.0)
+		Music.play_sfx("spin_meow_a", -6.0))
 
 
 func hit_position(_note: NoteData = null) -> Vector2:
@@ -80,10 +85,14 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 	if _holding:
 		_update_hold()
 	_stage.update(song_beat(), dt)
+	# 这一段的积累条不涨：音乐按"按完了几次长按"走（见 Music.override_progress）
+	if active:
+		Music.override_progress(1.0 if _finale else _stage.progress())
 	if song_beat() >= _fill_at:
 		_fill_gauge_now()
 	for tv in _stage.take_just_lit():
 		_bolts.append({"to": tv, "age": 0.0})
+		Music.play_sfx("laser_zap", -12.0)  # 电视亮起来：滋一声
 	for i in range(_bolts.size() - 1, -1, -1):
 		_bolts[i].age += dt
 		if _bolts[i].age > 0.35:
@@ -112,6 +121,8 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 			return
 		_holding = note
 		_stage.hold_begin()
+		# 按住 = 洗衣机转起来：一声上扬的音效，正好在该松手的时候放完
+		Music.play_sfx("riser_1b", -11.0, hold_beats(note) * Conductor.sec_per_beat())
 		j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
 	else:
 		_stage.tap()

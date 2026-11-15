@@ -121,6 +121,35 @@ func sing_hit() -> bool:
 	return sang
 
 
+## 连按用的 runtime 鬼畜：按一下唱谱子里的下一个音，不看节拍（按多快唱多快），上一个音被硬切掉。
+## index = 这一串里的第几下（从 0 起）；phrase = 第几串：每一串从谱子的下一小节唱起，同一串固定一只猫，换一串换一只。
+## lift = 整体升几个半音。谱子是旋律片段的格式（levels/music/patterns/*.json）。唱了返回 true
+var _mash_voice := -1
+
+func sing_step(pattern: Dictionary, index: int, phrase := 0, db := 0.0, lift := 0.0) -> bool:
+	var notes: Array = pattern.get("notes", [])
+	if notes.is_empty() or cats.is_empty():
+		return false
+	var bars := maxi(int(pattern.get("bars", 1)), 1)
+	var first := 0  # 这一串从哪个音唱起：第 phrase 小节的第一个音
+	for i in notes.size():
+		if int(notes[i][0]) >= (phrase % bars) * STEPS_PER_BAR:
+			first = i
+			break
+	var note: Array = notes[(first + index) % notes.size()]
+	var midi := float(note[1]) + lift
+	# 这一串的猫：离这一串开头那个音最近的两只里轮着挑
+	var order: Array = cats.keys()
+	var start_midi := float(notes[first][1]) + lift
+	order.sort_custom(func(a: String, b: String) -> bool: return absf(cats[a].midi - start_midi) < absf(cats[b].midi - start_midi))
+	var cat: String = order[phrase % mini(2, order.size())]
+	if _mash_voice >= 0 and _voices[_mash_voice].playing:
+		_voices[_mash_voice].stop()  # 硬切
+	_mash_voice = _next_voice
+	_play(cat, midi, false, db, now_beat() + 2.0 if running() else -1.0)
+	return true
+
+
 ## 不放曲子，按 bpm 自己走（从第 0 拍开始）
 func start_free(bpm: float) -> void:
 	free_bpm = maxf(bpm, 30.0)

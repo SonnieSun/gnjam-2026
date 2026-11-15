@@ -250,7 +250,53 @@ def scene1_song(title, key, folder, prefix):
 
 
 SETS[7] = scene1_song('SPACESHIP', 'euro', 'style_eurobeat', 'A')
-SETS[9] = scene1_song('TV WALL', 'chip', 'style_chip', 'chip')
+RV = S1 + 'rhythm_variants/s1_'
+# --- level 2, TV WALL: a medley, one tune per part of the level (all 160 BPM, all existing loops) --------
+#   WASHER (the washing machine)   Your Best Friend. It starts innocent (half-time beat, chords; the player's
+#       taps sing the tune) and goes wrong as the machine powers the TVs: the B section, then the kichiku.
+#       This part's gauge never fills: the section script feeds Music its own progress (holds done / holds needed).
+#   SLAP / WARM UP                 In the Hall of the Mountain King, sneaking
+#   SLAP / CHARGE                  Mountain King, louder; the mashing sings its tune (runtime kichiku, in the section script)
+#   SLAP / POWER                   Can-Can, everything on; fever at the end
+# The tunes are in different keys, so they only meet across a section switch (the transition bar has no chords).
+# 'own' tells the music manager which kichiku / hit clip belongs to each part (mini kiai, fever).
+YB = M + 'classics/your_best_friend/your_best_friend_'
+YBB = M + 'classics/ybf_b/ybf_b_'
+W = (0.12, 0.3, 0.5, 0.7, 0.88)       # the washer's lines, in "holds done" (3 zoom holds, then the TVs)
+SETS[9] = {'title': 'TV WALL', 'use': True,
+           'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
+                      t('ybf_keys', YB + 'fb_L0_keys_8b.wav', 'bed'), t('ybfb_keys', YBB + 'fb_L0_keys_8b.wav', 'bed'),
+                      t('mk_keys', MK + 'fb_L0_keys_4b.wav', 'bed'), t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'),
+                      t('ybf_bass', YB + 'L2_bass_8b.wav', 'bass'), t('ybfb_bass', YBB + 'L2_bass_8b.wav', 'bass'),
+                      t('mk_bass', MK + 'L2_bass_4b.wav', 'bass'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
+                      t('ybf_pluck', YB + 'L3_pluck_8b.wav', 'hook'), t('ybf_cats', YB + 'L3_cat_flow_8b.wav', 'hook'),
+                      t('ybfb_cats', YBB + 'L3_cat_flow_8b.wav', 'hook'),
+                      t('mk_pluck', MK + 'L3_pluck_4b.wav', 'hook'), t('mk_cats', MK + 'L3_cat_flow_4b.wav', 'hook'),
+                      t('cc_cats', CC + 'L3_cat_flow_8b.wav', 'hook'),
+                      t('ybf_peak', YB + 'fb_L4_peak_8b.wav', 'peak'), t('mk_peak', MK + 'fb_L4_peak_4b.wav', 'peak'),
+                      t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
+                      t('ybf_cat_drums', YB + 'C_drums_8b.wav', 'cat'), t('mk_cat_drums', MK + 'C_drums_4b.wav', 'cat'),
+                      t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
+                      t('ybf_kichiku', YB + 'L3_cat_kichiku_8b.wav', 'kiai'), t('mk_kichiku', MK + 'L3_cat_kichiku_4b.wav', 'kiai'),
+                      t('cc_kichiku', CC + 'L3_cat_kichiku_8b.wav', 'kiai'),
+                      pattern('ybf_by_hit', 'your_best_friend', 'hit', by_hit=True)] + FILL,
+           'sections': [
+               {'title': 'TV WALL', 'tiers': W, 'transition_tiers': (3,), 'fever': (W[4], 1.0),
+                'own': {'kiai': 'ybf_kichiku', 'hit': 'ybf_by_hit'}, 'rules': {
+                   'half': [[0, W[1]]], 'groove': [[W[1], 1]],
+                   'ybf_keys': [[0, W[3]]], 'ybfb_keys': [[W[3], 1]],
+                   'ybf_bass': [[W[0], W[3]]], 'ybfb_bass': [[W[3], 1]],
+                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[W[0], W[2]]], 'ybf_cats': [[W[2], W[3]]], 'ybfb_cats': [[W[3], 1]],
+                   'ybf_peak': [[W[2], 1]], 'ybf_cat_drums': [[W[1], 1]], 'ybf_kichiku': [[W[4], 1]]}},
+               {'title': 'SLAP / WARM UP', 'tiers': (0.3, 0.6), 'own': {'kiai': 'mk_kichiku', 'hit': ''}, 'rules': {
+                   'half': [[0, 0.3]], 'groove': [[0.3, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]],
+                   'mk_pluck': [[0.3, 1]], 'mk_cat_drums': [[0.6, 1]]}},
+               {'title': 'SLAP / CHARGE', 'tiers': (0.4, 0.75), 'own': {'kiai': 'mk_kichiku', 'hit': ''}, 'rules': {
+                   'groove': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]], 'mk_cat_drums': [[0, 1]],
+                   'mk_pluck': [[0, 0.4]], 'mk_cats': [[0.4, 1]], 'mk_peak': [[0.75, 1]]}},
+               {'title': 'SLAP / POWER', 'tiers': (0.35, 0.7), 'fever': (0.7, 1.0), 'own': {'kiai': 'cc_kichiku', 'hit': ''}, 'rules': {
+                   'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]], 'cc_cat_drums': [[0, 1]],
+                   'cc_cats': [[0, 1]], 'cc_peak': [[0.35, 1]], 'cc_kichiku': [[0.7, 1]]}}]}
 SETS[5] = {'title': 'LEVEL 5', 'use': True,
            'tracks': [SKELETON[0], t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
                       t('cc_pluck', CC + 'L3_pluck_8b.wav', 'hook'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
@@ -281,7 +327,6 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
 #   9 finale     the UFO: everything drops to the half-time beat, chords and the seal event track
 D = [v / 400 for v in (20, 40, 60, 80, 110, 140, 190, 250, 320)]
 PLAZA_FEVER = 280 / 400          # the plaza is a cappella from 250 to here, fever from here to the finale line
-RV = S1 + 'rhythm_variants/s1_'
 SETS[6] = {'title': 'DISCO', 'use': True,
            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
                       t('club', RV + 'Rclub_L1_groove_4b.wav', 'groove'), t('break', RV + 'Rbreak_L1_groove_4b.wav', 'groove'),
@@ -380,6 +425,8 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
+        if 'own' in sec:
+            out['own'] = dict(sec['own'])              # which clip of a lane is this section's own (a medley level)
         if 'tier_sfx' in sec:
             out['tier_sfx'] = {str(k): v for k, v in sec['tier_sfx'].items()}
         sections.append(out)
