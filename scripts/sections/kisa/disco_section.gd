@@ -25,8 +25,11 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var hold_release_grace := 0.3
 ## 长按条带的透明度
 @export_range(0.0, 1.0) var hold_band_alpha := 0.4
-## 往里收的圈有多不透明（1 = 原来那样，越小越淡）
-@export_range(0.0, 1.0) var ring_alpha := 0.45
+## 往里收的圈：刚出现时多不透明（越靠近判定圈越亮，到判定圈时是完全不透明）
+@export_range(0.0, 1.0) var ring_alpha := 0.5
+## 往里收的圈多粗：刚出现时、到判定圈时（像素）
+@export var ring_width := 8.0
+@export var ring_width_near := 14.0
 ## 判定圈和收圈画多大（乘在 target_radius 上），画成和地上光波一样透视的扁椭圆
 @export var judge_scale := 1.5
 ## 音轨淡入淡出的快慢（越大越快）
@@ -387,9 +390,14 @@ func _draw_rings() -> void:
 			break
 		var t := ahead / approach_beats  # 1 = 刚出现，0 = 重合
 		var r := maxf(target_radius + t * (from_r - target_radius), 4.0)
-		var c := RING_COLORS[n.sound % RING_COLORS.size()]
-		c.a = clampf((1.0 - t) / 0.2, 0.0, 1.0) * ring_alpha
-		_ellipse(hit_position(n), r, c, 6.0)
+		# 越靠近判定圈越亮、越粗、稍微偏白，最后一段外面再加一圈柔光
+		var k := 1.0 - clampf(t, 0.0, 1.0)
+		var c := RING_COLORS[n.sound % RING_COLORS.size()].lerp(Color.WHITE, k * k * 0.3)
+		c.a = clampf((1.0 - t) / 0.15, 0.0, 1.0) * lerpf(ring_alpha, 1.0, pow(k, 1.5))
+		var w := lerpf(ring_width, ring_width_near, k)
+		if k > 0.5:
+			_ellipse(hit_position(n), r, Color(c, c.a * (k - 0.5) * 0.6), w * 2.6)
+		_ellipse(hit_position(n), r, c, w)
 
 
 ## 按镜头透视画「平放在地上的圆」：横向半径 r × judge_scale，竖向再乘镜头压扁比例
