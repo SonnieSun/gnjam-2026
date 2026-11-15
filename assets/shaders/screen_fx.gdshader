@@ -44,7 +44,10 @@ void fragment() {
 	uv = (uv - 0.5) / zoom + 0.5;
 	uv.x = mix(uv.x, 0.5 - abs(uv.x - 0.5), mirror);
 	// 宫格：以屏幕中心为基准缩小，铺满
-	vec2 f = fract((uv - 0.5) * tiles + 0.5);
+	// 奇数格（3×3）屏幕正中间是一整格；偶数格（2×2、4×4）要错开半格，
+	// 不然屏幕中心落在接缝上，四周各露出半格。中间值平滑过渡。
+	float tile_shift = 0.5 * abs(mod(tiles, 2.0) - 1.0);
+	vec2 f = fract((uv - 0.5) * tiles + 0.5 + tile_shift);
 	vec3 grid_col = sample_rgb(tiles > 1.01 ? f : uv);
 	if (tiles > 1.01) {
 		vec2 edge = min(f, 1.0 - f);

@@ -5,9 +5,10 @@ extends CanvasLayer
 ##   最上面一根“积累条”进度条：拖它 = 假装玩家把积累条打到了这么满，画面、镜头特效、猫图、音乐都会跟着变。
 ##   面板开着的时候，打中 / 漏打不再改积累条。
 ##
-##   镜头和猫图   点一个特效 = 从当前进度起切到它（再点一次 = 从这里起回到原样）；
+##   Camera       点一个特效 = 从当前进度起切到它（再点一次 = 从这里起回到原样）；
 ##                细条上的白线是切换点，拖动改位置，右键删掉。
-##                “+ 猫图”在当前进度加一只，选中后在画面上拖动摆位置。
+##   Memes        左边点缩略图选素材，在当前进度加一只；选中后在画面上拖动摆位置，
+##                还可以给它选动效（自转、绕圈、流过去……）和快慢。
 ##   音乐         每条轨道点一段 = 从当前进度起换成它。
 ##   谱子         点格子写这个小关循环的鼓谱。
 ##
@@ -34,10 +35,12 @@ var _progress_lcd: Label
 var _fx_strip: Control
 var _fx_buttons := {}
 var _meme_chips: HFlowContainer
-var _meme_pick: OptionButton
-var _meme_box: HBoxContainer
+var _meme_list: ItemList
+var _meme_box: VBoxContainer
 var _meme_at: SpinBox
 var _meme_size: HSlider
+var _meme_fx: OptionButton
+var _meme_speed: HSlider
 var _meme_sel := -1
 var _dragging := false
 var _music_box: VBoxContainer
@@ -132,13 +135,17 @@ func _build_ui() -> void:
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(tabs)
 	tabs.add_child(_build_fx_tab())
+	tabs.add_child(_build_meme_tab())
+	tabs.tab_changed.connect(func(tab: int) -> void:
+		if tabs.get_child(tab).name == "Memes":
+			_fill_thumbnails())
 	tabs.add_child(_build_music_tab())
 	tabs.add_child(_build_pattern_tab())
 
 
 func _build_fx_tab() -> Control:
 	var v := VBoxContainer.new()
-	v.name = "Camera & Memes"
+	v.name = "Camera"
 	v.add_theme_constant_override("separation", 6)
 	var row := HFlowContainer.new()
 	v.add_child(row)
@@ -160,42 +167,99 @@ func _build_fx_tab() -> Control:
 		_mark_dirty())
 	v.add_child(_fx_strip)
 
-	v.add_child(HSeparator.new())
-	var add := HFlowContainer.new()  # 窄屏放不下一行时自动折行
-	v.add_child(add)
-	add.add_child(_lbl("Meme  "))
-	_meme_pick = OptionButton.new()
-	_meme_pick.custom_minimum_size.x = 180
-	_meme_pick.focus_mode = Control.FOCUS_NONE
-	for key in MemeLib.keys():
-		_meme_pick.add_item(key)
-	add.add_child(_meme_pick)
-	_btn(add, "+ Add at current gauge", _add_meme, "This cat pops in when the gauge reaches the current position")
-	_meme_box = HBoxContainer.new()
-	_meme_box.add_theme_constant_override("separation", 6)
-	add.add_child(_meme_box)
-	_meme_box.add_child(_lbl("  Selected: at"))
+	return v
+
+
+func _build_meme_tab() -> Control:
+	var split := HBoxContainer.new()
+	split.name = "Memes"
+	split.add_theme_constant_override("separation", 10)
+	# 左边：所有素材的缩略图
+	_meme_list = ItemList.new()
+	_meme_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_meme_list.size_flags_stretch_ratio = 1.1
+	_meme_list.max_columns = 0
+	_meme_list.icon_mode = ItemList.ICON_MODE_TOP
+	_meme_list.fixed_icon_size = Vector2i(46, 46)
+	_meme_list.fixed_column_width = 50
+	_meme_list.same_column_width = true
+	_meme_list.focus_mode = Control.FOCUS_NONE
+	_meme_list.tooltip_text = "Click to pick, double-click to add at the current gauge position"
+	_meme_list.item_activated.connect(func(_i: int) -> void: _add_meme())
+	split.add_child(_meme_list)
+	# 右边：这个小关已经放了哪些，以及选中那只的设置
+	var right := VBoxContainer.new()
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.add_theme_constant_override("separation", 6)
+	split.add_child(right)
+	_btn(right, "+ Add picked meme at current gauge", _add_meme, "The picked cat pops in when the gauge reaches the current position")
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	right.add_child(scroll)
+	_meme_chips = HFlowContainer.new()
+	_meme_chips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_meme_chips)
+	_meme_box = VBoxContainer.new()
+	_meme_box.tooltip_text = "Drag on the picture to place the selected meme"
+	right.add_child(_meme_box)
+	var row1 := HBoxContainer.new()
+	row1.add_theme_constant_override("separation", 6)
+	_meme_box.add_child(row1)
+	row1.add_child(_lbl("At"))
 	_meme_at = SpinBox.new()
 	_meme_at.max_value = 100
 	_meme_at.step = 5
 	_meme_at.suffix = "%"
 	_meme_at.value_changed.connect(func(val: float) -> void: _edit_meme("at", val / 100.0))
-	_meme_box.add_child(_meme_at)
-	_meme_box.add_child(_lbl("Size"))
-	_meme_size = HSlider.new()
-	_meme_size.min_value = 0.05
-	_meme_size.max_value = 1.0
-	_meme_size.step = 0.01
-	_meme_size.custom_minimum_size.x = 110
-	_meme_size.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_meme_size.focus_mode = Control.FOCUS_NONE
-	_meme_size.value_changed.connect(func(val: float) -> void: _edit_meme("size", val))
-	_meme_box.add_child(_meme_size)
-	_btn(_meme_box, "Delete", _remove_meme)
-	_meme_box.tooltip_text = "Drag on the picture to place the selected meme"
-	_meme_chips = HFlowContainer.new()
-	v.add_child(_meme_chips)
-	return v
+	row1.add_child(_meme_at)
+	row1.add_child(_lbl("Size"))
+	_meme_size = _slider(row1, 0.05, 1.0, func(val: float) -> void: _edit_meme("size", val))
+	_btn(row1, "Delete", _remove_meme)
+	var row2 := HBoxContainer.new()
+	row2.add_theme_constant_override("separation", 6)
+	_meme_box.add_child(row2)
+	row2.add_child(_lbl("Effect"))
+	_meme_fx = OptionButton.new()
+	_meme_fx.focus_mode = Control.FOCUS_NONE
+	for id: String in MemeCues.EFFECTS:
+		_meme_fx.add_item(MemeCues.EFFECTS[id])
+		_meme_fx.set_item_metadata(_meme_fx.item_count - 1, id)
+	_meme_fx.item_selected.connect(func(i: int) -> void: _edit_meme("fx", _meme_fx.get_item_metadata(i)))
+	row2.add_child(_meme_fx)
+	row2.add_child(_lbl("Speed"))
+	_meme_speed = _slider(row2, 0.1, 3.0, func(val: float) -> void: _edit_meme("speed", val))
+	return split
+
+
+func _slider(parent: Control, lo: float, hi: float, action: Callable) -> HSlider:
+	var sl := HSlider.new()
+	sl.min_value = lo
+	sl.max_value = hi
+	sl.step = 0.01
+	sl.custom_minimum_size.x = 110
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sl.focus_mode = Control.FOCUS_NONE
+	sl.value_changed.connect(action)
+	parent.add_child(sl)
+	return sl
+
+
+## 第一次点开 Memes 页时才把缩略图加载进来（一百来张图，提前加载会让开面板卡一下）
+func _fill_thumbnails() -> void:
+	if _meme_list.item_count > 0:
+		return
+	for key in MemeLib.keys():
+		var info := MemeLib.find(key)
+		var sheet: Texture2D = load(info.path)
+		var icon := AtlasTexture.new()  # 只取序列帧图的第一格
+		icon.atlas = sheet
+		icon.region = Rect2(0, 0, sheet.get_width() / float(info.cols), sheet.get_height() / float(info.rows))
+		_meme_list.add_icon_item(icon)
+		_meme_list.set_item_tooltip(_meme_list.item_count - 1, key)
+		_meme_list.set_item_metadata(_meme_list.item_count - 1, key)
+	_meme_list.select(0)
 
 
 func _build_music_tab() -> Control:
@@ -388,8 +452,13 @@ func _fill_memes() -> void:
 	_meme_box.visible = _meme_sel >= 0 and _meme_sel < list.size()
 	if _meme_box.visible:
 		_loading = true
-		_meme_at.value = roundf(float(list[_meme_sel].at) * 100.0)
-		_meme_size.value = list[_meme_sel].get("size", 0.25)
+		var cue: Dictionary = list[_meme_sel]
+		_meme_at.value = roundf(float(cue.at) * 100.0)
+		_meme_size.value = cue.get("size", 0.25)
+		_meme_speed.value = cue.get("speed", 1.0)
+		for k in _meme_fx.item_count:
+			if _meme_fx.get_item_metadata(k) == cue.get("fx", ""):
+				_meme_fx.select(k)
 		_loading = false
 
 
@@ -403,10 +472,17 @@ func _add_meme() -> void:
 	var list := _def().meme_cues
 	# 新加的先错开一点放，免得叠在一起
 	var n := list.size()
-	list.append({"at": snappedf(_p(), SNAP), "meme": _meme_pick.get_item_text(_meme_pick.selected),
+	list.append({"at": snappedf(_p(), SNAP), "meme": _picked_meme(),
 			"x": -0.3 + 0.15 * (n % 5), "y": -0.25 + 0.12 * ((n / 5) % 3), "size": 0.25})
 	_meme_sel = n
 	_memes_changed(true)
+
+
+## 缩略图里现在选中的素材名
+func _picked_meme() -> String:
+	_fill_thumbnails()
+	var picked := _meme_list.get_selected_items()
+	return _meme_list.get_item_metadata(picked[0] if picked.size() > 0 else 0)
 
 
 func _remove_meme() -> void:
@@ -416,11 +492,11 @@ func _remove_meme() -> void:
 		_memes_changed(true)
 
 
-func _edit_meme(key: String, value: float) -> void:
+func _edit_meme(key: String, value: Variant) -> void:
 	if _loading or _meme_sel < 0:
 		return
 	_def().meme_cues[_meme_sel][key] = value
-	_memes_changed(key == "at")
+	_memes_changed(key == "at" or key == "fx")
 
 
 func _memes_changed(rebuild: bool) -> void:
@@ -428,8 +504,6 @@ func _memes_changed(rebuild: bool) -> void:
 		main.memes.rebuild()
 		main.memes.set_progress(_p())
 		_fill_memes()
-	else:
-		main.memes.layout()
 	_mark_dirty()
 	_refresh()
 
@@ -454,7 +528,6 @@ func _drag_to(pos: Vector2) -> void:
 	var cue: Dictionary = _def().meme_cues[_meme_sel]
 	cue.x = snappedf(clampf(pos.x / size.x - 0.5, -0.5, 0.5), 0.005)
 	cue.y = snappedf(clampf(pos.y / size.y - 0.5, -0.5, 0.5), 0.005)
-	main.memes.layout()
 	_mark_dirty()
 
 
