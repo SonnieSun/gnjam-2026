@@ -91,6 +91,18 @@
    ]
   },
   {
+   "id": "harm",
+   "name": "猫和声",
+   "gain_db": -5.0,
+   "clips": [
+    {
+     "id": "ode_harm",
+     "pattern": "res://levels/music/patterns/harm_ode_to_joy.json",
+     "by_hit": false
+    }
+   ]
+  },
+  {
    "id": "kiai",
    "name": "KIAI 鬼畜",
    "gain_db": -2.0,
@@ -211,6 +223,12 @@
      [
       0.7,
       "ode_cat_drums"
+     ]
+    ],
+    "harm": [
+     [
+      0.7,
+      "ode_harm"
      ]
     ],
     "hit": [

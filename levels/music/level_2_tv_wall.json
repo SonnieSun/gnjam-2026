@@ -123,6 +123,28 @@
    ]
   },
   {
+   "id": "harm",
+   "name": "猫和声",
+   "gain_db": -5.0,
+   "clips": [
+    {
+     "id": "ybf_harm",
+     "pattern": "res://levels/music/patterns/harm_your_best_friend.json",
+     "by_hit": false
+    },
+    {
+     "id": "mk_harm",
+     "pattern": "res://levels/music/patterns/harm_mountain_king.json",
+     "by_hit": false
+    },
+    {
+     "id": "cc_harm",
+     "pattern": "res://levels/music/patterns/harm_can_can.json",
+     "by_hit": false
+    }
+   ]
+  },
+  {
    "id": "kiai",
    "name": "KIAI 鬼畜",
    "gain_db": -2.0,
@@ -207,6 +229,12 @@
      [
       0.3,
       "ybf_cat_drums"
+     ]
+    ],
+    "harm": [
+     [
+      0.5,
+      "ybf_harm"
      ]
     ],
     "kiai": [
@@ -334,6 +362,12 @@
       0.0,
       "mk_cat_drums"
      ]
+    ],
+    "harm": [
+     [
+      0.4,
+      "mk_harm"
+     ]
     ]
    },
    "tiers": [
@@ -383,6 +417,12 @@
      [
       0.0,
       "cc_cat_drums"
+     ]
+    ],
+    "harm": [
+     [
+      0.0,
+      "cc_harm"
      ]
     ],
     "kiai": [

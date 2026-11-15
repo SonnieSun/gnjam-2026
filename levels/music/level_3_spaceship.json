@@ -99,6 +99,23 @@
    ]
   },
   {
+   "id": "harm",
+   "name": "猫和声",
+   "gain_db": -5.0,
+   "clips": [
+    {
+     "id": "tm_harm",
+     "pattern": "res://levels/music/patterns/harm_turkish_march.json",
+     "by_hit": false
+    },
+    {
+     "id": "cc_harm",
+     "pattern": "res://levels/music/patterns/harm_can_can.json",
+     "by_hit": false
+    }
+   ]
+  },
+  {
    "id": "kiai",
    "name": "KIAI 鬼畜",
    "gain_db": -2.0,
@@ -173,6 +190,12 @@
       "cat_drums"
      ]
     ],
+    "harm": [
+     [
+      0.7,
+      "tm_harm"
+     ]
+    ],
     "kiai": [
      [
       0.7,
@@ -241,6 +264,12 @@
      [
       0.75,
       "cc_cat_drums"
+     ]
+    ],
+    "harm": [
+     [
+      0.5,
+      "cc_harm"
      ]
     ],
     "kiai": [

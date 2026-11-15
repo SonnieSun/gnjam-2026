@@ -222,6 +222,12 @@ def pattern(id_, name, group, by_hit=False):
     return {'id': id_, 'pattern': f'res://levels/music/patterns/{name}.json', 'group': group, 'by_hit': by_hit}
 
 
+def harm(id_, tune):
+    """The cats' backing vocals for a tune (a run-time pattern, make_harmony_patterns.py): short off-beat chord
+    notes under the cat lead. Cue it where the cats have the tune."""
+    return pattern(id_, 'harm_' + tune, 'harm')
+
+
 def five_tiers(c, native=False):
     """c: clip ids by role (groove bass keys hook peak cat_drums cat_lead cat_stabs cat_bass kichiku, and
     optionally hit = a by_hit pattern clip). Returns the on/off ranges of one section."""
@@ -277,13 +283,14 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                       t('ybf_peak', YB + 'fb_L4_peak_8b.wav', 'peak'), t('mk_peak', MK + 'fb_L4_peak_4b.wav', 'peak'),
                       t('ybf_cat_drums', YB + 'C_drums_8b.wav', 'cat'), t('mk_cat_drums', MK + 'C_drums_4b.wav', 'cat'),
                       t('ybf_double', YB + 'L3_pluck_8b.wav', 'kiai'),
-                      pattern('ybf_by_hit', 'your_best_friend', 'hit', by_hit=True)] + FILL,
+                      pattern('ybf_by_hit', 'your_best_friend', 'hit', by_hit=True),
+                      harm('ybf_harm', 'your_best_friend'), harm('mk_harm', 'mountain_king'), harm('cc_harm', 'can_can')] + FILL,
            'sections': [
                {'title': 'TV WALL', 'tiers': W, 'transition_tiers': (), 'fever': (W[4], 1.0),
                 'own': {'kiai': '', 'hit': 'ybf_by_hit'}, 'rules': {
                    'half': [[0, W[1]]], 'groove': [[W[1], 1]],
                    'ybf_keys': [[0, 1]], 'ybf_bass': [[W[0], 1]],
-                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[W[0], W[2]]], 'ybf_cats': [[W[2], 1]],
+                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[W[0], W[2]]], 'ybf_cats': [[W[2], 1]], 'ybf_harm': [[W[2], 1]],
                    'ybf_peak': [[W[3], 1]], 'ybf_cat_drums': [[W[1], 1]], 'ybf_double': [[W[4], 1]]}},
                {'title': 'SLAP / WARM UP', 'tiers': (0.3, 0.6), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''},
                 'enter': 'tr_ybf_to_mk', 'rules': {
@@ -291,11 +298,11 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                    'mk_pluck': [[0.3, 1]], 'mk_cat_drums': [[0.6, 1]]}},
                {'title': 'SLAP / CHARGE', 'tiers': (0.4, 0.75), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''}, 'rules': {
                    'groove': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]], 'mk_cat_drums': [[0, 1]],
-                   'mk_pluck': [[0, 0.4]], 'mk_cats': [[0.4, 1]], 'mk_peak': [[0.75, 1]]}},
+                   'mk_pluck': [[0, 0.4]], 'mk_cats': [[0.4, 1]], 'mk_harm': [[0.4, 1]], 'mk_peak': [[0.75, 1]]}},
                {'title': 'SLAP / POWER', 'tiers': (0.35, 0.7), 'transition_tiers': (), 'fever': (0.7, 1.0),
                 'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_mk_to_cc', 'rules': {
                    'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]], 'cc_cat_drums': [[0, 1]],
-                   'cc_cats': [[0, 1]], 'cc_peak': [[0.35, 1]], 'cc_double': [[0.7, 1]]}}]}
+                   'cc_cats': [[0, 1]], 'cc_harm': [[0, 1]], 'cc_peak': [[0.35, 1]], 'cc_double': [[0.7, 1]]}}]}
 
 # --- the sky level (the UFO / abduction level, to become level 2) -----------------------------------
 # The cat is pulled up by the beam: through the clouds, into a storm with doom horns, then it suddenly
@@ -317,7 +324,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
             'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), t('blast', SK + 'blast_drums_8b.wav', 'groove'), SKELETON[0],
                        t('drone', SK + 'drone_8b.wav', 'bass'), t('metal', SK + 'metal_riff_8b.wav', 'bed'), t('ode_bass', OJ + 'L2_bass_8b.wav', 'bass'),
                        t('ode_keys', OJ + 'fb_L0_keys_8b.wav', 'bed'),
-                       t('ode_cats', OJ + 'L3_cat_flow_8b.wav', 'hook'),
+                       t('ode_cats', OJ + 'L3_cat_flow_8b.wav', 'hook'), harm('ode_harm', 'ode_to_joy'),
                        t('doom_horns', SK + 'doom_horns_8b.wav', 'peak'), t('holy_pad', SK + 'holy_pad_8b.wav', 'peak'),
                        t('ode_cat_drums', OJ + 'C_drums_8b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_8b.wav', 'kiai'),
                        pattern('ode_by_hit', 'ode_to_joy', 'hit', by_hit=True), pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
@@ -327,7 +334,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
                 'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
                 'ode_keys': [[SKY[1], 1]],
-                'ode_cats': [[SKY[2], SKY[3]]],
+                'ode_cats': [[SKY[2], SKY[3]]], 'ode_harm': [[SKY[2], 1]],
                 'doom_horns': [[SKY[0], SKY[1]]], 'holy_pad': [[SKY[1], SKY[3]]],
                 'ode_cat_drums': [[SKY[2], 1]],
                 'ufo_rise': [[0, SKY[1]]], 'ode_by_hit': [[SKY[1], SKY[2]]],
@@ -358,6 +365,7 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       t('tm_bass', TM + 'L2_bass_16b.wav', 'bass'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
                       t('tm_pluck', TM + 'L3_pluck_16b.wav', 'hook'), t('cc_pluck', CC + 'L3_pluck_8b.wav', 'hook'),
                       t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'),
+                      harm('tm_harm', 'turkish_march'), harm('cc_harm', 'can_can'),
                       t('tm_peak', TM + 'fb_L4_peak_16b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
                       CATS[0], t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
                       t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'),
@@ -366,20 +374,21 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0),
                 'own': {'kiai': 'tm_kichiku', 'hit': ''}, 'rules': {
                    'half': [[0, T3[0]]], 'groove': [[T3[0], 1]], 'tm_keys': [[0, 1]], 'tm_bass': [[T3[0], 1]],
-                   'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], 1]], 'tm_peak': [[T3[3], 1]],
+                   'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], 1]], 'tm_harm': [[T3[2], 1]], 'tm_peak': [[T3[3], 1]],
                    'cat_drums': [[T3[1], 1]]}},
                {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[2], 1.0),
                 'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_tm_to_cc', 'rules': {
                    'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]],
                    'cat_drums': [[0, R[2]]], 'cc_cat_drums': [[R[2], 1]],
-                   'cc_pluck': [[0, R[1]]], 'cc_lead': [[R[1], 1]],
+                   'cc_pluck': [[0, R[1]]], 'cc_lead': [[R[1], 1]], 'cc_harm': [[R[1], 1]],
                    'cc_peak': [[R[0], 1]], 'cc_double': [[R[2], 1]]}}]}
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
          10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
-         ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('hit', '打中唱', 'hit'),
+         ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('harm', '猫和声', 'harm'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('hit', '打中唱', 'hit'),
          ('fx', '事件', 'event'), ('fill', '过门', 'fill')]
-LANE_GAIN = {'kiai': -2.0}   # stacked on the cat lead, so a little under it
+LANE_GAIN = {'kiai': -2.0, 'harm': -5.0}   # kiai: stacked on the cat lead, so a little under it; harm: the backing vocals, well under the lead
+
 
 
 def to_lanes(s):
