@@ -190,30 +190,6 @@ func add_pattern_clip(lane_id: String, pattern_path: String) -> String:
 	return clip_id
 
 
-## 把一个谱子片段写进第 level_index 个大关的音乐配置文件（不需要这一关正在播）。
-## 已经有同名片段就不重复加。返回 OK 或出错的原因。
-func add_pattern_clip_to_level(level_index: int, lane_id: String, pattern_path: String) -> Error:
-	var p := path_for(level_index)
-	var d := read(p)
-	if d.is_empty():
-		return ERR_FILE_NOT_FOUND
-	var clip_id := pattern_path.get_file().get_basename()
-	var lanes: Array = d.get("lanes", [])
-	var lane: Dictionary = {}
-	for l: Dictionary in lanes:
-		if l.id == lane_id:
-			lane = l
-	if lane.is_empty():
-		lane = {"id": lane_id, "name": lane_id, "gain_db": 0.0, "clips": []}
-		lanes.append(lane)
-		d["lanes"] = lanes
-	for c: Dictionary in lane.clips:
-		if c.id == clip_id:
-			return OK
-	lane.clips.append({"id": clip_id, "pattern": pattern_path})
-	return write(p, d)
-
-
 ## 谱子片段的文件改了：重新读（正在播的马上换成新的）
 func reload_patterns() -> void:
 	for lane in data.get("lanes", []):

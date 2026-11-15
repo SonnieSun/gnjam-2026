@@ -6,12 +6,13 @@ extends Control
 ## 它是独立的：PLAY 默认**只放谱子本身**，按上面的 BPM 自己走，不需要选关、不放曲子；想要拍子就勾"节拍器"。
 ## 想配着别的音轨听：在"伴奏"里选曲库里的任意一首，下面一排就是它的每条音轨，点亮哪条就加哪条进试听
 ## （这时速度跟那首曲子走）。
-## 下面是谱子编辑（meow_pattern_tab.gd）：格子或卷帘、Save（存了就出现在曲库里）、
-## "Add to" 选加进哪个大关的哪条轨道。
+## 下面是谱子编辑（meow_pattern_editor.gd）：格子或卷帘、Save（存了就出现在曲库里）。
+## 这里只管写和存；把谱子用进某一关，是游戏里 Tab 面板 Music 页的事（轨道右边的 "+ meow"）。
+## 插着 MIDI 键盘的话：按键试听，播放时按键就录进去。
 ## Space = 播放 / 停，Esc = 回曲库。
 
 const THEME := preload("res://assets/ui/theme.tres")
-const PatternTab := preload("res://scripts/music/meow_pattern_tab.gd")
+const PatternEditor := preload("res://scripts/music/meow_pattern_editor.gd")
 const Jukebox := preload("res://scripts/music/jukebox.gd")
 const CLICK := preload("res://assets/audio/sfx/kick.wav")
 const JUKEBOX_SCENE := "res://scenes/tools/jukebox.tscn"
@@ -107,19 +108,18 @@ func _ready() -> void:
 	for n in _juke.song_names():
 		_backing.add_item(n)
 
-	_tab = PatternTab.new()
+	_tab = PatternEditor.new()
 	_tab.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(_tab)
-	_tab.set_always_listen(true)         # 这里 PLAY 就是听谱子，不需要 Listen 开关
 	_tab.set_cell_size(24.0, 13.0)       # 全屏，格子画大一点
 
 	# 曲库让打开的谱子
 	var request: String = Music.meow.edit_request
 	Music.meow.edit_request = ""
 	if request.begins_with("new:"):
-		_tab._new(request.trim_prefix("new:"))
+		_tab.new_pattern(request.trim_prefix("new:"))
 	elif request != "":
-		_tab._open(request)
+		_tab.open(request)
 
 
 func _button(parent: Control, text: String, action: Callable, variation := "") -> Button:
@@ -172,7 +172,6 @@ func _play() -> void:
 	_playing = true
 	_last_click_beat = -1
 	_play_btn.text = "STOP"
-	_tab.refresh_listen()
 
 
 func _stop() -> void:
@@ -180,7 +179,6 @@ func _stop() -> void:
 	_juke.stop_all()
 	_playing = false
 	_play_btn.text = "PLAY"
-	_tab.refresh_listen()
 
 
 func _go(scene: String) -> void:

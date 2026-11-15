@@ -321,6 +321,30 @@ func _open_jukebox() -> void:
 	get_tree().change_scene_to_file("res://scenes/tools/jukebox.tscn")
 
 
+## 轨道右边的 "+ meow"：把一个存好的喵谱子（levels/music/patterns/，在喵谱子工作室里写的）加成这条轨道的片段，
+## 之后就和别的片段一样点它来切换。点 Save 才写进这一关的音乐配置。
+func _meow_menu(lid: String, clips: Array) -> MenuButton:
+	var menu := MenuButton.new()
+	menu.text = "+ meow"
+	menu.flat = false
+	menu.focus_mode = Control.FOCUS_NONE
+	menu.tooltip_text = "Add a saved meow pattern (meow drums / cat melody written in Meow Studio) to this lane as a clip"
+	var have := {}
+	for c: Dictionary in clips:
+		have[c.id] = true
+	var paths := PackedStringArray()
+	for p in MeowPlayer.list_patterns():
+		if not have.has(p.get_file().get_basename()):
+			paths.append(p)
+			menu.get_popup().add_item(p.get_file().get_basename())
+	menu.disabled = paths.is_empty()
+	menu.get_popup().index_pressed.connect(func(i: int) -> void:
+		Music.add_pattern_clip(lid, paths[i])
+		_mark_dirty()
+		_fill_music.call_deferred())
+	return menu
+
+
 ## 喵谱子工作室：离开游戏，去写猫鼓和鬼畜猫旋律（scenes/tools/meow_studio.tscn）
 func _open_meow_studio() -> void:
 	Conductor.stop()
@@ -600,6 +624,7 @@ func _fill_music() -> void:
 					"From the current gauge position on, this lane plays this clip (click again to mute it from here)")
 			b.add_theme_color_override("font_color", color)
 			_music_chips[lid][cid] = b
+		chips.add_child(_meow_menu(lid, clips))
 		strip.changed.connect(func() -> void:
 			_tidy(cues[lid])
 			Music.apply_now()
