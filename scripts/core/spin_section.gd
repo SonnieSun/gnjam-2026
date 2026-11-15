@@ -417,10 +417,9 @@ func draw_approach_rings(ci: CanvasItem, center: Vector2, radius: float,
 		var ahead := beats_until(n)
 		if ahead > approach_beats:
 			break
+		# 第 1 关的缩圈手感：远处细、半透明，越靠近判定圈越亮越粗、略偏白，最后一段带柔光
 		var k := clampf(ahead / approach_beats, 0.0, 1.0)
-		var c := sound_color(n)
-		c.a = 1.0 - k * 0.6
-		ci.draw_arc(center, radius + k * travel, 0.0, TAU, 96, c, 6.0)
+		draw_approach_ring(ci, center, radius + k * travel, approach_ring_look(k, guide_color(n)))
 	if tap_age < 0.15:  # 每次按键都闪一圈
 		ci.draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64,
 				Color(1, 1, 1, 1.0 - tap_age / 0.15), 8.0)
