@@ -21,6 +21,16 @@ signal level_cleared
 @export var start_section := 0
 ## 开始前的预备拍数（音乐响起之前先空走几拍）
 @export var lead_in_beats := 4.0
+@export_group("阶段触发的大反馈")
+## 积累条涨过一条分数线（进了新阶段）/ 涨满时：画面顶一大下（1 = 一次 Perfect 那么大；0 = 不顶）
+@export var phase_punch := 2.0
+## 同时全屏白闪多亮（0 = 不闪）
+@export_range(0.0, 1.0) var phase_flash := 0.3
+## 同时响一声重音：assets/audio/sfx/ 里的文件名（不带 .wav，比如 "crash"），留空 = 不响。
+## 默认不响：叠轨音乐升档时自己已经会响一声镲（music.gd），再加一声会叠在一起
+@export var phase_sound := ""
+@export_range(-30.0, 6.0) var phase_sound_db := -10.0
+@export_group("")
 
 @onready var section_host: Node2D = $SectionHost
 @onready var fx_layer: Node2D = $FxLayer
@@ -33,6 +43,7 @@ signal level_cleared
 @onready var memes: MemeCues = $Memes
 
 const GameEditor := preload("res://scripts/tools/game_editor.gd")
+const ShockRing := preload("res://scripts/fx/shock_ring.gd")
 
 ## 游戏里的编辑面板开着（Tab）：这时积累条由面板上的进度条控制，打中 / 漏打不再改它
 var editing := false
@@ -64,6 +75,7 @@ func _ready() -> void:
 	Conductor.load_chart(chart)
 	judge.load_chart(chart)
 
+	hud.gauge = gauge
 	Conductor.beat.connect(_on_beat)
 	judge.note_judged.connect(_on_note_judged)
 	judge.pressed.connect(drum_kit.play)
@@ -71,6 +83,7 @@ func _ready() -> void:
 	judge.combo_milestone.connect(func(combo: int): hud.show_combo_milestone(combo))
 	judge.combo_milestone.connect(hit_meow.milestone)  # 连击里程碑：转圈喵（oiia），连击够高再送一段鬼畜全开
 	judge.stats_changed.connect(func(): hud.set_stats(judge.score, judge.combo))
+	judge.stats_changed.connect(func(): screen_fx.set_combo(judge.combo))  # 连击越高画面越热闹
 	gauge.changed.connect(_on_gauge_changed)
 	gauge.event.connect(_on_gauge_event)
 	gauge.filled.connect(_on_gauge_filled)
@@ -82,6 +95,7 @@ func _ready() -> void:
 func start_from(index: int) -> void:
 	index = clampi(index, 0, chart.sections.size() - 1)
 	judge.reset()
+	screen_fx.reset_heat()
 	hud.reset()
 	_cleared = false
 	_switch_at = -1.0
@@ -135,6 +149,7 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 		g_events = _current.gauge_events
 	screen_fx.begin(def.fx_cues, _current)
 	memes.begin(def.meme_cues)
+	hud.reset_gauge()
 	gauge.begin(g_max, g_events)
 	_current.gauge_event_values = gauge.events
 	section_entered.emit(index)
@@ -179,8 +194,21 @@ func _on_gauge_changed(value: int, max_value: int) -> void:
 	memes.set_progress(p)
 
 
+## 进了新阶段 / 满条：画面顶一大下 + 白闪 + 一声重音。
+## 编辑面板开着时不做（拖进度条、跳阶段会一口气补触发好几条线）
+func _phase_impact() -> void:
+	if editing:
+		return
+	screen_fx.punch(phase_punch)
+	if phase_flash > 0.0:
+		hud.flash(Color.WHITE, phase_flash, 0.25)
+	if phase_sound != "":
+		Music.play_sfx(phase_sound, phase_sound_db)
+
+
 func _on_gauge_event(index: int, value: int) -> void:
 	hud.pulse_gauge(false)
+	_phase_impact()
 	if _current:
 		_current.notify_gauge_event(index, value)
 	gauge_event.emit(_index, index, value)
@@ -189,6 +217,7 @@ func _on_gauge_event(index: int, value: int) -> void:
 ## 满条了：定在下一个小节线切关（这之前剩下的几个音符照常打、照常计分，只是积累条不再动）
 func _on_gauge_filled() -> void:
 	hud.pulse_gauge(true)
+	_phase_impact()
 	if _current:
 		_current.notify_gauge_filled()
 	gauge_filled.emit(_index)
@@ -210,10 +239,17 @@ func _on_note_judged(note: NoteData, result: int, diff_sec: float) -> void:
 		if _current.wants_hit_effects(note):
 			hit_meow.play(result)
 		if _current.wants_hit_effects(note) and result != NoteData.Result.MISS:
+			screen_fx.punch_for(result)  # 整个画面顶一下（Perfect 最大）
 			var fx := StarBurst.create(result != NoteData.Result.GOOD)
 			fx_layer.add_child(fx)
 			fx.start_radius = _current.hit_radius()
 			fx.global_position = _current.to_global(_current.hit_position(note))
+			if result == NoteData.Result.PERFECT:
+				# Perfect 专属：判定圈上再炸开一圈冲击环
+				var ring := ShockRing.create(_current)
+				fx_layer.add_child(ring)
+				ring.radius *= _current.hit_radius()
+				ring.global_position = fx.global_position
 
 
 func _on_empty_hit() -> void:

@@ -14,6 +14,9 @@ extends Node2D
 @export_group("击中手感")
 ## 每打中一下，step_rot 往前转多少（弧度）。漏打不转。
 @export var step_angle := PI / 4
+## 打中时整个画面顶一下（Main/ScreenFx 的 punch）在这一关乘多少倍。
+## 这一关自己的镜头已经会在打中时往前推的话调小一点，免得两样叠起来太晃；0 = 这一关不顶
+@export_range(0.0, 2.0, 0.05) var screen_punch := 1.0
 @export_group("积累条")
 ## 这一关的满条值。0 = 用 Gauge 节点的默认值
 @export var gauge_max_override := 0

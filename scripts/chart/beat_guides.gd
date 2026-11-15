@@ -52,7 +52,8 @@ static func look(g: Dictionary) -> Dictionary:
 		var c: Color = (g.color as Color).lerp(Color.WHITE, k * k * 0.35)
 		c.a = 0.3 + 0.7 * k * k
 		return {"color": c, "width": 1.0 + k * 1.2, "dashed": false}
-	return {"color": Color(1, 1, 1, 0.22 * (1.0 - a * 0.6)), "width": 0.5, "dashed": true}
+	# 远处也要看得清（原来远处几乎看不见）：基础更亮，远处只淡一点
+	return {"color": Color(1, 1, 1, 0.42 * (1.0 - a * 0.3)), "width": 0.7, "dashed": true}
 
 
 ## 判定点预亮：{k: 0~1（0 = 一拍内没有要按的）, color}。filter(note) -> bool 可以只看一部分音符（比如某条轨道）
@@ -88,7 +89,7 @@ static func draw_ring(ci: CanvasItem, center: Vector2, radius: float, l: Diction
 		pts.append(center + Vector2(cos(ang) * radius * scale_x, sin(ang) * radius * scale_x * squash))
 	if l.dashed:
 		for i in range(0, count, 3):
-			ci.draw_line(pts[i], pts[i + 1], l.color, 2.0, true)
+			ci.draw_line(pts[i], pts[i + 1], l.color, 2.5, true)
 	else:
 		ci.draw_polyline(pts, l.color, base_width * l.width, true)
 
