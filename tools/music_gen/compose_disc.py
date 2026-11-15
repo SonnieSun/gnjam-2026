@@ -694,40 +694,18 @@ def layer_cat_drums():
 
 
 def layer_cat_stabs():
-    x = blank()
-    voices = cats('ID 0903')
-    for bar, (notes, _) in enumerate(CHORDS):
-        top3 = [nm(q) + 12 for q in notes[1:]]
-        hits = [2, 6, 10, 14] + ([15] if bar % 2 else [])
-        for s in hits:
-            for i, (m, side) in enumerate(zip(top3, (-0.5, 0.0, 0.5))):
-                v = chop(voices[(i + s) % len(voices)], m, 0.11 if s != 15 else 0.08)
-                place(x, pan(v.mean(axis=1), side), t2n(bar * BAR + s * STEP), 0.6)
-    x = highpass(x, 140)
-    return match_rms(finish_loop(reverb(softclip(x * 1.15, 1.1), 0.5, 0.15, mix=0.06), peak=0.8), RMS_REF['A_L0_keys'])
+    # thinned so it sits under a cat lead (two cats, shorter, low-mids cut): see scene1_cat_backing.py
+    from scene1_cat_backing import cat_stabs
+    return cat_stabs(cats('ID 0903'), CHORDS, RMS_REF['A_L0_keys'])
 
 
 def layer_cat_bass():
     """The octave bass with a cat in it: the low notes on the beat stay a real bass (a meow pushed
     down that far turns into a growl), and the high notes on the off-beat are sung by an adult cat
     that is already near that pitch, with a sine under it so the low end never drops out."""
-    x = blank()
-    singers = cats('ID 0903')
-    k = 0
-    for bar, (_, root) in enumerate(CHORDS):
-        f = mtof(nm(root) + 12)
-        r = nm(root) + 36                                          # Eb4-G4: where these cats sing
-        for e in range(8):
-            at = t2n(bar * BAR + e * 2 * STEP)
-            n = t2n(STEP * 1.6)
-            if e % 2 == 0:
-                place(x, pan(bass_note(f, n), 0.0), at)
-            else:
-                place(x, stereo(sing(singers[k % len(singers)], r, 0.17)), at, 0.9)
-                sub = osc_sine(f, n) * adsr(n, 0.003, 0.05, 0.7, 0.03) * 0.6
-                place(x, pan(sub, 0.0), at)
-                k += 1
-    return match_rms(finish_loop(softclip(x * 1.2, 1.2), peak=0.8), RMS_REF['L2_bass'])
+    # shorter notes and less low-mid than it had (see scene1_cat_backing.py)
+    from scene1_cat_backing import cat_bass
+    return cat_bass(cats('ID 0903'), CHORDS, bass_note, RMS_REF['L2_bass'])
 
 
 def layer_cat_lead():
