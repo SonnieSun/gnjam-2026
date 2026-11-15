@@ -31,7 +31,7 @@ TRIM_DB = {'_L2_bass_': -4.0, '_C_bass_': -4.0}
 # half-time rhythms, the cat band and two event tracks
 STEMS_120 = ('L1_groove', 'L2_bass', 'B_L0_keys', 'B_L3_hook', 'B_L4_peak', 'fb_L0_keys', 'fb_L3_hook', 'fb_L4_peak',
              'Rclub_L1_groove', 'Rclub_L2_bass', 'Rhalf_L1_groove', 'C_drums', 'C_stabs', 'C_bass', 'C_lead', 'C_lead_flow', 'C_lead_kichiku',
-             'X_meow', 'X_seal',
+             'X_meow', 'X_seal', 'X_fill',
              'J_L0_piano', 'J_L1_groove', 'J_L2_bass', 'J_L3_sax', 'J_L4_shout',          # jazz
              'A_L0_keys', 'A_L3_hook', 'A_L4_peak', 'chip_L0_keys', 'chip_L3_hook', 'chip_L4_peak')
 

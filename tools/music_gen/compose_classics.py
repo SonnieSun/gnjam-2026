@@ -151,6 +151,7 @@ for _role in ('long', 'accent', 'short'):
     for _i in ROSTER[_role]:
         write_wav(os.path.join(_kdir, f'miao_{_role}_{_i:02d}.wav'), cat_sample(_i), peak=0.9)
 FX = 0.35            # how much pitch FX the regular cat leads get (the kichiku lead gets 1.0)
+HIGH_FROM = 79       # G5: from here up the regular cat leads are doubled by a kichiku meow
 _turns = {}
 # each cat's own pitch (the median of its meow), so a note goes to a cat that is already near it
 _native = {}
@@ -371,11 +372,19 @@ def cat_leads(song, bars, last_in_phrase):
     # a little pitch FX and bite so the tune reads; the phrase-ending MIAO is the loudest note, with a
     # second meow an octave below under it.
     mel = song['melody']
+    everyone = [(c.mean(axis=1) if c.ndim == 2 else c, native(c)) for c in LONG + ACCENT + SHORT]
+    high_cat = max(everyone, key=lambda c: c[1])           # the highest cat sings the reinforcement
     for name, style, flow in (('L3_cat', 'mix', False), ('L3_cat_flow', 'mix', True),
                               ('L3_cat_pool', 'pool', False), ('L3_cat_classic', 'classic', False)):
         x = blank(bars)
         for i, (s, p, ln) in enumerate(song['melody']):
             m = nm(p) + song['cat_octave']
+            # High notes: a formant-kept meow gets thin up there and stops reading as a note, so from
+            # HIGH_FROM up a kichiku meow (played faster, full pitch FX, cut to the note) doubles it,
+            # louder the higher the note.
+            if m >= HIGH_FROM:
+                k = hit(high_cat[0], high_cat[1], m, max(ln * STEP * 0.95, 0.09))
+                place(x, stereo(resonate(k, m, even=True)), t2n(s * STEP), float(np.interp(m, [HIGH_FROM, HIGH_FROM + 9], [0.5, 0.95])))
             if i in last_in_phrase and ln >= 2:              # mi-mi-mi-MIAO, #6 shouting the end
                 for k in range(3):
                     place(x, stereo(resonate(mi(m), lift(m), FX)), t2n(s * STEP + k * STEP / 2), 0.9)
@@ -392,7 +401,6 @@ def cat_leads(song, bars, last_in_phrase):
     # the kichiku cat lead: one cat sings a whole 4-bar phrase (the one whose own pitch is nearest the
     # phrase, never the same cat two phrases running), every note restarts its meow from the start,
     # pitched by playing it faster / slower, and is cut hard at the end of the note. Full pitch FX.
-    everyone = [(c.mean(axis=1) if c.ndim == 2 else c, native(c)) for c in LONG + ACCENT + SHORT]
     x = blank(bars)
     prev = None
     for ph in range(0, bars, 4):
@@ -616,10 +624,60 @@ SONGS = {
         cat_octave=0, drum_notes=(nm('E4'), nm('A4'))),
 }
 
+# Toby Fox, "Your Best Friend" (Undertale, 2015). NOT public domain: for the team's internal playtest
+# only. The tune comes from a piano MIDI (tools/music_gen/midi_to_pattern.py, right hand); the chords are
+# read off its left hand. Ab major, the first 8 bars. The original is at 120 BPM.
+SONGS['your_best_friend'] = dict(
+    chords=['Ab', 'Ab', 'Eb', 'Eb', 'Ab', 'Ab', 'Db', 'Eb7', 'Ab', 'Ab', 'Bbm', 'Eb', 'Db', 'Eb', 'Ab', 'Ab'],
+    melody=tune([
+            [(0, 'C5', 2), (4, 'C5', 1), (6, 'C#5', 1), (8, 'D#5', 2), (12, 'C5', 2)],
+            [(0, 'C#5', 2), (4, 'C#5', 1), (6, 'D#5', 1), (8, 'A#4', 2)],
+            [(0, 'C5', 2), (4, 'C5', 1), (6, 'C#5', 1), (8, 'D#5', 2), (12, 'G#5', 2)],
+            [(0, 'F5', 6), (8, 'D#5', 1), (12, 'D#6', 4)],
+            [(0, 'C5', 2), (4, 'C5', 1), (6, 'C#5', 1), (8, 'D#5', 2), (12, 'C5', 2)],
+            [(0, 'C#5', 2), (4, 'C#5', 1), (6, 'D#5', 1), (8, 'A#4', 2), (12, 'G4', 1)],
+            [(0, 'C5', 2), (4, 'C5', 1), (6, 'C#5', 1), (8, 'A#4', 2), (12, 'G4', 2)],
+            [(0, 'G#4', 6), (8, 'G#5', 1)],
+    ]),
+    cat_octave=0, drum_notes=(nm('D#4'), nm('G#4')))
+
 # Speed per song, over the same 160 BPM beat. Half time (2) plays the tune at half speed (an 8th
 # becomes a quarter, chords one per bar, loop twice as long): the Turkish March, all 16ths, needs it
 # and sounded best that way. The rest stay at their own speed: the 'flow' lead lets each meow ring
 # on into the next, so they are long enough without slowing the tune down.
+# More sections of the same song, so the game can change section as it goes (same key, same tempo, so
+# their stems can sit in the same lanes and swap on a phrase line). Only the intro's pick-up is from the
+# MIDI; the B section and the ending are written for this game on the song's chords, not Toby Fox's notes.
+#   ybf_intro  4 bars on Ab, no tune until the pick-up into the theme
+#   ybf_b      8 bars, a contrasting section: Db Eb Cm Fm | Db Eb Ab Eb7, the theme's rhythm on higher notes
+#   ybf_end    4 bars, Db Eb7 Ab Ab: one last phrase and a long final note (play it once, do not loop it)
+SONGS['ybf_intro'] = dict(
+    chords=['Ab'] * 8,
+    melody=tune([[], [], [], [(12, 'F#5', 1), (13, 'G5', 1), (14, 'G#5', 2)]]),
+    cat_octave=0, drum_notes=(nm('D#4'), nm('G#4')))
+SONGS['ybf_b'] = dict(
+    chords=['Db', 'Db', 'Eb', 'Eb', 'Cm', 'Cm', 'Fm', 'Fm', 'Db', 'Db', 'Eb', 'Eb', 'Ab', 'Ab', 'Eb7', 'Eb7'],
+    melody=tune([
+        [(0, 'F5', 2), (4, 'F5', 1), (6, 'G#5', 1), (8, 'C#6', 2), (12, 'G#5', 2)],
+        [(0, 'G5', 2), (4, 'G5', 1), (6, 'A#5', 1), (8, 'D#6', 4)],
+        [(0, 'D#6', 2), (4, 'D6', 1), (6, 'C6', 1), (8, 'G5', 2), (12, 'D#5', 2)],
+        [(0, 'G#5', 2), (4, 'G5', 1), (6, 'F5', 1), (8, 'C5', 4)],
+        [(0, 'F5', 2), (4, 'F5', 1), (6, 'G#5', 1), (8, 'C#6', 2), (12, 'F6', 2)],
+        [(0, 'D#6', 2), (4, 'C#6', 1), (6, 'A#5', 1), (8, 'G5', 4)],
+        [(0, 'G#5', 2), (4, 'C6', 2), (8, 'D#6', 2), (12, 'C6', 2)],
+        [(0, 'A#5', 6), (8, 'C#6', 2), (12, 'D#6', 2), (14, 'G5', 2)],
+    ]),
+    cat_octave=0, drum_notes=(nm('D#4'), nm('G#4')))
+SONGS['ybf_end'] = dict(
+    chords=['Db', 'Db', 'Eb7', 'Eb7', 'Ab', 'Ab', 'Ab', 'Ab'],
+    melody=tune([
+        [(0, 'F5', 2), (4, 'F5', 1), (6, 'G#5', 1), (8, 'C#6', 4)],
+        [(0, 'D#6', 2), (4, 'C#6', 1), (6, 'A#5', 1), (8, 'G5', 2), (12, 'A#5', 2)],
+        [(0, 'G#5', 8), (8, 'D#5', 2), (12, 'C5', 2)],
+        [(0, 'G#4', 12)],
+    ]),
+    cat_octave=0, drum_notes=(nm('D#4'), nm('G#4')))
+
 HALF_TIME = 2
 SPEED = {'turkish_march': HALF_TIME}
 # Placeholder, not used yet: everything is rendered at 160 BPM. Songs listed here suit 120 better and
