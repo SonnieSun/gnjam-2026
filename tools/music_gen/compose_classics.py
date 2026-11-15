@@ -723,6 +723,21 @@ SONGS = {
         cat_octave=0, drum_notes=(nm('E4'), nm('A4')), mi_attack=True),
 }
 
+# Turkish March, the second section: the A major "janissary" tune (bars 25-32 of the rondo), the loud march
+# the piece keeps coming back to. Notes and chords read off the Mutopia Project MIDI of KV 331 / 3 (public
+# domain, typeset from IMSLP; reference/midi_public_domain/mozart_kv331_3). Same writing as the first section:
+# a step is one of the original sixteenths, a row is two original bars, played at half speed. The last two
+# notes are the pickup back into the loop.
+SONGS['turkish_march_b'] = dict(
+    chords=['A', 'A', 'D', 'E', 'A', 'A', 'E', 'A'],
+    melody=tune([
+        [(0, 'C#6', 4), (4, 'A5', 2), (6, 'B5', 2), (8, 'C#6', 2), (10, 'B5', 2), (12, 'A5', 2), (14, 'G#5', 2)],
+        [(0, 'F#5', 2), (2, 'G#5', 2), (4, 'A5', 2), (6, 'B5', 2), (8, 'G#5', 2), (10, 'E5', 2), (12, 'A5', 2), (14, 'B5', 2)],
+        [(0, 'C#6', 4), (4, 'A5', 2), (6, 'B5', 2), (8, 'C#6', 2), (10, 'B5', 2), (12, 'A5', 2), (14, 'G#5', 2)],
+        [(0, 'F#5', 2), (2, 'B5', 2), (4, 'G#5', 2), (6, 'E5', 2), (8, 'A5', 4), (12, 'A5', 2), (14, 'B5', 2)],
+    ]),
+    cat_octave=0, drum_notes=(nm('E4'), nm('A4')), mi_attack=True)
+
 # Toby Fox, "Your Best Friend" (Undertale, 2015). NOT public domain: for the team's internal playtest
 # only. The tune comes from a piano MIDI (tools/music_gen/midi_to_pattern.py, right hand); the chords are
 # read off its left hand. Ab major, the first 8 bars. The original is at 120 BPM.
@@ -778,7 +793,7 @@ SONGS['ybf_end'] = dict(
     cat_octave=0, drum_notes=(nm('D#4'), nm('G#4')))
 
 HALF_TIME = 2
-SPEED = {'turkish_march': HALF_TIME}
+SPEED = {'turkish_march': HALF_TIME, 'turkish_march_b': HALF_TIME}
 # Placeholder, not used yet: everything is rendered at 160 BPM. Songs listed here suit 120 better and
 # get their own 120 render later (it also needs 120 BPM drums and bass; the game already takes the
 # tempo from each level's music file, levels/music/level_N.json "bpm").

@@ -767,7 +767,7 @@ func _apply_now(beat_index := -1) -> void:
 	if use_dynamics and beat_index >= 0 and not fever and in_fever(eff) and not _fever_fill_done:
 		var bars := _fever_on_bars()
 		if bars > 0 and int(round(beat_index + base)) % (bars * 4) != 0:
-			eff = _fever_start(eff) - 0.0001
+			eff = _fever_start(eff) - 0.002
 			hold = true
 	# 升到要过门的那一档：这条小节线先放一小节过门，下一条小节线才真的换
 	var going_to := tier_of(eff, tier_lines(section))

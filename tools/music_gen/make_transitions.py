@@ -10,8 +10,8 @@ two sets of drums would flam).
                            hard-cut, landing on E (the dominant of A minor) over an E7 swell.
   <sfx>/tr_mk_to_cc.wav    Mountain King (A minor) -> Can-Can (G major): "the hall bursts open". The creeping
                            head in sixteenths, running on up the scale and chromatically up to a high D over D7.
-  <sfx>/tr_tm_to_cc.wav    Turkish March (A minor) -> Can-Can (G major): the march's turn figure, three times,
-                           each a step higher, then a D7 arpeggio up.
+  <sfx>/tr_tm_to_cc.wav    Turkish March's second section (A major) -> Can-Can (G major): the head of that tune
+                           in sixteenths, on up to a high D, then a D7 arpeggio up.
 
 Also the ENDINGS, one per key: the last chord when a level clears (a section's "exit"):
   <sfx>/end_g_minor.wav, end_c_major.wav, end_g_major.wav
@@ -120,14 +120,14 @@ render('tr_mk_to_cc',
        bass=[(0, 'A1', 4), (4, 'A1', 4), (8, 'D2', 4), (12, 'D2', 4)],
        chords=[(0, 'Am', 4, 'stab'), (8, 'D7', 8, 'swell')], last_slide=12.0)
 
-# Turkish March (Am) -> Can-Can (G): the turn figure three times, a step higher each time, then D7 up
+# Turkish March -> Can-Can (G). The shooter ends in its fever, which is the march's second section (A major),
+# so this leaves from that tune: its head (C#6 A5 B5 C#6 B5 A5 G#5) in sixteenths, on up to a high D, then D7 up.
 render('tr_tm_to_cc',
-       lead=[(0, 'B4', 1, 'b'), (1, 'A4', 1, 'b'), (2, 'G#4', 1, 'b'), (3, 'A4', 1, 'b'),
-             (4, 'C5', 1, 'b'), (5, 'B4', 1, 'b'), (6, 'A#4', 1, 'b'), (7, 'B4', 1, 'b'),
-             (8, 'D5', 1, 'b'), (9, 'C5', 1, 'b'), (10, 'B4', 1, 'b'), (11, 'C5', 1, 'b'),
+       lead=[(0, 'C#6', 2, 'b'), (2, 'A5', 1, 'b'), (3, 'B5', 1, 'b'), (4, 'C#6', 1, 'b'), (5, 'B5', 1, 'b'),
+             (6, 'A5', 1, 'b'), (7, 'G#5', 1, 'b'), (8, 'A5', 1, 'b'), (9, 'B5', 1, 'b'), (10, 'C#6', 1, 'b'), (11, 'D6', 1, 'b'),
              (12, 'D5', 1, 'i'), (13, 'F#5', 1, 'i'), (14, 'A5', 1, 'i'), (15, 'C6', 1, 'i')],
        bass=[(0, 'A1', 4), (4, 'A1', 4), (8, 'D2', 8)],
-       chords=[(0, 'Am', 4, 'stab'), (8, 'D7', 8, 'swell')], last_slide=7.0)
+       chords=[(0, 'A', 4, 'stab'), (8, 'D7', 8, 'swell')], last_slide=7.0)
 
 
 def ending(name, sym, tonic):

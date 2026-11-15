@@ -356,6 +356,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
 #         75%   FEVER to the end of the game: the instrument doubles the cats, Can-Can's own cat drums on top   <- the kaleidoscope
 #   The lines 50% / 75% are the stage's camera cues (level_3_spaceship.tres: fx_cues grid3 0.5, kaleido 0.75).
 TM = M + 'classics/turkish_march/turkish_march_'
+TMB = M + 'classics/turkish_march_b/turkish_march_b_'   # its second section (A major), the fever of the shooter
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 T3 = TIERS
 R = (0.25, 0.5, 0.75)
@@ -366,16 +367,21 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       t('tm_pluck', TM + 'L3_pluck_16b.wav', 'hook'), t('cc_pluck', CC + 'L3_pluck_8b.wav', 'hook'),
                       t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'),
                       harm('tm_harm', 'turkish_march'), harm('cc_harm', 'can_can'),
-                      t('tm_peak', TM + 'fb_L4_peak_16b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
+                      t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
                       CATS[0], t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
-                      t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'),
+                      t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'), t('tmb_kichiku', TMB + 'L3_cat_kichiku_8b.wav', 'kiai'),
+                      t('tmb_keys', TMB + 'fb_L0_keys_8b.wav', 'bed'), t('tmb_bass', TMB + 'L2_bass_8b.wav', 'bass'),
+                      harm('tmb_harm', 'turkish_march_b'),
                       t('cc_double', CC + 'L3_pluck_8b.wav', 'kiai')] + FILL,
            'sections': [
-               {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0),
+               {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0), 'fever_on_bars': 4,
                 'own': {'kiai': 'tm_kichiku', 'hit': ''}, 'rules': {
-                   'half': [[0, T3[0]]], 'groove': [[T3[0], 1]], 'tm_keys': [[0, 1]], 'tm_bass': [[T3[0], 1]],
-                   'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], 1]], 'tm_harm': [[T3[2], 1]], 'tm_peak': [[T3[3], 1]],
-                   'cat_drums': [[T3[1], 1]]}},
+                   'half': [[0, T3[0]]], 'groove': [[T3[0], 1]], 'cat_drums': [[T3[1], 1]],
+                   'tm_keys': [[0, T3[3]]], 'tm_bass': [[T3[0], T3[3]]],
+                   'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], T3[3]]], 'tm_harm': [[T3[2], T3[3]]],
+                   # FEVER: the march's second section, the loud A major tune, all of it at once after the fill bar
+                   'tmb_keys': [[T3[3], 1]], 'tmb_bass': [[T3[3], 1]], 'tmb_kichiku': [[T3[3], 1]],
+                   'tmb_harm': [[T3[3], 1]], 'tmb_peak': [[T3[3], 1]]}},
                {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[2], 1.0),
                 'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_tm_to_cc', 'exit': 'end_g_major', 'rules': {
                    'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]],
@@ -420,7 +426,7 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
-        for k in ('exit', 'carry'):                      # exit: the ending one-shot when the level clears on this section;
+        for k in ('exit', 'carry', 'fever_on_bars'):                      # exit: the ending one-shot when the level clears on this section;
             if k in sec:                                 # carry: how much of the last section's fullness comes along (0-1)
                 out[k] = sec[k]
         if 'enter' in sec:

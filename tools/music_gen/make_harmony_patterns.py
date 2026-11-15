@@ -29,7 +29,7 @@ LOW, HIGH = 60, 71
 # out over the tune, so it keeps the soft low cat all the way and sits 3 dB lower.
 CAT = {'ode_to_joy': '01'}
 GAIN_DB = {'ode_to_joy': -3.0}
-for key in ('ode_to_joy', 'your_best_friend', 'mountain_king', 'can_can', 'turkish_march'):
+for key in ('ode_to_joy', 'your_best_friend', 'mountain_king', 'can_can', 'turkish_march', 'turkish_march_b'):
     song = cc.SONGS[key]
     if key in cc.SPEED:
         song = cc.slowed(song, cc.SPEED[key])
