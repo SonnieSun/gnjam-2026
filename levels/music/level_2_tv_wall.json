@@ -25,20 +25,16 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "cc_bass",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav"
+    },
+    {
      "id": "ybf_bass",
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L2_bass_8b.wav"
     },
     {
-     "id": "ybfb_bass",
-     "file": "res://assets/audio/music/classics/ybf_b/ybf_b_L2_bass_8b.wav"
-    },
-    {
      "id": "mk_bass",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L2_bass_4b.wav"
-    },
-    {
-     "id": "cc_bass",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav"
     }
    ]
   },
@@ -50,10 +46,6 @@
     {
      "id": "ybf_keys",
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_fb_L0_keys_8b.wav"
-    },
-    {
-     "id": "ybfb_keys",
-     "file": "res://assets/audio/music/classics/ybf_b/ybf_b_fb_L0_keys_8b.wav"
     },
     {
      "id": "mk_keys",
@@ -71,6 +63,10 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "cc_cats",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav"
+    },
+    {
      "id": "ybf_pluck",
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_pluck_8b.wav"
     },
@@ -79,20 +75,12 @@
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_kichiku_8b.wav"
     },
     {
-     "id": "ybfb_cats",
-     "file": "res://assets/audio/music/classics/ybf_b/ybf_b_L3_cat_kichiku_8b.wav"
-    },
-    {
      "id": "mk_pluck",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_pluck_4b.wav"
     },
     {
      "id": "mk_cats",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
-    },
-    {
-     "id": "cc_cats",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_flow_8b.wav"
     }
    ]
   },
@@ -102,16 +90,16 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "cc_peak",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav"
+    },
+    {
      "id": "ybf_peak",
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_fb_L4_peak_8b.wav"
     },
     {
      "id": "mk_peak",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L4_peak_4b.wav"
-    },
-    {
-     "id": "cc_peak",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav"
     }
    ]
   },
@@ -121,16 +109,16 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "cc_cat_drums",
+     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav"
+    },
+    {
      "id": "ybf_cat_drums",
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_C_drums_8b.wav"
     },
     {
      "id": "mk_cat_drums",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_C_drums_4b.wav"
-    },
-    {
-     "id": "cc_cat_drums",
-     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav"
     }
    ]
   },
@@ -140,16 +128,12 @@
    "gain_db": -2.0,
    "clips": [
     {
-     "id": "ybf_kichiku",
-     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_kichiku_8b.wav"
+     "id": "cc_double",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav"
     },
     {
-     "id": "mk_kichiku",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
-    },
-    {
-     "id": "cc_kichiku",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav"
+     "id": "ybf_double",
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_pluck_8b.wav"
     }
    ]
   },
@@ -195,20 +179,12 @@
      [
       0.12,
       "ybf_bass"
-     ],
-     [
-      0.7,
-      "ybfb_bass"
      ]
     ],
     "bed": [
      [
       0.0,
       "ybf_keys"
-     ],
-     [
-      0.7,
-      "ybfb_keys"
      ]
     ],
     "lead": [
@@ -219,19 +195,11 @@
      [
       0.5,
       "ybf_cats"
-     ],
-     [
-      0.7,
-      "ybfb_cats"
-     ],
-     [
-      0.88,
-      ""
      ]
     ],
     "peak": [
      [
-      0.5,
+      0.7,
       "ybf_peak"
      ]
     ],
@@ -244,7 +212,7 @@
     "kiai": [
      [
       0.88,
-      "ybf_kichiku"
+      "ybf_double"
      ]
     ],
     "hit": [
@@ -265,15 +233,13 @@
     0.7,
     0.88
    ],
-   "transition_tiers": [
-    3
-   ],
+   "transition_tiers": [],
    "fever": [
     0.88,
     1.0
    ],
    "own": {
-    "kiai": "ybf_kichiku",
+    "kiai": "",
     "hit": "ybf_by_hit"
    }
   },
@@ -319,8 +285,10 @@
     0.3,
     0.6
    ],
+   "transition_tiers": [],
+   "enter": "tr_ybf_to_mk",
    "own": {
-    "kiai": "mk_kichiku",
+    "kiai": "",
     "hit": ""
    }
   },
@@ -372,8 +340,9 @@
     0.4,
     0.75
    ],
+   "transition_tiers": [],
    "own": {
-    "kiai": "mk_kichiku",
+    "kiai": "",
     "hit": ""
    }
   },
@@ -398,6 +367,12 @@
       "cc_keys"
      ]
     ],
+    "lead": [
+     [
+      0.0,
+      "cc_cats"
+     ]
+    ],
     "peak": [
      [
       0.35,
@@ -413,7 +388,7 @@
     "kiai": [
      [
       0.7,
-      "cc_kichiku"
+      "cc_double"
      ]
     ]
    },
@@ -421,12 +396,14 @@
     0.35,
     0.7
    ],
+   "transition_tiers": [],
    "fever": [
     0.7,
     1.0
    ],
+   "enter": "tr_mk_to_cc",
    "own": {
-    "kiai": "cc_kichiku",
+    "kiai": "cc_double",
     "hit": ""
    }
   }

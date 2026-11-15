@@ -231,9 +231,17 @@ func set_section(index: int) -> void:
 	_quiet_tier_change = true
 	_queue()
 	# 换小关是在小节线上发生的：这一小节放过门，下一个小节线（上面排好的）新小关的音乐才进来
-	if changed and dynamics() and Conductor.playing and Conductor.song_beat > 1.0 and _fill_clip() != "":
-		_play_fill_bar()
-		play_sfx("crash", -9.0)
+	if changed and dynamics() and Conductor.playing and Conductor.song_beat > 1.0:
+		var enter := _enter_sfx()
+		if enter != "":
+			# 这个小关换了一首曲子，有专门写的一小节变奏过门（小关里的 "enter": "tr_ybf_to_mk"，assets/audio/sfx 里的
+			# 一次性音效，tools/music_gen/make_transitions.py 做的）：鼓照常响，上一首的和声、低音、旋律都让开，
+			# 这一小节由它把调带过去，下一条小节线新曲子进来
+			_play_fill_bar(true)
+			play_sfx(enter, ENTER_DB)
+		elif _fill_clip() != "":
+			_play_fill_bar()
+			play_sfx("crash", -9.0)
 
 
 ## 小关自己报进度，不看积累条（比如洗衣机那一段：积累条不涨，进度是按完了几次长按）。
@@ -368,6 +376,17 @@ func tier_of(p: float, lines: PackedFloat32Array) -> int:
 
 
 ## 过门轨道里的那一段（没有过门轨道返回 ""）
+## 这个小关进来时的变奏过门（"" = 没有，用通用的）
+const ENTER_DB := -1.0
+
+func _enter_sfx() -> String:
+	var secs: Array = data.get("sections", [])
+	if section < 0 or section >= secs.size():
+		return ""
+	var sfx_name := str(secs[section].get("enter", ""))
+	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
+
+
 func _fill_clip() -> String:
 	for lane in data.get("lanes", []):
 		if lane.id == FILL_LANE and not lane.get("clips", []).is_empty():
@@ -376,10 +395,12 @@ func _fill_clip() -> String:
 
 
 ## 现在起放过门：过门轨道响，鼓、低音、和声照旧，别的轨道都停（淡出一拍）。之后由下一次 _apply_now 换成该响的。
-func _play_fill_bar() -> void:
-	var fill := _fill_clip()
+## drums_only = 只留鼓（换曲子的变奏过门用：上一首的和声和低音不能再响，通用的过门也不放）
+func _play_fill_bar(drums_only := false) -> void:
+	var fill := "" if drums_only else _fill_clip()
 	for lane in data.get("lanes", []):
-		var c: String = fill if lane.id == FILL_LANE else (_now.get(lane.id, "") if lane.id in KEEP_IN_FILL else "")
+		var keep: bool = lane.id == "beat" if drums_only else lane.id in KEEP_IN_FILL
+		var c: String = fill if lane.id == FILL_LANE else (_now.get(lane.id, "") if keep else "")
 		if _now.get(lane.id, "") != c:
 			lane_switched.emit(lane.id, c)
 		_now[lane.id] = c
