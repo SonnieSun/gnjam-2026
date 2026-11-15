@@ -30,6 +30,16 @@ extends AbductionStage
 ## 换阶段时颜色过渡用几秒（亮起来那一下是瞬间的）
 @export var phase_fade_seconds := PackedFloat32Array([1.0, 2.0, 0.25, 4.0, 2.5])
 
+@export_group("亮起来时看得清")
+## 天亮了以后，发光的白圈在亮背景上看不见，所以这一段：光圈和判定线换成深色的实心圈，
+## 光柱调暗（不然猫和圈都泡在一片白里），猫周围垫一圈淡淡的暗影
+@export var bright_ring_color := Color(0.42, 0.05, 0.62)
+@export var bright_judge_color := Color(0.85, 0.0, 0.45)
+## 这一段光柱的亮度乘多少
+@export_range(0.0, 1.0) var bright_beam_scale := 0.4
+## 猫周围的暗影多深（0 = 不垫）
+@export_range(0.0, 1.0) var bright_shade := 0.4
+
 @export_group("风暴")
 ## 平均几拍打一次闪电
 @export var lightning_every_beats := 3.0
@@ -70,6 +80,11 @@ var _rain: CPUParticles3D
 var _sparks: CPUParticles3D
 var _stars: CPUParticles3D
 var _time := 0.0
+var _shade_tex: GradientTexture2D
+var _ring_color0 := Color.WHITE
+var _judge_color0 := Color.WHITE
+var _beam_energy0 := 1.0
+var _beam_light0 := 1.0
 
 
 func _ready() -> void:
@@ -95,6 +110,10 @@ func _ready() -> void:
 	super()
 	if Engine.is_editor_hint():
 		return
+	_ring_color0 = ring_color
+	_judge_color0 = judge_ring_color
+	_beam_energy0 = beam_energy
+	_beam_light0 = beam_light_energy
 	_now = _look(0)
 	_from = _now
 	_speed = rise_speeds[0]
@@ -136,6 +155,14 @@ func judge(note: NoteData, result: int) -> void:
 
 
 func update(beat: float, notes: Array[NoteData], approach_beats: float) -> void:
+	# 亮背景上换成深色的圈、调暗光柱（要在吸猫舞台算这一帧之前定好）
+	ring_color = _ring_color0.lerp(bright_ring_color, _holy)
+	judge_ring_color = _judge_color0.lerp(bright_judge_color, _holy)
+	beam_energy = _beam_energy0 * lerpf(1.0, bright_beam_scale, _holy)
+	beam_light_energy = _beam_light0 * lerpf(1.0, bright_beam_scale, _holy)
+	for key in _rings:
+		_rings[key].mat.set_shader_parameter("color", ring_color)
+		_rings[key].mat.set_shader_parameter("solid", _holy)
 	super(beat, notes, approach_beats)
 	if _space == null:
 		return
@@ -320,6 +347,28 @@ func _update_storm(beat: float, dt: float) -> void:
 	_shake = maxf(_shake, storm_shake)
 
 
+## 光圈的材质：暗的时候是发光的（和吸猫舞台一样），solid 往 1 走就变成不透明的实心色，亮背景上也看得清
+func _ring_shader() -> Shader:
+	if _ring_shader_cache == null:
+		_ring_shader_cache = Shader.new()
+		_ring_shader_cache.code = SKY_RING_SHADER
+	return _ring_shader_cache
+
+
+const SKY_RING_SHADER := """
+shader_type spatial;
+render_mode unshaded, blend_premul_alpha, cull_disabled, depth_draw_never, shadows_disabled;
+uniform vec4 color : source_color = vec4(0.8, 1.0, 0.8, 1.0);
+uniform float alpha = 1.0;
+uniform float solid = 0.0;
+void fragment() {
+	// 预乘：ALPHA = 0 时是纯加色（发光），ALPHA = 1 时是盖住背景的实心色
+	ALBEDO = color.rgb * mix(1.6, 1.0, solid) * alpha;
+	ALPHA = solid * alpha;
+}
+"""
+
+
 # ---- 猫、镜头 ----
 
 func _update_cat(beat: float, dt: float) -> void:
@@ -360,6 +409,23 @@ func _draw_overlay() -> void:
 		_overlay.draw_circle(center, radius + 14.0, Color(0.45, 0.75, 1.0, 0.25))
 		_overlay.draw_circle(center, radius, Color(0.06, 0.2, 0.5))
 		_overlay.draw_arc(center, radius, PI * 1.2, PI * 1.8, 96, Color(0.7, 0.9, 1.0, 0.9), 3.0, true)
+	if _holy > 0.0 and bright_shade > 0.0 and camera:
+		# 猫周围垫一圈暗影（中间深、往外淡），圈和猫才从亮背景里分得出来
+		var at := hit_screen_offset()
+		var r := ring_screen_radius() * 4.2
+		if _shade_tex == null:
+			var grad := Gradient.new()
+			grad.set_color(0, Color(1, 1, 1, 1))
+			grad.set_color(1, Color(1, 1, 1, 0))
+			_shade_tex = GradientTexture2D.new()
+			_shade_tex.gradient = grad
+			_shade_tex.fill = GradientTexture2D.FILL_RADIAL
+			_shade_tex.fill_from = Vector2(0.5, 0.5)
+			_shade_tex.fill_to = Vector2(1.0, 0.5)
+			_shade_tex.width = 256
+			_shade_tex.height = 256
+		_overlay.draw_texture_rect(_shade_tex, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0), false,
+				Color(0.12, 0.05, 0.25, bright_shade * _holy))
 	if _holy > 0.0:
 		# 光芒：从屏幕上面正中散开的几道金光，慢慢转
 		var origin := Vector2(0.0, -half.y * 1.25)
@@ -368,7 +434,7 @@ func _draw_overlay() -> void:
 			var w := 0.035 + 0.02 * sin(_time * 0.7 + i * 2.1)
 			var far := size.y * 2.2
 			var pts := PackedVector2Array([origin, origin + Vector2(cos(a - w), sin(a - w)) * far, origin + Vector2(cos(a + w), sin(a + w)) * far])
-			_overlay.draw_colored_polygon(pts, Color(1.0, 0.93, 0.6, 0.13 * _holy))
+			_overlay.draw_colored_polygon(pts, Color(1.0, 0.93, 0.6, 0.09 * _holy))
 	if _bolt > 0.0 and _bolt_points.size() > 1:
 		_overlay.draw_polyline(_bolt_points, Color(0.8, 0.85, 1.0, _bolt * 0.5), 14.0)
 		_overlay.draw_polyline(_bolt_points, Color(1.0, 1.0, 1.0, _bolt), 4.0)
