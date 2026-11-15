@@ -1,32 +1,65 @@
 @tool
 extends SpinSection
-## 拍地球小关（电视机关卡钻进屏幕之后的玩法）：单点 + 连点区间。大关里连着排两段，都用这同一个场景，谱面不同：
-##   第 1 段 单点：每拍拍一下。拍到积累条第 1 条线，画面下方升起 MEOW 新闻播报条。
-##   第 2 段 单点 + 连点：谱面里的 "r" 后面接 "=" 是一个连点区间（"r=====" = 这几格都是区间）。
-##            新闻条一开始就在；积累条每过一条线进场一只猫 meme 纸片；纸片全进场后的下一条线触发结尾。
-## 连点区间：区间里什么时候按都行，只数按了几下，区间结束时按次数给档位——
-##   每秒 perfect_taps_per_second 下以上 Perfect，每秒 great_taps_per_second 下以上 Great，按了至少 1 下 Good，0 下 Miss。
-## 区间不是框架的音符（"r" 对 Judge 来说是休止），由这里自己数次数，再把结果记进 Judge 的成绩
-## （各档个数、连击）和积累条，只用它们现成的公开成员，不改框架文件。
-## 结尾：不再出音符，镜头拉近地球，猫屁股喷着火飞出来，脚下冒披萨（见 EarthSlapStage），放完把积累条顶满，框架结算。
-## 是第几段看它在大关的小关列表里排在第几个用这个场景的。美术是 moumou 的拍地球猫，3D 画面和参数在 Stage 节点里。
+## 拍地球小关（电视机关卡钻进屏幕之后的玩法）。大关里连着排三段，都用这同一个场景，谱面不同：
+##   第 1 段 轻拍：谱面里只有 k / s，每拍轻轻拍一下。拍到积累条第 1 条线，画面下方升起 MEOW 新闻播报条。
+##   第 2 段 蓄力拍：每 4 拍一组，前面连点踩镲（h）蓄力，第 3 拍重拍（s）。蓄得越满这一下越重。
+##                   新闻条一开始就在；拍到第 1 条线，猫 meme 纸片出场，之后每拍中一次翻转一次。
+##   第 3 段 蓄力加密：连点更密，新闻条和纸片一开始就在。打满通关。
+## 是第几段看它在大关的小关列表里排在第几个用这个场景的；是不是蓄力段看谱面里有没有 h。
+## 判定用框架的 Judge（不改）。蓄力音符只攒力量、不涨积累条（用框架留的 gauge_result 钩子），重拍才涨。
+## 美术是 moumou 的拍地球猫（见 EarthSlapStage），3D 画面和参数在 Stage 节点里。编辑器预览里不跑 3D。
 
 ## 圆圈提前几拍出现
 @export var approach_beats := 1.5
 ## 圆圈从多远收过来（占画面高度的比例）
 @export var approach_travel_ratio := 0.3
-## 判定圈半径（占画面高度的比例）
+## 判定圈半径（占画面高度的比例）。下面 ring_fits_earth 关掉时才用这个
 @export var ring_radius_ratio := 0.1
-@export_group("连点区间")
-## 每秒按到这么多下算 Perfect / Great（乘区间的秒数，向上取整）
-@export var perfect_taps_per_second := 5.0
-@export var great_taps_per_second := 3.5
-## 区间开头提前、结尾延后这么多拍内按的也算数
-@export var window_slack_beats := 0.15
-@export var window_color := Color("79dfff")
-@export_group("结尾")
-## 结尾演出放几拍；放完把积累条顶满，框架在下一个小节线结算
-@export var ending_beats := 20.0
+## 判定圈和地球一样大（再乘下面这个倍数，1.08 = 比地球大一圈，不挡住地球）
+@export var ring_fits_earth := true
+@export var ring_earth_scale := 1.08
+@export_group("蓄力")
+## 蓄力段每几拍一组、重拍在每组的第几拍（和谱面对应：h 在前两拍，s 在第 3 拍）
+@export var charge_cycle_beats := 4.0
+@export var charge_strike_beat := 2.0
+## 蓄到这个比例以上，重拍才按原判定涨积累条；不够只按 Good 算
+@export_range(0.0, 1.0) var minimum_charge_ratio := 0.5
+@export var charge_color := Color("8878ff")
+@export var charged_color := Color("79dfff")
+@export_group("连按")
+## 连按不看节奏：连按那一段时间里随便按，没有上限，每一下都有反馈。整段连按算一次判定：
+##   按够数（达标）的那一下立刻 Perfect，之后可以接着按；
+##   到连按段结束还没达标：按了达标数的 mash_good_ratio 以上算 Good，不到算 Miss（一下没按当然也是 Miss）。
+## 要按几下（达标数）= 谱面里那一串 h 的个数 × 这个比例（向上取整）。1 = 谱面上有几个就要按几下；调小 = 手慢也能达标
+@export_range(0.2, 1.0, 0.05) var mash_need_ratio := 0.7
+## 按到达标数的多少比例以上算 Good
+@export_range(0.0, 1.0, 0.05) var mash_good_ratio := 0.5
+## 超过达标数之后每多按一下，满蓄重拍的画面顶动再大多少（最多加到 mash_over_max）
+@export var mash_over_punch := 0.1
+@export var mash_over_max := 0.6
+## 连按那一段比谱面上第一个 h 提前多少拍开始算、最后一个 h 之后还算多少拍
+@export var mash_lead_beats := 0.25
+@export var mash_tail_beats := 0.25
+## 重拍前留多少拍不算连按（免得连按的最后一下蹭掉重拍）
+@export var mash_guard_beats := 0.2
+## 提示文字（快到连按段时显示 / 蓄满时显示）和提示的按键名
+@export var mash_text := "MASH!"
+@export var max_text := "MAX!"
+@export var mash_key_text := "SPACE"
+## 每按一下的声音，一下比一下高几个半音；蓄满时的一声
+@export var charge_sound: AudioStream = preload("res://assets/audio/sfx/hit_meow_good_a.wav")
+@export var charge_pitch_step := 2.0
+@export_range(-30.0, 6.0) var charge_sound_db := -6.0
+@export var max_sound: AudioStream = preload("res://assets/audio/sfx/clap.wav")
+@export_range(-30.0, 6.0) var max_sound_db := -4.0
+@export_group("重拍")
+## 蓄满力的重拍：画面顶多大（1 = 一次 Perfect 那么大）、白闪多亮、再响哪个音效（assets/audio/sfx 里的名字，留空不响）
+@export var power_punch := 2.5
+@export_range(0.0, 1.0) var power_flash := 0.35
+@export var power_sound := "orch_hit_Bb"
+@export_range(-30.0, 6.0) var power_sound_db := -6.0
+## 蓄力不够的重拍：音乐压低几拍（0 = 不压），舞台那边只软绵绵地晃一下
+@export var low_charge_dip_beats := 1.0
 @export_group("新闻条")
 ## 新闻条高度（像素）和滚动速度（像素 / 秒）
 @export var news_height := 54.0
@@ -42,38 +75,42 @@ extends SpinSection
 ## 调试用：自动按键（看演出用，正式玩要关掉）
 @export var autoplay := false
 
-const RESULT_NAMES := {
-	NoteData.Result.PERFECT: "PERFECT", NoteData.Result.GREAT: "GREAT",
-	NoteData.Result.GOOD: "GOOD", NoteData.Result.MISS: "MISS",
-}
-
 var _stage: EarthSlapStage
 var _phase := 0  # 第几段（0 起）
-var _windows: Array[Vector2] = []  # 鼓谱里的连点区间：x = 开始（相对鼓谱开头的拍数），y = 几拍
-var _pattern_len := 0.0
-var _pattern_origin := INF  # 鼓谱从全曲第几拍开始循环
-var _win_start := INF  # 现在这个（或下一个）区间的开始 / 结束（全曲拍数）
-var _win_end := INF
-var _win_count := 0
-var _win_done_until := -INF  # 这一拍之前的区间都结算过了
-var _win_text := ""
-var _win_text_color := Color.WHITE
-var _win_text_age := 99.0
-var _memes_in := 0
-var _ending_from := INF
-var _fill_at := INF
+var _charge_mode := false
+var _charge_target := 1
+var _charge := 0
+var _last_power := 0.0
+var _slap_text := ""
+var _slap_text_age := 99.0
 var _news := 0.0  # 新闻条升起来多少（0~1）
 var _news_on := false
 var _scroll := 0.0
 var _flash := 0.0
 var _auto_next := 0
 var _auto_release := false
-var _auto_tap_at := 0.0
+var _zones: Array[Dictionary] = []  # 连按段：{start, end 在鼓谱一遍里的拍数, beats 那一串 h 各在第几拍, need 要按几下}
+var _pattern_len := 0.0
+var _pattern_origin := INF
+var _zone_id := -1       # 现在算的是第几个连按段（鼓谱第几遍 × 段数 + 第几段），换了就把蓄力清零
+var _zone := {}          # 正在按 / 刚按完还没出结果的那一段
+var _zone_judged := true # 这一段出过判定了没有
+var _maxed := false
+var _over_at_slap := 0
+var _pop := 0.0          # 刚按了一下：蓄力圈胀一下
+var _max_flash := 0.0
+var _free_i := 0
+var _players: Array[AudioStreamPlayer] = []
+var _player_next := 0
 
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
+	for i in 4:
+		var p := AudioStreamPlayer.new()
+		add_child(p)
+		_players.append(p)
 	_stage = get_node_or_null("Stage") as EarthSlapStage
 	if _stage == null:
 		_stage = EarthSlapStage.new()
@@ -92,10 +129,18 @@ func _on_enter() -> void:
 			break
 		if s.scene == def.scene:
 			_phase += 1
-	_parse_windows()
+	# 蓄力段：谱面里有踩镲。每组要连点几下 = 一小节里 h 的个数
+	_charge_target = 0
+	for bar in def.bars:
+		_charge_target = maxi(_charge_target, bar.count("h"))
+	_charge_mode = _charge_target > 0
+	_charge_target = maxi(_charge_target, 1)
+	_build_zones()
 	_news_on = _phase >= 1
 	if _news_on:
 		_news = 1.0
+	if _phase >= 2:
+		_stage.show_memes()
 
 
 func _on_exit() -> void:
@@ -111,7 +156,145 @@ func hit_position(_note: NoteData = null) -> Vector2:
 
 
 func hit_radius() -> float:
+	if ring_fits_earth and _stage:
+		return _stage.earth_screen_radius() * ring_earth_scale
 	return ring_radius_ratio * screen_size().y
+
+
+# ---------------- 连按 ----------------
+
+## 从谱面里找出连按段：挨着的一串 h（相邻不超过 1 拍）算一段
+func _build_zones() -> void:
+	_zones = []
+	_zone_id = -1
+	_zone = {}
+	_zone_judged = true
+	_pattern_origin = INF
+	_free_i = 0
+	if not _charge_mode:
+		return
+	var bpb: int = Conductor.chart.beats_per_bar
+	_pattern_len = def.length_beats(bpb)
+	var list := def.parse_notes(bpb)
+	var run: Array[float] = []
+	for i in list.size() + 1:
+		var is_h: bool = i < list.size() and int(list[i].sound) == NoteData.Sound.HAT
+		if is_h and (run.is_empty() or float(list[i].beat) - run[-1] <= 1.0):
+			run.append(float(list[i].beat))
+			continue
+		if not run.is_empty():
+			# 这一串后面第一个真正要判的音符：连按段要在它之前收住
+			var next_beat := float(list[i].beat) if i < list.size() else _pattern_len + float(list[0].beat)
+			_zones.append({
+				"start": run[0] - mash_lead_beats,
+				"end": maxf(minf(run[-1] + mash_tail_beats, next_beat - mash_guard_beats), run[-1]),
+				"beats": run.duplicate(),
+				"need": maxi(ceili(run.size() * mash_need_ratio), 1),
+			})
+			run = []
+		if is_h:
+			run.append(float(list[i].beat))
+
+
+## 离现在最近的还没结束的连按段：{id, start, end（全曲拍数）, beats, need}；没有连按段返回空
+func _zone_now() -> Dictionary:
+	if _zones.is_empty() or _pattern_len <= 0.0:
+		return {}
+	if is_inf(_pattern_origin):
+		if notes.is_empty():
+			return {}
+		_pattern_origin = notes[0].beat - float(def.parse_notes(Conductor.chart.beats_per_bar)[0].beat)
+	var now := song_beat()
+	var lap := maxi(floori((now - _pattern_origin) / _pattern_len), 0)
+	for l in [lap, lap + 1]:
+		for i in _zones.size():
+			var z := _zones[i]
+			var base: float = _pattern_origin + l * _pattern_len
+			if now <= base + float(z.end):
+				return {"id": l * _zones.size() + i, "start": base + float(z.start), "end": base + float(z.end),
+						"base": base, "beats": z.beats, "need": z.need}
+	return {}
+
+
+## 现在是不是在连按段里
+func _mashing(zone: Dictionary) -> bool:
+	return not zone.is_empty() and song_beat() >= float(zone.start)
+
+
+## 连按段里按了一下（不看准不准）
+func _on_empty_hit() -> void:
+	var zone := _zone_now()
+	if not _charge_mode or not _mashing(zone) or int(zone.id) != _zone_id:
+		return
+	_charge += 1  # 没有上限：达标之后接着按，每一下照样有反馈
+	_pop = 1.0
+	# 一下比一下高，最高到两个八度
+	_play(charge_sound, charge_sound_db, pow(2.0, minf((_charge - 1) * charge_pitch_step, 24.0) / 12.0))
+	if _charge == _charge_target:
+		# 达标的这一下：立刻 Perfect
+		_maxed = true
+		_max_flash = 1.0
+		_play(max_sound, max_sound_db)
+		_judge_zone(NoteData.Result.PERFECT)
+	elif _charge > _charge_target:
+		_max_flash = maxf(_max_flash, 0.6)  # 多按的每一下再炸一小圈
+
+
+## 这一段连按出结果：找这一段里最后一个连按音符当“代表”，交给 Judge 照常计分、算连击、弹判定文字
+func _judge_zone(result: int) -> void:
+	if _zone_judged or _zone.is_empty():
+		return
+	_zone_judged = true
+	var j := main_judge()
+	var beats: Array = _zone.beats
+	if j == null or beats.is_empty():
+		return
+	var at: float = float(_zone.base) + float(beats[-1])
+	for n in notes:
+		if n.free and absf(n.beat - at) < 0.01:
+			j.judge_free(n, result)
+			break
+	if result == NoteData.Result.MISS:
+		_flash = 1.0
+
+
+func _play(stream: AudioStream, db: float, pitch := 1.0) -> void:
+	if stream == null or _players.is_empty():
+		return
+	var p := _players[_player_next]
+	_player_next = (_player_next + 1) % _players.size()
+	p.stream = stream
+	p.volume_db = db
+	p.pitch_scale = pitch
+	p.play()
+
+
+func is_charge_note(note: NoteData) -> bool:
+	return _charge_mode and note != null and note.sound == NoteData.Sound.HAT
+
+
+## 蓄了多少（达标 = 1，超过了也只算 1）
+func charge_ratio() -> float:
+	return clampf(float(_charge) / _charge_target, 0.0, 1.0)
+
+
+## 超过达标数多按了几下
+func charge_over() -> int:
+	return maxi(_charge - _charge_target, 0)
+
+
+## 框架在算积累条之前问一下：蓄力音符不动积累条；重拍蓄力不够只按 Good 算
+func gauge_result(note: NoteData, result: int) -> int:
+	if is_charge_note(note):
+		return NoteData.Result.NONE
+	if _charge_mode and result == NoteData.Result.PERFECT and charge_ratio() < minimum_charge_ratio:
+		return NoteData.Result.GOOD
+	return result
+
+
+## 蓄力连点不放大范围的命中特效，只有拍地球那一下放
+func wants_hit_effects(note: NoteData) -> bool:
+	return not is_charge_note(note)
 
 
 func _update_spin(local: float, _angle: float) -> void:
@@ -119,42 +302,79 @@ func _update_spin(local: float, _angle: float) -> void:
 	if _stage == null:
 		return
 	var dt := get_process_delta_time()
-	var now := song_beat()
-	if not is_inf(_ending_from):
-		_stage.set_ending((now - _ending_from) / maxf(ending_beats, 0.01))
-		if now >= _fill_at:
-			_fill_gauge_now()
+	if autoplay:
+		_autoplay()
+	if _charge_mode:
+		# 连按的音符交给 Judge 当“不判定的音符”：不算 Miss、不计分，只吃掉那一下按键
+		while _free_i < notes.size():
+			if notes[_free_i].sound == NoteData.Sound.HAT:
+				notes[_free_i].free = true
+			_free_i += 1
+		var zone := _zone_now()
+		if not zone.is_empty() and int(zone.id) != _zone_id and _mashing(zone):
+			# 新的一段连按开始：从 0 蓄起
+			_zone_id = zone.id
+			_zone = zone
+			_zone_judged = false
+			_charge = 0
+			_maxed = false
+			_charge_target = zone.need
+		if not _zone_judged and song_beat() > float(_zone.end):
+			# 连按段结束了还没达标：按了一半以上算 Good，不到算 Miss
+			_judge_zone(NoteData.Result.GOOD if _charge > 0 and _charge >= _charge_target * mash_good_ratio else NoteData.Result.MISS)
+		_stage.set_charge(charge_ratio() + minf(charge_over() * 0.1, 0.5))
+		_pop = maxf(_pop - dt * 9.0, 0.0)
+		_max_flash = maxf(_max_flash - dt * 2.5, 0.0)
+	if _charge_mode:
+		_stage.update(dt, local, charge_cycle_beats, charge_strike_beat)
 	else:
-		_update_window(now)
-		if autoplay:
-			_autoplay(now)
-	# 连点区间里猫挥得飞快，平时一拍挥一下
-	_stage.update(dt, local, 0.5 if _in_window(now) else 1.0, 0.0)
-	_news = move_toward(_news, 1.0 if _news_on and is_inf(_ending_from) else 0.0, dt * 2.5)
+		_stage.update(dt, local, 1.0, 0.0)
+	_news = move_toward(_news, 1.0 if _news_on else 0.0, dt * 2.5)
 	_scroll += news_speed * dt
 	_flash = maxf(_flash - dt * 2.5, 0.0)
-	_win_text_age += dt
+	_slap_text_age += dt
 	queue_redraw()
 
 
-func _on_note_judged(_note: NoteData, result: int) -> void:
+func _on_note_judged(note: NoteData, result: int) -> void:
 	if _stage == null:
 		return
-	if result == NoteData.Result.MISS:
+	var hit := result != NoteData.Result.MISS
+	if is_charge_note(note):
+		return  # 连按的音符不判定（见 NoteData.free），蓄力在 _on_empty_hit 里数
+	if not hit:
 		_stage.miss()
 		_flash = 1.0
-	else:
-		_stage.slap(0.0)
-
-
-## 空按（附近没有音符）：在连点区间里就算一下
-func _on_empty_hit() -> void:
-	if _stage == null or not is_inf(_ending_from):
+		if _charge_mode:
+			_slap_text = "MISS"
+			_slap_text_age = 0.0
+			_charge = 0
+			_maxed = false
 		return
-	var b := Conductor.input_beat()
-	if b >= _win_start - window_slack_beats and b <= _win_end + window_slack_beats:
-		_win_count += 1
-		_stage.slap(0.15)
+	_last_power = charge_ratio() if _charge_mode else 0.0
+	_over_at_slap = charge_over()
+	var low := _charge_mode and _last_power < minimum_charge_ratio
+	_stage.slap(_last_power, low)
+	if _charge_mode:
+		_slap_text = "POWER SLAP!" if _last_power >= 0.99 else ("LOW CHARGE" if low else "SLAP!")
+		_slap_text_age = 0.0
+		_charge = 0
+		_maxed = false
+		if _last_power >= 0.99:
+			_power_impact(_over_at_slap)
+		elif low and low_charge_dip_beats > 0.0:
+			Music.dip(low_charge_dip_beats)
+
+
+## 蓄满力的重拍：画面顶一大下 + 白闪 + 一声重音（用主场景里现成的 ScreenFx / HUD）
+func _power_impact(over: int = 0) -> void:
+	var main := get_parent().get_parent() if get_parent() else null
+	if main and main.get("screen_fx"):
+		main.screen_fx.punch(power_punch * (1.0 + minf(over * mash_over_punch, mash_over_max)))
+	if main and main.get("hud") and power_flash > 0.0:
+		main.hud.flash(Color.WHITE, power_flash, 0.2)
+	if power_sound != "":
+		Music.play_sfx(power_sound, power_sound_db)
 
 
 func _on_gauge_event(index: int, _value: int) -> void:
@@ -162,137 +382,9 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		return
 	if _phase == 0:
 		_news_on = true
-		return
-	if _stage == null:
-		return
-	if _memes_in < _stage.meme_total():
-		_memes_in += 1
-		_stage.show_memes(_memes_in)
-	else:
-		_start_ending()
+	elif _stage:
+		_stage.show_memes()
 
-
-# ---------------- 连点区间 ----------------
-
-## 从谱面里找出连点区间："r" 后面每个 "=" 把区间延长一格（"r" 自己也算一格）
-func _parse_windows() -> void:
-	_windows.clear()
-	var bpb: int = Conductor.chart.beats_per_bar
-	_pattern_len = def.length_beats(bpb)
-	for bar_i in def.bars.size():
-		var s := def.bars[bar_i]
-		var cell := float(bpb) / maxi(s.length(), 1)
-		var i := 0
-		while i < s.length():
-			var run := 0
-			if s[i] == "r":
-				while i + 1 + run < s.length() and s[i + 1 + run] == "=":
-					run += 1
-				_windows.append(Vector2(bar_i * bpb + i * cell, (run + 1) * cell))
-			i += 1 + run
-
-
-## 现在是不是在连点区间里
-func _in_window(now: float) -> bool:
-	return now >= _win_start and now <= _win_end
-
-
-## 区间要按几下才是 Perfect / Great
-func window_taps(beats: float, per_second: float) -> int:
-	return maxi(ceili(beats * Conductor.sec_per_beat() * per_second - 0.001), 1)
-
-
-func _update_window(now: float) -> void:
-	if _windows.is_empty() or _pattern_len <= 0.0:
-		return
-	if is_inf(_pattern_origin):
-		# 鼓谱从哪一拍开始循环：框架进小关后先空 rest_bars_on_switch 个小节
-		_pattern_origin = def.start_beat + Conductor.chart.rest_bars_on_switch * Conductor.chart.beats_per_bar
-	# 现在这个区间过完了：结算
-	if not is_inf(_win_end) and now > _win_end + window_slack_beats:
-		_finish_window()
-	# 找下一个还没结算的区间
-	if is_inf(_win_start):
-		var loop_i := floori(maxf(now - _pattern_origin, 0.0) / _pattern_len)
-		for k in 2:
-			for w in _windows:
-				var start := _pattern_origin + (loop_i + k) * _pattern_len + w.x
-				if start + w.y > now and start >= _win_done_until - 0.001:
-					_win_start = start
-					_win_end = start + w.y
-					_win_count = 0
-					return
-
-
-## 区间结束：按次数给档位，记进成绩、连击、积累条
-func _finish_window() -> void:
-	var beats := _win_end - _win_start
-	var result: int = NoteData.Result.MISS
-	if _win_count >= window_taps(beats, perfect_taps_per_second):
-		result = NoteData.Result.PERFECT
-	elif _win_count >= window_taps(beats, great_taps_per_second):
-		result = NoteData.Result.GREAT
-	elif _win_count >= 1:
-		result = NoteData.Result.GOOD
-	_win_done_until = _win_end
-	_win_start = INF
-	_win_end = INF
-	_win_text = "%s  x%d" % [RESULT_NAMES.get(result, ""), _win_count]
-	_win_text_color = result_color(result)
-	_win_text_age = 0.0
-	if result == NoteData.Result.MISS:
-		_stage.miss()
-		_flash = 1.0
-	else:
-		_stage.slap(1.0 if result == NoteData.Result.PERFECT else 0.5)
-	var main := get_parent().get_parent() if get_parent() else null
-	if main == null or not main.get("judge"):
-		return
-	var j: Judge = main.judge
-	j.counts[result] += 1
-	j.stage_counts[result] += 1
-	if result == NoteData.Result.MISS:
-		j.combo = 0
-	else:
-		j.combo += 1
-		j.max_combo = maxi(j.max_combo, j.combo)
-	j.stats_changed.emit()
-	if main.get("hud"):
-		main.hud.show_judgement(result, 0.0)
-	if main.get("gauge") and not main.get("editing"):
-		main.gauge.apply(result)
-
-
-# ---------------- 结尾 ----------------
-
-func _start_ending() -> void:
-	if not is_inf(_ending_from):
-		return
-	_ending_from = song_beat()
-	_fill_at = _ending_from + ending_beats
-	_win_start = INF
-	_win_end = INF
-	if _auto_release:
-		_send_hit(false)
-		_auto_release = false
-	_stage.start_ending()
-	var main := get_parent().get_parent() if get_parent() else null
-	if main and main.get("judge"):
-		main.judge.stop_notes()
-
-
-## 把积累条顶满，框架会在下一个小节线结算
-func _fill_gauge_now() -> void:
-	_fill_at = INF
-	var main := get_parent().get_parent() if get_parent() else null
-	if main == null or not main.get("gauge"):
-		return
-	var g: Gauge = main.gauge
-	while not g.full:
-		g.apply(NoteData.Result.PERFECT)
-
-
-# ---------------- 画 ----------------
 
 func _draw() -> void:
 	if def == null:
@@ -304,58 +396,102 @@ func _draw() -> void:
 		return
 	if _stage == null:
 		return
-	if is_inf(_ending_from):
-		_draw_rings(size)
-	if _news > 0.0:
-		_draw_news(size)
-	if _flash > 0.0:
-		draw_rect(Rect2(-size / 2.0, size), Color(1.0, 0.15, 0.2, _flash * miss_flash))
-
-
-func _draw_rings(size: Vector2) -> void:
 	var center := hit_position()
 	var radius := hit_radius()
+	var charged := charge_ratio() >= minimum_charge_ratio
 	var travel := approach_travel_ratio * size.y
-	var now := song_beat()
-	draw_arc(center, radius, 0.0, TAU, 64, Color(1, 1, 1, 0.9), 3.0)
-	for n in notes:
+	# 和第 1 关一样：判定点外面压暗、判定圈预亮、空拍补虚线（音符本身就是缩圈，不再叠实线）
+	draw_focus(self, center, radius)
+	draw_lit_target(self, center, radius, Color(1, 1, 1, 0.9))
+	draw_target_guides(self, center, radius, travel, approach_beats, Callable(), 1.0, 1.0, false)
+	for n in own_notes():
 		if n.judged:
 			continue
 		var ahead := beats_until(n)
 		if ahead > approach_beats:
 			break
 		var k := clampf(ahead / approach_beats, 0.0, 1.0)
-		var c := sound_color(n)
-		c.a = 1.0 - k * 0.6
-		draw_arc(center, radius + k * travel, 0.0, TAU, 96, c, 5.0)
-	# 连点区间：一条宽带子收过来；到了之后判定圈外面一圈倒计时，中间显示按了几下 / 要几下
-	if not is_inf(_win_start):
-		var ahead := _win_start - now
-		var beats := _win_end - _win_start
-		var need := window_taps(beats, perfect_taps_per_second)
-		if ahead > 0.0 and ahead <= approach_beats:
-			var k := ahead / approach_beats
-			var inner := radius + k * travel
-			var outer := minf(radius + (ahead + beats) / approach_beats * travel, inner + size.y * 0.09)
-			draw_arc(center, (inner + outer) / 2.0, 0.0, TAU, 96, Color(window_color, 0.3), outer - inner)
-			draw_arc(center, inner, 0.0, TAU, 96, Color(window_color, 1.0 - k * 0.5), 7.0)
-			_label(center + Vector2(0.0, radius + 34.0), "TAP x%d !" % need, window_color)
-		elif ahead <= 0.0:
-			var left := clampf((_win_end - now) / maxf(beats, 0.01), 0.0, 1.0)
-			draw_arc(center, radius * 1.18, 0.0, TAU, 64, Color(0.1, 0.09, 0.19, 0.7), 10.0)
-			draw_arc(center, radius * 1.18, -PI / 2.0, -PI / 2.0 + TAU * left, 64, window_color, 10.0)
-			var col := Color(1.0, 0.9, 0.3) if _win_count >= need else Color(1, 1, 1)
-			_label(center + Vector2(0.0, radius + 40.0), "TAP TAP TAP!  %d / %d" % [_win_count, need], col, 26)
-	if _win_text_age < 0.8 and (is_inf(_win_start) or _win_start - now > 0.0):
-		_label(center + Vector2(0.0, -radius - 20.0), _win_text, _win_text_color, 26)
+		var r := radius + k * travel
+		if is_charge_note(n):
+			continue  # 连按不画成一个个圈，画成一整条色带（见 _draw_mash）
+		else:
+			draw_approach_ring(self, center, r, approach_ring_look(k, sound_color(n), 0.5,
+					10.0 if _charge_mode else 8.0, 16.0 if _charge_mode else 14.0))
+	if _charge_mode:
+		_draw_mash(center, radius, travel)
 	if tap_age < 0.15:
 		draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64, Color(1, 1, 1, 1.0 - tap_age / 0.15), 6.0)
+	if _news > 0.0:
+		_draw_news(size)
+	if _flash > 0.0:
+		draw_rect(Rect2(-size / 2.0, size), Color(1.0, 0.15, 0.2, _flash * miss_flash))
 
 
-func _label(pos: Vector2, text: String, col: Color, font_size := 22) -> void:
-	var p := pos + Vector2(-160.0, 0.0)
-	draw_string_outline(ThemeDB.fallback_font, p, text, HORIZONTAL_ALIGNMENT_CENTER, 320, font_size, 6, Color(0.02, 0.02, 0.06, 0.95))
-	draw_string(ThemeDB.fallback_font, p, text, HORIZONTAL_ALIGNMENT_CENTER, 320, font_size, col)
+## 连按：收过来的一整条色带（里面的细线 = 谱面上那几下）+ 判定圈上的蓄力弧 + 大字提示和闪动的按键
+func _draw_mash(center: Vector2, radius: float, travel: float) -> void:
+	var font := ThemeDB.fallback_font
+	var now := song_beat()
+	var zone := _zone_now()
+	var active := _mashing(zone)
+	var coming := false
+	if not zone.is_empty():
+		var a0 := (float(zone.start) - now) / maxf(approach_beats, 0.01)
+		var a1 := (float(zone.end) - now) / maxf(approach_beats, 0.01)
+		coming = a0 <= 1.0
+		if coming:
+			var inner := radius + clampf(a0, 0.0, 1.0) * travel
+			var outer := radius + clampf(a1, 0.0, 1.0) * travel
+			if outer > inner + 0.5:
+				draw_arc(center, (inner + outer) / 2.0, 0.0, TAU, 96, Color(charge_color, 0.34 if active else 0.24), outer - inner)
+				draw_arc(center, outer, 0.0, TAU, 96, Color(charge_color, 0.9), 3.0)
+				if a0 > 0.0:
+					draw_arc(center, inner, 0.0, TAU, 96, Color(charge_color.lerp(Color.WHITE, 0.4), 0.95), 4.0)
+			for b: float in zone.beats:
+				var k := (float(zone.base) + b - now) / maxf(approach_beats, 0.01)
+				if k > 0.0 and k <= 1.0:
+					draw_arc(center, radius + k * travel, 0.0, TAU, 96, Color(1, 1, 1, 0.3), 1.5)
+	# 判定圈：连按的时候换成蓄力色、轻轻抖；蓄了多少画成圈上的一段粗弧，每按一下胀一下
+	var ratio := charge_ratio()
+	if active or _charge > 0:
+		var shake := sin(Time.get_ticks_msec() * 0.06) * (2.0 + 3.0 * ratio)
+		draw_arc(center, radius + shake, 0.0, TAU, 96, Color(charge_color, 0.55), 5.0)
+		if _charge > 0:
+			var fill := charged_color if _maxed else charge_color.lerp(charged_color, ratio * 0.7)
+			draw_arc(center, radius + shake, -PI / 2.0, -PI / 2.0 + TAU * ratio, 96, Color(fill, 0.35), 26.0 + 14.0 * _pop)
+			draw_arc(center, radius + shake, -PI / 2.0, -PI / 2.0 + TAU * ratio, 96, fill, 12.0 + 8.0 * _pop)
+	if _max_flash > 0.0:
+		draw_arc(center, radius * (1.0 + 0.6 * (1.0 - _max_flash)), 0.0, TAU, 96, Color(1, 1, 1, _max_flash), 4.0 + 10.0 * _max_flash)
+	# 大字：重拍的结果 / MAX / MASH + 数字；下面一个一闪一闪的按键
+	var label := ""
+	var col := Color(1, 1, 1)
+	var fs := 34
+	if _slap_text_age < 0.8:
+		label = _slap_text
+		col = Color(1.0, 0.9, 0.3) if _slap_text != "MISS" and _slap_text != "LOW CHARGE" else Color(1.0, 0.5, 0.5)
+		fs = 40 if _slap_text == "POWER SLAP!" else 30
+	elif _maxed:
+		label = "%s  %d / %d" % [max_text, _charge, _charge_target] if _charge > _charge_target else max_text
+		col = charged_color.lerp(Color.WHITE, 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.03))
+		fs = 44
+	elif active:
+		label = "%s  %d / %d" % [mash_text, _charge, _charge_target]
+		col = charge_color.lerp(Color.WHITE, 0.55)
+		fs = 36 + int(8.0 * _pop)
+	elif coming:
+		label = mash_text
+		col = Color(charge_color.lerp(Color.WHITE, 0.55), 0.6 + 0.4 * absf(sin(Time.get_ticks_msec() * 0.012)))
+	if label == "":
+		return
+	var pos := center + Vector2(-220.0, -radius - 44.0)
+	draw_string_outline(font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 440, fs, 8, Color(0.02, 0.02, 0.06, 0.95))
+	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 440, fs, col)
+	if (coming or active) and _slap_text_age >= 0.8 and mash_key_text != "":
+		# 按键提示：一上一下地快速闪，告诉玩家“一直按”
+		var down := int(Time.get_ticks_msec() / 70.0) % 2 == 0
+		var key := Rect2(center + Vector2(-52.0, -radius - 34.0 + (3.0 if down else 0.0)), Vector2(104.0, 26.0))
+		draw_rect(Rect2(key.position + Vector2(0.0, 4.0), key.size), Color(0.02, 0.02, 0.06, 0.9))
+		draw_rect(key, Color(1, 1, 1, 0.95) if down else Color(charge_color.lerp(Color.WHITE, 0.3), 0.95))
+		draw_string(font, key.position + Vector2(0.0, 19.0), mash_key_text, HORIZONTAL_ALIGNMENT_CENTER, key.size.x, 16, Color(0.05, 0.05, 0.15))
 
 
 ## 画面下方的新闻播报条：左边台标，右边一行字从右往左滚
@@ -398,20 +534,14 @@ func _leave_crossfade() -> void:
 
 # ---------------- 调试：自动按键 ----------------
 
-func _autoplay(now: float) -> void:
+func _autoplay() -> void:
 	if _auto_release:
 		_send_hit(false)
 		_auto_release = false
-		return
 	while _auto_next < notes.size() and notes[_auto_next].judged:
 		_auto_next += 1
 	if _auto_next < notes.size() and beats_until(notes[_auto_next]) <= 0.0:
 		_auto_next += 1
-		_send_hit(true)
-		_auto_release = true
-	elif _in_window(now) and Time.get_ticks_msec() * 0.001 >= _auto_tap_at:
-		# 连点区间里每秒按 10 下左右
-		_auto_tap_at = Time.get_ticks_msec() * 0.001 + 0.1
 		_send_hit(true)
 		_auto_release = true
 
@@ -421,3 +551,7 @@ func _send_hit(pressed: bool) -> void:
 	e.action = Judge.HIT_ACTION
 	e.pressed = pressed
 	Input.parse_input_event(e)
+
+
+## 计分用（见 main.gd 的 _compute_stage_weights）：踩镲（h）只蓄力不涨积累条，只有 k / s 涨条
+const SCORE_GAUGE_SOUNDS := "ksx"

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cv3psy3hh12yt"
-path="res://.godot/imported/food_bao_food_atlas.png-752cac553896643c21c469ac1de5dc7e.ctex"
+path.s3tc="res://.godot/imported/food_bao_food_atlas.png-752cac553896643c21c469ac1de5dc7e.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "6d9910d9a7e463d9b68090c00cc35c10"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://stages/space_shooter/food/food_bao_food_atlas.png"
-dest_files=["res://.godot/imported/food_bao_food_atlas.png-752cac553896643c21c469ac1de5dc7e.ctex"]
+dest_files=["res://.godot/imported/food_bao_food_atlas.png-752cac553896643c21c469ac1de5dc7e.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

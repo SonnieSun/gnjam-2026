@@ -342,7 +342,7 @@ func _draw() -> void:
 			continue
 		var head_r := target_radius if holding_this else _ring_radius(beats_until(n), from_r)
 		var tail_r := _ring_radius(end - song_beat(), from_r)
-		var c := sound_color(n)
+		var c := HOLD_COLOR  # 长按统一是粉色
 		var center := hit_position(n)
 		if tail_r > head_r:
 			c.a = hold_band_alpha
@@ -392,7 +392,7 @@ func _draw_rings() -> void:
 		var r := maxf(target_radius + t * (from_r - target_radius), 4.0)
 		# 越靠近判定圈越亮、越粗、稍微偏白，最后一段外面再加一圈柔光
 		var k := 1.0 - clampf(t, 0.0, 1.0)
-		var c := RING_COLORS[n.sound % RING_COLORS.size()].lerp(Color.WHITE, k * k * 0.3)
+		var c := guide_color(n).lerp(Color.WHITE, k * k * 0.3)
 		c.a = clampf((1.0 - t) / 0.15, 0.0, 1.0) * lerpf(ring_alpha, 1.0, pow(k, 1.5))
 		var w := lerpf(ring_width, ring_width_near, k)
 		if k > 0.5:
@@ -505,3 +505,10 @@ func _rest_until(until_beat: float, bars := PackedStringArray()) -> float:
 	_hold_ends.clear()
 	_holding = null
 	return resume
+
+
+## 音符圈和辅助线的颜色：长按统一粉色，其余按 ring_section 的那套
+func guide_color(note: NoteData) -> Color:
+	if not _holds_parsed and def:
+		_parse_holds()
+	return HOLD_COLOR if _hold_ends.has(note) else super(note)
