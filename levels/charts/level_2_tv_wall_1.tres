@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ChartPattern" format=3]
+
+[ext_resource type="Script" path="res://scripts/chart/chart_pattern.gd" id="1_aom10"]
+
+[resource]
+script = ExtResource("1_aom10")
+length_beats = 8.0
+notes = Array[Dictionary]([{
+"beat": 0.0,
+"sound": 0
+}, {
+"beat": 2.0,
+"sound": 0
+}, {
+"beat": 4.0,
+"sound": 0
+}, {
+"beat": 6.0,
+"sound": 0
+}])

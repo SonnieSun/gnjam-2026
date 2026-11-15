@@ -8,6 +8,7 @@ extends Control
 ##   空格        播放 / 暂停（试玩时空格是打击键）
 ##   T          试玩开 / 关：从播放头所在那一遍的开头起，用正式的判定打一遍（Esc 也能退出试玩）
 ##   1 / 2 / 3  笔刷：底鼓 / 军鼓 / 踩镲（在时间轴上点空白处放的音符用这个音色）
+##   M          选中的音符 连击 开 / 关（连击 = 这一段里狂按，段长 = 长按那个长度）
 ##   Delete     删掉选中的音符        Ctrl/Cmd + A  全选
 ##   Ctrl/Cmd + C / V   复制 / 粘贴选中的音符（贴到播放头位置）
 ##   Ctrl/Cmd + Z / Shift+Z   撤销 / 重做        Ctrl/Cmd + S  保存
@@ -66,6 +67,10 @@ var _fields := {}  # 属性名 -> 控件
 var _color_default := CheckBox.new()
 var _color_pick := ColorPickerButton.new()
 var _sel_label := Label.new()
+var _music_on := false  # 这一关用的是叠轨音乐（levels/music/*.json 开了 use_in_game）
+var _progress := HSlider.new()
+var _progress_label := Label.new()
+var _mash_check := CheckBox.new()
 var _p_fields := {}  # 谱子设置 -> 控件
 
 
@@ -85,6 +90,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Conductor.stop()
+	Music.clear()
 
 
 # ================================================================ 打开 / 保存
@@ -93,8 +99,17 @@ func _open(level: int, section: int) -> void:
 	_stop_playtest()
 	_level = clampi(level, 0, Levels.count() - 1)
 	_song = (load(Levels.paths()[_level]) as SongChart).duplicate(true) as SongChart
-	_song.recompute()
 	_section = clampi(section, 0, _song.sections.size() - 1)
+	# 叠轨音乐：和游戏里（main.gd）一样，这一关开了就用它代替谱面里的伴奏，BPM 也跟着配置走
+	var cfg := Music.read(Music.MUSIC_DIR + Levels.paths()[_level].get_file().get_basename() + ".json")
+	_music_on = cfg.get("use_in_game", false)
+	if _music_on:
+		_song.stream = Music.build(cfg)
+		_song.bpm = Music.bpm()
+		_song.first_beat_offset_sec = 0.0
+	else:
+		Music.clear()
+	_song.recompute()
 	_loading = true
 	_level_pick.select(_level)
 	_section_pick.clear()
@@ -110,6 +125,7 @@ func _open(level: int, section: int) -> void:
 	_def.length = pattern.length_beats
 	Conductor.stop()
 	Conductor.load_chart(_song)
+	_music_apply()
 	_beat = 0.0
 	_undo.clear()
 	_redo.clear()
@@ -142,6 +158,18 @@ func _save() -> void:
 		_set_status("保存好了：%s（挂在 %s 第 %d 个小关上）" % [file.get_file(), path.get_file(), _section + 1])
 	else:
 		_set_status("保存失败（错误 %d）" % err)
+
+
+## 叠轨音乐：按现在的小关和「进度」滑条，马上换成游戏里那个进度会响的那几轨
+func _music_apply() -> void:
+	_progress.editable = _music_on
+	_progress_label.text = ("进度 %d%%" % roundi(_progress.value * 100.0)) if _music_on else "进度（这关没开叠轨音乐）"
+	if not _music_on:
+		return
+	Music.section = _section
+	Music.progress = _progress.value
+	Music.effective = _progress.value
+	Music.apply_now()
 
 
 # ================================================================ 预览
@@ -279,6 +307,7 @@ func _toggle_playtest() -> void:
 	add_child(_judge)
 	_judge.note_judged.connect(_on_test_judged)
 	_judge.pressed.connect(_drums.play)
+	_judge.add_child(ChartInput.attach(_judge, null, func() -> Node: return _scene))  # 长按 / 连击
 	_judge.reset()
 	_def.start_beat = start
 	var test_notes := _judge.begin_section(0, _def, _song.beats_per_bar, start, start)
@@ -381,6 +410,7 @@ func _on_selection() -> void:
 			(ctl as OptionButton).select(int(d.get(key, 0)))
 	if not sel.is_empty():
 		var c: Color = sel[0].get("color", Color(0, 0, 0, 0))
+		_mash_check.button_pressed = bool(sel[0].get("mash", false))
 		_color_default.button_pressed = c.a <= 0.0
 		if c.a > 0.0:
 			_color_pick.color = c
@@ -418,6 +448,21 @@ func _set_pattern(key: String, value: Variant) -> void:
 	if key == "length_beats":
 		_def.length = pattern.length_beats
 		_timeline.fit()
+	_commit()
+	_on_changed()
+
+
+## 选中的音符 连击 开 / 关。开的时候没有长度的先给 2 拍
+func _set_mash(on: bool) -> void:
+	if _loading or _timeline.selected.is_empty():
+		return
+	for d in _timeline.selected:
+		if on:
+			d["mash"] = true
+			if float(d.get("length", 0.0)) <= 0.0:
+				d["length"] = 2.0
+		else:
+			d.erase("mash")
 	_commit()
 	_on_changed()
 
@@ -492,6 +537,9 @@ func _input(event: InputEvent) -> void:
 		KEY_1: _set_brush(NoteData.Sound.KICK)
 		KEY_2: _set_brush(NoteData.Sound.SNARE)
 		KEY_3: _set_brush(NoteData.Sound.HAT)
+		KEY_M:
+			if not _timeline.selected.is_empty():
+				_set_mash(not bool(_timeline.selected[0].get("mash", false)))
 		KEY_DELETE, KEY_BACKSPACE: _delete_selected()
 		KEY_ESCAPE: _back()
 		KEY_A when cmd:
@@ -571,6 +619,17 @@ func _build_ui() -> void:
 		b.pressed.connect(_set_brush.bind(i))
 		bar.add_child(b)
 		_brush_btns.append(b)
+	_progress_label.add_theme_font_size_override("font_size", 12)
+	bar.add_child(_progress_label)
+	_progress.min_value = 0.0
+	_progress.max_value = 1.0
+	_progress.step = 0.01
+	_progress.custom_minimum_size = Vector2(140, 0)
+	_progress.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_progress.focus_mode = Control.FOCUS_NONE
+	_progress.tooltip_text = "积累条进度：听这个小关在不同进度下叠了哪些音轨（只影响试听，不存进谱子）"
+	_progress.value_changed.connect(func(_v: float) -> void: _music_apply())
+	bar.add_child(_progress)
 	var save := Button.new()
 	save.text = "Save"
 	save.pressed.connect(_save)
@@ -658,6 +717,10 @@ func _build_inspector() -> Control:
 	_spin(box, "lane", "轨道", 0, 7, 1)
 	_spin(box, "lead", "提前几拍出现（0=默认）", 0, 32, 0.25)
 	_spin(box, "length", "长按几拍（0=点按）", 0, 64, 0.25)
+	_mash_check.text = "连击（M）：这一段里狂按"
+	_mash_check.tooltip_text = "勾上：这个音符变成连击，上面的「长按几拍」就是连击这一段多长，不看节奏只数按了几下"
+	_mash_check.toggled.connect(_set_mash)
+	box.add_child(_mash_check)
 	_spin(box, "size", "大小", 0.1, 5, 0.05)
 	_spin(box, "rot", "初始角度（度）", -360, 360, 5)
 	_spin(box, "spin", "自转（度 / 拍）", -1440, 1440, 15)
@@ -675,7 +738,8 @@ func _build_inspector() -> Control:
 		_set_prop("color", c))
 	box.add_child(_color_pick)
 	var help := Label.new()
-	help.text = "时间轴：点空白放音符，拖动移动，右键删，\nAlt+拖 改长按，拖左边小菱形改出现时间。\n空格 播放  T 试玩  1/2/3 笔刷\nCtrl+Z 撤销  Ctrl+S 保存"
+	help.text = "时间轴：点空白放音符，拖动移动，右键删，\nAlt+拖 改长按，拖左边小菱形改出现时间。
+选中后按 M = 连击（长度同长按）。\n空格 播放  T 试玩  1/2/3 笔刷\nCtrl+Z 撤销  Ctrl+S 保存"
 	help.add_theme_font_size_override("font_size", 11)
 	help.modulate.a = 0.6
 	box.add_child(help)

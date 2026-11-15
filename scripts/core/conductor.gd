@@ -34,6 +34,12 @@ var song_beat := 0.0
 var playing := false
 
 var _player: AudioStreamPlayer
+## 播放速度（编辑器里放慢了听用；游戏里一直是 1，和原来完全一样）。音乐跟着变速，音调也会变低 / 变高
+var speed := 1.0:
+	set(value):
+		speed = value
+		if _player:
+			_player.pitch_scale = value
 var _raw_time := 0.0
 var _last_beat := -1
 var _end_beat := 0.0
@@ -133,10 +139,10 @@ func _process(_delta: float) -> void:
 	else:
 		# 音频报的位置是按混音块一跳一跳的，直接用会让时间（和画面、判定）抖。
 		# 所以：按系统时钟往前推，再一点点往音频位置靠；差太多才直接对齐。
-		var predicted := _raw_time + (now - _raw_usec) / 1000000.0
+		var predicted := _raw_time + (now - _raw_usec) / 1000000.0 * speed
 		var t := _loop_base + _player.get_playback_position() \
-				+ AudioServer.get_time_since_last_mix() \
-				- AudioServer.get_output_latency()
+				+ (AudioServer.get_time_since_last_mix() \
+				- AudioServer.get_output_latency()) * speed
 		if looping and _loop_len > 0.0 and t < predicted - _loop_len * 0.5:
 			# 播放位置突然掉回开头 = 音乐绕回去了，时间接着往上数
 			_loop_base += _loop_len
@@ -194,7 +200,7 @@ func input_beat() -> float:
 func input_time() -> float:
 	if not playing:
 		return song_time - visual_offset_sec - input_offset_sec
-	var raw := _raw_time + (Time.get_ticks_usec() - _raw_usec) / 1000000.0
+	var raw := _raw_time + (Time.get_ticks_usec() - _raw_usec) / 1000000.0 * speed
 	return raw - chart.first_beat_offset_sec - input_offset_sec
 
 

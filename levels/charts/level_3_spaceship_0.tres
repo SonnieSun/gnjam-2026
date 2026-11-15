@@ -1,0 +1,92 @@
+[gd_resource type="Resource" script_class="ChartPattern" format=3]
+
+[ext_resource type="Script" path="res://scripts/chart/chart_pattern.gd" id="1_j6r2t"]
+
+[resource]
+script = ExtResource("1_j6r2t")
+length_beats = 60.0
+notes = Array[Dictionary]([{
+"beat": 1.0,
+"sound": 0
+}, {
+"beat": 3.0,
+"sound": 0
+}, {
+"beat": 5.0,
+"sound": 0
+}, {
+"beat": 7.0,
+"sound": 0
+}, {
+"beat": 9.0,
+"sound": 0
+}, {
+"beat": 11.0,
+"sound": 0
+}, {
+"beat": 13.0,
+"sound": 0
+}, {
+"beat": 15.0,
+"sound": 0
+}, {
+"beat": 16.0,
+"sound": 1
+}, {
+"beat": 20.0,
+"sound": 1
+}, {
+"beat": 22.0,
+"sound": 0
+}, {
+"beat": 24.0,
+"sound": 0
+}, {
+"beat": 26.0,
+"sound": 0
+}, {
+"beat": 28.0,
+"sound": 0
+}, {
+"beat": 31.0,
+"sound": 1
+}, {
+"beat": 33.0,
+"sound": 1
+}, {
+"beat": 36.0,
+"sound": 0
+}, {
+"beat": 38.0,
+"sound": 0
+}, {
+"beat": 40.0,
+"sound": 0
+}, {
+"beat": 44.0,
+"sound": 0
+}, {
+"beat": 46.0,
+"sound": 0
+}, {
+"beat": 50.0,
+"sound": 0
+}, {
+"beat": 52.0,
+"sound": 0
+}, {
+"beat": 54.0,
+"sound": 0
+}, {
+"beat": 56.0,
+"sound": 0
+}, {
+"beat": 60.0,
+"sound": 0
+}, {
+"beat": 62.0,
+"sound": 1
+}, {
+"beat": 17.0,
+"sound": 0
+}])

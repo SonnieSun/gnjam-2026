@@ -5,6 +5,7 @@ extends Control
 ##   左键点音符         选中（按住 Shift 加选 / 取消）；拖动 = 移动（左右改拍子，上下换轨道）
 ##   拖长按音符右边缘 / 按住 Alt 拖音符   改长按长度（拉到 0 = 普通点按）
 ##   拖选中音符左边的小菱形   改「提前几拍出现」（菱形的位置就是音符出现的那一刻）
+##   连击音符（选中后按 M）画成斜条纹，长度 = 连击这一段
 ##   右键音符           删掉
 ##   点最上面的刻度条   把播放头挪过去
 ##   滚轮 横向滚动，Ctrl / Cmd + 滚轮 缩放
@@ -128,6 +129,13 @@ func _draw() -> void:
 		draw_rect(r, col)
 		if float(d.get("length", 0.0)) > 0.0:
 			draw_rect(Rect2(r.position + Vector2(10, r.size.y * 0.3), Vector2(r.size.x - 10, r.size.y * 0.4)), col.darkened(0.35))
+		if d.get("mash", false):
+			# 连击：斜条纹 + M
+			var sx := r.position.x + 4.0
+			while sx < r.end.x - 2.0:
+				draw_line(Vector2(sx, r.end.y), Vector2(minf(sx + r.size.y * 0.5, r.end.x), r.end.y - minf(r.size.y, (r.end.x - sx) * 2.0)), Color(0, 0, 0, 0.55), 2.0)
+				sx += 8.0
+			draw_string(get_theme_default_font(), r.position + Vector2(2.0, 12.0), "M", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 		var has_fx: bool = float(d.get("glow", 0)) > 0 or float(d.get("pulse", 0)) > 0 or float(d.get("throb", 0)) > 0 \
 				or float(d.get("spin", 0)) != 0 or float(d.get("rot", 0)) != 0 or float(d.get("size", 1)) != 1.0
 		if has_fx:

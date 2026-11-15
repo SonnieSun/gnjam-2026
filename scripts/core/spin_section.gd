@@ -390,6 +390,8 @@ const HOLD_COLOR := Color(1.0, 0.15, 0.7)
 
 
 func sound_color(note: NoteData) -> Color:
+	if note.color.a > 0.0:
+		return note.color  # 谱子里给这个音符单独指定了颜色
 	return SOUND_COLORS[note.sound % SOUND_COLORS.size()]
 
 

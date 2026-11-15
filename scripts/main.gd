@@ -127,6 +127,8 @@ func _ready() -> void:
 
 	# Esc 暂停转盘（暂停时也要能收键，所以挂一个不受暂停影响的层）
 	add_child(preload("res://scripts/pause_menu.gd").new())
+	# 谱面里的长按 / 连击：通用处理（见 scripts/chart/input/chart_input.gd）
+	add_child(ChartInput.attach(judge, gauge, func() -> Node: return _current))
 
 	# 一路连着玩从上一关过来的（过门还在响）：先喘口气，玩家按一下才正式开始这一关
 	if Music.bridge_active():
