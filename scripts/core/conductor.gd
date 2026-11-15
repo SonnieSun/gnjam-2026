@@ -20,6 +20,11 @@ const SETTINGS_PATH := "user://settings.cfg"
 const CLOCK_CORRECTION := 0.1
 ## 和音频位置差得比这还多就直接对齐（卡顿、音频重启）
 const CLOCK_SNAP_SEC := 0.05
+## 要连着这么多帧都差这么多才对齐
+const CLOCK_SNAP_FRAMES := 3
+var _snap_frames := 0
+## 调试用：忽略了几次"只有一帧"的大偏差
+var snaps_ignored := 0
 
 var chart: SongChart
 ## 距离第一拍的秒数
@@ -138,8 +143,18 @@ func _process(_delta: float) -> void:
 			t += _loop_len
 		var err := t - predicted
 		if absf(err) > CLOCK_SNAP_SEC:
-			_raw_time = t
+			# 差得多：真的卡了 / 音频重启了会一直差着，连着几帧都这样才对齐。
+			# 只有一帧差很多是音频报的位置自己跳了一下（叠轨音乐绕回开头的那一瞬间偶尔会有），不理它，
+			# 不然时间会往前跳几秒又跳回来，那几秒里的音符全被判成漏打。
+			_snap_frames += 1
+			if _snap_frames >= CLOCK_SNAP_FRAMES:
+				_snap_frames = 0
+				_raw_time = t
+			else:
+				snaps_ignored += 1
+				_raw_time = predicted
 		else:
+			_snap_frames = 0
 			_raw_time = maxf(_raw_time, predicted + err * CLOCK_CORRECTION)  # 小修正时保证不回退
 	_raw_usec = now
 	_update_clock()
