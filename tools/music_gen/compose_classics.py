@@ -215,6 +215,7 @@ def miao(midi, seconds, style='mix', flow=0.0):
 
 
 TAIL_FADE = 0.04     # a flow meow is gone this long after the next note starts
+SAME_PITCH_GAP = 0.05  # ... but this long BEFORE it when the next note repeats the pitch, so they stay two notes
 
 
 def tail_cut(v, note_n):
@@ -381,13 +382,14 @@ VOICES = {}          # lead name -> [(note index, start sample, mono sound)], fo
 
 
 def merge_repeats(mel, octave):
-    """For the flow lead (whole meows, legato): two notes in a row on the same pitch become one long note
-    when the first is only a pickup (an eighth or shorter) or the pitch is high (from HIGH_FROM up, where
-    every note is doubled by a hard-cut meow). Sung as written, D5 D5 or G5 G5 came out as a meow chopped
-    in two; one meow held through reads as the same tune and sounds like singing."""
+    """For the flow lead (whole meows, legato): two notes in a row on the same high pitch (from HIGH_FROM up,
+    where every note is doubled by a hard-cut meow) become one long note: sung as written, G5 G5 came out
+    as a meow chopped in two. A short pickup into a long note on the same pitch (D5 D5 at the end of a
+    phrase) is NOT merged: that short-then-long is the shape of the ending. It is kept apart instead: the
+    pickup stops a moment before the long note starts (see put() in cat_leads)."""
     out = []
     for s, p, ln in mel:
-        if out and out[-1][1] == p and out[-1][0] + out[-1][2] == s and (out[-1][2] <= 2 or nm(p) + octave >= HIGH_FROM):
+        if out and out[-1][1] == p and out[-1][0] + out[-1][2] == s and nm(p) + octave >= HIGH_FROM:
             out[-1] = (out[-1][0], p, out[-1][2] + ln)
         else:
             out.append((s, p, ln))
@@ -417,7 +419,11 @@ def cat_leads(song, bars, last_in_phrase):
             def put(v, at, gain=1.0):
                 """Place one sound of this note; in the flow lead it ends just after the next note starts."""
                 if flow:
-                    v = tail_cut(v, max(0, t2n(nxt * STEP) - at))
+                    room = max(0, t2n(nxt * STEP) - at)
+                    if i + 1 < len(mel) and mel[i + 1][1] == p:
+                        # the next note is the same pitch: stop early, so the two are heard as two (short, long)
+                        room = max(t2n(0.06), room - t2n(SAME_PITCH_GAP + TAIL_FADE))
+                    v = tail_cut(v, room)
                 VOICES.setdefault(name, []).append((i, at, v * gain))
                 place(x, stereo(v), at, gain)
             # High notes: a formant-kept meow gets thin up there and stops reading as a note, so from
@@ -460,13 +466,13 @@ def cat_leads(song, bars, last_in_phrase):
             end = i in last_in_phrase and ln >= 2
             v = resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)
             if bright and ln >= 4:
-                # A long note whose meow opens dull ("mmao") and only blooms in its tail: give it a 'mi'.
-                # A kitten's 'mi' on the attack, and more presence on the first tenth of a second of the meow.
+                # A long note whose meow opens dull ("mmao") and only blooms in its tail: more presence on its
+                # first tenth of a second. (A kitten's 'mi' layered on the attack was tried and dropped: it
+                # read as a separate little note in front of a meow that is good as it is.)
                 n0 = min(len(v), t2n(0.11))
                 env = np.zeros(len(v))
                 env[:n0] = np.linspace(1.0, 0.0, n0) ** 0.7
                 v = v + bandpass(v, 2500, 7000) * env * 1.6
-                place(x, stereo(resonate(mi(m, 0.07), lift(m), 1.0)), t2n(s * STEP), 0.75)
             place(x, stereo(v), t2n(s * STEP), 1.3 if end else 1.0)
             if end:
                 place(x, stereo(resonate(hit(sample, own, m - 12, ln * STEP * 0.95), m - 12, even=True)), t2n(s * STEP), 0.6)
