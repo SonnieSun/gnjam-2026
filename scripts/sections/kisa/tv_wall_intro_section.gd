@@ -15,6 +15,10 @@ extends SpinSection
 ## 没打中时整个画面红闪的强度
 @export_range(0.0, 1.0) var miss_flash := 0.2
 ## 调试用：自动按键（看演出用，正式玩要关掉）
+## 结尾演出（散开 + 镜头钻进屏幕）至少放几拍；实际会凑到下一个小节线
+@export var finale_min_beats := 5.0
+## 钻进屏幕后切到下一个小关时，用几秒叠化盖住框架的白闪
+@export var crossfade_seconds := 0.25
 @export var autoplay := false
 
 var _stage: TvWallIntroStage
@@ -28,6 +32,9 @@ var _flash := 0.0
 var _auto_next := 0
 var _auto_release_at := -INF
 var _auto_down := false
+var _finale := false
+var _fill_at := INF
+var _next_view: SubViewport
 
 
 func _ready() -> void:
@@ -55,11 +62,13 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 	var dt := get_process_delta_time()
 	if _hold_lens.is_empty():
 		_parse_holds()
-	if autoplay:
+	if autoplay and not _finale:
 		_autoplay()
 	if _holding:
 		_update_hold()
 	_stage.update(song_beat(), dt)
+	if song_beat() >= _fill_at:
+		_fill_gauge_now()
 	for tv in _stage.take_just_lit():
 		_bolts.append({"to": tv, "age": 0.0})
 	for i in range(_bolts.size() - 1, -1, -1):
@@ -140,6 +149,8 @@ func _finish_hold(success: bool) -> void:
 		_flash = 1.0
 	_holding = null
 	_stage.hold_end(success)
+	if _stage.finale_pending:
+		_start_finale()
 
 
 # ---------------- 表现 ----------------
@@ -153,6 +164,8 @@ func _draw() -> void:
 				HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20)
 		return
 	if _stage == null:
+		return
+	if _finale:
 		return
 	var center := hit_position()
 	var radius := maxf(hit_radius(), 1.0)
@@ -258,3 +271,88 @@ func _send_hit(pressed: bool) -> void:
 	e.action = Judge.HIT_ACTION
 	e.pressed = pressed
 	Input.parse_input_event(e)
+
+
+# ---------------- 结尾：钻进屏幕，接到下一个小关 ----------------
+
+## 全亮之后那次长按按完：不再出音符，下一个小关的画面先在一块看不见的画布上跑起来，贴到中间那台电视的屏幕上；
+## 镜头钻进屏幕、画面铺满全屏的那一拍（小节线）让框架切到真正的下一个小关。
+## Judge 和 Gauge 是主场景里框架的节点，这里只调它们现成的方法（和迪斯科结尾同一种做法）。
+func _start_finale() -> void:
+	_finale = true
+	if _auto_down:
+		_send_hit(false)
+		_auto_down = false
+	var main := get_parent().get_parent() if get_parent() else null
+	if main and main.get("judge"):
+		main.judge.stop_notes()
+	var bpb: int = Conductor.chart.beats_per_bar
+	var now := song_beat()
+	var switch_at := ceilf((now + finale_min_beats) / bpb) * bpb
+	var live: Texture2D = null
+	var next := _next_def()
+	if next and next.scene:
+		# 下一个小关提前跑起来（没有音符），画面和待会儿真正切过去时是同一拍的同一个场景
+		_next_view = SubViewport.new()
+		_next_view.size = Vector2i(screen_size())
+		_next_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		add_child(_next_view)
+		next.start_beat = switch_at
+		var preview := next.scene.instantiate() as SpinSection
+		var none: Array[NoteData] = []
+		preview.setup(next, none)
+		_next_view.add_child(preview)
+		preview.enter()
+		live = _next_view.get_texture()
+		_fill_at = switch_at - 1.5
+	_stage.start_finale(now, switch_at, live)
+
+
+func _next_def() -> SectionDef:
+	var sections: Array = Conductor.chart.sections
+	var i := sections.find(def)
+	return sections[i + 1] if i >= 0 and i + 1 < sections.size() else null
+
+
+## 把积累条顶满，框架会在下一个小节线切到下一个小关
+func _fill_gauge_now() -> void:
+	_fill_at = INF
+	var main := get_parent().get_parent() if get_parent() else null
+	if main == null or not main.get("gauge"):
+		return
+	var g: Gauge = main.gauge
+	while not g.full:
+		g.apply(NoteData.Result.PERFECT)
+
+
+func _on_exit() -> void:
+	if _finale:
+		_leave_crossfade()
+
+
+## 切走的那一刻把最后一帧画面留在最上面很快淡掉，盖住框架切关时的白闪
+func _leave_crossfade() -> void:
+	var img := get_viewport().get_texture().get_image()
+	if img == null or img.is_empty():
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var rect := TextureRect.new()
+	rect.texture = ImageTexture.create_from_image(img)
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(rect)
+	get_tree().root.add_child(layer)
+	var t := layer.create_tween()
+	t.tween_property(rect, "modulate:a", 0.0, crossfade_seconds)
+	t.tween_callback(layer.queue_free)
+
+
+## 调试：按 T 直接跳到「电视全亮」（只在调试版里有效），方便测后面钻进屏幕那一段
+func _unhandled_key_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key and key.pressed and not key.echo and key.physical_keycode == KEY_T and OS.is_debug_build():
+		if _stage and not _finale:
+			_stage.skip_to_all_lit()
