@@ -77,6 +77,7 @@ var _index := -1
 var _current: SpinSection
 var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = 还没满）
 var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比例（计分用）
+var _stage_clicks: Array[float] = []  # 每个小关预计要按多少下（实时显示分数用）
 var _cleared := false
 var _gauge_offset := 0  # 共用积累条：这一段前面的几段一共多少分
 var _gauge_total := 0   # 共用积累条：整条一共多少分
@@ -108,7 +109,8 @@ func _ready() -> void:
 	judge.empty_hit.connect(_on_empty_hit)
 	judge.combo_milestone.connect(func(combo: int): hud.show_combo_milestone(combo))
 	judge.combo_milestone.connect(hit_meow.milestone)  # 连击里程碑：转圈喵（oiia），连击够高再送一段鬼畜全开
-	judge.stats_changed.connect(func(): hud.set_stats(judge.score + (run_score if in_run else 0), judge.combo))
+	# 左上角的分数实时涨（live_score = 已入账 + 当前阶段的估计），真正的成绩还是阶段结束时入账
+	judge.stats_changed.connect(func(): hud.set_stats(judge.live_score() + (run_score if in_run else 0), judge.combo))
 	judge.stats_changed.connect(func(): screen_fx.set_combo(judge.combo))  # 连击越高画面越热闹
 	gauge.changed.connect(_on_gauge_changed)
 	gauge.event.connect(_on_gauge_event)
@@ -259,13 +261,6 @@ func _process(_delta: float) -> void:
 			_enter(_index + 1, at, true)
 		else:
 			_clear_level()
-	hud.set_debug("%s  |  bar %d  beat %.2f  |  gauge %d/%d  |  [1-%d] jump  [N] next  [Tab] edit  [C] look  [R] restart  [Esc] menu" % [
-		chart.sections[_index].title,
-		int(Conductor.song_beat / chart.beats_per_bar) + 1,
-		Conductor.song_beat,
-		gauge.value, gauge.max_value,
-		mini(chart.sections.size(), 9),
-	])
 
 
 ## 进入第 index 个小关。at_beat = 它从全曲第几拍开始（必须落在小节线上，鼓谱才和音乐对得齐）。
@@ -282,7 +277,8 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 		_current = def.scene.instantiate() as SpinSection
 	# 计分：上一个阶段（小关）打完，按准确率入账；新阶段从零开始记
 	judge.bank_stage()
-	judge.begin_stage(_stage_weights[index] if index < _stage_weights.size() else 0.0)
+	judge.begin_stage(_stage_weights[index] if index < _stage_weights.size() else 0.0,
+			_stage_clicks[index] if index < _stage_clicks.size() else 0.0)
 	var section_notes := judge.begin_section(index, def, chart.beats_per_bar, at_beat, first_note)
 	if joined:
 		_current.rejoin(def, section_notes)
@@ -410,6 +406,7 @@ func _compute_stage_weights() -> Array[float]:
 			c = per_pass * ceilf(float(m) / (gauge.perfect_gain * gauge_per_pass))
 		clicks.append(maxf(c, 1.0))
 		total += clicks[-1]
+	_stage_clicks = clicks
 	var out: Array[float] = []
 	for c in clicks:
 		out.append(c / total if total > 0.0 else 0.0)
@@ -525,16 +522,21 @@ func _on_note_judged(note: NoteData, result: int, diff_sec: float) -> void:
 			hit_meow.play(result)
 		if _current.wants_hit_effects(note) and result != NoteData.Result.MISS:
 			screen_fx.punch_for(result)  # 整个画面顶一下（Perfect 最大）
+			# 九宫格 / 万花筒把画面切碎时，命中特效放到镜头特效上面、对着上面那套判定圈放，不然会跟着被切碎
+			var top := screen_fx.top_fx_layer()
+			var fx_parent: Node2D = top if top else fx_layer
+			var fx_radius: float = screen_fx.top_radius() if top else _current.hit_radius()
+			var fx_at: Vector2 = screen_fx.top_center() if top else _current.to_global(_current.hit_position(note))
 			var fx := StarBurst.create(result != NoteData.Result.GOOD)
-			fx_layer.add_child(fx)
-			fx.start_radius = _current.hit_radius()
-			fx.global_position = _current.to_global(_current.hit_position(note))
+			fx_parent.add_child(fx)
+			fx.start_radius = fx_radius
+			fx.global_position = fx_at
 			if result == NoteData.Result.PERFECT:
 				# Perfect 专属：判定圈上再炸开一圈冲击环
-				var ring := ShockRing.create(_current)
-				fx_layer.add_child(ring)
-				ring.radius *= _current.hit_radius()
-				ring.global_position = fx.global_position
+				var ring := ShockRing.create(null if top else _current)
+				fx_parent.add_child(ring)
+				ring.radius *= fx_radius
+				ring.global_position = fx_at
 
 
 func _on_empty_hit() -> void:
