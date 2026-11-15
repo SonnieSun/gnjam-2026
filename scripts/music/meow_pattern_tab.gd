@@ -1,15 +1,19 @@
 extends VBoxContainer
-## Tab 面板里的"Meow"页：在游戏里写喵谱子 —— 猫鼓（每行一种喵，点格子）和鬼畜猫旋律（小钢琴卷帘）。
+## 喵谱子的编辑区（嵌在喵谱子工作室 scenes/tools/meow_studio.tscn 里）：猫鼓（每行一种喵，点格子）和鬼畜猫旋律（小钢琴卷帘）。
 ## 谱子存成 levels/music/patterns/<名字>.json，是运行时按格子触发的（见 meow_player.gd），不用渲染，改了马上能听。
 ##
 ## 用法：选一个谱子或新建 → 点格子改 → Listen 勾上就跟着音乐循环试听 → Save 存文件 →
-## "Add to lane" 把它作为一个新片段放进这一关的某条轨道，然后到 Music 页像别的片段一样按进度切换到它。
+## "Add to lane" 把它作为一个新片段放进所选大关的某条轨道，然后在游戏 Tab 面板的 Music 页像别的片段一样按进度切换到它。
 ## 它不会替换原来预渲染的猫鼓 / 猫旋律，只是多一个可以选的片段。
 
 const Grid := preload("res://scripts/music/meow_grid.gd")
 const EDIT_KEY := "__meow_edit__"
 
-var editor: Node                      # Tab 面板（game_editor.gd），用它的 _fill_music / _mark_dirty
+## 谱子加进了某条轨道（宿主拿它去保存这一关的音乐配置）
+signal added_to_lane(lane: String, clip: String)
+
+## 宿主告诉这里：现在有没有能加片段的轨道（比如选的是不属于哪一关的基础伴奏，就没有）
+var has_lanes: Callable = func() -> bool: return Music.stream != null
 var pattern: Dictionary = {}
 var path := ""
 
@@ -24,8 +28,7 @@ var _grid: Control
 var _scroll: ScrollContainer
 
 
-func _init(tab_editor: Node = null) -> void:
-	editor = tab_editor
+func _init() -> void:
 	name = "Meow"
 	add_theme_constant_override("separation", 4)
 	var row := HFlowContainer.new()
@@ -234,7 +237,7 @@ func _center() -> void:
 			lo = minf(lo, float(n[1]))
 			hi = maxf(hi, float(n[1]))
 		mid = (lo + hi) / 2.0
-	var y: float = _grid.TOP + (_grid.HIGH - mid) * _grid.NOTE_ROW_H
+	var y: float = _grid.TOP + (_grid.HIGH - mid) * _grid.note_row_h
 	_scroll.scroll_vertical = int(maxf(0.0, y - _scroll.size.y / 2.0))
 
 
@@ -318,18 +321,36 @@ func _save() -> bool:
 
 
 func _add_to_lane() -> void:
-	if Music.stream == null or not Music.enabled_for(Levels.selected):
-		_status.text = "   This level does not use layered music, so it has no lanes"
+	if not has_lanes.call():
+		_status.text = "   Pick a level as the backing first: the basic backing has no lanes to add to"
 		return
 	if not _save():
 		return
 	var lane := _lane.get_item_text(_lane.selected)
 	var clip := Music.add_pattern_clip(lane, path)
-	if editor:
-		editor._fill_music()
-		editor._mark_dirty()
 	_fill_lanes()
-	_status.text = "   Added '%s' to lane %s: pick it on the Music page, then Save (top right) to keep it in the level" % [clip, lane]
+	_status.text = "   Added '%s' to lane %s" % [clip, lane]
+	added_to_lane.emit(lane, clip)
+
+
+## 宿主用的几个小接口
+func say(text: String) -> void:
+	_status.text = "   " + text
+
+
+func refresh_lanes() -> void:
+	_fill_lanes()
+
+
+func refresh_listen() -> void:
+	_update_listen()
+
+
+func set_cell_size(step_w: float, note_row_h: float) -> void:
+	_grid.step_w = step_w
+	_grid.note_row_h = note_row_h
+	_grid.set_pattern(pattern)
+	_center.call_deferred()
 
 
 func _process(_delta: float) -> void:

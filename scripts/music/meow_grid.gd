@@ -8,15 +8,17 @@ signal edited
 ## 点了一格，要试听：猫鼓给行号，旋律给 midi 音高
 signal poked(value: int)
 
-const STEP_W := 17.0
 const LABEL_W := 74.0
 const TOP := 16.0
 const DRUM_ROW_H := 26.0
-const NOTE_ROW_H := 8.0
 const LOW := 57      # A3
 const HIGH := 88     # E6
 const NAMES := ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 const ROW_COLORS := [Color(1.0, 0.82, 0.2), Color(1.0, 0.45, 0.7), Color(0.4, 0.9, 1.0), Color(0.55, 1.0, 0.65), Color(0.7, 0.55, 1.0)]
+
+## 一格多宽、旋律每行多高（全屏的工作室里画大一点）
+var step_w := 17.0
+var note_row_h := 8.0
 
 var pattern: Dictionary = {}
 ## 现在播到第几格（-1 = 不画）
@@ -45,16 +47,16 @@ func _rows() -> int:
 
 
 func _row_h() -> float:
-	return DRUM_ROW_H if is_drums() else NOTE_ROW_H
+	return DRUM_ROW_H if is_drums() else note_row_h
 
 
 func _resize() -> void:
-	custom_minimum_size = Vector2(LABEL_W + steps() * STEP_W + 8.0, TOP + _rows() * _row_h() + 4.0)
+	custom_minimum_size = Vector2(LABEL_W + steps() * step_w + 8.0, TOP + _rows() * _row_h() + 4.0)
 
 
 ## 鼠标位置 -> (第几格, 第几行)；不在格子里返回 (-1, -1)
 func _cell_at(pos: Vector2) -> Vector2i:
-	var x := floori((pos.x - LABEL_W) / STEP_W)
+	var x := floori((pos.x - LABEL_W) / step_w)
 	var y := floori((pos.y - TOP) / _row_h())
 	if pos.x < LABEL_W or x >= steps() or y < 0 or y >= _rows():
 		return Vector2i(-1, -1)
@@ -123,7 +125,7 @@ func _gui_input(event: InputEvent) -> void:
 		poked.emit(midi)
 		queue_redraw()
 	elif mm and _drag_note >= 0 and _drag_note < notes.size():
-		var x := clampi(floori((pos.x - LABEL_W) / STEP_W), 0, steps() - 1)
+		var x := clampi(floori((pos.x - LABEL_W) / step_w), 0, steps() - 1)
 		var length := maxi(1, x - int(notes[_drag_note][0]) + 1)
 		if length != int(notes[_drag_note][2]):
 			notes[_drag_note][2] = length
@@ -175,7 +177,7 @@ func _draw() -> void:
 	var rows := _rows()
 	# 小节号和底色：每拍一条细线，每小节一条粗线
 	for bar in n / 16:
-		draw_string(font, Vector2(LABEL_W + bar * 16 * STEP_W + 3, 12), str(bar + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.6))
+		draw_string(font, Vector2(LABEL_W + bar * 16 * step_w + 3, 12), str(bar + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.6))
 	for r in rows:
 		var y := TOP + r * rh
 		var shade := 0.10
@@ -187,24 +189,24 @@ func _draw() -> void:
 			shade = 0.07 if NAMES[midi % 12].length() == 2 else 0.12          # 黑键的行暗一点
 			if midi % 12 == 0:
 				draw_string(font, Vector2(4, y + rh), "C%d" % (midi / 12 - 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, 0.7))
-		draw_rect(Rect2(LABEL_W, y, n * STEP_W, rh - 1.0), Color(1, 1, 1, shade))
+		draw_rect(Rect2(LABEL_W, y, n * step_w, rh - 1.0), Color(1, 1, 1, shade))
 	for s in n + 1:
-		var x := LABEL_W + s * STEP_W
+		var x := LABEL_W + s * step_w
 		var a := 0.45 if s % 16 == 0 else (0.18 if s % 4 == 0 else 0.05)
 		draw_line(Vector2(x, TOP), Vector2(x, TOP + rows * rh), Color(1, 1, 1, a), 2.0 if s % 16 == 0 else 1.0)
 	if is_drums():
 		for r in rows:
 			for s in n:
 				if _drum_on(pattern.rows[r], s):
-					draw_rect(Rect2(LABEL_W + s * STEP_W + 2, TOP + r * rh + 3, STEP_W - 4, rh - 7), ROW_COLORS[r % ROW_COLORS.size()])
+					draw_rect(Rect2(LABEL_W + s * step_w + 2, TOP + r * rh + 3, step_w - 4, rh - 7), ROW_COLORS[r % ROW_COLORS.size()])
 	else:
 		for note: Array in pattern.get("notes", []):
 			var r := HIGH - int(note[1])
 			if r < 0 or r >= rows:
 				continue
-			var rect := Rect2(LABEL_W + int(note[0]) * STEP_W + 1, TOP + r * rh, int(note[2]) * STEP_W - 2, rh - 1.0)
+			var rect := Rect2(LABEL_W + int(note[0]) * step_w + 1, TOP + r * rh, int(note[2]) * step_w - 2, rh - 1.0)
 			draw_rect(rect, Color(1.0, 0.45, 0.7))
 			draw_rect(Rect2(rect.position, Vector2(3, rect.size.y)), Color(1, 1, 1, 0.9))
 	if playhead >= 0.0:
-		var px := LABEL_W + fposmod(playhead, float(n)) * STEP_W
+		var px := LABEL_W + fposmod(playhead, float(n)) * step_w
 		draw_line(Vector2(px, TOP - 4), Vector2(px, TOP + rows * rh), Color(1, 1, 1, 0.9), 2.0)

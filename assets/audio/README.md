@@ -29,7 +29,7 @@
 ## `meows/runtime/`：游戏里按格子触发的喵
 
 每只阵容里的猫一个 `meow_<编号>.wav`（原音高、共鸣烤进去、响度统一）和一个 `tick_<编号>.wav`（只有开头 70 毫秒的"mi"），
-`meows.json` 记着每只猫原本的音高。给 Tab 面板 Meow 页写的谱子片段用（`scripts/music/meow_player.gd`）。
+`meows.json` 记着每只猫原本的音高。给喵谱子工作室（`scenes/tools/meow_studio.tscn`）里写的谱子片段用（`scripts/music/meow_player.gd`）。
 由 `tools/music_gen/make_runtime_meows.py` 生成。
 
 ## `music/scene1_120/`：第 1 关素材的 120 BPM 版

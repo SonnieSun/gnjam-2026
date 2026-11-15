@@ -17,7 +17,6 @@ extends CanvasLayer
 
 const Grid := preload("res://scripts/tools/pattern_grid.gd")
 const CueStrip := preload("res://scripts/music/cue_strip.gd")
-const MeowTab := preload("res://scripts/music/meow_pattern_tab.gd")
 const THEME := preload("res://assets/ui/theme.tres")
 const PALETTE := [Color("ffd23f"), Color("ff5d8f"), Color("7fd1ff"), Color("86ffa3"), Color("b38cff"),
 		Color("ff9a3c"), Color("5ee6d0"), Color("f2f2f2")]
@@ -113,6 +112,7 @@ func _build_ui() -> void:
 	_status = _lbl("")
 	head.add_child(_status)
 	_btn(head, "Jukebox", _open_jukebox, "Leave the game and listen to every song and sound we have")
+	_btn(head, "Meow", _open_meow_studio, "Leave the game and write meow drums / cat melodies (they become new clips for the Music page)")
 	_btn(head, "Save", save, "Write the changes of every stage to disk")
 	_btn(head, "Close (Tab)", func() -> void: main.toggle_editor())
 
@@ -143,7 +143,6 @@ func _build_ui() -> void:
 			_fill_thumbnails())
 	tabs.add_child(_build_music_tab())
 	tabs.add_child(_build_pattern_tab())
-	tabs.add_child(MeowTab.new(self))   # meow patterns: meow drums and the kichiku cat melody, saved as new clips
 
 
 func _build_fx_tab() -> Control:
@@ -320,6 +319,12 @@ func _lbl(text: String) -> Label:
 func _open_jukebox() -> void:
 	Conductor.stop()
 	get_tree().change_scene_to_file("res://scenes/tools/jukebox.tscn")
+
+
+## 喵谱子工作室：离开游戏，去写猫鼓和鬼畜猫旋律（scenes/tools/meow_studio.tscn）
+func _open_meow_studio() -> void:
+	Conductor.stop()
+	get_tree().change_scene_to_file("res://scenes/tools/meow_studio.tscn")
 
 
 func _btn(parent: Control, text: String, action: Callable, tip: String = "") -> Button:
