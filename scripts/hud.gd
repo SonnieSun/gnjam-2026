@@ -1,11 +1,12 @@
 extends CanvasLayer
 
-@onready var score_label: Label = $ScoreLabel
-@onready var combo_label: Label = $ComboLabel
+@onready var score_label: ScoreComboWidget = $ScoreLabel
+@onready var combo_label: ScoreComboWidget = $ComboLabel
 @onready var judge_label: Label = $JudgeLabel
+@onready var judgement_art: JudgementWidget = $JudgementArt
 @onready var debug_label: Label = $DebugLabel
-@onready var result_label: Label = $ResultLabel
-@onready var milestone_label: Label = $MilestoneLabel
+@onready var result_label: ResultWidget = $ResultLabel
+@onready var milestone_label: ComboMilestoneWidget = $MilestoneLabel
 ## 积累条（样子在 main.tscn 的 HUD/GaugeBar 里调）
 @onready var gauge_bar: ProgressBar = get_node_or_null("GaugeBar")
 ## 结算评级字母（样子在 main.tscn 的 HUD/RankLabel 里调）
@@ -149,58 +150,18 @@ func _draw_gauge_marks() -> void:
 func flash(color: Color = Color.WHITE, strength: float = 0.8, seconds: float = 0.12) -> void:
 	_flash_rect.color = Color(color, strength)
 	create_tween().tween_property(_flash_rect, "color:a", 0.0, seconds)
-var _milestone_tween: Tween
 
 
 func reset() -> void:
 	judge_label.text = ""
-	if timing_label:
-		timing_label.text = ""
-	if _combo_tween:
-		_combo_tween.kill()
-	_last_combo = 0
-	_rest_combo()
+	judgement_art.clear()
 	result_label.visible = false
-	if rank_label:
-		rank_label.visible = false
-	if _milestone_tween:
-		_milestone_tween.kill()
-	milestone_label.modulate.a = 0.0
+	milestone_label.clear()
 
 
 func set_stats(score: int, combo: int) -> void:
-	score_label.text = "SCORE %d" % score
-	var before := _last_combo
-	_last_combo = combo
-	if combo > before and combo > 1:
-		# 打中了：数字跳一下
-		if _combo_tween:
-			_combo_tween.kill()
-		_rest_combo()
-		combo_label.text = "%d COMBO" % combo
-		var hot := clampf(float(combo) / maxi(combo_hot_at, 1), 0.0, 1.0)
-		var rest := Vector2.ONE * lerpf(1.0, combo_hot_scale, hot)
-		combo_label.modulate = Color.WHITE.lerp(combo_hot_color, hot)
-		combo_label.scale = rest * combo_pop
-		_combo_tween = create_tween()
-		_combo_tween.tween_property(combo_label, "scale", rest, 0.16) \
-				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	elif combo == 0 and before >= combo_break_min:
-		# 连击断了：原来的数字变红、歪着缩小消失
-		if _combo_tween:
-			_combo_tween.kill()
-		_rest_combo()
-		combo_label.text = "%d COMBO" % before
-		combo_label.modulate = miss_color
-		_combo_tween = create_tween().set_parallel()
-		_combo_tween.tween_property(combo_label, "scale", Vector2.ONE * 0.6, 0.35).set_ease(Tween.EASE_IN)
-		_combo_tween.tween_property(combo_label, "rotation", deg_to_rad(-10.0), 0.35)
-		_combo_tween.tween_property(combo_label, "modulate:a", 0.0, 0.35).set_ease(Tween.EASE_IN)
-		_combo_tween.chain().tween_callback(func() -> void:
-			combo_label.text = ""
-			_rest_combo())
-	elif combo <= 1 and (_combo_tween == null or not _combo_tween.is_running()):
-		combo_label.text = ""
+	score_label.set_value(score)
+	combo_label.set_value(combo)
 
 
 ## 连击数字回到平时的样子（缩放以右边中点为轴，因为它是靠右对齐的）
@@ -213,55 +174,16 @@ func _rest_combo() -> void:
 
 ## 判定文字：按等级上色，带过冲地弹出来（Perfect 弹得最大，Miss 不弹、从小的长回来）；偏早 / 偏晚写在下面的小字里
 func show_judgement(result: int, diff_sec: float) -> void:
-	var color := Color.WHITE
-	var from := judge_pop
-	var timing := ""
-	match result:
-		NoteData.Result.PERFECT:
-			judge_label.text = "PERFECT"
-			color = perfect_color
-			from = perfect_pop
-		NoteData.Result.GREAT:
-			judge_label.text = "GREAT"
-			color = great_color
-			timing = "LATE" if diff_sec > 0 else "EARLY"
-		NoteData.Result.GOOD:
-			judge_label.text = "GOOD"
-			color = good_color
-			from = lerpf(1.0, judge_pop, 0.5)
-			timing = "LATE" if diff_sec > 0 else "EARLY"
-		NoteData.Result.MISS:
-			judge_label.text = "MISS"
-			color = miss_color
-			from = 0.8
-	judge_label.modulate = color
-	judge_label.pivot_offset = judge_label.size / 2.0
-	judge_label.scale = Vector2.ONE * from
-	if timing_label:
-		timing_label.text = timing
-		timing_label.modulate = Color(color, 0.85)
 	if _judge_tween:
 		_judge_tween.kill()
-	_judge_tween = create_tween()
-	_judge_tween.tween_property(judge_label, "scale", Vector2.ONE, judge_pop_seconds) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_judge_tween.tween_property(judge_label, "modulate:a", 0.0, 0.5).set_delay(0.2)
-	if timing_label:
-		_judge_tween.parallel().tween_property(timing_label, "modulate:a", 0.0, 0.5).set_delay(0.2)
+	judge_label.text = ""
+	judge_label.visible = false
+	judgement_art.show_judgement(result, diff_sec)
 
 
 ## 屏幕右侧弹出 "COMBO XX"，停留一会儿后淡出
 func show_combo_milestone(combo: int) -> void:
-	milestone_label.text = "COMBO %d" % combo
-	milestone_label.pivot_offset = milestone_label.size * Vector2(1.0, 0.5)
-	milestone_label.scale = Vector2.ONE * 1.6
-	milestone_label.modulate.a = 1.0
-	if _milestone_tween:
-		_milestone_tween.kill()
-	_milestone_tween = create_tween()
-	_milestone_tween.tween_property(milestone_label, "scale", Vector2.ONE, 0.25) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_milestone_tween.tween_property(milestone_label, "modulate:a", 0.0, 0.4).set_delay(1.0)
+	milestone_label.show_combo(combo)
 
 
 ## 更新积累条
@@ -296,6 +218,8 @@ func pulse_gauge(is_full: bool) -> void:
 
 ## 在判定文字的位置临时显示一句提示（调试用）
 func show_note(text: String) -> void:
+	judgement_art.clear()
+	judge_label.visible = true
 	judge_label.text = text
 	judge_label.modulate = Color.WHITE
 	judge_label.scale = Vector2.ONE
@@ -312,18 +236,7 @@ func set_debug(text: String) -> void:
 
 
 func show_result(judge: Judge) -> void:
-	# 平均偏差：明显偏早 / 偏晚就该去主菜单按 O 重新校准
-	var ms := judge.mean_offset() * 1000.0
-	var lean := "LATE" if ms > 0.0 else "EARLY"
-	result_label.text = "LEVEL CLEAR!\nSCORE %d   MAX COMBO %d\nPERFECT %d   GREAT %d   GOOD %d   MISS %d\nAVG %+.0f ms %s\n\n[R] restart   [Esc] menu" % [
-		judge.score, judge.max_combo,
-		judge.counts[NoteData.Result.PERFECT],
-		judge.counts[NoteData.Result.GREAT],
-		judge.counts[NoteData.Result.GOOD],
-		judge.counts[NoteData.Result.MISS],
-		ms, lean if absf(ms) >= 1.0 else "",
-	]
-	result_label.visible = true
-	if rank_label:
-		rank_label.text = judge.rank()
-		rank_label.visible = true
+	judgement_art.clear()
+	judge_label.visible = false
+	milestone_label.clear()
+	result_label.show_result(judge)
