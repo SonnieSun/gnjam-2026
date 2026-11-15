@@ -306,7 +306,8 @@ func enter_plaza(beat: float, arrive_beat: float = -1.0) -> void:
 
 ## 结尾（一段连续的镜头，不切画面）：猫转一圈变成站立的姿势 -> 飞碟从上面降下来、绿色光柱罩住猫
 ## -> 镜头从斜俯视慢慢降到低处、仰看飞碟，停在和吸猫小关开场一样的构图上。seconds = 这一段总共多长
-func finale(seconds: float = 8.0) -> void:
+## stay_wide = 镜头不降下去，停在广场的远景上（不接吸猫、猫自己飞走的结尾用）
+func finale(seconds: float = 8.0, stay_wide: bool = false) -> void:
 	if phase == Phase.FINALE or phase == Phase.ROOM:
 		return
 	phase = Phase.FINALE
@@ -382,6 +383,8 @@ func finale(seconds: float = 8.0) -> void:
 	_cam_t = 0.0
 	var tc := create_tween()
 	tc.tween_property(self, "_cam_t", 1.0, seconds * 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if stay_wide:
+		return
 	tc.tween_callback(func():
 		_cam_a = _current_cam()
 		_cam_b = {"yaw": finale_yaw, "pitch": finale_pitch, "fov": finale_fov, "dist": finale_distance,
@@ -709,6 +712,43 @@ func _apply_camera(pulse: float) -> void:
 	cam.fov = _mix("fov") - pulse * fov_punch * (1.0 if phase != Phase.UNFOLD else 0.0)
 	cam.position = look + dir * _mix("dist")
 	cam.look_at(look)
+
+
+## 结尾的最后一段（不接吸猫时用）：猫在光柱里浮起来 -> 飞碟自己飞走 -> 过一会儿猫 Q 弹地向上飞出屏幕。
+## seconds = 这一段总共多长。返回猫起飞的那一刻离现在多少秒（配音效用）。
+func fly_away(seconds: float = 4.5) -> float:
+	if phase != Phase.FINALE:
+		return 0.0
+	var base := _cat.pose_position
+	var up := Vector3.UP
+	# 猫：浮起来，上下轻轻晃两下，蹲一下，弹出去
+	var tc := create_tween()
+	tc.tween_property(_cat, "pose_position", base + up * 1.7, seconds * 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tc.tween_property(_cat, "pose_position", base + up * 1.3, seconds * 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tc.tween_property(_cat, "pose_position", base + up * 1.7, seconds * 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tc.tween_property(_cat, "pose_position", base + up * 1.1, seconds * 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# （起飞不用 TRANS_BACK：它会先往回缩飞行距离的一成，猫会掉到地板下面；上面那一下下蹲已经是预备动作了）
+	tc.tween_property(_cat, "pose_position", base + up * 60.0, seconds * 0.22).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+	var launch := seconds * 0.64
+	# Q 弹：蹲的时候压扁，弹出去的时候拉长
+	var pivot := _cat._pivot
+	var s0 := pivot.scale
+	var tsq := create_tween()
+	tsq.tween_interval(seconds * 0.54)
+	tsq.tween_property(pivot, "scale", s0 * Vector3(1.3, 0.65, 1.3), seconds * 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tsq.tween_property(pivot, "scale", s0 * Vector3(0.75, 1.5, 0.75), seconds * 0.06).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# 飞碟：光柱先灭，然后斜着加速飞走
+	if _finale_beam_mat:
+		var tb := create_tween().set_parallel()
+		tb.tween_interval(seconds * 0.12)
+		tb.chain().tween_method(func(v: float): _finale_beam_mat.set_shader_parameter("strength", v), 0.5, 0.0, 0.4)
+		tb.tween_property(_finale_glow, "light_energy", 0.0, 0.4)
+	if _saucer_node:
+		var tu := create_tween()
+		tu.tween_interval(seconds * 0.18)
+		tu.tween_property(_saucer_node, "position", saucer_position + Vector3(30.0, 55.0, -10.0), seconds * 0.28) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	return launch
 
 
 ## 结尾镜头放完，接着在这里玩吸猫：把停好的飞碟交出去（吸猫舞台接手），自己的光柱和站着的猫收掉

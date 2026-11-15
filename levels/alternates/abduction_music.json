@@ -14,6 +14,10 @@
      "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L1_groove_4b.wav"
     },
     {
+     "id": "blast",
+     "file": "res://assets/audio/music/sky/sky_blast_drums_8b.wav"
+    },
+    {
      "id": "groove",
      "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav"
     }
@@ -39,6 +43,10 @@
    "name": "和声",
    "gain_db": 0.0,
    "clips": [
+    {
+     "id": "metal",
+     "file": "res://assets/audio/music/sky/sky_metal_riff_8b.wav"
+    },
     {
      "id": "ode_keys",
      "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L0_keys_8b.wav"
@@ -147,6 +155,10 @@
       "half"
      ],
      [
+      0.25,
+      "blast"
+     ],
+     [
       0.5,
       "groove"
      ]
@@ -162,6 +174,10 @@
      ]
     ],
     "bed": [
+     [
+      0.25,
+      "metal"
+     ],
      [
       0.5,
       "ode_keys"

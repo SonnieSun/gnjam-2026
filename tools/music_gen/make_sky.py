@@ -6,6 +6,9 @@ the storm resolving into them is the "it suddenly turns bright" moment):
   <loops>/sky/sky_drone_8b.wav        a low C and a dark C minor pad: the bass of the ascent
   <loops>/sky/sky_wind_8b.wav         flying through the clouds: wind, and clouds rushing past from side to side
   <loops>/sky/sky_doom_horns_8b.wav   doom horns: a long low brass blast every two bars (C, C, Ab, G), with thunder
+  <loops>/sky/sky_metal_riff_8b.wav   the storm's riff: distorted, palm-muted power chords in a gallop (C, C, Ab, G)
+  <loops>/sky/sky_blast_drums_8b.wav  the storm's drums: double kick on every 16th, snare on 2 and 4, and a kitten
+                                      'mi' on the off-beats so it stays cute
   <loops>/sky/sky_holy_pad_8b.wav     a bright C major pad with a cat choir "aah" and high bells
   <loops>/sky/bridge_wait_4b.wav      4 bars to wait on between two levels: wind, a slow heartbeat, a low C
 One-shots:
@@ -101,6 +104,50 @@ for bar in (1.5, 5.5):                                   # thunder between the b
     crack = bandpass(st_noise(n), 600, 3000) * (np.exp(-k / 0.08))[:, None] * 0.25
     place(x, rumble * 9 + crack, t2n(bar * BAR), 0.012)
 save_loop('sky_doom_horns', x, 0.13)
+
+# --- the storm as cute death metal: a galloping chug riff, double-kick drums with a kitten on the off-beats
+STEP_N = BAR_N / 16.0
+x = np.zeros((N + t2n(1.0), 2))
+GALLOP = 'x.xxx.xxx.xxx.xx'                               # the metal gallop (and the eurobeat one)
+for bar in range(BARS):
+    root = (36, 36, 32, 31)[bar // 2]
+    last = bar % 2 == 1
+    for i, ch in enumerate(GALLOP):
+        if ch != 'x' or (last and i >= 8):
+            continue
+        n = int(STEP_N * 0.85)
+        k = np.arange(n) / SR
+        for side, cents in ((-0.8, -6), (0.8, 7)):        # two takes, left and right
+            f = 2 ** (cents / 1200)
+            v = sum(osc_saw(mtof(m) * f, n) * g for m, g in ((root, 1.0), (root + 7, 0.8), (root + 12, 0.6)))
+            v = np.tanh(v * 6.0) * np.exp(-k / 0.055) * np.clip(k / 0.002, 0, 1)      # distorted and palm-muted
+            place(x, pan(v, side), int(bar * BAR_N + i * STEP_N), 1.0 if i % 4 == 0 else 0.75)
+    if last:                                              # every second bar ends on a chord left to ring
+        n = int(STEP_N * 7.5)
+        k = np.arange(n) / SR
+        for side, cents in ((-0.8, -6), (0.8, 7)):
+            f = 2 ** (cents / 1200)
+            v = sum(osc_saw(mtof(m) * f, n) * g for m, g in ((root, 1.0), (root + 7, 0.9), (root + 12, 0.7), (root + 19, 0.4)))
+            v = np.tanh(v * 5.0) * np.exp(-k / 0.5) * np.clip(k / 0.003, 0, 1)
+            place(x, pan(v, side), int(bar * BAR_N + 8 * STEP_N), 0.9)
+x = lowpass(highpass(x, 85), 4200) + bandpass(x, 900, 2400) * 0.5         # a guitar cabinet, roughly
+save_loop('sky_metal_riff', x, 0.11)
+
+x = np.zeros((N + t2n(1.5), 2))
+kick = read_wav(os.path.join(DISC, 's1_disc_kick.wav'))
+clap = read_wav(os.path.join(DISC, 's1_disc_clap.wav'))
+crash = read_wav(os.path.join(DISC, 's1_disc_crash.wav'))
+mi_tick = read_wav(os.path.join(SFX, 'kitten_mi.wav'))[: t2n(0.07)]
+for bar in range(BARS):
+    for i in range(16):
+        place(x, kick[: int(STEP_N * 1.6)], int(bar * BAR_N + i * STEP_N), 0.85 if i % 4 == 0 else 0.5)
+    for i in (4, 12):
+        place(x, clap, int(bar * BAR_N + i * STEP_N), 0.8)
+    for i in (2, 6, 10, 14):                              # the kitten is the hi-hat
+        place(x, mi_tick, int(bar * BAR_N + i * STEP_N), 0.45, semitones=5.0)
+    if bar % 4 == 0:
+        place(x, crash, bar * BAR_N, 0.5)
+save_loop('sky_blast_drums', x, 0.075)
 
 # --- the holy pad: C major, a cat choir, high bells --------------------------------------------------
 x = np.zeros((N + t2n(3.0), 2))

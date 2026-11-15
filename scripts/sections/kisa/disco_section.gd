@@ -44,8 +44,11 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var plaza_rest_seconds := 5.0
 
 @export_group("结尾接着玩吸猫")
-## 结尾镜头放完后不切小关，直接用降下来的那架飞碟接着玩吸猫（玩法和吸猫小关一样）。关掉 = 结尾放完就过关
+## 结尾镜头放完后不切小关，直接用降下来的那架飞碟接着玩吸猫（玩法和吸猫小关一样）。
+## 关掉 = 不玩吸猫：猫在光柱里浮起来、飞碟飞走、猫自己弹出屏幕，然后过关（下一关接着是它在天上飞）
 @export var abduction_after_finale := true
+## 不接吸猫时，"猫浮起来 → 飞碟飞走 → 猫飞出屏幕"这一段一共几拍
+@export var fly_away_beats := 12.0
 ## 吸猫这一段的鼓谱（打中 8 下猫就被吸进去，整关结束；没吸进去之前鼓谱循环）
 @export var abduction_bars := PackedStringArray(["................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................"])
 ## 光圈提前几拍从飞碟出发
@@ -67,6 +70,7 @@ var _circle_pos := Vector2.ZERO
 var _road: DiscoRoad
 var _layer_gain := PackedFloat32Array()  # 每条分轨现在的音量（0~1）
 var _fill_at := INF  # 结尾镜头放到这一拍：接着玩吸猫（或者把积累条顶满过关）
+var _clear_at := INF  # 猫飞出屏幕之后，到这一拍把积累条顶满过关
 var _abduct: AbductionStage  # 结尾之后接着玩的吸猫舞台（嵌在迪斯科的 3D 世界里）
 var _abduct_gauge_from := 0  # 开始吸猫时积累条的值
 
@@ -123,7 +127,13 @@ func _update_spin(local_beat: float, angle: float) -> void:
 		if abduction_after_finale:
 			_start_abduction()
 		else:
-			_fill_gauge_now()
+			# 猫浮起来、飞碟飞走、猫弹出屏幕；"飞走"的音效提前放，让它最响的地方落在猫起飞那一下
+			var launch := _road.fly_away(fly_away_beats * Conductor.sec_per_beat())
+			_clear_at = song_beat() + fly_away_beats
+			get_tree().create_timer(maxf(launch - 1.8, 0.0)).timeout.connect(Music.play_sfx.bind("sky_whoosh_up", -3.0))
+	if song_beat() >= _clear_at:
+		_clear_at = INF
+		_fill_gauge_now()
 	if _abduct:
 		_abduct.update(song_beat(), own_notes(), abduction_approach_beats)
 	# 判定圈（和缩过来的圈、命中特效）跟着猫走
@@ -451,7 +461,7 @@ func _on_exit() -> void:
 ## 结尾镜头开始：不再出音符（这一段只看演出），放完 finale_beats 拍后把积累条顶满，
 ## 让框架在下一个小节线切到吸猫小关。Judge 和 Gauge 是主场景里 Sonnie 的节点，这里只调它们现成的方法。
 func _start_finale() -> void:
-	_road.finale(finale_beats * Conductor.sec_per_beat())
+	_road.finale(finale_beats * Conductor.sec_per_beat(), not abduction_after_finale)  # 不接吸猫：镜头停在远景
 	_fill_at = song_beat() + finale_beats - 2.0
 	var main := get_parent().get_parent()
 	if main and main.get("judge"):

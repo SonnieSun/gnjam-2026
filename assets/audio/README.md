@@ -28,7 +28,7 @@
 
 ## `music/sky/`：天空关和关与关之间的过门
 
-`sky_drone`（低音长音 + C 小调铺底）、`sky_wind`（穿云的风）、`sky_doom_horns`（末日号角 + 雷）、`sky_holy_pad`（C 大调铺底 + 猫合唱 + 铃），
+`sky_drone`（低音长音 + C 小调铺底）、`sky_wind`（穿云的风）、`sky_doom_horns`（末日号角 + 雷）、`sky_metal_riff` 和 `sky_blast_drums`（风暴段的失真 riff 和双踩鼓）、`sky_holy_pad`（C 大调铺底 + 猫合唱 + 铃），
 都是 8 小节；`bridge_wait`（4 小节）是两关之间等待时放的循环。`sfx/` 里配套的一次性音效：`sky_whoosh_up`（猫飞走）、
 `sky_holy_hit`（亮起来的那一下）、`count_in`（开始前数一小节）。由 `tools/music_gen/make_sky.py` 生成。
 

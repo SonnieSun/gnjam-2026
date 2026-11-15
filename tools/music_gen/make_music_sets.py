@@ -307,7 +307,8 @@ SETS[6] = {'title': 'DISCO', 'use': True,
 # Lines in gauge progress (one section for now; when the level is built its stages get the real lines):
 #   start  CLOUDS   half-time beat, the low C drone, wind with clouds rushing past. Every hit sings one
 #                   note of a rising scale
-#   SKY[0] STORM    + the doom horns with thunder
+#   SKY[0] STORM    cute death metal: the beat turns into double-kick drums (a kitten on the off-beats), a
+#                   galloping distorted riff comes in, and the doom horns with thunder over it
 #   SKY[1] LIGHT    everything dark stops on the bar line: the 'holy hit', then the holy pad, the Ode's
 #                   chords and bass on the normal beat; now every hit sings the next note of the Ode to Joy
 #   SKY[2] SPACE    the tune plays by itself: the cats sing it, with meow drums
@@ -316,8 +317,8 @@ SKY = (0.25, 0.5, 0.7, 0.85)
 SK = M + 'sky/sky_'
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 SETS[10] = {'title': 'SKY', 'use': True,
-            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
-                       t('drone', SK + 'drone_8b.wav', 'bass'), t('ode_bass', OJ + 'L2_bass_8b.wav', 'bass'),
+            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), t('blast', SK + 'blast_drums_8b.wav', 'groove'), SKELETON[0],
+                       t('drone', SK + 'drone_8b.wav', 'bass'), t('metal', SK + 'metal_riff_8b.wav', 'bed'), t('ode_bass', OJ + 'L2_bass_8b.wav', 'bass'),
                        t('ode_keys', OJ + 'fb_L0_keys_8b.wav', 'bed'),
                        t('ode_cats', OJ + 'L3_cat_flow_8b.wav', 'hook'),
                        t('doom_horns', SK + 'doom_horns_8b.wav', 'peak'), t('holy_pad', SK + 'holy_pad_8b.wav', 'peak'),
@@ -325,7 +326,8 @@ SETS[10] = {'title': 'SKY', 'use': True,
                        pattern('ode_by_hit', 'ode_to_joy', 'hit', by_hit=True), pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
                        t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_8b.wav', 'event')] + FILL,
             'sections': [{'title': 'SKY', 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
-                'half': [[0, SKY[1]]], 'groove': [[SKY[1], 1]],
+                'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
+                'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
                 'ode_keys': [[SKY[1], 1]],
                 'ode_cats': [[SKY[2], 1]],

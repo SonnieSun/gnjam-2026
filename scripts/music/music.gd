@@ -89,6 +89,7 @@ var _sfx_next := 0
 ##   bridge_go()   玩家按了一下、下一关的预备拍开始：一小节数拍子（四声 mi），等待的循环在这一小节里淡出
 const BRIDGE_LOOP := "res://assets/audio/music/sky/bridge_wait_4b.wav"
 var _bridge: AudioStreamPlayer
+var _whoosh_ms := -100000
 var _bridge_fade: Tween
 
 
@@ -392,7 +393,8 @@ func bridge_out() -> void:
 		return
 	if _bridge_fade:
 		_bridge_fade.kill()
-	play_sfx("sky_whoosh_up", -3.0)
+	if Time.get_ticks_msec() - _whoosh_ms > 5000:      # 关卡自己刚放过"飞走"（猫飞出屏幕）就不再放一遍
+		play_sfx("sky_whoosh_up", -3.0)
 	_bridge.stream = load(BRIDGE_LOOP)
 	_bridge.volume_db = -5.0
 	_bridge.play()
@@ -420,6 +422,8 @@ func play_sfx(sfx_name: String, db := 0.0, ends_in_sec := 0.0) -> void:
 	var path := SFX_DIR + sfx_name + ".wav"
 	if not ResourceLoader.exists(path):
 		return
+	if sfx_name == "sky_whoosh_up":
+		_whoosh_ms = Time.get_ticks_msec()
 	var p := _sfx[_sfx_next]
 	_sfx_next = (_sfx_next + 1) % _sfx.size()
 	p.stream = load(path)
