@@ -28,6 +28,8 @@ uniform float invert : hint_range(0.0, 1.0) = 0.0;
 uniform float saturation = 1.0;
 // 白闪（切换镜头的一瞬间）
 uniform float flash = 0.0;
+// 宫格里每一格自己再放大多少（打中的瞬间每一格一起胀一下）：0 = 不放大
+uniform float tile_pop = 0.0;
 // 格子之间的缝，占一格的比例
 uniform float gap = 0.012;
 
@@ -50,7 +52,8 @@ void fragment() {
 	// 不然屏幕中心落在接缝上，四周各露出半格。中间值平滑过渡。
 	float tile_shift = 0.5 * abs(mod(tiles, 2.0) - 1.0);
 	vec2 f = fract((uv - 0.5) * tiles + 0.5 + tile_shift);
-	vec3 grid_col = sample_rgb(tiles > 1.01 ? f : uv);
+	vec2 f_in = (f - 0.5) / (1.0 + tile_pop) + 0.5;  // 每一格里的画面以自己的中心放大
+	vec3 grid_col = sample_rgb(tiles > 1.01 ? f_in : uv);
 	if (tiles > 1.01) {
 		vec2 edge = min(f, 1.0 - f);
 		float line = 1.0 - smoothstep(gap * 0.5, gap, min(edge.x, edge.y));

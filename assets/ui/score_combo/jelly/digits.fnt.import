@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://b8py2n6pj6cbl"
+path="res://.godot/imported/digits.fnt-c90c117a6744ab5599949b19ab19ea19.fontdata"
+
+[deps]
+
+source_file="res://assets/ui/score_combo/jelly/digits.fnt"
+dest_files=["res://.godot/imported/digits.fnt-c90c117a6744ab5599949b19ab19ea19.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

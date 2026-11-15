@@ -6,6 +6,10 @@ extends Node2D
 @export var disc_controller: Node2D
 @export var cat_arm_controller: Node2D
 @export var cat_head_controller: Node2D
+## Disc title and stage count sizes; editable on Menu/Disc3D.
+@export var title_font_size := 190
+@export var stage_font_size := 100
+@export var title_max_width := 1100.0
 @onready var _stage: Node3D = $View/Viewport/Stage
 @onready var _record: Node3D = $View/Viewport/Stage/Record
 @onready var _labels: Node3D = $View/Viewport/Stage/Labels
@@ -29,6 +33,17 @@ func _ready() -> void:
 		var anchor := _labels.get_node("Item%d/Anchor" % index)
 		var title := anchor.get_node("Title") as Label3D
 		var sub := anchor.get_node("Sub") as Label3D
+		# The chart is the source of truth for both the title and section count.
+		if not Engine.is_editor_hint() and index <= Levels.count():
+			var chart := load(Levels.paths()[index - 1]) as SongChart
+			title.text = chart.title.to_upper() if not chart.title.is_empty() else "LEVEL %d" % index
+			sub.text = "%d %s" % [chart.sections.size(), "STAGE" if chart.sections.size() == 1 else "STAGES"]
+		# Keep long names within the same disc sector as DISCO.
+		title.font_size = title_font_size
+		sub.font_size = stage_font_size
+		var title_width := title.font.get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.font_size).x
+		if title_width > title_max_width:
+			title.font_size = maxi(60, int(title.font_size * title_max_width / title_width))
 		_items.append({
 			"sector": sector,
 			"title": title,
