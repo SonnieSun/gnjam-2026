@@ -300,11 +300,27 @@ SETS[6] = {'title': 'DISCO', 'use': True,
                'cat_drums': [[D[2], D[7]], [PLAZA_FEVER, D[8]]],
                'ev_meow': [[D[3], D[4]]], 'ev_seal': [[D[8], 1]]}}]}
 
-# file = the level file it goes with (levels/<name>.tres)
-# Sets 1-4 (the old pizza test levels) have no level file any more and are skipped;
-# sets 6, 7, 9 (Kisa's levels) are big levels 1, 2, 4; set 5 is still level 5.
-# Set 8 (ABDUCTION) is skipped: that level moved to levels/alternates/, slot 3 is now ORBIT CAT with its own backing.
-NAMES = {5: 'level_5', 6: 'level_1_disco', 7: 'level_2_spaceship', 9: 'level_4_tv_wall'}
+# --- the UFO level (level_4_abduction: the abduction, split off from the end of the disco level) -----
+# The player sings the cat up: the gauge (default 60, lines at 20 and 40) has three stages.
+#   LOCK    half-time beat and bass, nothing else: every hit sings one note of a rising scale
+#           (the 'ufo_rise' pattern, played by_hit), so playing well is what makes the tune climb
+#   RISE    + chords and meow drums, the hits keep singing
+#   FEVER   (inside the ship) transition bar, then the normal beat, the peak layer, the cat lead with
+#           the kichiku lead on top; the hits still sing
+SETS[10] = {'title': 'UFO', 'use': True,
+            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
+                       t('half_bass', RV + 'Rhalf_L2_bass_4b.wav', 'bass'), SKELETON[1]]
+            + style('fb', 'style_futurebass', 'fb')[:1] + CATS[2:3] + style('fb', 'style_futurebass', 'fb')[2:]
+            + CATS[:1] + KIAI + [pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True)] + EVENTS[1:] + FILL,
+            'sections': [{'title': 'UFO', 'tiers': (1 / 3, 2 / 3), 'fever': (2 / 3, 1.0), 'rules': {
+                'half': [[0, 2 / 3]], 'groove': [[2 / 3, 1]], 'half_bass': [[0, 2 / 3]], 'bass': [[2 / 3, 1]],
+                'fb_keys': [[1 / 3, 1]], 'cat_drums': [[1 / 3, 1]], 'cat_lead': [[2 / 3, 1]], 'fb_peak': [[2 / 3, 1]],
+                'ufo_rise': [[0, 1]], 'ev_seal': [[0, 1 / 3]]}}]}
+
+# file = the level file it goes with (levels/<name>.tres). The levels were reordered several times:
+# now 1 DISCO (set 6), 2 TV WALL (set 9, its four sections are edited by hand: it is kept, not regenerated),
+# 3 SPACESHIP (set 7), 4 ABDUCTION = the UFO level (set 10), 5 PIZZA (set 5). Sets 1-4 and 8 are old and skipped.
+NAMES = {5: 'level_5', 6: 'level_1_disco', 7: 'level_3_spaceship', 9: 'level_2_tv_wall', 10: 'level_4_abduction'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('hit', '打中唱', 'hit'),
          ('fx', '事件', 'event'), ('fill', '过门', 'fill')]

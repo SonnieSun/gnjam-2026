@@ -1,5 +1,5 @@
 {
- "title": "ABDUCTION",
+ "title": "UFO",
  "bpm": 160,
  "use_in_game": true,
  "quantize_beats": 4,
@@ -9,6 +9,10 @@
    "name": "节奏",
    "gain_db": 0.0,
    "clips": [
+    {
+     "id": "half",
+     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L1_groove_4b.wav"
+    },
     {
      "id": "groove",
      "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav"
@@ -21,8 +25,12 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "mk_bass",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L2_bass_4b.wav"
+     "id": "half_bass",
+     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L2_bass_4b.wav"
+    },
+    {
+     "id": "bass",
+     "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
     }
    ]
   },
@@ -32,8 +40,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "mk_keys",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L0_keys_4b.wav"
+     "id": "fb_keys",
+     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L0_keys_4b.wav"
     }
    ]
   },
@@ -43,12 +51,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "mk_pluck",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_pluck_4b.wav"
-    },
-    {
-     "id": "mk_cat_flow",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_flow_4b.wav"
+     "id": "cat_lead",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
     }
    ]
   },
@@ -58,8 +62,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "mk_peak",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L4_peak_4b.wav"
+     "id": "fb_peak",
+     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L4_peak_4b.wav"
     }
    ]
   },
@@ -69,8 +73,8 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "mk_cat_drums",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_C_drums_4b.wav"
+     "id": "cat_drums",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
     }
    ]
   },
@@ -80,63 +84,119 @@
    "gain_db": -2.0,
    "clips": [
     {
-     "id": "mk_kichiku",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
+     "id": "cat_kichiku",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_kichiku_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "hit",
+   "name": "打中唱",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "ufo_rise",
+     "pattern": "res://levels/music/patterns/ufo_rise.json",
+     "by_hit": true
+    }
+   ]
+  },
+  {
+   "id": "fx",
+   "name": "事件",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "ev_seal",
+     "file": "res://assets/audio/music/scene1/events/s1_X_seal_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "fill",
+   "name": "过门",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "fill",
+     "file": "res://assets/audio/music/scene1/events/s1_X_fill_4b.wav"
     }
    ]
   }
  ],
  "sections": [
   {
-   "title": "ABDUCTION",
+   "title": "UFO",
    "cues": {
     "beat": [
      [
       0.0,
+      "half"
+     ],
+     [
+      0.667,
       "groove"
      ]
     ],
     "bass": [
      [
-      0.15,
-      "mk_bass"
+      0.0,
+      "half_bass"
+     ],
+     [
+      0.667,
+      "bass"
      ]
     ],
     "bed": [
      [
-      0.0,
-      "mk_keys"
+      0.333,
+      "fb_keys"
      ]
     ],
     "lead": [
      [
-      0.15,
-      "mk_pluck"
-     ],
-     [
-      0.333,
-      "mk_cat_flow"
+      0.667,
+      "cat_lead"
      ]
     ],
     "peak": [
      [
-      0.8,
-      "mk_peak"
+      0.667,
+      "fb_peak"
      ]
     ],
     "meow": [
      [
-      0.15,
-      "mk_cat_drums"
+      0.333,
+      "cat_drums"
      ]
     ],
-    "kiai": [
+    "hit": [
      [
-      0.9,
-      "mk_kichiku"
+      0.0,
+      "ufo_rise"
+     ]
+    ],
+    "fx": [
+     [
+      0.0,
+      "ev_seal"
+     ],
+     [
+      0.333,
+      ""
      ]
     ]
-   }
+   },
+   "tiers": [
+    0.3333333333333333,
+    0.6666666666666666
+   ],
+   "fever": [
+    0.6666666666666666,
+    1.0
+   ]
   }
  ]
 }
