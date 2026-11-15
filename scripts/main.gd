@@ -184,6 +184,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _cozy_break() -> void:
 	hud.flash(Color(1.0, 0.86, 0.92), cozy_flash_strength, cozy_flash_seconds)
+	# 猫转起来了：屏幕中间一只发光的虎斑猫全速转，转到第一拍冲出去（scripts/cozy_spin.gd）
+	var spin_layer := CanvasLayer.new()
+	spin_layer.layer = 15
+	add_child(spin_layer)
+	var spin_cat: Control = preload("res://scripts/cozy_spin.gd").new()
+	spin_cat.seconds = lead_in_beats * 60.0 / chart.bpm
+	spin_cat.tree_exited.connect(spin_layer.queue_free)
+	spin_layer.add_child(spin_cat)
 	# 画面放大弹回来 + 抖
 	var home := section_host.position
 	section_host.scale = Vector2.ONE * 1.35
