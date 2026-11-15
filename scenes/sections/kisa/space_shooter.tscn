@@ -15,7 +15,6 @@
 [ext_resource type="PackedScene" path="res://stages/space_shooter/food/food_cupnoodle.glb" id="f_cup"]
 [ext_resource type="PackedScene" path="res://stages/space_shooter/food/food_burger.glb" id="f_burger"]
 [ext_resource type="PackedScene" path="res://stages/space_shooter/food/food_rollcake.glb" id="f_roll"]
-[ext_resource type="Script" path="res://stages/shared/y2k_fx/y2k_hit_fx_swap.gd" id="y2k_swap"]
 
 [sub_resource type="PanoramaSkyMaterial" id="sky_mat"]
 panorama = ExtResource("sky512")
@@ -92,6 +91,3 @@ transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 1.38, 0.7)
 [node name="Focus" type="Marker3D" parent="View/Viewport/World/Player"]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
-
-[node name="Y2kHitFxSwap" type="Node" parent="."]
-script = ExtResource("y2k_swap")

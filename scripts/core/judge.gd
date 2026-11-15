@@ -342,6 +342,13 @@ func begin_stage(weight: float) -> void:
 	_stage_weight = weight
 
 
+## 当前阶段（小关）的满分 = level_max × 它的占比（不乘 accuracy_share）。
+## 阶段入账之后（切到下一个小关之前那一下）会变成 0。
+## 某个阶段想把分数全换成别的玩法（比如打星球）时用：accuracy_share 设 0，再按这个满分用 add_bonus 加。
+func stage_max() -> float:
+	return level_max * _stage_weight
+
+
 ## 当前阶段的准确率（0~1，还没判定过音符 = 0）
 func stage_accuracy() -> float:
 	var c := stage_counts
