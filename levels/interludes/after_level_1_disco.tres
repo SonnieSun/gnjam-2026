@@ -5,20 +5,22 @@
 [ext_resource type="AudioStream" path="res://assets/fantasy/snare.wav" id="3_mdlhf"]
 [ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_aulem"]
 [ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_n61dv"]
-[ext_resource type="PackedScene" path="res://scenes/sections/kisa/abduction.tscn" id="6_woq7x"]
+[ext_resource type="PackedScene" path="res://scenes/sections/sky/sky.tscn" id="6_woq7x"]
 [ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="7_aq4do"]
 
 [sub_resource type="Resource" id="Resource_ppi0s"]
 script = ExtResource("5_n61dv")
-title = "ABDUCTION"
+title = "SKY"
 scene = ExtResource("6_woq7x")
 beats_per_rev = 8.0
-bars = PackedStringArray("................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................")
-gauge_events = PackedInt32Array()
+gauge_max = 480
+bars = PackedStringArray("k.......s.......", "k...s...k...s...", "k...s...k...s...", "k...s...k.s.s...", "k...s...k...s...", "k...s...k...s...", "k...s...k.s.k.s.", "k.......s.......")
+gauge_events = PackedInt32Array(452)
+use_gauge_events = true
 
 [resource]
 script = ExtResource("4_aulem")
-title = "ABDUCTION"
+title = "SKY"
 stream = ExtResource("7_aq4do")
 bpm = 120.0
 drum_kick = ExtResource("2_rcm2n")

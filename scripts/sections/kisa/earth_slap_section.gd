@@ -34,6 +34,10 @@ extends SpinSection
 @export_range(0.2, 1.0, 0.05) var mash_need_ratio := 0.7
 ## 按到达标数的多少比例以上算 Good
 @export_range(0.0, 1.0, 0.05) var mash_good_ratio := 0.5
+## 超过达标数之后每多按一下，MAX 那行字大几号（最大到多少号）、颜色沿色环转多少（0.13 ≈ 每下换一种明显不同的颜色）
+@export var max_grow_per_press := 4
+@export var max_grow_limit := 84
+@export_range(0.0, 1.0, 0.01) var max_hue_step := 0.13
 ## 超过达标数之后每多按一下，满蓄重拍的画面顶动再大多少（最多加到 mash_over_max）
 @export var mash_over_punch := 0.1
 @export var mash_over_max := 0.6
@@ -473,6 +477,11 @@ func _draw_mash(center: Vector2, radius: float, travel: float) -> void:
 		label = "%s  %d / %d" % [max_text, _charge, _charge_target] if _charge > _charge_target else max_text
 		col = charged_color.lerp(Color.WHITE, 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.03))
 		fs = 44
+		var over := charge_over()
+		if over > 0:
+			# 每多按一下：字再大一号（到上限为止），颜色换一种（沿色环转一格），按下的瞬间再额外胀一下
+			fs = mini(44 + over * max_grow_per_press, max_grow_limit) + int(10.0 * _pop)
+			col = Color.from_hsv(fposmod(charged_color.h + over * max_hue_step, 1.0), 0.75, 1.0).lerp(Color.WHITE, 0.35 * _pop)
 	elif active:
 		label = "%s  %d / %d" % [mash_text, _charge, _charge_target]
 		col = charge_color.lerp(Color.WHITE, 0.55)
@@ -482,9 +491,9 @@ func _draw_mash(center: Vector2, radius: float, travel: float) -> void:
 		col = Color(charge_color.lerp(Color.WHITE, 0.55), 0.6 + 0.4 * absf(sin(Time.get_ticks_msec() * 0.012)))
 	if label == "":
 		return
-	var pos := center + Vector2(-220.0, -radius - 44.0)
-	draw_string_outline(font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 440, fs, 8, Color(0.02, 0.02, 0.06, 0.95))
-	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 440, fs, col)
+	var pos := center + Vector2(-320.0, -radius - 44.0)
+	draw_string_outline(font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 640, fs, 8, Color(0.02, 0.02, 0.06, 0.95))
+	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 640, fs, col)
 	if (coming or active) and _slap_text_age >= 0.8 and mash_key_text != "":
 		# 按键提示：一上一下地快速闪，告诉玩家“一直按”
 		var down := int(Time.get_ticks_msec() / 70.0) % 2 == 0

@@ -17,7 +17,24 @@ const GAME_SCENE := "res://main.tscn"
 static var selected := 0
 
 
+## 插曲关：只在一路连着玩时出现、不在主菜单上的关，接在某个大关后面。
+## 文件放在 levels/interludes/，名字是 after_<它前面那一关的文件名>（比如 after_level_1_disco.tres 接在第 1 关后面），
+## 音乐配置同名放在 levels/music/。正在玩的是插曲关时，interlude 是它的路径（"" = 不是）。
+const INTERLUDE_FOLDER := "res://levels/interludes"
+static var interlude := ""
+
 static var _paths := PackedStringArray()
+
+
+## 第 index 个大关后面接的插曲关（没有就返回 ""）
+static func interlude_after(index: int) -> String:
+	var p := INTERLUDE_FOLDER.path_join("after_" + paths()[clampi(index, 0, count() - 1)].get_file())
+	return p if ResourceLoader.exists(p) else ""
+
+
+## 现在这一关的文件（插曲关就是插曲关的文件）
+static func current_path() -> String:
+	return interlude if interlude != "" else paths()[clampi(selected, 0, count() - 1)]
 
 
 ## 所有大关文件的路径，按文件名排序
@@ -46,6 +63,8 @@ static func count() -> int:
 
 
 static func _chart(index: int) -> SongChart:
+	if index == selected and interlude != "":
+		return load(interlude) as SongChart
 	return load(paths()[clampi(index, 0, count() - 1)]) as SongChart
 
 

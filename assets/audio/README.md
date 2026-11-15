@@ -26,6 +26,12 @@
 | `rhythm_variants` | 换 L1 + L2 | `Rhalf` 半速、`Rbreak` 2-step、`Rclub` jersey club；玩家底鼓位置跟着变 |
 | `entertainer_leads` | 16 小节 L3 | Entertainer 旋律：拨弦 / 猫，用第 1 关的和弦 |
 
+## `music/sky/`：天空关和关与关之间的过门
+
+`sky_drone`（低音长音 + C 小调铺底）、`sky_wind`（穿云的风）、`sky_doom_horns`（末日号角 + 雷）、`sky_metal_riff` 和 `sky_blast_drums`（风暴段的失真 riff 和双踩鼓）、`sky_holy_pad`（C 大调铺底 + 猫合唱 + 铃），
+都是 8 小节；`bridge_wait`（4 小节）是两关之间等待时放的循环。`sfx/` 里配套的一次性音效：`sky_whoosh_up`（猫飞走）、
+`sky_holy_hit`（亮起来的那一下）、`count_in`（开始前数一小节）。由 `tools/music_gen/make_sky.py` 生成。
+
 ## `meows/runtime/`：游戏里按格子触发的喵
 
 每只阵容里的猫一个 `meow_<编号>.wav`（原音高、共鸣烤进去、响度统一）和一个 `tick_<编号>.wav`（只有开头 70 毫秒的"mi"），

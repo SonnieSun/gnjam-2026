@@ -93,6 +93,17 @@ func enter() -> void:
 	_on_enter()
 
 
+## 接着上一个小关继续（SectionDef.joins_previous）：场景不重新加载，只换成新小关的谱面再“进场”一次。
+## 关卡脚本的 _on_enter 会再被调一次，里面按新的 def 重新算自己的状态就行。
+func rejoin(section_def: SectionDef, section_notes: Array[NoteData]) -> void:
+	if _style_layer:
+		_style_layer.queue_free()
+		_style_layer = null
+		note_style = null
+	setup(section_def, section_notes)
+	enter()
+
+
 func exit() -> void:
 	active = false
 	if _style_layer:

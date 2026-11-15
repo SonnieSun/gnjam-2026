@@ -263,8 +263,10 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
                'cat_bass': 'cc_cat_bass', 'kichiku': 'cc_kichiku'})}]}
 
 # --- level 1, the disco litter box: a song arc that follows the level's story (160 BPM) -------------
-# The stage's gauge lines (scenes/sections/kisa/disco.tscn: gauge_max_override 470, gauge_events
-# 20 40 60 80 | 110 140 220 320 | 390) are the music's lines; keep D in step with them.
+# The stage's gauge lines (scenes/sections/kisa/disco.tscn: gauge_max_override 400, gauge_events
+# 20 40 60 80 | 110 140 190 250 | 320) are the music's lines; keep D in step with them.
+# (Until 2026-11-16 the runway was longer: 140 220 320 | 390 of 470. All Perfect at 160 BPM it took 24 s
+# from the house opening to the plaza; now 18 s.)
 #   start        CALM         half-time beat and bass
 #   1 stars      + disco chords
 #   2 ball       + the tune on the instrument                       (the disco ball appears)
@@ -277,8 +279,8 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
 #   8 plaza      A CAPPELLA   the band stops, only the cat choir (cat chords, cat bass, cat lead)
 #   PLAZA_FEVER  transition bar, then FEVER: breakbeat, full band, cat lead with the kichiku lead on top
 #   9 finale     the UFO: everything drops to the half-time beat, chords and the seal event track
-D = [v / 470 for v in (20, 40, 60, 80, 110, 140, 220, 320, 390)]
-PLAZA_FEVER = 350 / 470          # the plaza is a cappella from 320 to here, fever from here to the finale line
+D = [v / 400 for v in (20, 40, 60, 80, 110, 140, 190, 250, 320)]
+PLAZA_FEVER = 280 / 400          # the plaza is a cappella from 250 to here, fever from here to the finale line
 RV = S1 + 'rhythm_variants/s1_'
 SETS[6] = {'title': 'DISCO', 'use': True,
            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
@@ -300,11 +302,49 @@ SETS[6] = {'title': 'DISCO', 'use': True,
                'cat_drums': [[D[2], D[7]], [PLAZA_FEVER, D[8]]],
                'ev_meow': [[D[3], D[4]]], 'ev_seal': [[D[8], 1]]}}]}
 
-# file = the level file it goes with (levels/<name>.tres)
-# Sets 1-4 (the old pizza test levels) have no level file any more and are skipped;
-# sets 6, 7, 9 (Kisa's levels) are big levels 1, 2, 4; set 5 is still level 5.
-# Set 8 (ABDUCTION) is skipped: that level moved to levels/alternates/, slot 3 is now ORBIT CAT with its own backing.
-NAMES = {5: 'level_5', 6: 'level_1_disco', 7: 'level_2_spaceship', 9: 'level_4_tv_wall'}
+# --- the sky level (the UFO / abduction level, to become level 2) -----------------------------------
+# The cat is pulled up by the beam: through the clouds, into a storm with doom horns, then it suddenly
+# turns bright and holy and the Ode to Joy starts; in space the cats take the tune over and it ends in
+# FEVER on the way into the UFO. The dark half is in C minor, the light is C major (the Ode stems).
+# Lines in gauge progress (one section for now; when the level is built its stages get the real lines):
+#   start  CLOUDS   half-time beat, the low C drone, wind with clouds rushing past. Every hit sings one
+#                   note of a rising scale
+#   SKY[0] STORM    cute death metal: the beat turns into double-kick drums (a kitten on the off-beats), a
+#                   galloping distorted riff comes in, and the doom horns with thunder over it
+#   SKY[1] LIGHT    everything dark stops on the bar line: the 'holy hit', then the holy pad, the Ode's
+#                   chords and bass on the normal beat; now every hit sings the next note of the Ode to Joy
+#   SKY[2] SPACE    the tune plays by itself: the cats sing it, with meow drums
+#   SKY[3] FEVER    (into the UFO) transition bar, then the peak layer and the kichiku lead on top
+SKY = (0.25, 0.5, 0.7, 0.85)
+SK = M + 'sky/sky_'
+OJ = M + 'classics/ode_to_joy/ode_to_joy_'
+SETS[10] = {'title': 'SKY', 'use': True,
+            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), t('blast', SK + 'blast_drums_8b.wav', 'groove'), SKELETON[0],
+                       t('drone', SK + 'drone_8b.wav', 'bass'), t('metal', SK + 'metal_riff_8b.wav', 'bed'), t('ode_bass', OJ + 'L2_bass_8b.wav', 'bass'),
+                       t('ode_keys', OJ + 'fb_L0_keys_8b.wav', 'bed'),
+                       t('ode_cats', OJ + 'L3_cat_flow_8b.wav', 'hook'),
+                       t('doom_horns', SK + 'doom_horns_8b.wav', 'peak'), t('holy_pad', SK + 'holy_pad_8b.wav', 'peak'),
+                       t('ode_cat_drums', OJ + 'C_drums_8b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_8b.wav', 'kiai'),
+                       pattern('ode_by_hit', 'ode_to_joy', 'hit', by_hit=True), pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
+                       t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_8b.wav', 'event')] + FILL,
+            'sections': [{'title': 'SKY', 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
+                'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
+                'metal': [[SKY[0], SKY[1]]],
+                'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
+                'ode_keys': [[SKY[1], 1]],
+                'ode_cats': [[SKY[2], 1]],
+                'doom_horns': [[SKY[0], SKY[1]]], 'holy_pad': [[SKY[1], SKY[3]]],
+                'ode_cat_drums': [[SKY[2], 1]],
+                'ufo_rise': [[0, SKY[1]]], 'ode_by_hit': [[SKY[1], SKY[2]]],
+                'wind': [[0, SKY[2]]], 'ode_peak': [[SKY[3], 1]]}}]}
+
+# file = the level file it goes with (levels/<name>.tres -> levels/music/<name>.json). The level list was
+# reordered several times; now the menu has 1 DISCO (set 6), 2 TV WALL (set 9: its sections are edited by
+# hand, so it is kept and not regenerated) and 3 SPACESHIP (set 7). A name starting with '../' is written
+# relative to levels/music: PIZZA (set 5) is parked in levels/alternates/. The sky level (set 10) is an
+# interlude: levels/interludes/after_level_1_disco.tres, played after level 1 in a run, not on the menu.
+NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
+         10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('hit', '打中唱', 'hit'),
          ('fx', '事件', 'event'), ('fill', '过门', 'fill')]
@@ -340,6 +380,8 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
+        if 'tier_sfx' in sec:
+            out['tier_sfx'] = {str(k): v for k, v in sec['tier_sfx'].items()}
         sections.append(out)
     return lanes, sections
 

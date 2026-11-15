@@ -77,6 +77,7 @@ func turn(dir: int) -> void:
 		return
 	_turns += dir
 	Levels.selected = posmod(_turns, Levels.count())
+	Levels.interlude = ""
 	_refresh()
 	_turn_sfx.pitch_scale = 1.15 if dir > 0 else 0.9
 	_turn_sfx.play()
