@@ -390,57 +390,42 @@ SETS[10] = {'title': 'SKY', 'use': True,
 # hand, so it is kept and not regenerated) and 3 SPACESHIP (set 7). A name starting with '../' is written
 # relative to levels/music: PIZZA (set 5) is parked in levels/alternates/. The sky level (set 10) is an
 # interlude: levels/interludes/after_level_1_disco.tres, played after level 1 in a run, not on the menu.
-# --- level 3, SPACESHIP: the last level. The shooter has its own tune; the pizza is the grand remix ----------
+# --- level 3, SPACESHIP: the last level. The shooter has its own tune; the pizza is Can-Can ----------
 #   SPACESHIP (shooting planets)   Turkish March, the one tune not heard yet: fast, a chase. Five tiers as usual.
-#   SPACE PIZZA                    THE GRAND REMIX: every tune of the game comes back, in the order it was played,
-#       one per stretch of the gauge, a transition bar and a crash between each (the tunes are in different keys;
-#       the bar has no chords):
-#         0     the disco theme (level 1)            through the rings
-#         15%   Your Best Friend (the washer)
-#         30%   In the Hall of the Mountain King (the earth)
-#         50%   Can-Can                              the 3x3 grid camera comes on here
-#         75%   Ode to Joy (the sky)                 the kaleidoscope comes on here: a "holy hit", then the big finish
-#         88%   FEVER: the Ode with its kichiku lead and the cat chords on top, to the end of the game
-#       Each tune enters with its cats already singing: this is the victory lap, not a build-up.
-#       ONE cat lead at a time. The fast tunes (Turkish March, Mountain King, Can-Can) use the kichiku lead
-#       (hard cut, one cat per phrase): with every meow ringing out (the 'flow' lead) they turn to mush.
+#   SPACE PIZZA (the last part of the game): Can-Can, one tune from start to finish.
+#       (Until 2026-11-16 this was a medley of five tunes, one per stretch of the gauge. Switching key every
+#       few bars with a transition bar each time sounded like a bad mix, so it is one tune now.)
+#         0     the tune on the instrument, drums, bass, chords, meow drums
+#         25%   + the peak layer
+#         50%   the cats take the tune (the kichiku lead: hard cut, one cat per phrase)   <- the 3x3 grid camera
+#         75%   FEVER to the end of the game: the instrument doubles the cats, Can-Can's own cat drums on top   <- the kaleidoscope
 #   The lines 50% / 75% are the stage's camera cues (level_3_spaceship.tres: fx_cues grid3 0.5, kaleido 0.75).
 TM = M + 'classics/turkish_march/turkish_march_'
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 T3 = TIERS
-R = (0.15, 0.3, 0.5, 0.75, 0.88)
+R = (0.25, 0.5, 0.75)
 SETS[7] = {'title': 'SPACESHIP', 'use': True,
-           'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0], SKELETON[1],
-                      t('tm_keys', TM + 'fb_L0_keys_16b.wav', 'bed'), t('disco_keys', S1 + 'style_disco/s1_B_L0_keys_4b.wav', 'bed'),
-                      t('ybf_keys', YB + 'fb_L0_keys_8b.wav', 'bed'), t('mk_keys', MK + 'fb_L0_keys_4b.wav', 'bed'),
-                      t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'), t('oj_keys', OJ + 'fb_L0_keys_8b.wav', 'bed'),
-                      t('tm_bass', TM + 'L2_bass_16b.wav', 'bass'), t('ybf_bass', YB + 'L2_bass_8b.wav', 'bass'),
-                      t('mk_bass', MK + 'L2_bass_4b.wav', 'bass'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
-                      t('oj_bass', OJ + 'L2_bass_8b.wav', 'bass'),
-                      t('tm_pluck', TM + 'L3_pluck_16b.wav', 'hook'),
-                      CATS[2],
-                      t('ybf_cats', YB + 'L3_cat_kichiku_8b.wav', 'hook'), t('mk_lead', MK + 'L3_cat_kichiku_4b.wav', 'hook'),
-                      t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'), t('oj_cats', OJ + 'L3_cat_flow_8b.wav', 'hook'),
-                      t('tm_peak', TM + 'fb_L4_peak_16b.wav', 'peak'), t('mk_peak', MK + 'fb_L4_peak_4b.wav', 'peak'),
-                      t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'), t('oj_peak', OJ + 'fb_L4_peak_8b.wav', 'peak'),
-                      CATS[0],
-                      t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'), t('oj_kichiku', OJ + 'L3_cat_kichiku_8b.wav', 'kiai')] + FILL,
+           'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
+                      t('tm_keys', TM + 'fb_L0_keys_16b.wav', 'bed'), t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'),
+                      t('tm_bass', TM + 'L2_bass_16b.wav', 'bass'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
+                      t('tm_pluck', TM + 'L3_pluck_16b.wav', 'hook'), t('cc_pluck', CC + 'L3_pluck_8b.wav', 'hook'),
+                      t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'),
+                      t('tm_peak', TM + 'fb_L4_peak_16b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
+                      CATS[0], t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
+                      t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'),
+                      t('cc_double', CC + 'L3_pluck_8b.wav', 'kiai')] + FILL,
            'sections': [
                {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0),
                 'own': {'kiai': 'tm_kichiku', 'hit': ''}, 'rules': {
                    'half': [[0, T3[0]]], 'groove': [[T3[0], 1]], 'tm_keys': [[0, 1]], 'tm_bass': [[T3[0], 1]],
                    'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], 1]], 'tm_peak': [[T3[3], 1]],
                    'cat_drums': [[T3[1], 1]]}},
-               {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (1, 2, 3, 4), 'fever': (R[4], 1.0),
-                'own': {'kiai': 'oj_kichiku', 'hit': ''},
-                'tier_sfx': {1: 'crash', 2: 'crash', 3: 'crash', 4: 'sky_holy_hit'}, 'rules': {
-                   'groove': [[0, 1]], 'cat_drums': [[0, 1]],
-                   'disco_keys': [[0, R[0]]], 'bass': [[0, R[0]]], 'cat_lead': [[0, R[0]]],
-                   'ybf_keys': [[R[0], R[1]]], 'ybf_bass': [[R[0], R[1]]], 'ybf_cats': [[R[0], R[1]]],
-                   'mk_keys': [[R[1], R[2]]], 'mk_bass': [[R[1], R[2]]], 'mk_lead': [[R[1], R[2]]], 'mk_peak': [[R[1], R[2]]],
-                   'cc_keys': [[R[2], R[3]]], 'cc_bass': [[R[2], R[3]]], 'cc_lead': [[R[2], R[3]]], 'cc_peak': [[R[2], R[3]]],
-                   'oj_keys': [[R[3], 1]], 'oj_bass': [[R[3], 1]], 'oj_cats': [[R[3], R[4]]], 'oj_peak': [[R[3], 1]],
-                   'oj_kichiku': [[R[4], 1]]}}]}
+               {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[2], 1.0),
+                'own': {'kiai': 'cc_double', 'hit': ''}, 'rules': {
+                   'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]],
+                   'cat_drums': [[0, R[2]]], 'cc_cat_drums': [[R[2], 1]],
+                   'cc_pluck': [[0, R[1]]], 'cc_lead': [[R[1], 1]],
+                   'cc_peak': [[R[0], 1]], 'cc_double': [[R[2], 1]]}}]}
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
          10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
