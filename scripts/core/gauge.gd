@@ -60,6 +60,28 @@ func set_value(new_value: int) -> void:
 	changed.emit(value, max_value)
 
 
+## 编辑面板拖进度条往前拖过了分数线：把还没触发过的线按顺序补触发（往回拖不会撤销已经触发的）
+func fire_passed_events() -> void:
+	while events_fired < events.size() and value >= events[events_fired]:
+		events_fired += 1
+		event.emit(events_fired, events[events_fired - 1])
+
+
+## 编辑面板“跳到第 count 个阶段”：积累条拨到第 count 条分数线上（0 = 开头），前面的线按顺序补触发
+func jump_to_event(count: int) -> void:
+	count = clampi(count, 0, events.size())
+	set_value(events[count - 1] if count > 0 else 0)
+	fire_passed_events()
+
+
+## 编辑面板改了分数线：换成新的一组（已经触发过几条不变）
+func set_events(list: PackedInt32Array) -> void:
+	list = list.duplicate()
+	list.sort()
+	events = list
+	events_fired = mini(events_fired, events.size())
+
+
 ## 按判定结果加减分。满条之后不再变化。
 func apply(result: int) -> void:
 	if full:

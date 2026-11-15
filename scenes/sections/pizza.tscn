@@ -1,10 +1,10 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://b5wm33mxv8vh5"]
 
-[ext_resource type="Script" path="res://scripts/sections/pizza_section.gd" id="1_5mc53"]
-[ext_resource type="Shader" path="res://assets/shaders/dream/sky_grid.gdshader" id="3_w4es4"]
-[ext_resource type="Shader" path="res://assets/shaders/dream/water.gdshader" id="4_0oh7q"]
-[ext_resource type="PackedScene" path="res://assets/art/CATS_Scratch.fbx" id="5_tqi40"]
-[ext_resource type="Shader" path="res://assets/shaders/dream/glass_ring.gdshader" id="6_gkwt3"]
+[ext_resource type="Script" uid="uid://dksl8jfxjs4u" path="res://scripts/sections/pizza_section.gd" id="1_5mc53"]
+[ext_resource type="Shader" uid="uid://ds43w1i73d24f" path="res://assets/shaders/dream/sky_grid.gdshader" id="3_w4es4"]
+[ext_resource type="Shader" uid="uid://csc40jfo6833e" path="res://assets/shaders/dream/water.gdshader" id="4_0oh7q"]
+[ext_resource type="PackedScene" uid="uid://dv4huk7ih25ic" path="res://assets/art/CATS_Scratch.fbx" id="5_tqi40"]
+[ext_resource type="Shader" uid="uid://rg1mlnarga6l" path="res://assets/shaders/dream/glass_ring.gdshader" id="6_gkwt3"]
 
 [sub_resource type="Environment" id="Environment_707xp"]
 background_mode = 1
@@ -31,15 +31,15 @@ adjustment_saturation = 1.15
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_syldw"]
 render_priority = 0
 shader = ExtResource("3_w4es4")
-shader_parameter/top_color = null
-shader_parameter/mid_color = null
-shader_parameter/horizon_color = null
-shader_parameter/line_color = null
-shader_parameter/line_strength = null
-shader_parameter/grid_u = null
-shader_parameter/grid_v = null
-shader_parameter/line_width = null
-shader_parameter/boost = null
+shader_parameter/top_color = Color(0.01, 0.01, 0.1, 1)
+shader_parameter/mid_color = Color(0.03, 0.05, 0.36, 1)
+shader_parameter/horizon_color = Color(0.26, 0.1, 0.5, 1)
+shader_parameter/line_color = Color(0.6, 0.75, 1, 1)
+shader_parameter/line_strength = 0.16
+shader_parameter/grid_u = 36.0
+shader_parameter/grid_v = 18.0
+shader_parameter/line_width = 0.03
+shader_parameter/boost = 1.0
 
 [sub_resource type="SphereMesh" id="SphereMesh_dpmug"]
 radius = 120.0
@@ -50,18 +50,18 @@ rings = 24
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_y07f2"]
 render_priority = 0
 shader = ExtResource("4_0oh7q")
-shader_parameter/deep_color = null
-shader_parameter/shallow_color = null
-shader_parameter/glow_color = null
-shader_parameter/horizon_color = null
-shader_parameter/core_color = null
-shader_parameter/core_radius = null
-shader_parameter/ripple_scale = null
-shader_parameter/ripple_speed = null
-shader_parameter/glow_strength = null
-shader_parameter/fade_distance = null
-shader_parameter/scroll = null
-shader_parameter/boost = null
+shader_parameter/deep_color = Color(0.01, 0.05, 0.3, 1)
+shader_parameter/shallow_color = Color(0.05, 0.32, 0.75, 1)
+shader_parameter/glow_color = Color(0.45, 1, 0.95, 1)
+shader_parameter/horizon_color = Color(0.26, 0.1, 0.5, 1)
+shader_parameter/core_color = Color(1, 0.75, 0.95, 1)
+shader_parameter/core_radius = 4.0
+shader_parameter/ripple_scale = 1.3
+shader_parameter/ripple_speed = 1.2
+shader_parameter/glow_strength = 0.9
+shader_parameter/fade_distance = 45.0
+shader_parameter/scroll = 0.0
+shader_parameter/boost = 0.0
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_nyc2i"]
 size = Vector2(240, 240)
@@ -321,10 +321,10 @@ size = Vector3(1.25, 0.62, 0.1)
 render_priority = 0
 shader = ExtResource("6_gkwt3")
 shader_parameter/tint = Color(1, 0.72156864, 0.9411765, 1)
-shader_parameter/face_alpha = null
-shader_parameter/edge_alpha = null
-shader_parameter/rim_glow = null
-shader_parameter/iridescence = null
+shader_parameter/face_alpha = 0.1
+shader_parameter/edge_alpha = 0.85
+shader_parameter/rim_glow = 0.8
+shader_parameter/iridescence = 0.7
 
 [sub_resource type="TorusMesh" id="TorusMesh_y5l7n"]
 inner_radius = 4.85
@@ -336,10 +336,10 @@ ring_segments = 24
 render_priority = 0
 shader = ExtResource("6_gkwt3")
 shader_parameter/tint = Color(0.65882355, 0.9098039, 1, 1)
-shader_parameter/face_alpha = null
-shader_parameter/edge_alpha = null
-shader_parameter/rim_glow = null
-shader_parameter/iridescence = null
+shader_parameter/face_alpha = 0.1
+shader_parameter/edge_alpha = 0.85
+shader_parameter/rim_glow = 0.8
+shader_parameter/iridescence = 0.7
 
 [sub_resource type="TorusMesh" id="TorusMesh_a7oed"]
 inner_radius = 7.22
@@ -351,10 +351,10 @@ ring_segments = 24
 render_priority = 0
 shader = ExtResource("6_gkwt3")
 shader_parameter/tint = Color(0.8156863, 0.6901961, 1, 1)
-shader_parameter/face_alpha = null
-shader_parameter/edge_alpha = null
-shader_parameter/rim_glow = null
-shader_parameter/iridescence = null
+shader_parameter/face_alpha = 0.1
+shader_parameter/edge_alpha = 0.85
+shader_parameter/rim_glow = 0.8
+shader_parameter/iridescence = 0.7
 
 [sub_resource type="TorusMesh" id="TorusMesh_cnemg"]
 inner_radius = 4.1
@@ -367,9 +367,9 @@ render_priority = 0
 shader = ExtResource("6_gkwt3")
 shader_parameter/tint = Color(1, 1, 1, 1)
 shader_parameter/face_alpha = 0.25
-shader_parameter/edge_alpha = null
+shader_parameter/edge_alpha = 0.85
 shader_parameter/rim_glow = 1.2
-shader_parameter/iridescence = null
+shader_parameter/iridescence = 0.7
 
 [sub_resource type="SphereMesh" id="SphereMesh_r8be6"]
 radius = 1.3
@@ -390,9 +390,9 @@ render_priority = 0
 shader = ExtResource("6_gkwt3")
 shader_parameter/tint = Color(1, 0.78431374, 0.9411765, 1)
 shader_parameter/face_alpha = 0.25
-shader_parameter/edge_alpha = null
+shader_parameter/edge_alpha = 0.85
 shader_parameter/rim_glow = 1.2
-shader_parameter/iridescence = null
+shader_parameter/iridescence = 0.7
 
 [sub_resource type="SphereMesh" id="SphereMesh_33hvi"]
 radius = 0.8
@@ -414,9 +414,9 @@ render_priority = 0
 shader = ExtResource("6_gkwt3")
 shader_parameter/tint = Color(0.78431374, 0.9411765, 1, 1)
 shader_parameter/face_alpha = 0.25
-shader_parameter/edge_alpha = null
+shader_parameter/edge_alpha = 0.85
 shader_parameter/rim_glow = 1.2
-shader_parameter/iridescence = null
+shader_parameter/iridescence = 0.7
 
 [sub_resource type="SphereMesh" id="SphereMesh_awm61"]
 radius = 0.55
@@ -438,9 +438,9 @@ render_priority = 0
 shader = ExtResource("6_gkwt3")
 shader_parameter/tint = Color(0.84705883, 0.78431374, 1, 1)
 shader_parameter/face_alpha = 0.25
-shader_parameter/edge_alpha = null
+shader_parameter/edge_alpha = 0.85
 shader_parameter/rim_glow = 1.2
-shader_parameter/iridescence = null
+shader_parameter/iridescence = 0.7
 
 [sub_resource type="SphereMesh" id="SphereMesh_e64ep"]
 radius = 0.9
@@ -769,6 +769,7 @@ mouse_filter = 2
 stretch = true
 
 [node name="Viewport" type="SubViewport" parent="View" unique_id=643035080]
+handle_input_locally = false
 msaa_3d = 2
 size = Vector2i(960, 720)
 render_target_update_mode = 4
@@ -907,7 +908,7 @@ mesh = SubResource("TorusMesh_khnol")
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
 
-[node name="CatModel" type="Node3D" parent="View/Viewport/World/Cat" unique_id=480073566 instance=ExtResource("5_tqi40")]
+[node name="CatModel" parent="View/Viewport/World/Cat" unique_id=480073566 instance=ExtResource("5_tqi40")]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 1.38, 0.7)
 
 [node name="Judge" type="Node3D" parent="View/Viewport/World" unique_id=1536671550]

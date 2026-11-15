@@ -29,6 +29,8 @@ enum Transition { ZOOM, CUT }
 ## 只有 use_gauge_events 勾上时才生效（这样才能表达“这一关一个事件都没有”）。
 @export var gauge_events := PackedInt32Array()
 @export var use_gauge_events := false
+## 每条分数线（阶段）叫什么，只是给编辑面板看的，比如 ["Stars", "Ball"]。不填就显示 Phase 1、Phase 2……
+@export var gauge_event_names := PackedStringArray()
 
 ## 镜头特效的切换点：[[进度 0-1, 特效名], ...]。积累条涨到那个进度就换成那个特效（"" = 原样）。
 ## 特效名见 scripts/fx/screen_fx.gd 的 EFFECTS。在游戏里按 Tab 调出的面板上编辑最方便。

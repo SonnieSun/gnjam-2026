@@ -26,6 +26,7 @@ scene = ExtResource("6_dpbs3")
 beats_per_rev = 8.0
 bars = PackedStringArray("k.......k.......", "k...k...k...k...", "k...s...k...s...", "k...s...k.k.s...")
 gauge_events = PackedInt32Array()
+gauge_event_names = PackedStringArray("Stars", "Ball", "Dancers", "Drift", "Road", "Dance floor", "Grid", "Plaza", "Finale")
 
 [sub_resource type="Resource" id="Resource_t5d3j"]
 script = ExtResource("5_040w3")
