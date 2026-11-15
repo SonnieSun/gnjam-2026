@@ -126,16 +126,9 @@ func length_beats(beats_per_bar: int) -> float:
 func parse_notes(beats_per_bar: int) -> Array[Dictionary]:
 	if chart:
 		return chart.parse_notes()
+	# 老鼓谱：音符后面接 "=" 的带上 length（长按几拍），这样长按在每一关都认
 	var out: Array[Dictionary] = []
-	for bar_i in bars.size():
-		var s := bars[bar_i]
-		for i in s.length():
-			var sound := _char_to_sound(s[i])
-			if sound >= 0:
-				out.append({
-					"beat": bar_i * beats_per_bar + float(i) * beats_per_bar / s.length(),
-					"sound": sound,
-				})
+	out.assign(ChartPattern.from_bars(bars, beats_per_bar).notes)
 	return out
 
 
@@ -145,7 +138,7 @@ func hold_lengths(beats_per_bar: int) -> Dictionary:
 	var src := chart if chart else ChartPattern.from_bars(bars, beats_per_bar)
 	for d in src.notes:
 		var len := float(d.get("length", 0.0))
-		if len > 0.0:
+		if len > 0.0 and not d.get("mash", false):  # 连击的长度不是长按
 			out[roundi(float(d.beat) * 1000.0)] = len
 	return out
 

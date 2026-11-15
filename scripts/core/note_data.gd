@@ -23,6 +23,8 @@ var free := false
 
 ## 长按几拍（0 = 普通点按）
 var length := 0.0
+## 连击：length 这一段里不看节奏只数按了几下（判定见 scripts/chart/input/chart_input.gd）
+var mash := false
 ## 提前几拍出现（飞过来 / 收过来用多久）；<= 0 = 用表现方式的默认值
 var lead := 0.0
 ## 轨道 / 方向：下落式和 3D 轨道是第几条道，圆圈和光束是第几个目标，轨道式是第几圈
@@ -42,7 +44,7 @@ var throb := 0.0
 ## 表现属性的名字和默认值（谱面文件里没写的就用这个）
 const STYLE_DEFAULTS := {
 	"length": 0.0, "lead": 0.0, "lane": 0, "color": Color(0, 0, 0, 0), "size": 1.0,
-	"rot": 0.0, "spin": 0.0, "glow": 0.0, "pulse": 0.0, "throb": 0.0,
+	"rot": 0.0, "spin": 0.0, "glow": 0.0, "pulse": 0.0, "throb": 0.0, "mash": false,
 }
 
 
