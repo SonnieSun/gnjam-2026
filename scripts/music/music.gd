@@ -34,6 +34,23 @@ var muted := {}
 ## 同步流里第 i 条子流是哪条轨道的哪段
 var _slot_lane := PackedStringArray()
 var _slot_clip := PackedStringArray()
+## 每一段在哪个同步流里、是里面的第几条（见下面的"曲子组"）
+var _slot_stream: Array[AudioStreamSynchronized] = []
+var _slot_index := PackedInt32Array()
+var _slot_tune := PackedStringArray()
+
+## 曲子组：片段上写了 "tune": "ode" 的，同一首曲子的几条轨道单独放在一个同步流里，用自己的播放器放，
+## 不跟主同步流（鼓这些没写 tune 的）绑在一起。这首曲子的轨道从"都没响"变成"有一条要响"的那条小节线，
+## 它从自己的第 1 小节放起；都不响了就停，下次再进来又从第 1 小节起。
+## （都放在一个同步流里的话，所有片段共用一个播放位置，曲子总是从循环的中间接上，听着像从第二小节开始唱。）
+## 两个播放器走的是同一个音频时钟，不会越走越偏；起播时按节拍时钟算好该从第几秒放起，偶尔差多了会自己对回去。
+## 这首曲子的喵谱子（和声、打中唱）也从同一条小节线算起。
+var _tunes := {}          # 名字 -> {"stream", "player", "origin"（从第几拍起，没在放是 INF）, "length"（秒）}
+var _pattern_tune := {}   # "轨道/片段" -> 曲子名（喵谱子片段）
+const TUNE_RESYNC_SEC := 0.04
+## 起播之后实测：曲子比节拍早这么多秒（和声卡的缓冲有关，每台机器不一样）。起播时把它扣掉；
+## 每次起播后量一小会儿，慢慢修这个数，所以同一次运行里越往后越准。
+static var _tune_bias := 0.012
 var _lane_gain := {}                    # lane id -> dB
 var _now := {}                          # lane id -> 现在响的片段
 var _target := PackedFloat32Array()
@@ -155,6 +172,11 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	stream = AudioStreamSynchronized.new()
 	_slot_lane = PackedStringArray()
 	_slot_clip = PackedStringArray()
+	_slot_stream = []
+	_slot_index = PackedInt32Array()
+	_slot_tune = PackedStringArray()
+	_free_tunes()
+	_pattern_tune.clear()
 	_lane_gain.clear()
 	_now.clear()
 	_patterns.clear()
@@ -170,6 +192,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	for key: String in meow.active.keys():
 		meow.set_active(key, {})
 	var streams: Array[AudioStream] = []
+	var tune_streams := {}
 	for lane in d.get("lanes", []):
 		_lane_gain[lane.id] = lane.get("gain_db", 0.0)
 		for clip in lane.get("clips", []):
@@ -177,10 +200,14 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 			# 加上 "by_hit": true 的谱子片段不自己响：玩家每打中一下，才唱出离现在最近的那个音
 			if clip.has("pattern"):
 				_patterns["%s/%s" % [lane.id, clip.id]] = MeowPlayer.read_pattern(clip.pattern)
+				if str(clip.get("tune", "")) != "":
+					_pattern_tune["%s/%s" % [lane.id, clip.id]] = str(clip.tune)
 				if clip.get("by_hit", false):
 					_by_hit["%s/%s" % [lane.id, clip.id]] = true
 				continue
-			if streams.size() >= AudioStreamSynchronized.MAX_STREAMS:
+			var tune := str(clip.get("tune", ""))
+			var into: Array = tune_streams.get(tune, []) if tune != "" else streams
+			if into.size() >= AudioStreamSynchronized.MAX_STREAMS:
 				push_warning("Music: more than %d clips, the rest are left out" % AudioStreamSynchronized.MAX_STREAMS)
 				break
 			var s: AudioStream = load(clip.file)
@@ -188,15 +215,32 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 				s.loop_mode = AudioStreamWAV.LOOP_FORWARD
 				s.loop_begin = 0
 				s.loop_end = int(round(s.get_length() * s.mix_rate))
-			streams.append(s)
+			if tune != "" and not _tunes.has(tune):
+				var player := AudioStreamPlayer.new()
+				add_child(player)
+				_tunes[tune] = {"stream": AudioStreamSynchronized.new(), "player": player, "origin": INF, "length": 0.0}
+				tune_streams[tune] = into
+			_slot_stream.append(_tunes[tune].stream if tune != "" else stream)
+			_slot_index.append(into.size())
+			_slot_tune.append(tune)
+			into.append(s)
 			_slot_lane.append(lane.id)
 			_slot_clip.append(clip.id)
 	stream.stream_count = streams.size()
-	_target.resize(streams.size())
-	_level.resize(streams.size())
 	for i in streams.size():
 		stream.set_sync_stream(i, streams[i])
-		stream.set_sync_stream_volume(i, SILENT_DB)
+	for tune: String in tune_streams:
+		var ts: AudioStreamSynchronized = _tunes[tune].stream
+		var list: Array = tune_streams[tune]
+		ts.stream_count = list.size()
+		for i in list.size():
+			ts.set_sync_stream(i, list[i])
+			_tunes[tune].length = maxf(float(_tunes[tune].length), (list[i] as AudioStream).get_length())
+		(_tunes[tune].player as AudioStreamPlayer).stream = ts
+	_target.resize(_slot_lane.size())
+	_level.resize(_slot_lane.size())
+	for i in _slot_lane.size():
+		_slot_stream[i].set_sync_stream_volume(_slot_index[i], SILENT_DB)
 		_target[i] = 0.0
 		_level[i] = 0.0
 	section = 0
@@ -206,7 +250,105 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 
 
 ## 这一关不用叠轨音乐：把上一关留下的东西清掉（不然上一关的喵谱子、KIAI、打中唱会跟到这一关来）
+func _free_tunes() -> void:
+	for tune: String in _tunes:
+		(_tunes[tune].player as AudioStreamPlayer).stop()
+		(_tunes[tune].player as AudioStreamPlayer).queue_free()
+	_tunes.clear()
+
+
+## 这首曲子现在该不该响：它有一条轨道要响，或者它的一个喵谱子片段在用
+func _tune_wanted(tune: String) -> bool:
+	for i in _slot_tune.size():
+		if _slot_tune[i] == tune and _target[i] > 0.0:
+			return true
+	for key: String in _pattern_tune:
+		if _pattern_tune[key] == tune and _now.get(key.get_slice("/", 0), "") == key.get_slice("/", 1):
+			return true
+	return false
+
+
+## 排好了各条轨道该响什么之后：刚进来的曲子记下从哪条小节线起（beat_index < 0 = 还没开始放，从第 0 拍起）
+func _mark_tunes(beat_index: int) -> void:
+	for tune: String in _tunes:
+		if _tune_wanted(tune) and is_inf(_tunes[tune].origin):
+			_tunes[tune].origin = float(beat_index) if beat_index >= 0 else maxf(floorf(Conductor.song_beat / 4.0) * 4.0, 0.0) if Conductor.playing else 0.0
+
+
+## 每帧：该响的曲子没在放就放起来（从算好的位置放，正好对上节拍），放偏了对回去；不该响、也淡完了的停掉
+func _run_tunes() -> void:
+	var spb := 60.0 / bpm()
+	for tune: String in _tunes:
+		var t: Dictionary = _tunes[tune]
+		var player: AudioStreamPlayer = t.player
+		if is_inf(t.origin) or not Conductor.playing:
+			if player.playing:
+				player.stop()
+			continue
+		var quiet := true
+		for i in _slot_tune.size():
+			if _slot_tune[i] == tune and (_level[i] > 0.0001 or _target[i] > 0.0):
+				quiet = false
+				break
+		if quiet and not _tune_wanted(tune):
+			player.stop()
+			t.origin = INF
+			continue
+		# 现在"听到的"该是这首曲子的第几秒；交给声卡的要再晚一个输出延迟才出声
+		var heard := (Conductor.song_beat - float(t.origin)) * spb
+		if heard < -0.001 or float(t.length) <= 0.0:
+			continue
+		if not player.playing:
+			player.play(fposmod(heard + AudioServer.get_output_latency() + AudioServer.get_time_to_next_mix() - _tune_bias, float(t.length)))
+			t.cal_n = 0
+			t.cal_sum = 0.0
+			continue
+		var at := player.get_playback_position() + AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()
+		var err := fposmod(at - heard + float(t.length) * 0.5, float(t.length)) - float(t.length) * 0.5
+		if absf(err) > TUNE_RESYNC_SEC:
+			t.off = int(t.get("off", 0)) + 1
+			if int(t.off) >= 3:      # 连着几帧都偏：重新对一次（只有一帧是播放位置自己跳了一下，不理）
+				t.off = 0
+				player.seek(fposmod(heard + AudioServer.get_output_latency() + AudioServer.get_time_to_next_mix() - _tune_bias, float(t.length)))
+		else:
+			t.off = 0
+			# 起播后的头半秒量一下偏了多少，修正下一次起播用的数
+			var n := int(t.get("cal_n", 99))
+			if n < 30:
+				t.cal_n = n + 1
+				if n >= 6:
+					t.cal_sum = float(t.get("cal_sum", 0.0)) + err
+				if n == 29:
+					_tune_bias = clampf(_tune_bias + float(t.cal_sum) / 24.0 * 0.7, -0.03, 0.05)
+
+
+## 给谱面 / 关卡用：这首曲子是从第几拍起的（没在放返回 -1）。它的第 1 小节第 1 拍就在这一拍上，
+## 所以"曲子里的第 n 拍" = Conductor.song_beat - tune_origin(tune)，对循环的拍数取余就是循环里的位置。
+## 曲子名是音乐配置里片段上的 "tune"（比如 "ode"、"mk"、"cc"）。MIDI 在 docs/music_midi/。
+func tune_origin(tune: String) -> float:
+	return float(_tunes[tune].origin) if _tunes.has(tune) and not is_inf(_tunes[tune].origin) else -1.0
+
+
+## 现在在放的曲子（名字的列表）
+func tunes_playing() -> PackedStringArray:
+	var out := PackedStringArray()
+	for tune: String in _tunes:
+		if not is_inf(_tunes[tune].origin):
+			out.append(tune)
+	return out
+
+
+## 这个喵谱子片段从第几拍算起（它那首曲子是从哪条小节线起的；不属于哪首曲子就是 0）
+func _pattern_origin(key: String) -> float:
+	var tune: String = _pattern_tune.get(key, "")
+	if tune == "" or not _tunes.has(tune) or is_inf(_tunes[tune].origin):
+		return 0.0
+	return float(_tunes[tune].origin)
+
+
 func clear() -> void:
+	_free_tunes()
+	_pattern_tune.clear()
 	_carry = 0.0
 	_end_fever()
 	data = {}
@@ -714,7 +856,7 @@ func set_lane_gain(lane: String, db: float) -> void:
 	_lane_gain[lane] = db
 	for i in _slot_lane.size():
 		if _slot_lane[i] == lane and _level[i] > 0.0001:
-			stream.set_sync_stream_volume(i, linear_to_db(_level[i]) + db)
+			_slot_stream[i].set_sync_stream_volume(_slot_index[i], linear_to_db(_level[i]) + db)
 
 
 func _queue() -> void:
@@ -745,6 +887,13 @@ func _on_beat(index: int) -> void:
 		_carry = 0.0
 	if expired or carrying or (_pending and index >= int(round(_next_beat))):
 		_apply_now(index)
+
+
+## 进 fever 前要不要先放一小节过门。过门那一小节旋律是停的：曲子不换、只是往上加东西的 fever，
+## 旋律莫名其妙断一小节很怪，这种小关写 "fever_fill": false。不写 = 要（进 fever 时换曲子 / 换段落的用它来换得干净）。
+func _fever_fill_wanted() -> bool:
+	var secs: Array = data.get("sections", [])
+	return bool(secs[section].get("fever_fill", true)) if section >= 0 and section < secs.size() else true
 
 
 func _fever_on_bars() -> int:
@@ -785,7 +934,7 @@ func _apply_now(beat_index := -1) -> void:
 		return
 	# 要进 fever：也先一小节过门
 	var fever_now := use_dynamics and in_fever(eff)
-	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and _fill_clip() != "":
+	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and _fill_clip() != "" and _fever_fill_wanted():
 		_fever_fill_done = true
 		_play_fill_bar()
 		_pending = true
@@ -815,10 +964,12 @@ func _apply_now(beat_index := -1) -> void:
 			else:
 				lane_switched.emit(lane.id, c)
 		_now[lane.id] = c
-		var key := "%s/%s" % [lane.id, c]
-		meow.set_active(lane.id, _patterns.get(key, {}), float(_lane_gain.get(lane.id, 0.0)), _by_hit.has(key))
 	for i in _slot_lane.size():
 		_target[i] = 1.0 if _now.get(_slot_lane[i], "") == _slot_clip[i] else 0.0
+	_mark_tunes(beat_index)
+	for lane in data.get("lanes", []):
+		var key := "%s/%s" % [lane.id, _now.get(lane.id, "")]
+		meow.set_active(lane.id, _patterns.get(key, {}), float(_lane_gain.get(lane.id, 0.0)), _by_hit.has(key), _pattern_origin(key))
 	# 档位变了：升档 = 镲 + 一声上扬的喵，降档 = 一声往下的喵（刚换小关那一次不放）
 	var new_tier := tier_of(eff, tier_lines(section))
 	if use_dynamics and Conductor.playing and not _quiet_tier_change and beat_index >= 0:
@@ -876,4 +1027,5 @@ func _process(delta: float) -> void:
 			db += DIP_DB
 		if duck_now and ducked and cur > 0.0001:
 			db += KIAI_DUCK_DB
-		stream.set_sync_stream_volume(i, db)
+		_slot_stream[i].set_sync_stream_volume(_slot_index[i], db)
+	_run_tunes()

@@ -26,15 +26,18 @@
    "clips": [
     {
      "id": "tm_bass",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L2_bass_16b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L2_bass_16b.wav",
+     "tune": "tm"
     },
     {
      "id": "cc_bass",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav",
+     "tune": "cc"
     },
     {
      "id": "tmb_bass",
-     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_L2_bass_8b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_L2_bass_8b.wav",
+     "tune": "tmb"
     }
    ]
   },
@@ -45,15 +48,18 @@
    "clips": [
     {
      "id": "tm_keys",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_fb_L0_keys_16b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_fb_L0_keys_16b.wav",
+     "tune": "tm"
     },
     {
      "id": "cc_keys",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav",
+     "tune": "cc"
     },
     {
      "id": "tmb_keys",
-     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L0_keys_8b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L0_keys_8b.wav",
+     "tune": "tmb"
     }
    ]
   },
@@ -64,15 +70,13 @@
    "clips": [
     {
      "id": "tm_pluck",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_pluck_16b.wav"
-    },
-    {
-     "id": "cc_pluck",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_pluck_16b.wav",
+     "tune": "tm"
     },
     {
      "id": "cc_lead",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav",
+     "tune": "cc"
     }
    ]
   },
@@ -83,11 +87,13 @@
    "clips": [
     {
      "id": "tmb_peak",
-     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L4_peak_8b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L4_peak_8b.wav",
+     "tune": "tmb"
     },
     {
      "id": "cc_peak",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav",
+     "tune": "cc"
     }
    ]
   },
@@ -102,7 +108,8 @@
     },
     {
      "id": "cc_cat_drums",
-     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav",
+     "tune": "cc"
     }
    ]
   },
@@ -114,17 +121,20 @@
     {
      "id": "tm_harm",
      "pattern": "res://levels/music/patterns/harm_turkish_march.json",
-     "by_hit": false
+     "by_hit": false,
+     "tune": "tm"
     },
     {
      "id": "cc_harm",
      "pattern": "res://levels/music/patterns/harm_can_can.json",
-     "by_hit": false
+     "by_hit": false,
+     "tune": "cc"
     },
     {
      "id": "tmb_harm",
      "pattern": "res://levels/music/patterns/harm_turkish_march_b.json",
-     "by_hit": false
+     "by_hit": false,
+     "tune": "tmb"
     }
    ]
   },
@@ -135,15 +145,18 @@
    "clips": [
     {
      "id": "tm_kichiku",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_cat_kichiku_16b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_cat_kichiku_16b.wav",
+     "tune": "tm"
     },
     {
      "id": "tmb_kichiku",
-     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_L3_cat_kichiku_8b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_L3_cat_kichiku_8b.wav",
+     "tune": "tmb"
     },
     {
      "id": "cc_double",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav",
+     "tune": "cc"
     }
    ]
   },
@@ -247,7 +260,6 @@
     0.9,
     1.0
    ],
-   "fever_on_bars": 4,
    "own": {
     "kiai": "tm_kichiku",
     "hit": ""
@@ -277,10 +289,6 @@
     "lead": [
      [
       0.0,
-      "cc_pluck"
-     ],
-     [
-      0.5,
       "cc_lead"
      ]
     ],
@@ -302,13 +310,13 @@
     ],
     "harm": [
      [
-      0.5,
+      0.0,
       "cc_harm"
      ]
     ],
     "kiai": [
      [
-      0.75,
+      0.5,
       "cc_double"
      ]
     ]
@@ -324,6 +332,7 @@
     1.0
    ],
    "exit": "end_g_major",
+   "fever_fill": false,
    "enter": "tr_tm_to_cc",
    "own": {
     "kiai": "cc_double",

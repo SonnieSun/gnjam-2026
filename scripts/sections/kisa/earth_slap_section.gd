@@ -54,7 +54,7 @@ extends SpinSection
 ## 超过达标数之后每多按一下整体再升 mash_sing_lift 个半音。关掉 = 用下面那个一下比一下高的声音
 @export var mash_sings := true
 ## 现在响的和声是哪首曲子（片段名的开头）就唱哪首的谱子（levels/music/patterns/ 里的名字）；都对不上用 mash_sing_default
-@export var mash_sing_tunes := {"mk_": "mountain_king", "cc_": "can_can", "ybf": "your_best_friend"}
+@export var mash_sing_tunes := {"mk_": "mountain_king", "mka_": "mountain_king", "cc_": "can_can", "ybf": "your_best_friend"}
 @export var mash_sing_default := "kichiku_riff"
 @export_range(-30.0, 6.0) var mash_sing_db := -3.0
 @export var mash_sing_lift := 1.0
