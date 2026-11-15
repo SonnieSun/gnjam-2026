@@ -1,0 +1,260 @@
+@tool
+extends SpinSection
+## 电视墙关开场：画面中间一台洗衣机，圆圈收到门框上时按键。
+## 单点：舱门里的猫脸原地转一小段。长按时猫脸一直转、越转越快。长按（谱面里音符后面接 "="）：按住到尾巴才算成，中途松手变灰失败、不能补按。
+## 每完整按完一次长按推进一步：前 3 次镜头拉远，之后每次洗衣机发电、亮两台电视，直到全部亮起（见 TvWallIntroStage）。
+## 判定用框架的 Judge（不改）：长按的开头由 Judge 当普通音符判，按住的部分由这里自己盯（和迪斯科关同一种写法）。
+## 3D 画面和可调参数都在 Stage 节点里。编辑器预览里不跑 3D，只显示一行说明。
+
+## 圆圈提前几拍出现
+@export var approach_beats := 3.0
+## 圆圈从多远收过来（占画面高度的比例）
+@export var approach_travel_ratio := 0.45
+## 长按离尾巴不到这么多拍时松手也算成
+@export var hold_release_grace := 0.3
+## 没打中时整个画面红闪的强度
+@export_range(0.0, 1.0) var miss_flash := 0.2
+## 调试用：自动按键（看演出用，正式玩要关掉）
+@export var autoplay := false
+
+var _stage: TvWallIntroStage
+var _hold_lens := {}  # 鼓谱里的位置（毫拍）-> 长按几拍
+var _pattern_len := 0.0
+var _pattern_origin := INF
+var _holding: NoteData
+var _failed := {}  # 失败的长按 -> true（尾巴过去之前画成灰色）
+var _bolts: Array[Dictionary] = []  # {"to": 电视序号, "age": 秒}
+var _flash := 0.0
+var _auto_next := 0
+var _auto_release_at := -INF
+var _auto_down := false
+
+
+func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
+	_stage = get_node_or_null("Stage") as TvWallIntroStage
+	if _stage == null:
+		_stage = TvWallIntroStage.new()
+		add_child(_stage)
+	_stage.setup(self)
+
+
+func hit_position(_note: NoteData = null) -> Vector2:
+	return _stage.ring_center() if _stage else Vector2.ZERO
+
+
+func hit_radius() -> float:
+	return _stage.ring_radius() if _stage else 80.0
+
+
+func _update_spin(_local_beat: float, _angle: float) -> void:
+	center_on_screen()
+	if _stage == null:
+		return
+	var dt := get_process_delta_time()
+	if _hold_lens.is_empty():
+		_parse_holds()
+	if autoplay:
+		_autoplay()
+	if _holding:
+		_update_hold()
+	_stage.update(song_beat(), dt)
+	for tv in _stage.take_just_lit():
+		_bolts.append({"to": tv, "age": 0.0})
+	for i in range(_bolts.size() - 1, -1, -1):
+		_bolts[i].age += dt
+		if _bolts[i].age > 0.35:
+			_bolts.remove_at(i)
+	for n: NoteData in _failed.keys():
+		if song_beat() > n.beat + hold_beats(n):
+			_failed.erase(n)
+	_flash = maxf(_flash - dt * 2.5, 0.0)
+	queue_redraw()
+
+
+func _on_note_judged(note: NoteData, result: int) -> void:
+	if _stage == null:
+		return
+	var is_hold := hold_beats(note) > 0.0
+	if result == NoteData.Result.MISS:
+		_flash = 1.0
+		if is_hold:
+			_failed[note] = true
+		return
+	if is_hold:
+		_holding = note
+		_stage.hold_begin()
+	else:
+		_stage.tap()
+
+
+# ---------------- 长按 ----------------
+
+## 这个音符是长按的话返回按几拍，否则 0
+func hold_beats(n: NoteData) -> float:
+	if _pattern_len <= 0.0 or notes.is_empty():
+		return 0.0
+	if is_inf(_pattern_origin):
+		# 鼓谱从哪一拍开始循环：用第一个音符倒推
+		_pattern_origin = notes[0].beat - def.parse_notes(Conductor.chart.beats_per_bar)[0].beat
+	var rel := fposmod(n.beat - _pattern_origin, _pattern_len)
+	return _hold_lens.get(roundi(rel * 1000.0) % roundi(_pattern_len * 1000.0), 0.0)
+
+
+## 从谱面里找出长按：音符后面跟着的每个 "=" 把它延长一格
+func _parse_holds() -> void:
+	var bpb: int = Conductor.chart.beats_per_bar
+	_pattern_len = def.length_beats(bpb)
+	_hold_lens[-1] = 0.0  # 占个位，表示已经找过了
+	for bar_i in def.bars.size():
+		var s := def.bars[bar_i]
+		var cell := float(bpb) / maxi(s.length(), 1)
+		var i := 0
+		while i < s.length():
+			var run := 0
+			while i + 1 + run < s.length() and s[i + 1 + run] == "=":
+				run += 1
+			if run > 0 and SectionDef._char_to_sound(s[i]) >= 0:
+				_hold_lens[roundi((bar_i * bpb + i * cell) * 1000.0)] = run * cell
+			i += 1 + run
+
+
+## 盯着正在进行的长按：按到尾巴算成；提前松手算失败
+func _update_hold() -> void:
+	var length := hold_beats(_holding)
+	var end := _holding.beat + length
+	var now := song_beat()
+	if now >= end:
+		_finish_hold(true)
+		return
+	if not Input.is_action_pressed(Judge.HIT_ACTION):
+		_finish_hold(now >= end - hold_release_grace)
+		return
+	_stage.hold_update((now - _holding.beat) / maxf(length, 0.001), (now - _holding.beat) * Conductor.sec_per_beat())
+
+
+func _finish_hold(success: bool) -> void:
+	if not success:
+		_failed[_holding] = true
+		_flash = 1.0
+	_holding = null
+	_stage.hold_end(success)
+
+
+# ---------------- 表现 ----------------
+
+func _draw() -> void:
+	if def == null:
+		return
+	var size := screen_size()
+	if Engine.is_editor_hint():
+		draw_string(ThemeDB.fallback_font, Vector2(-300.0, 0.0), "电视墙开场：3D 画面不在编辑器里预览，F5 运行后按 4",
+				HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20)
+		return
+	if _stage == null:
+		return
+	var center := hit_position()
+	var radius := maxf(hit_radius(), 1.0)
+	var travel := approach_travel_ratio * size.y
+	draw_arc(center, radius, 0.0, TAU, 96, Color(1.0, 0.62, 0.18, 0.95), 4.0)
+	for n in notes:
+		var length := hold_beats(n)
+		var ahead := beats_until(n)
+		if ahead > approach_beats:
+			break
+		var tail_ahead := ahead + length
+		var failed := _failed.has(n)
+		var holding_this := n == _holding
+		if length > 0.0 and tail_ahead >= 0.0 and (not n.judged or holding_this or failed):
+			_draw_hold_tail(center, radius, travel, n, ahead, tail_ahead, failed, holding_this)
+		if n.judged and not failed:
+			continue
+		if failed and tail_ahead < 0.0:
+			continue
+		var k := maxf(ahead, 0.0) / maxf(approach_beats, 0.01)
+		var c := Color(0.5, 0.5, 0.5) if failed else sound_color(n)
+		c.a = clampf(1.0 - k * 0.6, 0.0, 1.0)
+		draw_arc(center, radius + k * travel, 0.0, TAU, 96, c, 8.0 if length > 0.0 else 5.0)
+	if _holding:
+		draw_arc(center, radius, 0.0, TAU, 96, sound_color(_holding), 7.0)
+		_draw_ring_lightning(center, radius)
+	for b in _bolts:
+		_draw_bolt(center, _stage.tv_screen_pos(b.to), 1.0 - b.age / 0.35)
+	if tap_age < 0.15:
+		draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64, Color(1, 1, 1, 1.0 - tap_age / 0.15), 6.0)
+	if _flash > 0.0:
+		draw_rect(Rect2(-size / 2.0, size), Color(1.0, 0.15, 0.2, _flash * miss_flash))
+
+
+## 长按的拖尾：从头到尾巴的一条半透明带子 + 提示文字
+func _draw_hold_tail(center: Vector2, radius: float, travel: float, n: NoteData,
+		ahead: float, tail_ahead: float, failed: bool, holding_this: bool) -> void:
+	var inner := radius + maxf(ahead, 0.0) / maxf(approach_beats, 0.01) * travel
+	var outer := radius + tail_ahead / maxf(approach_beats, 0.01) * travel
+	outer = minf(outer, inner + screen_size().y * 0.07)  # 带子不要太宽，免得盖住猫头
+	var c := Color(0.48, 0.48, 0.48) if failed else sound_color(n)
+	if outer > inner + 0.5:
+		c.a = 0.15 if failed else (0.3 if holding_this else 0.2)
+		draw_arc(center, (inner + outer) / 2.0, 0.0, TAU, 96, c, outer - inner)
+		c.a = 0.75
+		draw_arc(center, outer, 0.0, TAU, 96, c, 3.0)
+	var seconds := (tail_ahead if holding_this else hold_beats(n)) * Conductor.sec_per_beat()
+	var label := "HOLD FAILED" if failed else "HOLD %.1fs" % seconds
+	var pos := center + Vector2(-120.0, -radius * 0.6)
+	c.a = 1.0
+	draw_string_outline(ThemeDB.fallback_font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 240, 24, 6, Color(0.02, 0.02, 0.04, 0.95))
+	draw_string(ThemeDB.fallback_font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 240, 24, c)
+
+
+## 按住时贴着判定圈的一圈细闪电
+func _draw_ring_lightning(center: Vector2, radius: float) -> void:
+	var phase := floori(Time.get_ticks_msec() / 75.0)
+	var pts := PackedVector2Array()
+	for i in 65:
+		var zig := sin(float(i * 17 + phase * 11)) * 4.0 + (2.0 if i % 2 == 0 else -2.0)
+		pts.append(center + Vector2.from_angle(TAU * i / 64.0) * (radius * 1.055 + zig))
+	pts[64] = pts[0]
+	var c := sound_color(_holding).lerp(Color(0.55, 0.9, 1.0), 0.45)
+	c.a = 0.2
+	draw_polyline(pts, c, 8.0, true)
+	c.a = 0.95
+	draw_polyline(pts, c, 2.5, true)
+	draw_polyline(pts, Color(0.92, 1.0, 1.0, 0.85), 1.0, true)
+
+
+## 洗衣机通到刚亮起来的电视的一道闪电
+func _draw_bolt(from: Vector2, to: Vector2, alpha: float) -> void:
+	var phase := floori(Time.get_ticks_msec() / 50.0)
+	var side := (to - from).orthogonal().normalized()
+	var pts := PackedVector2Array()
+	for i in 13:
+		var k := i / 12.0
+		var off := sin(float(i * 31 + phase * 7)) * 14.0 * sin(k * PI)
+		pts.append(from.lerp(to, k) + side * off)
+	draw_polyline(pts, Color(0.55, 0.9, 1.0, 0.25 * alpha), 10.0, true)
+	draw_polyline(pts, Color(0.75, 0.95, 1.0, 0.95 * alpha), 3.0, true)
+	draw_polyline(pts, Color(1.0, 1.0, 1.0, alpha), 1.2, true)
+
+
+# ---------------- 调试：自动按键 ----------------
+
+func _autoplay() -> void:
+	if _auto_down and song_beat() >= _auto_release_at:
+		_send_hit(false)
+		_auto_down = false
+	while _auto_next < notes.size() and notes[_auto_next].judged:
+		_auto_next += 1
+	if not _auto_down and _auto_next < notes.size() and beats_until(notes[_auto_next]) <= 0.0:
+		var n := notes[_auto_next]
+		_auto_next += 1
+		_send_hit(true)
+		_auto_down = true
+		_auto_release_at = n.beat + maxf(hold_beats(n), 0.05)
+
+
+func _send_hit(pressed: bool) -> void:
+	var e := InputEventAction.new()
+	e.action = Judge.HIT_ACTION
+	e.pressed = pressed
+	Input.parse_input_event(e)
