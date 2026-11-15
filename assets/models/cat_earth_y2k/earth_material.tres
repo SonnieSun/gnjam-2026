@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/models/cat_earth_y2k/earth_day_clouds.jpg" id="1_vig28"]
+
+[resource]
+resource_name = "Earth · NASA Blue Marble"
+albedo_texture = ExtResource("1_vig28")
+metallic_specular = 0.23
+roughness = 0.78

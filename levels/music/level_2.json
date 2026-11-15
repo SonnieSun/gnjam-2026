@@ -1,7 +1,7 @@
 {
  "title": "DISCO",
  "bpm": 120,
- "use_in_game": true,
+ "use_in_game": false,
  "quantize_beats": 4,
  "lanes": [
   {

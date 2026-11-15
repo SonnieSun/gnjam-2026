@@ -1,72 +1,61 @@
 [gd_resource type="Resource" script_class="SongChart" format=3]
 
-[ext_resource type="AudioStream" path="res://assets/disco_layers/hat.wav" id="1_sbfc8"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/kick.wav" id="2_f6828"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/snare.wav" id="3_1d3ri"]
-[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_omfhc"]
-[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_040w3"]
-[ext_resource type="PackedScene" path="res://scenes/sections/kisa/disco.tscn" id="6_dpbs3"]
-[ext_resource type="PackedScene" path="res://scenes/sections/kisa/abduction.tscn" id="7_mhdd1"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/room_00_base.ogg" id="8_7n276"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/room_01_stars.ogg" id="9_iev57"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/road_09_ufo.ogg" id="10_o2070"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/room_02_ball.ogg" id="11_r8cfm"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/room_03_dancers.ogg" id="12_2sjev"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/room_04_drift.ogg" id="13_frptn"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/road_00_base.ogg" id="14_xi3pu"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/road_05_road.ogg" id="15_d6gsm"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/road_06_dance_floor.ogg" id="16_u2m5a"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/road_07_grid.ogg" id="17_kmdo3"]
-[ext_resource type="AudioStream" path="res://assets/disco_layers/road_08_plaza.ogg" id="18_x4ied"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/hat.wav" id="1_mrbuc"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/kick.wav" id="2_oce7n"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/snare.wav" id="3_4r5xl"]
+[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_q3vbg"]
+[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_35tcx"]
+[ext_resource type="PackedScene" path="res://scenes/sections/cat_earth.tscn" id="6_32tqp"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="14_yiqag"]
 
-[sub_resource type="Resource" id="Resource_8ib6d"]
-script = ExtResource("5_040w3")
-title = "DISCO"
-scene = ExtResource("6_dpbs3")
+[sub_resource type="Resource" id="Resource_flxvl"]
+script = ExtResource("5_35tcx")
+title = "ORBIT / WARM UP"
+scene = ExtResource("6_32tqp")
 beats_per_rev = 8.0
-bars = PackedStringArray("k.......k.......", "k...k...k...k...", "k...s...k...s...", "k...s...k.k.s...")
-gauge_events = PackedInt32Array()
-
-[sub_resource type="Resource" id="Resource_t5d3j"]
-script = ExtResource("5_040w3")
-title = "ABDUCTION"
-scene = ExtResource("7_mhdd1")
-beats_per_rev = 8.0
-bars = PackedStringArray("................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................")
+bars = PackedStringArray("h.h.h.h.s.......", "h.h.h.h.s.......")
 transition = 1
-gauge_events = PackedInt32Array()
+gauge_max = 20
+use_gauge_events = true
+gauge_events = PackedInt32Array(10)
+fx_cues = []
+meme_cues = []
 
-[sub_resource type="AudioStreamSynchronized" id="AudioStreamSynchronized_h72cn"]
-stream_count = 11
-stream_0/stream = ExtResource("8_7n276")
-stream_0/volume = 0.0
-stream_1/stream = ExtResource("9_iev57")
-stream_1/volume = -60.0
-stream_2/stream = ExtResource("11_r8cfm")
-stream_2/volume = -60.0
-stream_3/stream = ExtResource("12_2sjev")
-stream_3/volume = -60.0
-stream_4/stream = ExtResource("13_frptn")
-stream_4/volume = -60.0
-stream_5/stream = ExtResource("14_xi3pu")
-stream_5/volume = -60.0
-stream_6/stream = ExtResource("15_d6gsm")
-stream_6/volume = -60.0
-stream_7/stream = ExtResource("16_u2m5a")
-stream_7/volume = -60.0
-stream_8/stream = ExtResource("17_kmdo3")
-stream_8/volume = -60.0
-stream_9/stream = ExtResource("18_x4ied")
-stream_9/volume = -60.0
-stream_10/stream = ExtResource("10_o2070")
-stream_10/volume = -60.0
+[sub_resource type="Resource" id="Section_orbit_charge"]
+script = ExtResource("5_35tcx")
+title = "ORBIT / CHARGE UP"
+scene = ExtResource("6_32tqp")
+beats_per_rev = 8.0
+bars = PackedStringArray("h.hhhhh.s.......", "hh.hhhh.s.......")
+transition = 1
+gauge_max = 30
+use_gauge_events = true
+gauge_events = PackedInt32Array(15)
+fx_cues = []
+meme_cues = []
+
+[sub_resource type="Resource" id="Section_orbit_supernova"]
+script = ExtResource("5_35tcx")
+title = "ORBIT / SUPERNOVA"
+scene = ExtResource("6_32tqp")
+beats_per_rev = 8.0
+bars = PackedStringArray("hhhhhhhhs.......", "hhhhhhhhs.......")
+transition = 1
+gauge_max = 40
+use_gauge_events = true
+gauge_events = PackedInt32Array(20)
+fx_cues = []
+meme_cues = []
 
 [resource]
-script = ExtResource("4_omfhc")
-title = "DISCO"
-stream = SubResource("AudioStreamSynchronized_h72cn")
+script = ExtResource("4_q3vbg")
+title = "ORBIT CAT"
+look = "OFF"
 bpm = 120.0
-drum_kick = ExtResource("2_f6828")
-drum_snare = ExtResource("3_1d3ri")
-drum_hat = ExtResource("1_sbfc8")
-sections = Array[ExtResource("5_040w3")]([SubResource("Resource_8ib6d"), SubResource("Resource_t5d3j")])
+beats_per_bar = 4
+rest_bars_on_switch = 1
+stream = ExtResource("14_yiqag")
+drum_kick = ExtResource("2_oce7n")
+drum_snare = ExtResource("3_4r5xl")
+drum_hat = ExtResource("1_mrbuc")
+sections = Array[ExtResource("5_35tcx")]([SubResource("Resource_flxvl"), SubResource("Section_orbit_charge"), SubResource("Section_orbit_supernova")])

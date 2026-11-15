@@ -1,0 +1,156 @@
+{
+  "source_blend": "E:\\REPLAY II\\GN-game jam\\cat_earth_animation\\cat_earth_y2k_scene.blend",
+  "source_sha256": "f3cf0239ef255da9b550b831f34b31b2a21ef9ce758e332c228526c893a657be",
+  "source_modified": false,
+  "fbx": "res://assets/models/cat_earth_y2k/cat_earth_y2k.fbx",
+  "animation": {
+    "expected_take": "CatEarthLoop",
+    "fps": 24,
+    "source_frames": [
+      1,
+      97
+    ],
+    "fbx_frames": [
+      0,
+      96
+    ],
+    "duration_seconds": 4.0,
+    "loop_frames": [
+      1,
+      96
+    ],
+    "contacts_frames": [
+      30,
+      78
+    ],
+    "contacts_seconds": [
+      1.2083333333333333,
+      3.2083333333333335
+    ],
+    "windup_hold_seconds": [
+      [
+        0.5833333333333334,
+        1.0
+      ],
+      [
+        2.5833333333333335,
+        3.0
+      ]
+    ],
+    "single_swat_seconds": 2.0,
+    "clock_offset_for_120bpm_hit_on_beats_2_6": 0.20833333333333334
+  },
+  "camera": {
+    "blender_position": [
+      7.400000095367432,
+      -11.5,
+      6.0
+    ],
+    "blender_rotation_euler": [
+      1.282802939414978,
+      1.6748701980873193e-08,
+      0.5409212112426758
+    ],
+    "godot_position": [
+      7.400000095367432,
+      6.0,
+      11.5
+    ],
+    "godot_target": [
+      0.36,
+      1.95,
+      -0.22
+    ],
+    "orthographic_size": 7.5
+  },
+  "nodes": {
+    "CatRig": {
+      "type": "ARMATURE",
+      "parent": null
+    },
+    "CatMesh": {
+      "type": "MESH",
+      "parent": "CatRig"
+    },
+    "EarthSpin": {
+      "type": "EMPTY",
+      "parent": null
+    },
+    "EarthMesh": {
+      "type": "MESH",
+      "parent": "EarthSpin"
+    },
+    "GalaxyBackdrop": {
+      "type": "MESH",
+      "parent": null
+    },
+    "SceneCamera": {
+      "type": "CAMERA",
+      "parent": null
+    },
+    "Star01": {
+      "type": "MESH",
+      "parent": null
+    },
+    "Star02": {
+      "type": "MESH",
+      "parent": null
+    },
+    "Star03": {
+      "type": "MESH",
+      "parent": null
+    },
+    "Star04": {
+      "type": "MESH",
+      "parent": null
+    },
+    "Star05": {
+      "type": "MESH",
+      "parent": null
+    },
+    "Glint01": {
+      "type": "MESH",
+      "parent": null
+    },
+    "Glint02": {
+      "type": "MESH",
+      "parent": null
+    }
+  },
+  "materials": {
+    "CatMesh": {
+      "albedo": "cat_basecolor_512.png",
+      "roughness": 0.9
+    },
+    "EarthMesh": {
+      "albedo": "earth_day_clouds.jpg",
+      "roughness": 0.78,
+      "specular": 0.23
+    },
+    "GalaxyBackdrop": {
+      "albedo": "galaxy_backdrop.png",
+      "shading": "unshaded",
+      "double_sided": true
+    },
+    "Star01_03_05": {
+      "albedo": "star_blue_purple.png",
+      "metallic": 0.3,
+      "roughness": 0.28,
+      "coat": 0.38,
+      "emission": 0.045
+    },
+    "Star02_04": {
+      "albedo": "star_purple_blue.png",
+      "metallic": 0.3,
+      "roughness": 0.28,
+      "coat": 0.38,
+      "emission": 0.045
+    }
+  },
+  "export_notes": [
+    "Original cat skin and all native active actions baked together into one scene take.",
+    "The galaxy and460 tiny distant stars were baked into one2048px plate; original five puffy stars and two glints remain3D.",
+    "Set GalaxyBackdrop material unshaded in Godot; FBX cannot encode Blender camera-only shader.",
+    "FBX image filenames are stripped to portable adjacent filenames."
+  ]
+}

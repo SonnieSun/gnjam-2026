@@ -1,0 +1,16 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/models/cat_earth_y2k/star_blue_purple.png" id="1_n88l4"]
+
+[resource]
+resource_name = "Puffy stars · blue purple"
+albedo_texture = ExtResource("1_n88l4")
+metallic = 0.3
+roughness = 0.28
+emission_enabled = true
+emission = Color(1, 1, 1, 1)
+emission_energy_multiplier = 0.045
+emission_texture = ExtResource("1_n88l4")
+clearcoat_enabled = true
+clearcoat = 0.38
+clearcoat_roughness = 0.22

@@ -151,7 +151,7 @@ offset_right = 170.0
 offset_bottom = -260.0
 theme_override_colors/font_color = Color(0.16470589, 0.09411765, 0.2509804, 1)
 theme_override_font_sizes/font_size = 52
-text = "LEVEL 2"
+text = "ORBIT CAT"
 horizontal_alignment = 1
 vertical_alignment = 1
 
