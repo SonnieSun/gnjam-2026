@@ -153,7 +153,9 @@ func new_pattern(kind: String) -> void:
 				"bars": ["..x...x...x...x.", "..x...x...x...x."]}]}
 		_name.text = _free_name("meow_drums")
 	else:
-		pattern = {"kind": "melody", "bars": 4, "cat": "auto", "gain_db": 0.0, "notes": []}
+		# 新旋律默认固定一只猫（原本音高在音区中间的那只）：弹的时候和回放时是同一只，不会每个音换一只。
+		# 想换猫在 Cat 里选；选 auto 才是每 4 小节挑一只。
+		pattern = {"kind": "melody", "bars": 4, "cat": _nearest_cat(72.0), "gain_db": 0.0, "notes": []}
 		_name.text = _free_name("cat_melody")
 	_show()
 	_say("New pattern (not saved yet)")
@@ -251,11 +253,18 @@ func _poke(value: int) -> void:
 		Music.meow.preview(_melody_cat(value), value, false, 0.3)
 
 
-## 旋律试听用哪只猫：谱子指定的那只，auto 就挑原本音高最近的
-func _melody_cat(midi: float) -> String:
+## 旋律试听（点格子、弹键盘）用哪只猫：和回放时唱这一句的是同一只。
+## 谱子指定了猫就是那只；auto 就问播放器这一句挑的是谁（每 4 小节一只），而不是按每个音去挑。
+func _melody_cat(_midi: float) -> String:
 	var cat := str(pattern.get("cat", "auto"))
 	if Music.meow.cats.has(cat):
 		return cat
+	var step := maxi(_now_step(), 0) % maxi(_grid.steps(), 1)
+	return Music.meow._cat_for(EDIT_KEY, pattern, step)
+
+
+## 原本音高离 midi 最近的那只猫
+func _nearest_cat(midi: float) -> String:
 	var best := ""
 	for c: String in Music.meow.cats:
 		if best == "" or absf(Music.meow.cats[c].midi - midi) < absf(Music.meow.cats[best].midi - midi):

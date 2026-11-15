@@ -56,6 +56,9 @@ func _ready() -> void:
 		chart.first_beat_offset_sec = 0.0
 		section_entered.connect(Music.set_section)
 		gauge.changed.connect(func(v: int, m: int) -> void: Music.set_progress(float(v) / maxi(m, 1)))
+		gauge.filled.connect(func() -> void: Music.kiai(1, true))  # 积累条满了：切小关前这一小节鬼畜全开
+	else:
+		Music.clear()  # 这一关不用叠轨音乐：别让上一关的喵谱子跟过来
 	ComicStyle.set_by_name(Levels.look())
 	drum_kit.use_chart(chart)
 	Conductor.load_chart(chart)
@@ -66,7 +69,7 @@ func _ready() -> void:
 	judge.pressed.connect(drum_kit.play)
 	judge.empty_hit.connect(_on_empty_hit)
 	judge.combo_milestone.connect(func(combo: int): hud.show_combo_milestone(combo))
-	judge.combo_milestone.connect(func(_combo: int): hit_meow.spin())  # 连击里程碑：转圈喵（oiia）
+	judge.combo_milestone.connect(hit_meow.milestone)  # 连击里程碑：转圈喵（oiia），连击够高再送一段鬼畜全开
 	judge.stats_changed.connect(func(): hud.set_stats(judge.score, judge.combo))
 	gauge.changed.connect(_on_gauge_changed)
 	gauge.event.connect(_on_gauge_event)

@@ -23,6 +23,10 @@
     {
      "id": "bass",
      "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
+    },
+    {
+     "id": "cat_bass",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_bass_4b.wav"
     }
    ]
   },
@@ -34,6 +38,10 @@
     {
      "id": "euro_keys",
      "file": "res://assets/audio/music/scene1/style_eurobeat/s1_A_L0_keys_4b.wav"
+    },
+    {
+     "id": "cat_stabs",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav"
     }
    ]
   },
@@ -86,13 +94,14 @@
    ]
   },
   {
-   "id": "fx",
-   "name": "事件",
+   "id": "hit",
+   "name": "打中唱",
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "ev_meow",
-     "file": "res://assets/audio/music/scene1/events/s1_X_meow_4b.wav"
+     "id": "hit_riff",
+     "pattern": "res://levels/music/patterns/kichiku_riff.json",
+     "by_hit": true
     }
    ]
   }
@@ -109,35 +118,43 @@
     ],
     "bass": [
      [
-      0.15,
+      0.0,
       "bass"
+     ],
+     [
+      0.7,
+      "cat_bass"
      ]
     ],
     "bed": [
      [
       0.0,
       "euro_keys"
+     ],
+     [
+      0.7,
+      "cat_stabs"
      ]
     ],
     "lead": [
      [
-      0.25,
+      0.2,
       "euro_hook"
      ],
      [
-      0.5,
+      0.7,
       "cat_lead"
      ]
     ],
     "peak": [
      [
-      0.75,
+      0.45,
       "euro_peak"
      ]
     ],
     "meow": [
      [
-      0.25,
+      0.45,
       "cat_drums"
      ]
     ],
@@ -147,13 +164,23 @@
       "cat_kichiku"
      ]
     ],
-    "fx": [
+    "hit": [
      [
-      0.9,
-      "ev_meow"
+      0.2,
+      "hit_riff"
+     ],
+     [
+      0.7,
+      ""
      ]
     ]
-   }
+   },
+   "tiers": [
+    0.2,
+    0.45,
+    0.7,
+    0.9
+   ]
   }
  ]
 }
