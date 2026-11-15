@@ -35,6 +35,8 @@ extends "res://scripts/sections/ring_section.gd"
 @export var finale_beats := 16.0
 ## 切到吸猫小关时，旧画面叠化淡出用几秒
 @export var crossfade_seconds := 1.2
+## 拆完房子上路后，先空滑几拍才来第一个水果
+@export var road_quiet_beats := 8.0
 
 var _spin_cat: KisaSpinCat3D
 var _stage: KisaDiscoStage
@@ -116,7 +118,7 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		_stage.enter_stage(index)
 	elif index == 5:
 		# 拆房子转镜头这段不出音符，让玩家歇一下；上路的第一个水果落在歇完那个小节的第 1 拍
-		var resume := _rest_until(song_beat() + _road.unfold_beats)
+		var resume := _rest_until(song_beat() + _road.unfold_beats + road_quiet_beats, DiscoMusic.road_bars())
 		_road.start(song_beat(), resume)
 	elif index == 6 or index == 7:
 		_road.set_floor(index - 5)
@@ -360,14 +362,19 @@ func _leave_crossfade() -> void:
 
 ## 歇一会儿：从现在到 until_beat 之后的第一个小节线都不出音符，那个小节线起鼓谱从头接着来。
 ## 返回恢复出音符的那一拍。做法是让 Judge 把这一小关的鼓谱从那一拍重新开始（调它现成的 begin_section）。
-func _rest_until(until_beat: float) -> float:
+func _rest_until(until_beat: float, bars := PackedStringArray()) -> float:
 	var main := get_parent().get_parent()
 	var bpb: int = Conductor.chart.beats_per_bar
 	var resume := ceilf(until_beat / bpb) * bpb
 	if main == null or not main.get("judge"):
 		return resume
 	var index: int = main.get("_index") if main.get("_index") != null else 0
-	notes = main.judge.begin_section(index, def, bpb, song_beat(), resume)
+	var d: SectionDef = def
+	if not bars.is_empty():
+		# 换一份鼓谱接着打（只换这一小关自己用的副本，不改原来的谱面资源）
+		d = def.duplicate()
+		d.bars = bars
+	notes = main.judge.begin_section(index, d, bpb, song_beat(), resume)
 	_hold_ends.clear()
 	_holding = null
 	return resume

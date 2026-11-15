@@ -15,6 +15,8 @@ uniform float grid = 0.0;           // 0 = 舞池，1 = 霓虹网格
 uniform float plaza = 0.0;          // 0 = 没有圆台，1 = 有
 uniform float plaza_dist = 1000.0;  // 圆台中心在前面多远（从猫脚下算，随着滑行变小）
 uniform float plaza_radius = 46.0;
+uniform float dance_saturation = 0.6;  // 舞池格子颜色多鲜
+uniform float dance_brightness = 0.6;  // 舞池格子多亮
 uniform vec3 tile_a : source_color = vec3(0.96, 0.62, 0.72);
 uniform vec3 tile_b : source_color = vec3(0.99, 0.90, 0.86);
 uniform vec3 grid_color : source_color = vec3(0.35, 0.75, 1.0);
@@ -51,6 +53,7 @@ void fragment() {
 	float step_beat = floor(beat);
 	float pick = hash(cell + step_beat * 0.37);
 	vec3 dance_col = hue(pick + beat * 0.03);
+	dance_col = mix(vec3(dot(dance_col, vec3(0.299, 0.587, 0.114))), dance_col, dance_saturation) * dance_brightness;
 	float lit = step(0.35, hash(cell * 1.7 + step_beat));  // 一部分格子这一拍不亮
 	vec2 d = abs(f - 0.5) * 2.0;
 	float pad = 1.0 - smoothstep(0.75, 0.98, max(d.x, d.y));

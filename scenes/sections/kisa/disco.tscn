@@ -12,8 +12,8 @@ disc_color = Color(0, 0, 0, 0)
 target_radius = 110.0
 approach_beats = 3.0
 custom_gauge_events = true
-gauge_max_override = 315
-gauge_events = PackedInt32Array(20, 40, 60, 80, 110, 150, 190, 230, 300)
+gauge_max_override = 615
+gauge_events = PackedInt32Array(20, 40, 60, 80, 110, 170, 330, 530, 600)
 
 [node name="Targets" type="Node2D" parent="."]
 

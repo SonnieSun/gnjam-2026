@@ -15,11 +15,13 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 
 @export_group("拆房子")
 ## 墙倒下、地板铺出去、镜头转过去一共用几拍
-@export var unfold_beats := 8.0
+@export var unfold_beats := 16.0
+## 过场开头先让跳舞猫退场、星星灯升走，第几拍第一面墙（后墙）才倒
+@export var wall_first_beat := 4.0
 ## 第二面墙（左墙）比第一面（后墙）晚几拍倒
-@export var wall_gap_beats := 2.0
+@export var wall_gap_beats := 4.0
 ## 镜头从第几拍开始转（相对拆房子开始），转到上路为止
-@export var camera_turn_from_beat := 3.0
+@export var camera_turn_from_beat := 9.0
 
 @export_group("路")
 ## 猫每拍往前滑多远（3D 单位）。水果也按这个速度迎面过来
@@ -36,7 +38,13 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 ## 水果离地多高
 @export var fruit_height := 2.0
 ## 水果自己发多亮（暗场景里看得清）
-@export var fruit_glow := 0.16
+@export var fruit_glow := 0.55
+## 水果表面多光滑（越小越反光）、边缘光多强
+@export_range(0.0, 1.0) var fruit_roughness := 0.12
+@export_range(0.0, 1.0) var fruit_rim := 0.3
+## 照水果的那盏灯（挂在猫前上方，给水果打出高光）：亮度、颜色
+@export var fruit_light_energy := 0.9
+@export var fruit_light_color := Color(1.0, 0.95, 0.9)
 
 @export_group("镜头（透视）")
 ## 路上：镜头在猫背后多远、俯视角（度）、视野（度）、看向猫前面多远和多高
@@ -111,6 +119,7 @@ var _speed := 0.0  # 现在每秒滑多远
 var _last_time := 0.0
 var _phase_beat := 0.0  # 进入当前阶段时的拍数
 var _fruit_from := INF  # 这一拍及以后的音符归水果管
+var _run_at := INF  # 过场演到这一拍开始往前滑
 var _fruit_until := INF  # 这一拍及以后的音符又回到缩圈
 var _plaza_travel := INF  # 滑到这么远就停（圆台中心）
 var _fruits := {}  # NoteData -> Node3D
@@ -130,6 +139,7 @@ var _fall := 0.0       # 后墙倒了多少（0~1）
 var _fall_left := 0.0  # 左墙倒了多少
 var _saucer_node: Node3D
 var _plaza_perfects := 0
+var _fruit_light: OmniLight3D
 var _plaza_cats: Array[MemeSprite] = []
 var _ball_scale := 1.0
 
@@ -162,7 +172,7 @@ func uses_fruit(note: NoteData) -> bool:
 func rings_visible(beat: float) -> bool:
 	if phase == Phase.FINALE:
 		return false
-	return phase == Phase.ROOM or beat < _fruit_from - 0.5 or beat > _fruit_until - 3.0
+	return phase == Phase.ROOM or phase == Phase.UNFOLD or beat > _fruit_until - 3.0
 
 
 ## 拆房子，然后上路。first_fruit_beat = 第一个水果到猫身上是第几拍（不给就是拆完那一拍）
@@ -172,6 +182,7 @@ func start(beat: float, first_fruit_beat: float = -1.0) -> void:
 	phase = Phase.UNFOLD
 	_phase_beat = beat
 	_fruit_from = first_fruit_beat if first_fruit_beat > beat else ceilf(beat + unfold_beats)
+	_run_at = beat + unfold_beats - 1.0
 	_stage.takeover = true
 	_stage.dismiss_dancers()
 	_stage.raise_stars()
@@ -198,9 +209,10 @@ func start(beat: float, first_fruit_beat: float = -1.0) -> void:
 	for n in ["WallLeft", "SkirtingLeft", "GamepadLight", "FlowerLight"]:
 		_add_faller(n, hinge_left, Vector3.BACK, 1.0, true)
 	var t := create_tween()
+	t.tween_interval(wall_first_beat * Conductor.sec_per_beat())
 	t.tween_property(self, "_fall", 1.0, 1.2).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 	var t_left := create_tween()
-	t_left.tween_interval(wall_gap_beats * Conductor.sec_per_beat())
+	t_left.tween_interval((wall_first_beat + wall_gap_beats) * Conductor.sec_per_beat())
 	t_left.tween_property(self, "_fall_left", 1.0, 1.2).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 
 	# 镜头：从 isometric 换成透视（先用很窄的视野摆在同一个位置，看起来没变），再转到猫背后
@@ -244,11 +256,13 @@ func set_floor(mode: int) -> void:
 
 
 ## 前面出现圆台；滑到圆台中间停下，回到缩圈判定
-func enter_plaza(beat: float) -> void:
+func enter_plaza(beat: float, arrive_beat: float = -1.0) -> void:
 	if phase != Phase.RUN:
 		return
-	_plaza_travel = _travel + plaza_lead_beats * units_per_beat
-	_fruit_until = ceilf(beat + plaza_lead_beats)
+	if arrive_beat <= beat:
+		arrive_beat = ceilf(beat + plaza_lead_beats)
+	_plaza_travel = _travel + (arrive_beat - beat) * units_per_beat
+	_fruit_until = arrive_beat
 	create_tween().tween_property(self, "_plaza", 1.0, 0.3)
 
 
@@ -360,7 +374,7 @@ func update(beat: float, notes: Array[NoteData]) -> void:
 	if phase == Phase.UNFOLD:
 		_apply_fall()
 		_update_fruits(beat, notes)
-		if beat >= _fruit_from - 1.0:
+		if beat >= _run_at:
 			_begin_run(beat)
 
 	if phase == Phase.RUN or phase == Phase.PLAZA:
@@ -379,13 +393,16 @@ func update(beat: float, notes: Array[NoteData]) -> void:
 		_update_cat(beat, notes, delta)
 		_update_side_balls(beat)
 
-	# 灯球一直跟在猫前上方
+	# 灯球：路上滑行时升到画面外藏起来（挡视野），到圆台再降回来
 	var ball := _stage.ball_node()
 	var ball_home := Vector3(_cat.pose_position.x * 0.5, 13.0, -10.0)
+	if phase == Phase.RUN:
+		ball_home.y = 60.0
 	if phase == Phase.PLAZA or phase == Phase.FINALE:
 		ball_home = Vector3(-6.0, 16.0, -6.0)
 	ball.position = ball.position.lerp(ball_home, 1.0 - exp(-2.0 * delta))
 	ball.scale *= _ball_scale  # 舞台每帧把灯球缩放设回 1 左右（跟拍一胀一缩），这里补上房间原来的放大倍数
+	ball.visible = ball.position.y < 45.0
 	if phase == Phase.FINALE:
 		ball.position.y += 20.0 * delta  # 给飞碟让位
 
@@ -411,6 +428,14 @@ func _begin_run(beat: float) -> void:
 	for f in _fallers:
 		var n: Node3D = f[0]
 		create_tween().tween_property(n, "global_position:y", n.global_position.y - 6.0, 1.0)
+	# 一盏照水果的灯，跟在猫前上方
+	_fruit_light = OmniLight3D.new()
+	_fruit_light.light_color = fruit_light_color
+	_fruit_light.light_energy = fruit_light_energy
+	_fruit_light.omni_range = 70.0
+	_fruit_light.omni_attenuation = 0.6
+	_fruit_light.position = Vector3(0.0, 12.0, -22.0)
+	_cat.world.add_child(_fruit_light)
 	for i in 6:
 		var b := BALL.instantiate() as Node3D
 		b.scale = Vector3.ONE * 0.5
@@ -463,7 +488,7 @@ func _make_fruit(n: NoteData) -> Node3D:
 	var fruit := FRUITS[kind].instantiate() as Node3D
 	fruit.scale = Vector3.ONE * 1.3
 	_cat.world.add_child(fruit)
-	# 暗场景里让水果自己亮一点（用它自己的贴图当发光图）
+	# 水果换成亮面反光的材质：很光滑 + 清漆高光 + 边缘光，再用自己的贴图微微发光（暗场景里颜色才鲜）
 	for mi in fruit.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		for s in m.mesh.get_surface_count():
@@ -474,7 +499,16 @@ func _make_fruit(n: NoteData) -> Node3D:
 			mat.emission_enabled = true
 			mat.emission = Color.WHITE if src.albedo_texture else src.albedo_color
 			mat.emission_texture = src.albedo_texture
+			mat.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY  # 默认是相加，会把颜色冲白
 			mat.emission_energy_multiplier = fruit_glow
+			mat.roughness = fruit_roughness
+			mat.metallic_specular = 0.9
+			mat.clearcoat_enabled = true
+			mat.clearcoat = 1.0
+			mat.clearcoat_roughness = 0.08
+			mat.rim_enabled = true
+			mat.rim = fruit_rim
+			mat.rim_tint = 1.0
 			m.set_surface_override_material(s, mat)
 	return fruit
 

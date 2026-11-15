@@ -25,6 +25,21 @@ const UFO := 10
 const SILENT_DB := -60.0
 
 
+## 上路以后的鼓谱（水果）：先每 2 秒一个，再慢慢变密。最后一段很长，正常打不到循环回开头。
+static func road_bars() -> PackedStringArray:
+	var b := PackedStringArray()
+	for i in 4:
+		b.append("k...............")  # 每小节 1 个 = 每 2 秒一个
+	for i in 4:
+		b.append("k.......s.......")  # 每小节 2 个
+	for i in 8:
+		b.append("k...s...k...s...")  # 每拍 1 个
+	for i in 16:
+		b.append("k...s...k...s...")
+		b.append("k...s...k.k.s...")
+	return b
+
+
 ## 正在播的分层配乐（不是分层配乐时返回 null）
 static func music() -> AudioStreamSynchronized:
 	if Conductor.chart == null:
