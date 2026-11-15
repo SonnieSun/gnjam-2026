@@ -54,6 +54,11 @@ const DOWN_MARGIN := 0.06
 ## 漏打时压低的轨道和压多少
 const DIP_LANES := ["lead", "kiai"]
 const DIP_DB := -14.0
+## 鬼畜猫旋律叠在猫主唱上面的时候（升档送的小 kiai、连击里程碑、有的关的 fever），两条猫旋律一起全音量会乱：
+## 主唱（lead 轨）让开这么多 dB，鬼畜在前面，主唱垫在下面。只在 kiai 轨上响的是鬼畜（片段名里有 kichiku）时才让，
+## kiai 轨上是乐器（比如 cc_double）就不让。
+const KIAI_DUCK_DB := -6.0
+var _duck_on := false
 const SFX_DIR := "res://assets/audio/sfx/"
 
 ## 实际用来选片段的进度：往上跟着积累条走，往下迟钝（见 DOWN_MARGIN）
@@ -851,12 +856,16 @@ func _process(delta: float) -> void:
 	var beat_sec := 60.0 / bpm()
 	var dip_now := Conductor.playing and Conductor.song_beat < _dip_until
 	var dip_changed := dip_now != _dip_on
+	var duck_now := "kichiku" in str(_now.get("kiai", "")) and str(_now.get("lead", "")) != ""
+	var duck_changed := duck_now != _duck_on
+	_duck_on = duck_now
 	_dip_on = dip_now
 	for i in _target.size():
 		var cur := _level[i]
 		var goal := _target[i]
 		var dipped := _slot_lane[i] in DIP_LANES
-		if cur == goal and not (dip_changed and dipped):
+		var ducked := _slot_lane[i] == "lead"
+		if cur == goal and not (dip_changed and dipped) and not (duck_changed and ducked):
 			continue
 		if cur != goal:
 			var step := delta / (FADE_IN_SEC if goal > cur else beat_sec)
@@ -865,4 +874,6 @@ func _process(delta: float) -> void:
 		var db: float = SILENT_DB if cur <= 0.0001 else linear_to_db(cur) + float(_lane_gain.get(_slot_lane[i], 0.0))
 		if dip_now and dipped and cur > 0.0001:
 			db += DIP_DB
+		if duck_now and ducked and cur > 0.0001:
+			db += KIAI_DUCK_DB
 		stream.set_sync_stream_volume(i, db)
