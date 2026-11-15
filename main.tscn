@@ -1,5 +1,9 @@
 [gd_scene format=3 uid="uid://du1xgea2e6ue6"]
 
+[ext_resource type="PackedScene" path="res://ui/score_combo_widget.tscn" id="99_stats_widget"]
+[ext_resource type="PackedScene" path="res://ui/combo_milestone_widget.tscn" id="96_milestone"]
+[ext_resource type="PackedScene" path="res://ui/judgement_widget.tscn" id="98_judgement"]
+[ext_resource type="PackedScene" path="res://ui/result_widget.tscn" id="97_result"]
 [ext_resource type="Script" uid="uid://b8324evpb0wdj" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" uid="uid://dyvntdwe8npat" path="res://scripts/core/judge.gd" id="2"]
 [ext_resource type="Script" uid="uid://ddn38vqur70qw" path="res://scripts/hud.gd" id="3"]
@@ -85,25 +89,31 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_border")
 
-[node name="ScoreLabel" type="Label" parent="HUD" unique_id=1916168740]
+[node name="ScoreLabel" parent="HUD" instance=ExtResource("99_stats_widget")]
 offset_left = 24.0
 offset_top = 16.0
-offset_right = 560.0
-offset_bottom = 80.0
-theme_override_fonts/font = ExtResource("9_candygem")
-theme_override_font_sizes/font_size = 48
-text = "SCORE 0"
+offset_right = 364.0
+offset_bottom = 132.0
 
-[node name="ComboLabel" type="Label" parent="HUD" unique_id=550515101]
+[node name="ComboLabel" parent="HUD" instance=ExtResource("99_stats_widget")]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -400.0
+offset_left = -224.0
 offset_top = 16.0
 offset_right = -24.0
-offset_bottom = 56.0
-theme_override_font_sizes/font_size = 28
-horizontal_alignment = 2
+offset_bottom = 94.0
+kind = 1
+
+[node name="JudgementArt" parent="HUD" instance=ExtResource("98_judgement")]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_top = 18.0
+offset_right = 160.0
+offset_bottom = 188.0
+grow_horizontal = 2
 
 [node name="JudgeLabel" type="Label" parent="HUD" unique_id=1030232154]
 anchors_preset = 5
@@ -127,8 +137,7 @@ offset_bottom = 84.0
 theme_override_font_sizes/font_size = 18
 horizontal_alignment = 1
 
-[node name="MilestoneLabel" type="Label" parent="HUD" unique_id=1071459904]
-modulate = Color(1, 0.9, 0.3, 0)
+[node name="MilestoneLabel" parent="HUD" instance=ExtResource("96_milestone")]
 anchors_preset = 6
 anchor_left = 1.0
 anchor_top = 0.5
@@ -138,9 +147,6 @@ offset_left = -420.0
 offset_top = -45.0
 offset_right = -40.0
 offset_bottom = 45.0
-theme_override_font_sizes/font_size = 56
-horizontal_alignment = 2
-vertical_alignment = 1
 
 [node name="DebugLabel" type="Label" parent="HUD" unique_id=798816132]
 visible = false
@@ -153,14 +159,11 @@ offset_top = -40.0
 offset_right = 1000.0
 offset_bottom = -12.0
 
-[node name="ResultLabel" type="Label" parent="HUD" unique_id=666445568]
+[node name="ResultLabel" parent="HUD" instance=ExtResource("97_result")]
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_font_sizes/font_size = 36
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="RankLabel" type="Label" parent="HUD"]
 visible = false

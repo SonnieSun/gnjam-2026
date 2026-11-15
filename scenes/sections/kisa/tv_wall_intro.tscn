@@ -1,13 +1,13 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://coo51hjo376eb"]
 
-[ext_resource type="Script" path="res://scripts/sections/kisa/tv_wall_intro_section.gd" id="1"]
-[ext_resource type="Script" path="res://stages/tv_wall/intro/tv_wall_intro_stage.gd" id="2"]
+[ext_resource type="Script" uid="uid://doqnhf00f4y5v" path="res://scripts/sections/kisa/tv_wall_intro_section.gd" id="1"]
+[ext_resource type="Script" uid="uid://claxlo6sp6ns5" path="res://stages/tv_wall/intro/tv_wall_intro_stage.gd" id="2"]
 
-[node name="TvWallIntroSection" type="Node2D"]
+[node name="TvWallIntroSection" type="Node2D" unique_id=1691479384]
 script = ExtResource("1")
 gauge_max_override = 100000
 custom_gauge_events = true
 gauge_events = PackedInt32Array()
 
-[node name="Stage" type="Node" parent="."]
+[node name="Stage" type="Node" parent="." unique_id=1085566748]
 script = ExtResource("2")

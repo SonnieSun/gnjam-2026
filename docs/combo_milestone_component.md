@@ -1,0 +1,9 @@
+# Combo milestone pop-up
+
+Only the center-right `HUD/MilestoneLabel` now instances `ui/combo_milestone_widget.tscn`; the public `HUD.show_combo_milestone(combo)` entrypoint is unchanged. The widget displays COMBO on the left and the numeric value on the right, using the existing jelly artwork, proportional digit font and six-color palette. The word's visible height is about 75% of the digits. Transparent title padding is trimmed so the visible word-to-number gap stays compact. Long values scale the entire horizontal group to fit, keeping that ratio.
+
+The existing 380×90 box, right anchor and center pivot are preserved. The pop-up starts at 0.55 scale and reaches 1.12 in 0.16s, returns to 1.0 over 0.12s, holds for 1s, then fades over 0.4s. A dedicated material opacity uniform makes the jelly shader fade correctly without changing the top HUD shader. A new trigger cancels the old tween and updates text/color immediately. Reset and settlement clear the popup and cancel pending animation.
+
+The trigger list remains 10, 20, 50, 100, 200, 300, 400, 500. No triggers are added at 30 or 40. Color stages still use 1–9 pale yellow, 10–19 yellow, 20–29 orange, 30–39 pink, 40–49 red and 50+ rainbow. Palette tests can display otherwise-untriggered values without adding game triggers. Rainbow positioning follows the popup's rendered bounds while scaling; it does not introduce an animated color transition.
+
+Validation: `godot --headless --path <project> --script res://tools/test_combo_milestone_widget.gd`. Covers palette boundaries, left-to-right layout, fitting long values, unchanged trigger emissions, small-to-large appearance, interrupted playback, holding, shader fade and reset cleanup. Running with graphics writes screenshots and an actual frame sequence to `docs/combo_milestone/`.

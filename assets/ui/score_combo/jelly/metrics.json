@@ -1,0 +1,42 @@
+{
+  "0": {
+    "advance": 53,
+    "width": 62
+  },
+  "1": {
+    "advance": 33,
+    "width": 42
+  },
+  "2": {
+    "advance": 52,
+    "width": 61
+  },
+  "3": {
+    "advance": 50,
+    "width": 59
+  },
+  "4": {
+    "advance": 48,
+    "width": 57
+  },
+  "5": {
+    "advance": 51,
+    "width": 60
+  },
+  "6": {
+    "advance": 52,
+    "width": 61
+  },
+  "7": {
+    "advance": 48,
+    "width": 57
+  },
+  "8": {
+    "advance": 52,
+    "width": 61
+  },
+  "9": {
+    "advance": 50,
+    "width": 59
+  }
+}

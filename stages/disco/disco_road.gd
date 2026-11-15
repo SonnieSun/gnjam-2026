@@ -86,7 +86,16 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 @export var fly_closeup_fov := 38.0
 @export var fly_closeup_pitch := 8.0
 ## 每拍视野「顶」一下的幅度（度）
-@export var fov_punch := 2.5
+@export var fov_punch := 4.0
+## 跑起来和广场上镜头跟拍歪头：最大歪多少度、一个来回几拍
+@export var beat_roll_degrees := 2.0
+@export var beat_roll_beats := 4.0
+## 升档时镜头踢一下：视野多拉开多少度、歪多少度、多少秒弹回来
+@export var kick_fov := 9.0
+@export var kick_roll := 5.0
+@export var kick_seconds := 0.45
+var _kick := 0.0
+var _kick_side := 1.0
 
 @export_group("圆台和结尾")
 @export var plaza_radius := 46.0
@@ -715,9 +724,21 @@ func _apply_camera(pulse: float) -> void:
 	if phase == Phase.RUN:
 		look.x += _cat.pose_position.x * 0.6 * _cam_t
 	var dir := Vector3(0.0, sin(pitch), cos(pitch)).rotated(Vector3.UP, yaw)
-	cam.fov = _mix("fov") - pulse * fov_punch * (1.0 if phase != Phase.UNFOLD else 0.0)
+	cam.fov = _mix("fov") - pulse * fov_punch * (1.0 if phase != Phase.UNFOLD else 0.0) + _kick * kick_fov
 	cam.position = look + dir * _mix("dist")
 	cam.look_at(look)
+	# 更带劲一点：跑起来和广场上，镜头跟着拍子左右歪头；升档时踢一下（猛地拉远 + 歪一下，再弹回来）
+	if phase == Phase.RUN or phase == Phase.PLAZA:
+		var beat := Conductor.song_beat
+		var roll := sin(beat / beat_roll_beats * TAU) * beat_roll_degrees + _kick * kick_roll * _kick_side
+		cam.rotate_object_local(Vector3.BACK, deg_to_rad(roll))
+	_kick = move_toward(_kick, 0.0, get_process_delta_time() / kick_seconds)
+
+
+## 镜头踢一下（升档时由 disco_decor.gd 调）
+func cam_kick(strength: float = 1.0) -> void:
+	_kick = strength
+	_kick_side = -_kick_side
 
 
 ## 结尾的最后一段（不接吸猫时用）：猫在光柱里浮起来 -> 飞碟自己飞走 -> 过一会儿猫 Q 弹地向上飞出屏幕。
