@@ -626,7 +626,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		toggle_editor()
 	elif key.physical_keycode == KEY_R:
 		start_from(0)
-	elif key.physical_keycode == KEY_C:
+	elif key.physical_keycode == KEY_C and OS.is_debug_build():
 		# 试验：轮流切换 3D 关卡的漫画 shader 风格（见 scripts/fx/comic_style.gd）
 		hud.show_note("LOOK: " + ComicStyle.next_style())
 		if _current is Spin3DSection:

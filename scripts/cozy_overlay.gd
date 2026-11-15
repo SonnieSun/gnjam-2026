@@ -7,6 +7,8 @@ extends Control
 @export var prompt := "press SPACE to pet the cat"
 ## 滤镜的强度（0 = 原样，1 = 最粉）
 @export_range(0.0, 1.0) var softness := 0.62
+## 特写时把房间里打在猫身上的灯调到原来的几成
+@export_range(0.0, 1.0) var light_dim := 0.4
 @export var pink := Color("ff8fb8")
 @export var cream := Color("fff3e6")
 @export var mint := Color("a8ecd4")
@@ -82,6 +84,11 @@ func _move_camera(delta: float) -> void:
 	var cam: Camera3D = cat.camera
 	if _wide <= 0.0:
 		_wide = cam.size
+		# 房间里打在猫身上的灯在特写里太亮，猫脸一片白：这段时间把聚光灯和点光调暗
+		# （这个预览的场景在玩家按下去时整个删掉，不用调回去）
+		for l in cat.world.find_children("*", "Light3D", true, false):
+			if l is SpotLight3D or l is OmniLight3D:
+				(l as Light3D).light_energy *= light_dim
 	_shot_t += delta
 	if _shot_t >= float(shots[_shot][0]):
 		_shot_t = 0.0
@@ -129,9 +136,15 @@ func _draw() -> void:
 		draw_polyline(pts + PackedVector2Array([pts[0]]), Color.WHITE, 3.0, true)
 	draw_set_transform(Vector2.ZERO, 0.0)
 	# 猫头上冒的小爱心
+	# （跟着镜头：从猫头顶在画面上的位置冒出来）
+	var head := Vector2(s.x * 0.5, s.y * 0.40)
+	if cat and cat.get("camera"):
+		var cam: Camera3D = cat.camera
+		var vp := Vector2(cam.get_viewport().get_visible_rect().size)
+		head = cam.unproject_position(cat.focus + Vector3.UP * cat.cat_view_height * 0.15) / vp * s
 	for k in 3:
 		var ph := fmod(_t * 0.45 + k / 3.0, 1.0)
-		var hp := Vector2(s.x * 0.5 + sin(ph * TAU + k) * 26.0, s.y * 0.40 - ph * 90.0)
+		var hp := Vector2(head.x + sin(ph * TAU + k) * 26.0, head.y - ph * 90.0)
 		draw_set_transform(hp, 0.0, Vector2.ONE * (0.5 + ph * 0.6))
 		draw_colored_polygon(_heart(18.0), Color(pink, 1.0 - ph))
 	draw_set_transform(Vector2.ZERO, 0.0)
