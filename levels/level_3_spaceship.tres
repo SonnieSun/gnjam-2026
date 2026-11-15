@@ -23,8 +23,9 @@ script = ExtResource("5_hn5cp")
 title = "SPACE PIZZA"
 scene = ExtResource("8_spacepizza")
 beats_per_rev = 8.0
-bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+bars = PackedStringArray("k.......s.......", "k.......s.......")
 transition = 1
+gauge_max = 130
 gauge_events = PackedInt32Array()
 fx_cues = [[0.5, "grid3"], [0.75, "kaleido"]]
 

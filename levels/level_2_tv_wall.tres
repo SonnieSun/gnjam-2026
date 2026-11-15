@@ -17,9 +17,9 @@ beats_per_rev = 8.0
 bars = PackedStringArray("k.......k.......", "k===========....", "k.......k.......", "k===========....", "k.......k.......", "k===========....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....")
 gauge_events = PackedInt32Array()
 
-[sub_resource type="Resource" id="Section_slap_warm"]
+[sub_resource type="Resource" id="Section_slap_tap"]
 script = ExtResource("5_kfdwl")
-title = "SLAP / WARM UP"
+title = "SLAP / TAP"
 scene = ExtResource("8_earth")
 beats_per_rev = 8.0
 bars = PackedStringArray("k...k...k...k...", "k...k...k...k...")
@@ -28,27 +28,16 @@ gauge_max = 60
 use_gauge_events = true
 gauge_events = PackedInt32Array(30)
 
-[sub_resource type="Resource" id="Section_slap_charge"]
+[sub_resource type="Resource" id="Section_slap_rapid"]
 script = ExtResource("5_kfdwl")
-title = "SLAP / CHARGE"
+title = "SLAP / RAPID"
 scene = ExtResource("8_earth")
 beats_per_rev = 8.0
-bars = PackedStringArray("h.h.h.h.s.......", "h.h.h.h.s.......")
+bars = PackedStringArray("k...k...k...k...", "r===========....")
 transition = 1
-gauge_max = 30
+gauge_max = 150
 use_gauge_events = true
-gauge_events = PackedInt32Array(15)
-
-[sub_resource type="Resource" id="Section_slap_power"]
-script = ExtResource("5_kfdwl")
-title = "SLAP / POWER"
-scene = ExtResource("8_earth")
-beats_per_rev = 8.0
-bars = PackedStringArray("hhhhhhh.s.......", "hh.hhhh.s...k...")
-transition = 1
-gauge_max = 45
-use_gauge_events = true
-gauge_events = PackedInt32Array()
+gauge_events = PackedInt32Array(20, 40, 60, 80, 100, 120, 140)
 
 [resource]
 script = ExtResource("4_matbv")
@@ -58,4 +47,4 @@ bpm = 120.0
 drum_kick = ExtResource("2_s82gm")
 drum_snare = ExtResource("3_pay8u")
 drum_hat = ExtResource("1_mkr00")
-sections = Array[ExtResource("5_kfdwl")]([SubResource("Resource_h24y6"), SubResource("Section_slap_warm"), SubResource("Section_slap_charge"), SubResource("Section_slap_power")])
+sections = Array[ExtResource("5_kfdwl")]([SubResource("Resource_h24y6"), SubResource("Section_slap_tap"), SubResource("Section_slap_rapid")])
