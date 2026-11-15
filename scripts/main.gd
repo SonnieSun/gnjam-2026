@@ -135,6 +135,7 @@ func _ready() -> void:
 		_wait_for_start()
 	elif cozy_intro and not _cozy_seen and in_run and Levels.selected == 0 and Levels.interlude == "":
 		_cozy_seen = true
+		await ShaderWarmup.run(self)  # 开头先出加载条，把各关的着色器预先编好（网页版不然进关会卡住）
 		_cozy = true
 		Music.cozy_intro()
 		_wait_for_start()
