@@ -452,6 +452,7 @@ def cat_leads(song, bars, last_in_phrase):
     x = blank(bars)
     mel = song['melody']
     bright = song.get('mi_attack', False)
+    shorts = [(c.mean(axis=1) if c.ndim == 2 else c, native(c)) for c in SHORT]
     prev = None
     for ph in range(0, bars, 4):
         idx = [i for i, (s, _, _) in enumerate(mel) if ph <= s // 16 < ph + 4]
@@ -460,11 +461,18 @@ def cat_leads(song, bars, last_in_phrase):
         mid = float(np.median([nm(mel[i][1]) + song['cat_octave'] for i in idx]))
         prev = next(c for c in sorted(range(len(everyone)), key=lambda c: abs(everyone[c][1] - mid)) if c != prev)
         sample, own = everyone[prev]
+        # Fast notes (mi_attack tunes): the phrase's cat only gets through the dull front of its meow in an
+        # eighth note ("mm", never reaching the bright part), so a run of them is a row of thuds. They go to a
+        # short cat instead, whose meow starts on the 'mi': the one nearest the phrase, the same for the phrase.
+        quick, quick_own = min(shorts, key=lambda c: abs(c[1] - mid))
         for i in idx:
             s, p, ln = mel[i]
             m = nm(p) + song['cat_octave']
             end = i in last_in_phrase and ln >= 2
-            v = resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)
+            if bright and ln * STEP < 0.25:
+                v = resonate(hit(quick, quick_own, m, ln * STEP * 0.95), m, even=True)
+            else:
+                v = resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)
             if bright and ln >= 4:
                 # A long note whose meow opens dull ("mmao") and only blooms in its tail: more presence on its
                 # first tenth of a second. (A kitten's 'mi' layered on the attack was tried and dropped: it
