@@ -45,6 +45,7 @@ ring_radius_ratio = 0.068
 approach_beats = 1.5
 approach_travel_ratio = 0.18
 hit_push = 0.012
+screen_punch = 0.5
 miss_shake = 0.035
 preview_beats_per_rev = 8.0
 

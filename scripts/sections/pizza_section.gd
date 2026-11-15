@@ -137,7 +137,7 @@ func _play_cat() -> void:
 func _place_rings() -> void:
 	var used := 0
 	var count := _rings.get_child_count() if _phase != 2 else 0
-	for n in notes:
+	for n in own_notes():
 		if used >= count:
 			break
 		if n.judged:
@@ -151,11 +151,39 @@ func _place_rings() -> void:
 		pose.origin = Vector3(0.0, 0.0, k * ring_travel)
 		ring.transform = pose
 		ring.visible = true
+		_style_ring(ring, approach_ring_look(k, guide_color(n)))
 		used += 1
 	for i in range(used, _rings.get_child_count()):
 		var ring := _rings.get_child(i) as Node3D
 		rest(ring)
 		ring.visible = false
+
+
+## 3D 圆环用和 2D 缩圈一样的手感（approach_ring_look）：音符颜色，远处淡、越靠近越亮越不透明、略偏白，
+## 最后一半路程再加一层发光。每个圆环用自己的一份材质（场景里几个圆环共用一个材质）
+func _style_ring(ring: Node3D, look: Dictionary) -> void:
+	var mi := ring as MeshInstance3D
+	if mi == null:
+		return
+	if not ring.has_meta(&"own_mat") and mi.material_override:
+		mi.material_override = mi.material_override.duplicate()
+		ring.set_meta(&"own_mat", true)
+	var c: Color = look.color
+	var glow: float = 1.0 + float(look.glow) * 6.0
+	var m := mi.material_override
+	if m is ShaderMaterial:
+		var sm := m as ShaderMaterial
+		sm.set_shader_parameter(&"tint", Color(c.r, c.g, c.b))
+		sm.set_shader_parameter(&"edge_alpha", c.a)
+		sm.set_shader_parameter(&"face_alpha", 0.1 * c.a)
+		sm.set_shader_parameter(&"rim_glow", 0.8 * glow)
+	elif m is StandardMaterial3D:
+		var std := m as StandardMaterial3D
+		std.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		std.albedo_color = c
+		std.emission_enabled = true
+		std.emission = Color(c.r, c.g, c.b)
+		std.emission_energy_multiplier = 0.6 * glow
 
 
 func _set_param(mesh: MeshInstance3D, param: StringName, value: Variant) -> void:
@@ -166,7 +194,15 @@ func _set_param(mesh: MeshInstance3D, param: StringName, value: Variant) -> void
 
 ## 音符是 3D 圆环，这里只画按键时的一圈闪光（万花筒里的平面缩圈由特效层画）
 func _draw_overlay() -> void:
-	if def == null or _phase == 2 or tap_age >= 0.15:
+	if def == null or _phase == 2:
+		return
+	# 节拍辅助线：围着判定点收过来（3D 圆环各走各的路，这里给一个统一的「第几拍该按」）
+	# 音符就是 3D 圆环（手感在 _style_ring）；2D 这层只放判定点外压暗、判定圈预亮、空拍虚线
+	draw_focus(_overlay, hit_position(), hit_radius())
+	draw_lit_target(_overlay, hit_position(), hit_radius(), Color(1, 1, 1, 0.9))
+	draw_target_guides(_overlay, hit_position(), hit_radius(), 0.32 * screen_size().y, ring_beats,
+			Callable(), 1.0, 1.0, false)
+	if tap_age >= 0.15:
 		return
 	_overlay.draw_arc(hit_position(), hit_radius() * (1.0 + tap_age), 0.0, TAU, 64,
 			Color(1, 1, 1, 1.0 - tap_age / 0.15), 6.0)

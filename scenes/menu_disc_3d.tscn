@@ -3,6 +3,7 @@
 [ext_resource type="FontFile" path="res://assets/fonts/candy_gem/CandyGem.fnt" id="99_candy"]
 [ext_resource type="Shader" uid="uid://b0bbypebhrfj8" path="res://assets/menu/vinyl.gdshader" id="2_vinyl"]
 [ext_resource type="Shader" uid="uid://djb0rorlq822y" path="res://assets/menu/beam.gdshader" id="3_beam"]
+[ext_resource type="PackedScene" uid="uid://eyyfsehfg5ag" path="res://assets/menu/vinyl/vinyl_matte.glb" id="7_vinyl_model"]
 [ext_resource type="PackedScene" path="res://scenes/menu_cat_3d.tscn" id="4_cat"]
 [ext_resource type="Shader" uid="uid://pte0icqqhg84" path="res://assets/menu/spot_beam.gdshader" id="5_spot_beam"]
 
@@ -52,7 +53,7 @@ render_priority = 0
 shader = ExtResource("3_beam")
 shader_parameter/color = Color(1, 0.48, 0.16, 1)
 shader_parameter/core_color = Color(1, 0.8, 0.55, 1)
-shader_parameter/intensity = 0.85
+shader_parameter/intensity = 0.45
 shader_parameter/half_angle_deg = 17.0
 shader_parameter/edge_softness = 0.45
 shader_parameter/core_width = 0.25
@@ -69,7 +70,7 @@ center_offset = Vector3(0, 0, -11)
 render_priority = 0
 shader = ExtResource("5_spot_beam")
 shader_parameter/beam_color = Color(1, 0.85, 0.62, 1)
-shader_parameter/opacity = 0.28
+shader_parameter/opacity = 0.14
 shader_parameter/beam_height = 7.5
 shader_parameter/soft_distance = 1.2
 
@@ -101,9 +102,8 @@ fov = 65.8
 
 [node name="Record" type="Node3D" parent="." unique_id=1536617729]
 
-[node name="DiscMesh" type="MeshInstance3D" parent="Record" unique_id=1107874015]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
-mesh = SubResource("CylinderMesh_disc")
+[node name="DiscMesh" parent="Record" unique_id=1107874015 instance=ExtResource("7_vinyl_model")]
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 0, -0.16, 0)
 
 [node name="Labels" type="Node3D" parent="." unique_id=1236214958]
 
@@ -121,7 +121,6 @@ font_size = 190
 outline_size = 0
 
 font = ExtResource("99_candy")
-no_depth_test = false
 [node name="Sub" type="Label3D" parent="Labels/Item1/Anchor" unique_id=346351501]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
 double_sided = false
@@ -132,9 +131,8 @@ font_size = 100
 outline_size = 0
 
 font = ExtResource("99_candy")
-no_depth_test = false
 [node name="Item2" type="Node3D" parent="Labels" unique_id=38264407]
-transform = Transform3D(0.30901697, 0, -0.95105654, 0, 1, 0, 0.95105654, 0, 0.30901697, 0, 0, 0)
+transform = Transform3D(-0.5, 0, -0.8660254, 0, 1, 0, 0.8660254, 0, -0.5, 0, 0, 0)
 
 [node name="Anchor" type="Node3D" parent="Labels/Item2" unique_id=980666026]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
@@ -143,25 +141,23 @@ transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0
 double_sided = false
 modulate = Color(1, 1, 1, 1)
 outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "SPACESHIP"
+text = "TV WALL"
 font_size = 190
 outline_size = 0
 
 font = ExtResource("99_candy")
-no_depth_test = false
 [node name="Sub" type="Label3D" parent="Labels/Item2/Anchor" unique_id=2039808061]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
 double_sided = false
 modulate = Color(1, 1, 1, 1)
 outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "1 STAGE"
+text = "4 STAGES"
 font_size = 100
 outline_size = 0
 
 font = ExtResource("99_candy")
-no_depth_test = false
 [node name="Item3" type="Node3D" parent="Labels" unique_id=1211890959]
-transform = Transform3D(-0.80901706, 0, -0.5877852, 0, 1, 0, 0.5877852, 0, -0.80901706, 0, 0, 0)
+transform = Transform3D(-0.5, 0, 0.8660254, 0, 1, 0, -0.8660254, 0, -0.5, 0, 0, 0)
 
 [node name="Anchor" type="Node3D" parent="Labels/Item3" unique_id=2125977670]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
@@ -170,77 +166,21 @@ transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0
 double_sided = false
 modulate = Color(1, 1, 1, 1)
 outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "ORBIT CAT"
+text = "SPACESHIP"
 font_size = 190
 outline_size = 0
 
 font = ExtResource("99_candy")
-no_depth_test = false
 [node name="Sub" type="Label3D" parent="Labels/Item3/Anchor" unique_id=1564973456]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
 double_sided = false
 modulate = Color(1, 1, 1, 1)
 outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "3 STAGES"
+text = "2 STAGES"
 font_size = 100
 outline_size = 0
 
 font = ExtResource("99_candy")
-no_depth_test = false
-[node name="Item4" type="Node3D" parent="Labels" unique_id=1205487882]
-transform = Transform3D(-0.80901694, 0, 0.58778536, 0, 1, 0, -0.58778536, 0, -0.80901694, 0, 0, 0)
-
-[node name="Anchor" type="Node3D" parent="Labels/Item4" unique_id=919195903]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
-
-[node name="Title" type="Label3D" parent="Labels/Item4/Anchor" unique_id=1787542818]
-double_sided = false
-modulate = Color(1, 1, 1, 1)
-outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "TV WALL"
-font_size = 190
-outline_size = 0
-
-font = ExtResource("99_candy")
-no_depth_test = false
-[node name="Sub" type="Label3D" parent="Labels/Item4/Anchor" unique_id=1966322400]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
-double_sided = false
-modulate = Color(1, 1, 1, 1)
-outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "1 STAGE"
-font_size = 100
-outline_size = 0
-
-font = ExtResource("99_candy")
-no_depth_test = false
-[node name="Item5" type="Node3D" parent="Labels" unique_id=769085911]
-transform = Transform3D(0.30901712, 0, 0.9510565, 0, 1, 0, -0.9510565, 0, 0.30901712, 0, 0, 0)
-
-[node name="Anchor" type="Node3D" parent="Labels/Item5" unique_id=582635542]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.03, -7)
-
-[node name="Title" type="Label3D" parent="Labels/Item5/Anchor" unique_id=296482875]
-double_sided = false
-modulate = Color(1, 1, 1, 1)
-outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "WASHING MACHINE"
-font_size = 190
-outline_size = 0
-
-font = ExtResource("99_candy")
-no_depth_test = false
-[node name="Sub" type="Label3D" parent="Labels/Item5/Anchor" unique_id=1419769442]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
-double_sided = false
-modulate = Color(1, 1, 1, 1)
-outline_modulate = Color(0.05, 0.03, 0.1, 0.8)
-text = "1 STAGE"
-font_size = 100
-outline_size = 0
-
-font = ExtResource("99_candy")
-no_depth_test = false
 [node name="ScratchContact" type="Marker3D" parent="." unique_id=436002702]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.03, -8)
 
@@ -305,14 +245,14 @@ mesh = SubResource("PlaneMesh_beam")
 [node name="BeamLight" type="SpotLight3D" parent="." unique_id=439089409]
 transform = Transform3D(1, 0, 0, 0, 0.9945219, 0.104528464, 0, -0.104528464, 0.9945219, 0, 1.6900737, 0)
 light_color = Color(1, 0.55, 0.22, 1)
-light_energy = 6.0
+light_energy = 2.0
 spot_range = 16.0
 spot_angle = 20.0
 
 [node name="BeamLight2" type="SpotLight3D" parent="." unique_id=1162864697]
 transform = Transform3D(0.9805807, 0.1824612, -0.071899, 0, 0.366614, 0.930373, 0.1961161, -0.9123061, 0.359495, -0.5, 6.5, -5.5)
 light_color = Color(1, 0.86, 0.65, 1)
-light_energy = 5.5
+light_energy = 1.6
 light_size = 0.25
 shadow_enabled = true
 shadow_opacity = 0.65

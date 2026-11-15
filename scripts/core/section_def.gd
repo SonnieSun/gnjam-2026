@@ -20,8 +20,16 @@ enum Transition { ZOOM, CUT }
 ## 例如 "k...s...k.k.s..." = 十六分音符网格。空字符串 = 整小节休止。
 ## 这几个小节会一直循环，直到这个小关的积累条满了为止。
 @export var bars: PackedStringArray = []
+## 谱面编辑器写的谱子（scenes/tools/chart_editor.tscn）。填了就用它代替上面的 bars：
+## 音符可以带出现时间、发光、旋转、轨道等表现属性。留空 = 用 bars。
+@export var chart: ChartPattern
 
 @export var transition: Transition = Transition.ZOOM
+## 勾上 = 这个小关接着上一个小关继续，中间没有“换关”的感觉（要和上一个小关用同一个场景才生效）：
+## 画面不重新加载、不转场不白闪，只换谱面；连着的这几个小关在画面上共用一条积累条（一段接一段往上涨）。
+@export var joins_previous := false
+## 接着上一段时，换谱面之前空几小节（大关里的 rest_bars_on_switch 是普通换关用的，一般更长）
+@export var join_rest_bars := 1
 
 ## 这个小关的积累条满条值。0 = 不指定（用关卡场景里填的，场景也没填就用 Gauge 节点的默认值）
 @export var gauge_max := 0
@@ -109,11 +117,15 @@ func _set(property: StringName, value: Variant) -> bool:
 
 
 func length_beats(beats_per_bar: int) -> float:
+	if chart:
+		return chart.length_beats
 	return bars.size() * beats_per_bar
 
 
 ## 返回段内的音符列表，每项是 {"beat": 相对段落开头的拍数, "sound": NoteData.Sound}
 func parse_notes(beats_per_bar: int) -> Array[Dictionary]:
+	if chart:
+		return chart.parse_notes()
 	var out: Array[Dictionary] = []
 	for bar_i in bars.size():
 		var s := bars[bar_i]
@@ -124,6 +136,17 @@ func parse_notes(beats_per_bar: int) -> Array[Dictionary]:
 					"beat": bar_i * beats_per_bar + float(i) * beats_per_bar / s.length(),
 					"sound": sound,
 				})
+	return out
+
+
+## 长按：{段内位置（千分之一拍，取整）: 长按几拍}。谱面编辑器的谱子看 length；老鼓谱看音符后面的 "="
+func hold_lengths(beats_per_bar: int) -> Dictionary:
+	var out := {}
+	var src := chart if chart else ChartPattern.from_bars(bars, beats_per_bar)
+	for d in src.notes:
+		var len := float(d.get("length", 0.0))
+		if len > 0.0:
+			out[roundi(float(d.beat) * 1000.0)] = len
 	return out
 
 

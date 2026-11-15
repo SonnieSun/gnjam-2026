@@ -13,8 +13,8 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 ##
 ## 长按音符（只有这个关卡认）：谱面里在音符后面接一串 "="，比如 "k=======s......."
 ## = 底鼓按下后按住 8 格（2 拍）再松手。Sonnie 的谱面解析把 "=" 当休止，所以开头那一下
-## 仍由 Judge 正常判定；按住的部分由这里自己盯：每按住满 1 拍进度 +1，按到尾巴再 +1，
-## 中途提前松手算一次 Miss（进度 -1）。长按期间不要排别的音符。长按不计入 HUD 的分数和连击。
+## 仍由 Judge 正常判定；按住的部分交给 Judge.begin_hold 盯（松手时间和按下用同一个判定时钟）：
+## 每按住满 1 拍进度 +1，按到尾巴再 +1，中途提前松手算一次 Miss（进度 -1）。长按期间不要排别的音符。长按不计入 HUD 的分数和连击。
 ##
 ## 蓝色圆盘在 disco.tscn 里把 disc_color 设成全透明藏掉了，只留白色判定圈。
 ## 编辑器预览里仍显示原来的 2D 画面。只支持一个目标圆。
@@ -25,8 +25,11 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var hold_release_grace := 0.3
 ## 长按条带的透明度
 @export_range(0.0, 1.0) var hold_band_alpha := 0.4
-## 往里收的圈有多不透明（1 = 原来那样，越小越淡）
-@export_range(0.0, 1.0) var ring_alpha := 0.45
+## 往里收的圈：刚出现时多不透明（越靠近判定圈越亮，到判定圈时是完全不透明）
+@export_range(0.0, 1.0) var ring_alpha := 0.5
+## 往里收的圈多粗：刚出现时、到判定圈时（像素）
+@export var ring_width := 8.0
+@export var ring_width_near := 14.0
 ## 判定圈和收圈画多大（乘在 target_radius 上），画成和地上光波一样透视的扁椭圆
 @export var judge_scale := 1.5
 ## 音轨淡入淡出的快慢（越大越快）
@@ -37,10 +40,15 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var crossfade_seconds := 1.2
 ## 拆完房子上路后，先空滑几拍才来第一个水果
 @export var road_quiet_beats := 8.0
+## 水果路滑到圆台（舞台）时歇多久再出音符（秒，大概值：会对到最近的小节线上）
+@export var plaza_rest_seconds := 5.0
 
 @export_group("结尾接着玩吸猫")
-## 结尾镜头放完后不切小关，直接用降下来的那架飞碟接着玩吸猫（玩法和吸猫小关一样）。关掉 = 结尾放完就过关
+## 结尾镜头放完后不切小关，直接用降下来的那架飞碟接着玩吸猫（玩法和吸猫小关一样）。
+## 关掉 = 不玩吸猫：猫在光柱里浮起来、飞碟飞走、猫自己弹出屏幕，然后过关（下一关接着是它在天上飞）
 @export var abduction_after_finale := true
+## 不接吸猫时，"猫浮起来 → 飞碟飞走 → 猫飞出屏幕"这一段一共几拍
+@export var fly_away_beats := 12.0
 ## 吸猫这一段的鼓谱（打中 8 下猫就被吸进去，整关结束；没吸进去之前鼓谱循环）
 @export var abduction_bars := PackedStringArray(["................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................"])
 ## 光圈提前几拍从飞碟出发
@@ -62,6 +70,8 @@ var _circle_pos := Vector2.ZERO
 var _road: DiscoRoad
 var _layer_gain := PackedFloat32Array()  # 每条分轨现在的音量（0~1）
 var _fill_at := INF  # 结尾镜头放到这一拍：接着玩吸猫（或者把积累条顶满过关）
+var _clear_at := INF  # 猫飞出屏幕之后，到这一拍把积累条顶满过关
+var _curtain := false
 var _abduct: AbductionStage  # 结尾之后接着玩的吸猫舞台（嵌在迪斯科的 3D 世界里）
 var _abduct_gauge_from := 0  # 开始吸猫时积累条的值
 
@@ -92,6 +102,8 @@ func _ready() -> void:
 		_road = DiscoRoad.new()
 		add_child(_road)
 	_road.setup(_spin_cat, _stage)
+	_road.beat_guides = beat_guides and draws_own_notes()
+	_road.guide_every = guide_every
 	# 配乐从只有房间的背景节拍开始
 	_layer_gain.resize(DiscoMusic.LAYERS.size())
 	_layer_gain.fill(0.0)
@@ -109,16 +121,28 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	_stage.external_zoom = _zoom_for_gauge()
 	_stage.external_drift = _drift_for_gauge()
 	_stage.update(song_beat())
-	_road.update(song_beat(), notes)
+	_road.update(song_beat(), own_notes())
 	_update_layers()
 	if song_beat() >= _fill_at:
 		_fill_at = INF
 		if abduction_after_finale:
 			_start_abduction()
 		else:
-			_fill_gauge_now()
+			# 猫浮起来、飞碟飞走、猫弹出屏幕；"飞走"的音效提前放，让它最响的地方落在猫起飞那一下
+			var launch := _road.fly_away(fly_away_beats * Conductor.sec_per_beat())
+			_clear_at = song_beat() + fly_away_beats
+			get_tree().create_timer(maxf(launch - 1.8, 0.0)).timeout.connect(Music.play_sfx.bind("sky_whoosh_up", -3.0))
+	# 猫飞出去之后、过关之前：后面还接着一关（一路连着玩）就落下黑幕，下一关开始时它接着往下落出屏幕
+	if song_beat() >= _clear_at - 2.0 and not _curtain:
+		_curtain = true
+		var main_script: Script = load("res://scripts/main.gd")
+		if main_script.in_run and Levels.interlude_after(Levels.selected) != "":
+			StageCurtain.drop(get_tree(), 1.8 * Conductor.sec_per_beat())
+	if song_beat() >= _clear_at:
+		_clear_at = INF
+		_fill_gauge_now()
 	if _abduct:
-		_abduct.update(song_beat(), notes, abduction_approach_beats)
+		_abduct.update(song_beat(), own_notes(), abduction_approach_beats)
 	# 判定圈（和缩过来的圈、命中特效）跟着猫走
 	_circle_pos = _stage.ring_screen_offset()
 	if _holding:
@@ -146,6 +170,8 @@ func _start_abduction() -> void:
 	_abduct = AbductionStage.new()
 	_abduct.embedded = true
 	_abduct.repeat_rounds = false  # 只吸一次：猫被吸进去，整关就结束
+	_abduct.beat_guides = beat_guides and draws_own_notes()
+	_abduct.guide_every = guide_every
 	_abduct.idle_spin_speed = abduction_idle_spin
 	_abduct.press_spin_speed = 0.0
 	_abduct.press_full_turn = true
@@ -214,6 +240,10 @@ func _on_gauge_event(index: int, _value: int) -> void:
 	elif index == 9:
 		_start_finale()
 	elif index == 8:
+		# 滑到圆台这段先歇一会儿（不直接接着出音符），歇完在小节线上接着打路上那套鼓谱
+		var bpb: int = Conductor.chart.beats_per_bar
+		var rest := plaza_rest_seconds / Conductor.sec_per_beat()
+		_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars())
 		_road.enter_plaza(song_beat())
 
 
@@ -259,53 +289,60 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		return
 	_stage.add_success()
 	if _hold_ends.has(note):
+		var j := main_judge()
+		if j == null:
+			return
 		_holding = note
 		_hold_ticks = 0
+		j.begin_hold(note, _hold_ends[note], hold_release_grace, _on_hold_done.bind(note))
 
 
-## 盯着正在进行的长按：按住满 1 拍 +1；按到尾巴 +1 收工；提前松手 -1
+## 按住的过程中：每按住满 1 拍 +1（拍数按判定时钟算）
 func _update_hold() -> void:
+	_give_hold_ticks(Conductor.input_beat())
+
+
+func _give_hold_ticks(up_to_beat: float) -> void:
 	var end: float = _hold_ends[_holding]
-	var now := song_beat()
-	if now >= end:
-		_stage.add_success()
-		_holding = null
-		return
-	if not Input.is_action_pressed(Judge.HIT_ACTION):
-		if now < end - hold_release_grace:
-			_stage.add_miss()
-		else:
-			_stage.add_success()
-		_holding = null
-		return
-	var ticks := floori(now - _holding.beat)
+	var ticks := floori(minf(up_to_beat, end) - _holding.beat)
 	while _hold_ticks < ticks:
 		_hold_ticks += 1
 		_stage.add_success()
 
 
+## Judge 说这个长按结束了：按到尾巴（或在宽限内松手）+1 收工；提前松手 -1
+func _on_hold_done(success: bool, release_beat: float, note: NoteData) -> void:
+	if note != _holding:
+		return
+	_give_hold_ticks(release_beat)
+	if success:
+		_stage.add_success()
+	else:
+		_stage.add_miss()
+	_holding = null
+
+
 ## 从谱面里找出长按：音符后面跟着的每个 "=" 把它延长一格
 func _parse_holds() -> void:
 	_holds_parsed = true
-	var beats_per_bar: int = Conductor.chart.beats_per_bar
-	for bar_i in def.bars.size():
-		var s := def.bars[bar_i]
-		var i := 0
-		while i < s.length():
-			var run := 0
-			while i + 1 + run < s.length() and s[i + 1 + run] == "=":
-				run += 1
-			if run > 0 and SectionDef._char_to_sound(s[i]) >= 0:
-				var cell := float(beats_per_bar) / s.length()
-				var beat := def.start_beat + bar_i * beats_per_bar + i * cell
-				for n in notes:
-					if is_equal_approx(n.beat, beat):
-						_hold_ends[n] = beat + run * cell
-			i += 1 + run
+	# 长按来自老鼓谱的 "="，或谱面编辑器里给音符设的长按拍数
+	var holds := def.hold_lengths(Conductor.chart.beats_per_bar)
+	for key: int in holds:
+		var beat := def.start_beat + key / 1000.0
+		for n in notes:
+			if is_equal_approx(n.beat, beat):
+				_hold_ends[n] = beat + holds[key]
 
 
 func _draw() -> void:
 	# 不调用 ring_section 的画法：自己画白色判定圈和往里收的圈，好单独调圈的透明度
+	if def and _stage:
+		# 视觉焦点：判定点（猫）周围保持原样，外面压暗。房间 / 圆台里是透视的椭圆，路上和吸猫时是正圆
+		var ring_phase := _abduct == null and (_road == null or _road.rings_visible(song_beat()))
+		if ring_phase:
+			draw_focus(self, target_position(0), target_radius * judge_scale, _stage.ring_squash())
+		else:
+			draw_focus(self, target_position(0), hit_radius() * 1.4)
 	_draw_rings()
 	if def == null:
 		return
@@ -322,7 +359,7 @@ func _draw() -> void:
 			continue
 		var head_r := target_radius if holding_this else _ring_radius(beats_until(n), from_r)
 		var tail_r := _ring_radius(end - song_beat(), from_r)
-		var c := sound_color(n)
+		var c := HOLD_COLOR  # 长按统一是粉色
 		var center := hit_position(n)
 		if tail_r > head_r:
 			c.a = hold_band_alpha
@@ -344,13 +381,23 @@ func _draw_rings() -> void:
 	if def == null or _abduct:
 		return  # 吸猫那一段的光圈是 3D 的，由吸猫舞台自己画
 	var show_judge := _road == null or _road.rings_visible(song_beat())
+	var squash := _stage.ring_squash() if _stage else 1.0
 	for k in _cats.size():
 		if show_judge:
-			_ellipse(target_position(k), target_radius, Color.WHITE, 3.0)
+			draw_lit_target(self, target_position(k), target_radius, Color.WHITE, 3.0, squash, judge_scale)
 	var from_r := start_radius
 	if from_r <= 0.0:
 		from_r = screen_size().length() / 2.0 + 40.0
-	for n in notes:
+	if show_judge:
+		# 辅助线：和缩圈一样是透视压扁的椭圆；路上的水果音符另有 3D 辅助线（DiscoRoad），这里不算
+		var ring_notes: Array[NoteData] = []
+		for n in own_notes():
+			if not (_road and _road.uses_fruit(n)):
+				ring_notes.append(n)
+		for g in guide_list(approach_beats, ring_notes, false):  # 音符就是缩圈，只补空拍的虚线
+			var r := maxf(target_radius + clampf(g.a, 0.0, 1.0) * (from_r - target_radius), 4.0)
+			BeatGuides.draw_ring(self, target_position(0), r, BeatGuides.look(g), 4.0, squash, judge_scale)
+	for n in own_notes():
 		if _road and _road.uses_fruit(n):
 			continue  # 路上的音符用水果表现，不画圈
 		if n.judged:
@@ -360,9 +407,14 @@ func _draw_rings() -> void:
 			break
 		var t := ahead / approach_beats  # 1 = 刚出现，0 = 重合
 		var r := maxf(target_radius + t * (from_r - target_radius), 4.0)
-		var c := RING_COLORS[n.sound % RING_COLORS.size()]
-		c.a = clampf((1.0 - t) / 0.2, 0.0, 1.0) * ring_alpha
-		_ellipse(hit_position(n), r, c, 6.0)
+		# 越靠近判定圈越亮、越粗、稍微偏白，最后一段外面再加一圈柔光
+		var k := 1.0 - clampf(t, 0.0, 1.0)
+		var c := guide_color(n).lerp(Color.WHITE, k * k * 0.3)
+		c.a = clampf((1.0 - t) / 0.15, 0.0, 1.0) * lerpf(ring_alpha, 1.0, pow(k, 1.5))
+		var w := lerpf(ring_width, ring_width_near, k)
+		if k > 0.5:
+			_ellipse(hit_position(n), r, Color(c, c.a * (k - 0.5) * 0.6), w * 2.6)
+		_ellipse(hit_position(n), r, c, w)
 
 
 ## 按镜头透视画「平放在地上的圆」：横向半径 r × judge_scale，竖向再乘镜头压扁比例
@@ -416,7 +468,7 @@ func _on_exit() -> void:
 ## 结尾镜头开始：不再出音符（这一段只看演出），放完 finale_beats 拍后把积累条顶满，
 ## 让框架在下一个小节线切到吸猫小关。Judge 和 Gauge 是主场景里 Sonnie 的节点，这里只调它们现成的方法。
 func _start_finale() -> void:
-	_road.finale(finale_beats * Conductor.sec_per_beat())
+	_road.finale(finale_beats * Conductor.sec_per_beat(), not abduction_after_finale)  # 不接吸猫：镜头停在远景
 	_fill_at = song_beat() + finale_beats - 2.0
 	var main := get_parent().get_parent()
 	if main and main.get("judge"):
@@ -470,3 +522,10 @@ func _rest_until(until_beat: float, bars := PackedStringArray()) -> float:
 	_hold_ends.clear()
 	_holding = null
 	return resume
+
+
+## 音符圈和辅助线的颜色：长按统一粉色，其余按 ring_section 的那套
+func guide_color(note: NoteData) -> Color:
+	if not _holds_parsed and def:
+		_parse_holds()
+	return HOLD_COLOR if _hold_ends.has(note) else super(note)

@@ -268,9 +268,12 @@ func _draw_overlay() -> void:
 	var now_phase := fposmod(local_beat(), beats_per_swat)
 	var charged := charge_ratio() >= minimum_charge_ratio
 	var target_color := charged_color if charged else charge_color
-	_overlay.draw_arc(center, radius, 0.0, TAU, 64, Color(target_color, 0.66), 2.5)
+	draw_focus(_overlay, center, radius)
+	draw_lit_target(_overlay, center, radius, Color(target_color, 0.66), 2.5)
+	draw_target_guides(_overlay, center, radius, approach_travel_ratio * screen_size().y, approach_beats,
+			Callable(), 1.0, 1.0, false)  # 重拍本身就是缩圈，只补空拍的虚线
 	# 踩镲连打不叠八层圆环；只给主要重拍显示接近圈。
-	for note in notes:
+	for note in own_notes():
 		if note.judged or is_charge_note(note):
 			continue
 		var ahead := beats_until(note)

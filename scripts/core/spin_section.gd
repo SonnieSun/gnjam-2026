@@ -14,6 +14,9 @@ extends Node2D
 @export_group("击中手感")
 ## 每打中一下，step_rot 往前转多少（弧度）。漏打不转。
 @export var step_angle := PI / 4
+## 打中时整个画面顶一下（Main/ScreenFx 的 punch）在这一关乘多少倍。
+## 这一关自己的镜头已经会在打中时往前推的话调小一点，免得两样叠起来太晃；0 = 这一关不顶
+@export_range(0.0, 2.0, 0.05) var screen_punch := 1.0
 @export_group("积累条")
 ## 这一关的满条值。0 = 用 Gauge 节点的默认值
 @export var gauge_max_override := 0
@@ -22,6 +25,18 @@ extends Node2D
 ## 这一关的事件分数线：积累条涨到这些分数时各触发一次 _on_gauge_event，
 ## 想要几个事件就填几个数（留空 = 这一关没有事件）。谱面里可以再单独覆盖。
 @export var gauge_events := PackedInt32Array()
+@export_group("节拍辅助线")
+## 每拍一条辅助线：要按的拍子是音符颜色的实线（越靠近判定越亮越粗），不用按的拍子是淡虚线；
+## 判定点在音符到之前一拍开始染色变亮。规则统一在 scripts/chart/beat_guides.gd
+@export var beat_guides := true
+## 虚线隔几拍一条（1 = 每拍，0.5 = 每半拍）
+@export_range(0.125, 4.0, 0.125) var guide_every := 1.0
+@export_group("视觉焦点")
+## 判定点周围留一块干净的区域，外面慢慢压暗（压在音符和辅助线下面），让眼睛集中在判定线上。0 = 不压暗
+@export_range(0.0, 0.8, 0.05) var focus_dim := 0.35
+## 判定圈半径的几倍以内保持原样、几倍以外压到最暗
+@export var focus_clear := 1.8
+@export var focus_soft := 4.5
 @export_group("编辑器预览")
 ## 勾上 = 预览自动循环播放；取消 = 停在下面指定的那一拍
 @export var preview_playing := true
@@ -74,12 +89,185 @@ func setup(section_def: SectionDef, section_notes: Array[NoteData]) -> void:
 
 func enter() -> void:
 	active = true
+	_start_note_style()
 	_on_enter()
+
+
+## 接着上一个小关继续（SectionDef.joins_previous）：场景不重新加载，只换成新小关的谱面再“进场”一次。
+## 关卡脚本的 _on_enter 会再被调一次，里面按新的 def 重新算自己的状态就行。
+func rejoin(section_def: SectionDef, section_notes: Array[NoteData]) -> void:
+	if _style_layer:
+		_style_layer.queue_free()
+		_style_layer = null
+		note_style = null
+	setup(section_def, section_notes)
+	enter()
 
 
 func exit() -> void:
 	active = false
+	if _style_layer:
+		_style_layer.queue_free()
+		_style_layer = null
+		note_style = null
 	_on_exit()
+
+
+# ---- 谱面编辑器的表现方式（ChartPattern.use_style）----
+
+## 谱子勾了“游戏里用这个表现方式”时，音符由它画（叠在关卡画面上）
+var note_style: NoteStyle
+## 关掉 = 不自己叠表现方式（谱面编辑器的预览自己叠一层，就把这个关掉）
+var allow_note_style := true
+var _style_layer: CanvasLayer
+
+
+## 关卡自己要不要画音符：谱子交给表现方式画时返回 false
+func draws_own_notes() -> bool:
+	return not (def and def.chart and def.chart.use_style)
+
+
+## 关卡画音符时用这个代替 notes：表现方式接管时是空的，关卡自己的圆圈 / 水果 / 光圈就都不出来了
+func own_notes() -> Array[NoteData]:
+	if draws_own_notes():
+		return notes
+	var none: Array[NoteData] = []
+	return none
+
+
+# ---- 视觉焦点 ----
+
+var _focus_amount := 0.0  # 现在压暗了多少（0~1）：有音符要来时压暗，歇着的时候慢慢松开
+var _focus_tex: GradientTexture2D
+
+
+## 画视觉焦点：center / radius 是判定圈（关卡画音符之前先调这个，压暗就在音符下面）
+func draw_focus(ci: CanvasItem, center: Vector2, radius: float, squash := 1.0) -> void:
+	if focus_dim <= 0.0 or _focus_amount <= 0.01 or not draws_own_notes():
+		return
+	if _focus_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(0, 0, 0, 0))
+		g.set_color(1, Color(0, 0, 0, 1))
+		g.set_offset(0, clampf(focus_clear / maxf(focus_soft, 0.01), 0.0, 0.95))
+		g.set_offset(1, 1.0)
+		_focus_tex = GradientTexture2D.new()
+		_focus_tex.gradient = g
+		_focus_tex.fill = GradientTexture2D.FILL_RADIAL
+		_focus_tex.fill_from = Vector2(0.5, 0.5)
+		_focus_tex.fill_to = Vector2(1.0, 0.5)
+		_focus_tex.width = 256
+		_focus_tex.height = 256
+	var tint := Color(1, 1, 1, focus_dim * _focus_amount)
+	var half := Vector2(radius * focus_soft, radius * focus_soft * squash)
+	var inner := Rect2(center - half, half * 2.0)
+	ci.draw_texture_rect(_focus_tex, inner, false, tint)
+	# 渐变框外面的部分一样压暗
+	var big := maxf(screen_size().length(), 2000.0) * 2.0
+	var dark := Color(0, 0, 0, focus_dim * _focus_amount)
+	var l := center.x - big
+	var t := center.y - big
+	ci.draw_rect(Rect2(l, t, big * 2.0, inner.position.y - t), dark)
+	ci.draw_rect(Rect2(l, inner.end.y, big * 2.0, center.y + big - inner.end.y), dark)
+	ci.draw_rect(Rect2(l, inner.position.y, inner.position.x - l, inner.size.y), dark)
+	ci.draw_rect(Rect2(inner.end.x, inner.position.y, center.x + big - inner.end.x, inner.size.y), dark)
+
+
+func _update_focus(delta: float) -> void:
+	var want := 0.0
+	var now := song_beat()
+	for n in notes:
+		if n.judged:
+			continue
+		var ahead := n.beat - now
+		if ahead > 4.0:
+			break
+		if ahead > -0.2:
+			want = 1.0
+			break
+	_focus_amount = move_toward(_focus_amount, want, delta * (2.0 if want > _focus_amount else 0.6))
+
+
+# ---- 节拍辅助线（规则在 BeatGuides）----
+
+## 现在要画的辅助线（见 BeatGuides.compute）。lead = 这一关音符提前几拍出现
+## include_solid = false：音符本身就是缩圈的关卡用（实线会和音符完全重合，只画虚线）
+func guide_list(lead: float, note_list: Variant = null, include_solid := true) -> Array[Dictionary]:
+	if not beat_guides or not draws_own_notes():
+		var none: Array[Dictionary] = []
+		return none
+	return BeatGuides.compute(note_list if note_list != null else notes, song_beat(), lead, guide_every, guide_color,
+			Callable(), include_solid)
+
+
+## 辅助线（和预亮）用什么颜色：和关卡画音符的颜色一致。关卡用自己的一套颜色时重写这个
+func guide_color(note: NoteData) -> Color:
+	return sound_color(note)
+
+
+## 判定圈 / 判定线预亮后的样子（见 BeatGuides.target_look）。base = 判定圈平时的颜色
+func target_look(base := Color.WHITE, filter := Callable()) -> Dictionary:
+	if not beat_guides or not draws_own_notes():
+		return {"color": base, "width": 1.0, "k": 0.0}
+	return BeatGuides.target_look(BeatGuides.anticipation(notes, song_beat(), guide_color, filter), base)
+
+
+## 通用画法：判定点外面一圈圈的辅助线，和“缩圈音符”同一种几何（远近 a 的那一拍在 radius + a × travel）。
+## 音符不是缩圈的关卡也用这个：辅助线围着判定点收过来，提示「第几拍该按」。
+## note_target(note) -> [圆心, 半径]：每个音符的判定点不一样时给（实线画在音符自己的判定点上）
+func draw_target_guides(ci: CanvasItem, center: Vector2, radius: float, travel: float, lead: float,
+		note_target := Callable(), squash := 1.0, scale_x := 1.0, include_solid := true) -> void:
+	for g in guide_list(lead, null, include_solid):
+		var l := BeatGuides.look(g)
+		var a := clampf(g.a, 0.0, 1.0)
+		if g.solid and note_target.is_valid():
+			var done := {}
+			for n: NoteData in g.notes:
+				var tgt: Array = note_target.call(n)
+				if done.has(tgt[0]):
+					continue
+				done[tgt[0]] = true
+				BeatGuides.draw_ring(ci, tgt[0], float(tgt[1]) + a * travel, l, 3.0, squash, scale_x)
+		else:
+			BeatGuides.draw_ring(ci, center, radius + a * travel, l, 3.0, squash, scale_x)
+
+
+## 缩圈音符的样子（第 1 关调好的手感，各关共用）：刚出现时半透明、细，越靠近判定圈越亮、越粗、略偏白，
+## 最后一段外面带一圈柔光。t = 远近（1 = 刚出现，0 = 到判定圈）。返回 {color, width, glow}
+func approach_ring_look(t: float, base: Color, far_alpha := 0.5, width_far := 8.0, width_near := 14.0) -> Dictionary:
+	var k := 1.0 - clampf(t, 0.0, 1.0)
+	var c := base.lerp(Color.WHITE, k * k * 0.3)
+	c.a = clampf((1.0 - t) / 0.15, 0.0, 1.0) * lerpf(far_alpha, 1.0, pow(k, 1.5))
+	return {"color": c, "width": lerpf(width_far, width_near, k), "glow": c.a * maxf(k - 0.5, 0.0) * 0.6}
+
+
+## 按 approach_ring_look 的样子画一圈（squash < 1 = 透视压扁的椭圆）
+func draw_approach_ring(ci: CanvasItem, center: Vector2, r: float, look: Dictionary, squash := 1.0, scale_x := 1.0) -> void:
+	var c: Color = look.color
+	if look.glow > 0.0:
+		BeatGuides.draw_ring(ci, center, r, {"color": Color(c, look.glow), "width": 1.0, "dashed": false},
+				look.width * 2.6, squash, scale_x)
+	BeatGuides.draw_ring(ci, center, r, {"color": c, "width": 1.0, "dashed": false}, look.width, squash, scale_x)
+
+
+## 预亮的判定圈：平时的样子 + 音符快到时染色、变粗、外面一圈光晕
+func draw_lit_target(ci: CanvasItem, center: Vector2, radius: float, base := Color.WHITE, width := 3.0,
+		squash := 1.0, scale_x := 1.0) -> void:
+	var t := target_look(base)
+	BeatGuides.draw_target_glow(ci, center, radius, t, squash, scale_x)
+	BeatGuides.draw_ring(ci, center, radius, {"color": Color(t.color, base.a), "width": t.width, "dashed": false},
+			width, squash, scale_x)
+
+
+func _start_note_style() -> void:
+	if draws_own_notes() or not allow_note_style or Engine.is_editor_hint():
+		return
+	_style_layer = CanvasLayer.new()
+	_style_layer.layer = 5
+	add_child(_style_layer)
+	note_style = NoteStyle.create(def.chart.style)
+	note_style.pattern = def.chart
+	_style_layer.add_child(note_style)
 
 
 ## 当前歌曲拍数。关卡脚本里要用拍数时调这个，不要直接读 Conductor（编辑器里没有它）。
@@ -127,6 +315,8 @@ func notify_judged(note: NoteData, result: int) -> void:
 			NoteData.Result.PERFECT: free_spin_vel += 6.0
 			NoteData.Result.GREAT: free_spin_vel += 5.0
 			_: free_spin_vel += 3.5
+	if note_style:
+		note_style.judged(note, result)
 	_on_note_judged(note, result)
 
 
@@ -134,6 +324,14 @@ func notify_judged(note: NoteData, result: int) -> void:
 ## 判定与成绩仍由 Judge 统一处理，其他小关默认沿用原规则。
 func gauge_result(_note: NoteData, result: int) -> int:
 	return result
+
+
+## 主场景里的 Judge（编辑器预览里没有，返回 null）
+func main_judge() -> Judge:
+	var main := get_parent().get_parent() if get_parent() else null
+	if main == null:
+		return null
+	return main.get("judge") as Judge
 
 
 ## 蓄力段可以保留鼓声与判定，只在正式击打时播放喵声和大范围命中特效。
@@ -187,6 +385,10 @@ const SOUND_COLORS: Array[Color] = [
 ]
 
 
+## 所有长按音符统一用的颜色（亮粉，和画面里别的颜色拉开）：头圈、带子、辅助线、按住时的判定圈和进度圈
+const HOLD_COLOR := Color(1.0, 0.15, 0.7)
+
+
 func sound_color(note: NoteData) -> Color:
 	return SOUND_COLORS[note.sound % SOUND_COLORS.size()]
 
@@ -206,17 +408,18 @@ static func result_color(result: int) -> Color:
 ## ci 是画在哪个节点上（一般传 self）；travel 是圆环最远离判定圈多少像素。
 func draw_approach_rings(ci: CanvasItem, center: Vector2, radius: float,
 		approach_beats: float, travel: float) -> void:
-	ci.draw_arc(center, radius, 0.0, TAU, 64, Color(1, 1, 1, 0.9), 3.0)
-	for n in notes:
+	draw_focus(ci, center, radius)
+	draw_lit_target(ci, center, radius, Color(1, 1, 1, 0.9))
+	draw_target_guides(ci, center, radius, travel, approach_beats, Callable(), 1.0, 1.0, false)  # 音符就是缩圈，只补虚线
+	for n in own_notes():
 		if n.judged:
 			continue
 		var ahead := beats_until(n)
 		if ahead > approach_beats:
 			break
+		# 第 1 关的缩圈手感：远处细、半透明，越靠近判定圈越亮越粗、略偏白，最后一段带柔光
 		var k := clampf(ahead / approach_beats, 0.0, 1.0)
-		var c := sound_color(n)
-		c.a = 1.0 - k * 0.6
-		ci.draw_arc(center, radius + k * travel, 0.0, TAU, 96, c, 6.0)
+		draw_approach_ring(ci, center, radius + k * travel, approach_ring_look(k, guide_color(n)))
 	if tap_age < 0.15:  # 每次按键都闪一圈
 		ci.draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64,
 				Color(1, 1, 1, 1.0 - tap_age / 0.15), 8.0)
@@ -257,6 +460,10 @@ func _process(delta: float) -> void:
 	_gauge_smooth = lerpf(_gauge_smooth, float(gauge_value) / maxi(gauge_max, 1), minf(1.0, delta * 4.0))
 	if def:
 		_update_spin(local_beat(), spin_angle())
+	if note_style:
+		note_style.update_notes(song_beat(), notes)
+	if def:
+		_update_focus(delta)
 
 
 # ---- 编辑器预览 ----

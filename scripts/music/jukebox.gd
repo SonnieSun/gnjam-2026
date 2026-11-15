@@ -178,6 +178,18 @@ func _songs() -> Array:
 			_t("旋律", S1 + "entertainer_leads/s1_ent_fb_L3_lead_16b.wav"),
 			_t("猫旋律", S1 + "entertainer_leads/s1_ent_cat_L3_lead_16b.wav", false)]},
 	]
+	# 天空关（被光柱吸上天）：云层和风暴是 C 小调，突然亮起来之后是 C 大调的欢乐颂
+	var sky := M + "sky/sky_"
+	var oj := M + "classics/ode_to_joy/ode_to_joy_"
+	out.append({"name": "天空关 · 云层和风暴", "stems": [
+		_t("半拍鼓", S1 + "rhythm_variants/s1_Rhalf_L1_groove_4b.wav"), _t("低音长音", sky + "drone_8b.wav"),
+		_t("穿云的风", sky + "wind_8b.wav"), _t("末日号角", sky + "doom_horns_8b.wav", false)]})
+	out.append({"name": "天空关 · 亮起来", "stems": [
+		_t("鼓", S1 + "skeleton/s1_L1_groove_4b.wav"), _t("低音", oj + "L2_bass_8b.wav"), _t("和声", oj + "fb_L0_keys_8b.wav"),
+		_t("神圣长音", sky + "holy_pad_8b.wav"), _t("旋律", oj + "L3_pluck_8b.wav"),
+		_t("猫旋律", oj + "L3_cat_flow_8b.wav", false), _t("猫鼓", oj + "C_drums_8b.wav", false),
+		_t("猫旋律 鬼畜", oj + "L3_cat_kichiku_8b.wav", false), _t("高潮", oj + "fb_L4_peak_8b.wav", false)]})
+	out.append({"name": "关与关之间的等待", "stems": [_t("等待循环", M + "sky/bridge_wait_4b.wav")]})
 	# 120 BPM 版（Kisa 的迪斯科关用）：同样的东西放慢重渲染的，拿来对比哪种风格在 120 下好听
 	var s120 := M + "scene1_120/s120_"
 	for st in [["Jazz", "J_L1_groove", "J_L2_bass", "J_L0_piano", "J_L3_sax", "J_L4_shout"],
@@ -196,7 +208,9 @@ func _songs() -> Array:
 		stems.append(_t("猫旋律 旧版（切短）", s120 + "C_lead_4b.wav", false))
 		out.append({"name": "120 · " + st[0], "bpm": 120.0, "stems": stems})
 	for c in [["康康舞曲", "can_can", 8], ["土耳其进行曲", "turkish_march", 16], ["山魔王", "mountain_king", 4],
-			["欢乐颂", "ode_to_joy", 8], ["致爱丽丝", "fur_elise", 4]]:
+			["欢乐颂", "ode_to_joy", 8], ["致爱丽丝", "fur_elise", 4],
+			["Your Best Friend", "your_best_friend", 8],   # Undertale，只给内部试玩；下面三个是它的别的段落
+			["YBF · 前奏", "ybf_intro", 4], ["YBF · B 段", "ybf_b", 8], ["YBF · 结尾", "ybf_end", 4]]:
 		for version in 3:
 			out.append(_classic(c[0], c[1], c[2], version))
 	return out

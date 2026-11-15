@@ -79,8 +79,23 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 @export var finale_look := Vector3(3.3, 6.8, 0.0)
 ## 结尾时天空（房间外面的底色）渐渐变成什么颜色
 @export var finale_sky := Color(0.13, 0.08, 0.16)
+## 猫自己飞走的结尾：飞碟走了之后推到猫的特写，离多近、视角多大、俯仰多少度
+@export var fly_closeup_distance := 15.0
+## 特写时镜头绕着猫转多少度（180 = 转到正面）
+@export var fly_closeup_turn := 165.0
+@export var fly_closeup_fov := 38.0
+@export var fly_closeup_pitch := 8.0
 ## 每拍视野「顶」一下的幅度（度）
-@export var fov_punch := 2.5
+@export var fov_punch := 4.0
+## 跑起来和广场上镜头跟拍歪头：最大歪多少度、一个来回几拍
+@export var beat_roll_degrees := 2.0
+@export var beat_roll_beats := 4.0
+## 升档时镜头踢一下：视野多拉开多少度、歪多少度、多少秒弹回来
+@export var kick_fov := 9.0
+@export var kick_roll := 5.0
+@export var kick_seconds := 0.45
+var _kick := 0.0
+var _kick_side := 1.0
 
 @export_group("圆台和结尾")
 @export var plaza_radius := 46.0
@@ -171,6 +186,15 @@ var _fruit_light: OmniLight3D
 var _plaza_cats: Array[Dictionary] = []  # {holder: Node3D, sprite: Sprite3D, h: 高度, phase: 错开的拍数, frames: 帧数}
 var _plaza_slots := PackedVector3Array()  # 观众站位（按出现的先后），第一次用到时排好
 var _ball_scale := 1.0
+## 节拍辅助线（路上滑行那段）：横在路面上的线，在每一拍水果会飞到的位置。关卡脚本按自己的设置填
+var beat_guides := true
+var guide_every := 1.0
+var _guides: BeatGuideStrips
+## 路面白圈的半径（米）
+var guide_ring_radius := 1.9
+## 判定圈：猫脚底的绿圈（和水果底下的白圈一样大），水果的白圈滑到和它重合的那一拍按
+var judge_ring_color := Color(0.3, 1.0, 0.4)
+var _judge_ring: BeatGuideStrips
 
 
 func setup(cat: KisaSpinCat3D, stage: KisaDiscoStage) -> void:
@@ -297,7 +321,8 @@ func enter_plaza(beat: float, arrive_beat: float = -1.0) -> void:
 
 ## 结尾（一段连续的镜头，不切画面）：猫转一圈变成站立的姿势 -> 飞碟从上面降下来、绿色光柱罩住猫
 ## -> 镜头从斜俯视慢慢降到低处、仰看飞碟，停在和吸猫小关开场一样的构图上。seconds = 这一段总共多长
-func finale(seconds: float = 8.0) -> void:
+## stay_wide = 镜头不降下去，停在广场的远景上（不接吸猫、猫自己飞走的结尾用）
+func finale(seconds: float = 8.0, stay_wide: bool = false) -> void:
 	if phase == Phase.FINALE or phase == Phase.ROOM:
 		return
 	phase = Phase.FINALE
@@ -373,6 +398,8 @@ func finale(seconds: float = 8.0) -> void:
 	_cam_t = 0.0
 	var tc := create_tween()
 	tc.tween_property(self, "_cam_t", 1.0, seconds * 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if stay_wide:
+		return
 	tc.tween_callback(func():
 		_cam_a = _current_cam()
 		_cam_b = {"yaw": finale_yaw, "pitch": finale_pitch, "fov": finale_fov, "dist": finale_distance,
@@ -428,6 +455,7 @@ func update(beat: float, notes: Array[NoteData]) -> void:
 			if _travel > 140.0:
 				_room.visible = false
 		_update_fruits(beat, notes)
+		_update_guides(beat, notes)
 		_update_cat(beat, notes, delta)
 		_update_side_balls(beat)
 
@@ -508,6 +536,66 @@ func _input(event: InputEvent) -> void:
 		_press = 1.0
 
 
+## 节拍辅助线（规则见 BeatGuides）：路面上的白圈，和水果同一套远近。
+##   要按的拍子：每个水果正下方一个白色实线圈，越近越亮越粗；
+##   不用按的拍子：一个空着的白色虚线圈，摆在「后面最近那个水果」的那条道上，
+##   所以一排空拍会和后面要来的水果竖着对齐，看得出下一个水果从哪条道来。
+func _update_guides(beat: float, notes: Array[NoteData]) -> void:
+	if _guides == null:
+		_guides = BeatGuideStrips.new()
+		_cat.world.add_child(_guides)
+	_guides.begin()
+	if beat_guides and phase == Phase.RUN:
+		var fruit_notes: Array[NoteData] = []
+		for n in notes:
+			if uses_fruit(n) and not n.judged:
+				fruit_notes.append(n)
+		for g in BeatGuides.compute(fruit_notes, beat, fruit_lead_beats, guide_every,
+				func(_n: NoteData) -> Color: return Color.WHITE):
+			if not g.solid and g.beat >= _fruit_until:
+				continue  # 到了圆台就换回缩圈的辅助线
+			var z := -clampf(g.a, -0.1, 1.0) * fruit_lead_beats * units_per_beat
+			var l := BeatGuides.look(g)
+			if g.solid:
+				for n: NoteData in g.notes:
+					_guides.circle(Vector3(_lane_of(n), FLOOR_Y + 0.06, z), guide_ring_radius, l, 0.22)
+			else:
+				_guides.circle(Vector3(_next_lane_x(fruit_notes, g.beat), FLOOR_Y + 0.06, z), guide_ring_radius, l, 0.22)
+	_guides.finish()
+	_update_judge_ring(beat, notes)
+
+
+## 猫脚底的绿色判定圈：跟着猫换道，就在水果到猫身上的那个位置（z = 0），大小和水果的白圈一样，
+## 所以水果的白圈滑过来和它重合时就是该按的时候。下一个水果不到一拍就到时变粗变亮。
+func _update_judge_ring(beat: float, notes: Array[NoteData]) -> void:
+	if _judge_ring == null:
+		_judge_ring = BeatGuideStrips.new()
+		_cat.world.add_child(_judge_ring)
+	_judge_ring.begin()
+	if beat_guides and phase == Phase.RUN:
+		var fruit_notes: Array[NoteData] = []
+		for n in notes:
+			if uses_fruit(n):
+				fruit_notes.append(n)
+		var k: float = BeatGuides.anticipation(fruit_notes, beat).k
+		var c := judge_ring_color.lerp(Color.WHITE, k * 0.3)
+		c.a = 0.85 + 0.15 * k
+		var x := _cat.pose_position.x
+		_judge_ring.circle(Vector3(x, FLOOR_Y + 0.08, 0.0), guide_ring_radius,
+				{"color": c, "width": 1.0 + k * 1.2, "dashed": false}, 0.28)
+	_judge_ring.finish()
+
+
+## 空拍的圈摆在哪条道上：beat 之后最近的那个水果的道（后面没水果了就用前面最近的）
+func _next_lane_x(fruit_notes: Array[NoteData], b: float) -> float:
+	var prev := 0.0
+	for n in fruit_notes:
+		if n.beat > b + 0.001:
+			return _lane_of(n)
+		prev = _lane_of(n)
+	return prev
+
+
 func _update_fruits(beat: float, notes: Array[NoteData]) -> void:
 	_press = maxf(_press - get_process_delta_time() / maxf(fruit_press_seconds, 0.01), 0.0)
 	for n in notes:
@@ -525,9 +613,12 @@ func _update_fruits(beat: float, notes: Array[NoteData]) -> void:
 		# 跟着拍子动：每拍落地一次（整拍在最低点），左右两拍歪一个来回。发光和胀缩由水果身上的 BeatGlow 管
 		fruit.position = Vector3(_lane_of(n), fruit_height + absf(sin(beat * PI)) * fruit_beat_hop, -ahead * units_per_beat)
 		fruit.rotation = Vector3(0.0, beat * 1.5 + n.beat, sin(beat * PI) * deg_to_rad(fruit_beat_sway_degrees))
-	# 没打中、已经飞到身后的收掉
+	# 没打中、已经飞到身后的收掉；音符被撤掉了（关卡歇一会儿时）的水果也收掉，不让它空飞过来
+	var current := {}
+	for n in notes:
+		current[n] = true
 	for n: NoteData in _fruits.keys():
-		if n.beat - beat < -1.5:
+		if n.beat - beat < -1.5 or not current.has(n):
 			(_fruits[n] as Node3D).queue_free()
 			_fruits.erase(n)
 
@@ -633,9 +724,71 @@ func _apply_camera(pulse: float) -> void:
 	if phase == Phase.RUN:
 		look.x += _cat.pose_position.x * 0.6 * _cam_t
 	var dir := Vector3(0.0, sin(pitch), cos(pitch)).rotated(Vector3.UP, yaw)
-	cam.fov = _mix("fov") - pulse * fov_punch * (1.0 if phase != Phase.UNFOLD else 0.0)
+	cam.fov = _mix("fov") - pulse * fov_punch * (1.0 if phase != Phase.UNFOLD else 0.0) + _kick * kick_fov
 	cam.position = look + dir * _mix("dist")
 	cam.look_at(look)
+	# 更带劲一点：跑起来和广场上，镜头跟着拍子左右歪头；升档时踢一下（猛地拉远 + 歪一下，再弹回来）
+	if phase == Phase.RUN or phase == Phase.PLAZA:
+		var beat := Conductor.song_beat
+		var roll := sin(beat / beat_roll_beats * TAU) * beat_roll_degrees + _kick * kick_roll * _kick_side
+		cam.rotate_object_local(Vector3.BACK, deg_to_rad(roll))
+	_kick = move_toward(_kick, 0.0, get_process_delta_time() / kick_seconds)
+
+
+## 镜头踢一下（升档时由 disco_decor.gd 调）
+func cam_kick(strength: float = 1.0) -> void:
+	_kick = strength
+	_kick_side = -_kick_side
+
+
+## 结尾的最后一段（不接吸猫时用）：猫在光柱里浮起来 -> 飞碟自己飞走 -> 过一会儿猫 Q 弹地向上飞出屏幕。
+## seconds = 这一段总共多长。返回猫起飞的那一刻离现在多少秒（配音效用）。
+func fly_away(seconds: float = 4.5) -> float:
+	if phase != Phase.FINALE:
+		return 0.0
+	var base := _cat.pose_position
+	var up := Vector3.UP
+	# 猫：浮起来，上下轻轻晃两下，蹲一下，弹出去
+	var tc := create_tween()
+	tc.tween_property(_cat, "pose_position", base + up * 1.7, seconds * 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tc.tween_property(_cat, "pose_position", base + up * 1.3, seconds * 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tc.tween_property(_cat, "pose_position", base + up * 1.7, seconds * 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tc.tween_property(_cat, "pose_position", base + up * 1.1, seconds * 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# （起飞不用 TRANS_BACK：它会先往回缩飞行距离的一成，猫会掉到地板下面；上面那一下下蹲已经是预备动作了）
+	tc.tween_property(_cat, "pose_position", base + up * 60.0, seconds * 0.22).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+	var launch := seconds * 0.64
+	# Q 弹：蹲的时候压扁，弹出去的时候拉长
+	var pivot := _cat._pivot
+	var s0 := pivot.scale
+	var tsq := create_tween()
+	tsq.tween_interval(seconds * 0.54)
+	tsq.tween_property(pivot, "scale", s0 * Vector3(1.3, 0.65, 1.3), seconds * 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tsq.tween_property(pivot, "scale", s0 * Vector3(0.75, 1.5, 0.75), seconds * 0.06).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# 飞碟：光柱先灭，然后斜着加速飞走
+	if _finale_beam_mat:
+		var tb := create_tween().set_parallel()
+		tb.tween_interval(seconds * 0.12)
+		tb.chain().tween_method(func(v: float): _finale_beam_mat.set_shader_parameter("strength", v), 0.5, 0.0, 0.4)
+		tb.tween_property(_finale_glow, "light_energy", 0.0, 0.4)
+	if _saucer_node:
+		var tu := create_tween()
+		tu.tween_interval(seconds * 0.18)
+		tu.tween_property(_saucer_node, "position", saucer_position + Vector3(30.0, 55.0, -10.0), seconds * 0.28) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	# 镜头：飞碟走了之后推到猫的特写，停住；猫起飞时它就从特写里一下子冲出画面
+	var tcam := create_tween()
+	tcam.tween_interval(seconds * 0.30)
+	tcam.tween_callback(func():
+		_cam_a = _current_cam()
+		_cam_b = _cam_a.duplicate()
+		_cam_b["dist"] = fly_closeup_distance
+		_cam_b["fov"] = fly_closeup_fov
+		_cam_b["pitch"] = fly_closeup_pitch
+		_cam_b["yaw"] = float(_cam_a["yaw"]) + fly_closeup_turn
+		_cam_b["look"] = _cat.focus + base + up * 2.2
+		_cam_t = 0.0)
+	tcam.tween_property(self, "_cam_t", 1.0, seconds * 0.26).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	return launch
 
 
 ## 结尾镜头放完，接着在这里玩吸猫：把停好的飞碟交出去（吸猫舞台接手），自己的光柱和站着的猫收掉

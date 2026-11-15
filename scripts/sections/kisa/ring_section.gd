@@ -111,6 +111,7 @@ func _flash(cat: MemeSprite, c: Color) -> void:
 func _draw() -> void:
 	if def == null:
 		return
+	draw_focus(self, target_position(0), target_radius)
 	# 目标圆：圆盘 + 自转的辐条 + 白色判定轮廓
 	for k in _cats.size():
 		var offset := target_position(k)
@@ -119,12 +120,14 @@ func _draw() -> void:
 			var dir := Vector2.from_angle(_angle + i * TAU / 4.0)
 			draw_line(offset + dir * target_radius * 0.55, offset + dir * target_radius * 0.92,
 					disc_color.lightened(0.3), 4.0)
-		draw_arc(offset, target_radius, 0.0, TAU, 64, Color.WHITE, 3.0)
+		draw_lit_target(self, offset, target_radius)
 	# 正在靠近的圆圈
 	var from_r := start_radius
 	if from_r <= 0.0:
 		from_r = screen_size().length() / 2.0 + 40.0
-	for n in notes:
+	draw_target_guides(self, target_position(0), target_radius, from_r - target_radius, approach_beats,
+			Callable(), 1.0, 1.0, false)  # 音符就是缩圈，只补空拍的虚线
+	for n in own_notes():
 		if n.judged:
 			continue
 		var ahead := beats_until(n)
@@ -139,3 +142,8 @@ func _draw() -> void:
 	var size := screen_size()
 	draw_string(ThemeDB.fallback_font, Vector2(-200.0, size.y / 2.0 - 60.0), def.title,
 			HORIZONTAL_ALIGNMENT_CENTER, 400.0, 28)
+
+
+## 辅助线和缩圈用同一套颜色
+func guide_color(note: NoteData) -> Color:
+	return RING_COLORS[note.sound % RING_COLORS.size()]

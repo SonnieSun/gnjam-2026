@@ -46,8 +46,11 @@ func _run() -> void:
 	game.judge.score=1990
 	game.judge.combo=9
 	game.judge._apply(NoteData.new(),NoteData.Result.PERFECT,0.0)
-	assert(score.value == 2090 and combo.value == 10)
-	assert(score.color_stage == 1 and combo.color_stage == 1)
+	# Stage-weighted scoring leaves score unchanged until banking or a bonus.
+	assert(score.value == 1990 and combo.value == 10)
+	assert(score.color_stage == 0 and combo.color_stage == 1)
+	game.judge.add_bonus(100)
+	assert(score.value == 2090 and score.color_stage == 1)
 	game.judge._apply(NoteData.new(),NoteData.Result.MISS,0.0)
 	assert(combo.value == 0 and not combo.visible)
 	hud.reset()

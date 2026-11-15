@@ -58,7 +58,7 @@ func hit_radius() -> float:
 func _update_spin(_local_beat: float, _angle: float) -> void:
 	center_on_screen()
 	if _stage:
-		_stage.update(song_beat(), notes, approach_beats)
+		_stage.update(song_beat(), own_notes(), approach_beats)
 		if autoplay:
 			_autoplay()
 	_flash = maxf(_flash - get_process_delta_time() * 2.5, 0.0)
@@ -105,5 +105,9 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, Vector2(-300.0, 0.0), "飞船关卡：3D 画面不在编辑器里预览，F6 运行 spaceship_test.tscn",
 				HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20)
 		return
+	# 节拍辅助线：行星各走各的路线，这里围着判定点（猫）收过来，提示「第几拍该按」
+	draw_focus(self, hit_position(), hit_radius())
+	draw_lit_target(self, hit_position(), hit_radius(), Color(1, 1, 1, 0.45), 2.0)
+	draw_target_guides(self, hit_position(), hit_radius(), 0.3 * size.y, approach_beats)
 	if _flash > 0.0:
 		draw_rect(Rect2(-size / 2.0, size), Color(1.0, 0.15, 0.2, _flash * miss_flash))

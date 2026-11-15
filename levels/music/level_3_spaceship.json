@@ -1,0 +1,204 @@
+{
+ "title": "SPACESHIP",
+ "bpm": 160,
+ "use_in_game": true,
+ "quantize_beats": 4,
+ "lanes": [
+  {
+   "id": "beat",
+   "name": "节奏",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "groove",
+     "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "bass",
+   "name": "低音",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "bass",
+     "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
+    },
+    {
+     "id": "cat_bass",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_bass_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "bed",
+   "name": "和声",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "euro_keys",
+     "file": "res://assets/audio/music/scene1/style_eurobeat/s1_A_L0_keys_4b.wav"
+    },
+    {
+     "id": "cat_stabs",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "lead",
+   "name": "旋律",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "euro_hook",
+     "file": "res://assets/audio/music/scene1/style_eurobeat/s1_A_L3_hook_4b.wav"
+    },
+    {
+     "id": "cat_lead",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "peak",
+   "name": "高潮",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "euro_peak",
+     "file": "res://assets/audio/music/scene1/style_eurobeat/s1_A_L4_peak_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "meow",
+   "name": "猫鼓",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cat_drums",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "kiai",
+   "name": "KIAI 鬼畜",
+   "gain_db": -2.0,
+   "clips": [
+    {
+     "id": "cat_kichiku",
+     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_kichiku_4b.wav"
+    }
+   ]
+  },
+  {
+   "id": "hit",
+   "name": "打中唱",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "hit_riff",
+     "pattern": "res://levels/music/patterns/kichiku_riff.json",
+     "by_hit": true
+    }
+   ]
+  },
+  {
+   "id": "fill",
+   "name": "过门",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "fill",
+     "file": "res://assets/audio/music/scene1/events/s1_X_fill_4b.wav"
+    }
+   ]
+  }
+ ],
+ "sections": [
+  {
+   "title": "SPACESHIP",
+   "cues": {
+    "beat": [
+     [
+      0.0,
+      "groove"
+     ]
+    ],
+    "bass": [
+     [
+      0.0,
+      "bass"
+     ],
+     [
+      0.7,
+      "cat_bass"
+     ]
+    ],
+    "bed": [
+     [
+      0.0,
+      "euro_keys"
+     ],
+     [
+      0.7,
+      "cat_stabs"
+     ]
+    ],
+    "lead": [
+     [
+      0.2,
+      "euro_hook"
+     ],
+     [
+      0.7,
+      "cat_lead"
+     ]
+    ],
+    "peak": [
+     [
+      0.45,
+      "euro_peak"
+     ]
+    ],
+    "meow": [
+     [
+      0.45,
+      "cat_drums"
+     ]
+    ],
+    "kiai": [
+     [
+      0.9,
+      "cat_kichiku"
+     ]
+    ],
+    "hit": [
+     [
+      0.2,
+      "hit_riff"
+     ],
+     [
+      0.7,
+      ""
+     ]
+    ]
+   },
+   "tiers": [
+    0.2,
+    0.45,
+    0.7,
+    0.9
+   ],
+   "transition_tiers": [
+    3
+   ],
+   "fever": [
+    0.9,
+    1.0
+   ]
+  }
+ ]
+}

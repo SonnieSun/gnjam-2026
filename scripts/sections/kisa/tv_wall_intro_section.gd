@@ -3,7 +3,8 @@ extends SpinSection
 ## 电视墙关开场：画面中间一台洗衣机，圆圈收到门框上时按键。
 ## 单点：舱门里的猫脸原地转一小段。长按时猫脸一直转、越转越快。长按（谱面里音符后面接 "="）：按住到尾巴才算成，中途松手变灰失败、不能补按。
 ## 每完整按完一次长按推进一步：前 3 次镜头拉远，之后每次洗衣机发电、亮两台电视，直到全部亮起（见 TvWallIntroStage）。
-## 判定用框架的 Judge（不改）：长按的开头由 Judge 当普通音符判，按住的部分由这里自己盯（和迪斯科关同一种写法）。
+## 判定用框架的 Judge：长按的开头由 Judge 当普通音符判，按住的部分交给 Judge.begin_hold 盯
+## （松手时间和按下用同一个判定时钟，和迪斯科关同一种写法）。
 ## 3D 画面和可调参数都在 Stage 节点里。编辑器预览里不跑 3D，只显示一行说明。
 
 ## 圆圈提前几拍出现
@@ -12,9 +13,24 @@ extends SpinSection
 @export var approach_travel_ratio := 0.45
 ## 长按离尾巴不到这么多拍时松手也算成
 @export var hold_release_grace := 0.3
+## 长按按完（可以松手了）时：判定圈闪绿光、响一声的颜色和持续时间（秒）
+@export var hold_ok_color := Color(0.35, 1.0, 0.45)
+@export var hold_ok_seconds := 0.6
+## 判定圈（舱门那一圈）的粗细（像素），颜色用上面的 hold_ok_color
+@export var judge_ring_width := 15.0
+## 按住时判定圈外面那圈进度的颜色（要和画面里别的颜色都拉开，默认亮粉）
+@export var hold_progress_color := SpinSection.HOLD_COLOR
+## 进度圈跟着拍子胀缩：每拍往外胀多少（占判定圈半径的比例）
+@export_range(0.0, 0.4) var hold_progress_pulse := 0.12
+## 进度圈颜色随按住的进度变化：色相一共转多少（0.45 ≈ 粉 → 紫 → 蓝 → 青；0 = 不变色）
+@export_range(0.0, 1.0) var hold_progress_hue_shift := 0.45
 ## 没打中时整个画面红闪的强度
 @export_range(0.0, 1.0) var miss_flash := 0.2
 ## 调试用：自动按键（看演出用，正式玩要关掉）
+## 结尾演出（散开 + 镜头钻进屏幕）至少放几拍；实际会凑到下一个小节线
+@export var finale_min_beats := 5.0
+## 钻进屏幕后切到下一个小关时，用几秒叠化盖住框架的白闪
+@export var crossfade_seconds := 0.25
 @export var autoplay := false
 
 var _stage: TvWallIntroStage
@@ -28,6 +44,10 @@ var _flash := 0.0
 var _auto_next := 0
 var _auto_release_at := -INF
 var _auto_down := false
+var _finale := false
+var _fill_at := INF
+var _next_view: SubViewport
+var _hold_ok_age := INF  # 长按刚按完过了几秒（INF = 没在闪）
 var _hit_ring_color := Color.WHITE
 
 ## 白色形状预览：只覆盖本关节奏特效的颜色，不改原始音符数据。
@@ -68,11 +88,13 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 	var dt := get_process_delta_time()
 	if _hold_lens.is_empty():
 		_parse_holds()
-	if autoplay:
+	if autoplay and not _finale:
 		_autoplay()
 	if _holding:
 		_update_hold()
 	_stage.update(song_beat(), dt)
+	if song_beat() >= _fill_at:
+		_fill_gauge_now()
 	for tv in _stage.take_just_lit():
 		_bolts.append({"to": tv, "age": 0.0})
 	for i in range(_bolts.size() - 1, -1, -1):
@@ -83,6 +105,7 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 		if song_beat() > n.beat + hold_beats(n):
 			_failed.erase(n)
 	_flash = maxf(_flash - dt * 2.5, 0.0)
+	_hold_ok_age += dt
 	queue_redraw()
 
 
@@ -97,8 +120,13 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		return
 	_hit_ring_color = sound_color(note)
 	if is_hold:
+		var j := main_judge()
+		if j == null:
+			_stage.tap()
+			return
 		_holding = note
 		_stage.hold_begin()
+		j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
 	else:
 		_stage.tap()
 
@@ -120,32 +148,20 @@ func hold_beats(n: NoteData) -> float:
 func _parse_holds() -> void:
 	var bpb: int = Conductor.chart.beats_per_bar
 	_pattern_len = def.length_beats(bpb)
+	_hold_lens = def.hold_lengths(bpb)  # 老鼓谱的 "=" 或谱面编辑器里的长按
 	_hold_lens[-1] = 0.0  # 占个位，表示已经找过了
-	for bar_i in def.bars.size():
-		var s := def.bars[bar_i]
-		var cell := float(bpb) / maxi(s.length(), 1)
-		var i := 0
-		while i < s.length():
-			var run := 0
-			while i + 1 + run < s.length() and s[i + 1 + run] == "=":
-				run += 1
-			if run > 0 and SectionDef._char_to_sound(s[i]) >= 0:
-				_hold_lens[roundi((bar_i * bpb + i * cell) * 1000.0)] = run * cell
-			i += 1 + run
 
 
-## 盯着正在进行的长按：按到尾巴算成；提前松手算失败
+## 正在按住：只更新画面上的进度（画面时间）。按到尾巴 / 松手由 Judge 按判定时钟判，结束时回调 _on_hold_done
 func _update_hold() -> void:
 	var length := hold_beats(_holding)
-	var end := _holding.beat + length
-	var now := song_beat()
-	if now >= end:
-		_finish_hold(true)
-		return
-	if not Input.is_action_pressed(Judge.HIT_ACTION):
-		_finish_hold(now >= end - hold_release_grace)
-		return
+	var now := minf(song_beat(), _holding.beat + length)
 	_stage.hold_update((now - _holding.beat) / maxf(length, 0.001), (now - _holding.beat) * Conductor.sec_per_beat())
+
+
+func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:
+	if note == _holding:
+		_finish_hold(success)
 
 
 func _finish_hold(success: bool) -> void:
@@ -155,8 +171,14 @@ func _finish_hold(success: bool) -> void:
 	if not success:
 		_failed[_holding] = true
 		_flash = 1.0
+	else:
+		# 「可以松手了」：判定圈闪绿光 + 叮一声（按到尾巴那一拍由 Judge 判定成功时触发）
+		_hold_ok_age = 0.0
+		Sfx.play("good")
 	_holding = null
 	_stage.hold_end(success)
+	if _stage.finale_pending:
+		_start_finale()
 
 
 # ---------------- 表现 ----------------
@@ -171,12 +193,14 @@ func _draw() -> void:
 		return
 	if _stage == null:
 		return
+	if _finale:
+		return
 	var center := hit_position()
 	var radius := maxf(hit_radius(), 1.0)
 	var travel := approach_travel_ratio * size.y
 	var visual_time := Time.get_ticks_msec() / 1000.0
 	# 门框自发光灯带就是判定线，不再叠加另一条橙色固定圆圈。
-	for n in notes:
+	for n in own_notes():
 		var length := hold_beats(n)
 		var ahead := beats_until(n)
 		if ahead > approach_beats:
@@ -203,6 +227,9 @@ func _draw() -> void:
 	if _holding:
 		NeonJudgementRing.draw(self, center, radius, sound_color(_holding), visual_time, 1.15, 0.6)
 		_draw_ring_lightning(center, radius)
+		_draw_hold_progress(center, radius, _holding)
+	if _hold_ok_age < hold_ok_seconds:
+		_draw_hold_ok(center, radius)
 	for b in _bolts:
 		_draw_bolt(center, _stage.tv_screen_pos(b.to), 1.0 - b.age / 0.35)
 	NeonJudgementRing.draw_impact(self, center, radius, _hit_ring_color, hit_age)
@@ -213,21 +240,56 @@ func _draw() -> void:
 ## 长按的拖尾：从头到尾巴的一条半透明带子 + 提示文字
 func _draw_hold_tail(center: Vector2, radius: float, travel: float, n: NoteData,
 		ahead: float, tail_ahead: float, failed: bool, holding_this: bool) -> void:
+	# 长按 = 两个节拍圈 + 中间填满：头圈收到判定圈时按下，尾圈收到判定圈时松手，
+	# 两个圈之间整段填上（一直填到尾圈，不再限宽），整个长按有多长一眼看得出来
 	var inner := radius + maxf(ahead, 0.0) / maxf(approach_beats, 0.01) * travel
-	var outer := radius + tail_ahead / maxf(approach_beats, 0.01) * travel
-	outer = minf(outer, inner + screen_size().y * 0.07)  # 带子不要太宽，免得盖住猫头
-	var c := Color(0.48, 0.48, 0.48) if failed else sound_color(n)
-	if outer > inner + 0.5:
-		c.a = 0.15 if failed else (0.3 if holding_this else 0.2)
-		draw_arc(center, (inner + outer) / 2.0, 0.0, TAU, 96, c, outer - inner)
-		c.a = 0.75
-		draw_arc(center, outer, 0.0, TAU, 96, c, 3.0)
-	var seconds := (tail_ahead if holding_this else hold_beats(n)) * Conductor.sec_per_beat()
-	var label := "HOLD FAILED" if failed else "HOLD %.1fs" % seconds
-	var pos := center + Vector2(-120.0, -radius * 0.6)
-	c.a = 1.0
-	draw_string_outline(ThemeDB.fallback_font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 240, 24, 6, Color(0.02, 0.02, 0.04, 0.95))
-	draw_string(ThemeDB.fallback_font, pos, label, HORIZONTAL_ALIGNMENT_CENTER, 240, 24, c)
+	var tail_t := maxf(tail_ahead, 0.0) / maxf(approach_beats, 0.01)
+	var tail_r := minf(radius + tail_t * travel, screen_size().length())
+	var c := Color(0.48, 0.48, 0.48) if failed else hold_progress_color
+	if tail_r > inner + 0.5:
+		c.a = 0.15 if failed else (0.32 if holding_this else 0.22)
+		draw_arc(center, (inner + tail_r) / 2.0, 0.0, TAU, 128, c, tail_r - inner)
+	if not failed and tail_t <= 1.0:
+		# 尾圈：和头圈一样的节拍圈（越靠近判定圈越亮越粗），收到判定圈的那一拍松手
+		draw_approach_ring(self, center, tail_r, approach_ring_look(tail_t, hold_progress_color, 0.5, 10.0, 16.0))
+	if failed:
+		# 只在失败时提示一句
+		var pos := center + Vector2(-120.0, -radius * 0.6)
+		c.a = 1.0
+		draw_string_outline(ThemeDB.fallback_font, pos, "HOLD FAILED", HORIZONTAL_ALIGNMENT_CENTER, 240, 24, 6, Color(0.02, 0.02, 0.04, 0.95))
+		draw_string(ThemeDB.fallback_font, pos, "HOLD FAILED", HORIZONTAL_ALIGNMENT_CENTER, 240, 24, c)
+
+
+## 按住时判定圈外面一圈进度（亮粉色，和画面里别的颜色拉开）：从正上方顺时针填满，满了 = 可以松手。
+## 底下的浅色圈上每一拍一个刻度，可以跟着数拍子
+func _draw_hold_progress(center: Vector2, radius: float, n: NoteData) -> void:
+	var length := maxf(hold_beats(n), 0.001)
+	var p := clampf((song_beat() - n.beat) / length, 0.0, 1.0)
+	# 和按完时的绿圈一样：就画在判定圈上、一样粗。
+	# 跟着拍子：拍点上往外胀、变粗、外面闪一圈光，拍子之间缩回来；颜色随按住的进度从粉慢慢转到青
+	var beat_k := pow(1.0 - fposmod(song_beat(), 1.0), 3.0)
+	var r := radius * (1.0 + hold_progress_pulse * beat_k)
+	var w := 15.0 * (1.0 + 0.5 * beat_k)
+	var c := Color.from_hsv(fposmod(hold_progress_color.h - hold_progress_hue_shift * p, 1.0),
+			hold_progress_color.s, hold_progress_color.v)
+	if beat_k > 0.02:
+		draw_arc(center, r * (1.0 + 0.08 * beat_k), 0.0, TAU, 96, Color(c, 0.35 * beat_k), w * 1.8, true)
+	draw_arc(center, r, 0.0, TAU, 96, Color(1, 1, 1, 0.18), w, true)
+	var beats := int(round(length))
+	for b in range(1, beats):
+		var ang := -PI / 2.0 + TAU * b / length
+		var dir := Vector2.from_angle(ang)
+		draw_line(center + dir * (r - w * 0.7), center + dir * (r + w * 0.7), Color(1, 1, 1, 0.55), 2.0, true)
+	if p > 0.0:
+		draw_arc(center, r, -PI / 2.0, -PI / 2.0 + TAU * p, maxi(8, int(96 * p)), c, w, true)
+
+
+## 长按按完：判定圈闪一圈绿光往外扩
+func _draw_hold_ok(center: Vector2, radius: float) -> void:
+	var t := clampf(_hold_ok_age / maxf(hold_ok_seconds, 0.01), 0.0, 1.0)
+	var c := Color(hold_ok_color, 1.0 - t)
+	draw_arc(center, radius, 0.0, TAU, 96, c, 12.0 * (1.0 - t) + 3.0, true)
+	draw_arc(center, radius * (1.0 + t * 0.9), 0.0, TAU, 96, Color(c, c.a * 0.7), 8.0 * (1.0 - t) + 1.0, true)
 
 
 ## 按住时贴着判定圈的一圈细闪电
@@ -281,3 +343,102 @@ func _send_hit(pressed: bool) -> void:
 	e.action = Judge.HIT_ACTION
 	e.pressed = pressed
 	Input.parse_input_event(e)
+
+
+# ---------------- 结尾：钻进屏幕，接到下一个小关 ----------------
+
+## 全亮之后那次长按按完：不再出音符，下一个小关的画面先在一块看不见的画布上跑起来，贴到中间那台电视的屏幕上；
+## 镜头钻进屏幕、画面铺满全屏的那一拍（小节线）让框架切到真正的下一个小关。
+## Judge 和 Gauge 是主场景里框架的节点，这里只调它们现成的方法（和迪斯科结尾同一种做法）。
+func _start_finale() -> void:
+	_finale = true
+	if _auto_down:
+		_send_hit(false)
+		_auto_down = false
+	var main := get_parent().get_parent() if get_parent() else null
+	if main and main.get("judge"):
+		main.judge.stop_notes()
+	var bpb: int = Conductor.chart.beats_per_bar
+	var now := song_beat()
+	var switch_at := ceilf((now + finale_min_beats) / bpb) * bpb
+	var live: Texture2D = null
+	var next := _next_def()
+	if next and next.scene:
+		# 下一个小关提前跑起来（没有音符），画面和待会儿真正切过去时是同一拍的同一个场景
+		_next_view = SubViewport.new()
+		_next_view.size = Vector2i(screen_size())
+		_next_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		add_child(_next_view)
+		next.start_beat = switch_at
+		var preview := next.scene.instantiate() as SpinSection
+		var none: Array[NoteData] = []
+		preview.setup(next, none)
+		_next_view.add_child(preview)
+		preview.enter()
+		live = _next_view.get_texture()
+		_fill_at = switch_at - 1.5
+	_stage.start_finale(now, switch_at, live)
+
+
+func _next_def() -> SectionDef:
+	var sections: Array = Conductor.chart.sections
+	var i := sections.find(def)
+	return sections[i + 1] if i >= 0 and i + 1 < sections.size() else null
+
+
+## 把积累条顶满，框架会在下一个小节线切到下一个小关
+func _fill_gauge_now() -> void:
+	_fill_at = INF
+	var main := get_parent().get_parent() if get_parent() else null
+	if main == null or not main.get("gauge"):
+		return
+	var g: Gauge = main.gauge
+	while not g.full:
+		g.apply(NoteData.Result.PERFECT)
+
+
+func _on_exit() -> void:
+	if _finale:
+		_leave_crossfade()
+
+
+## 切走的那一刻把最后一帧画面留在最上面很快淡掉，盖住框架切关时的白闪
+func _leave_crossfade() -> void:
+	var img := get_viewport().get_texture().get_image()
+	if img == null or img.is_empty():
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var rect := TextureRect.new()
+	rect.texture = ImageTexture.create_from_image(img)
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(rect)
+	get_tree().root.add_child(layer)
+	var t := layer.create_tween()
+	t.tween_property(rect, "modulate:a", 0.0, crossfade_seconds)
+	t.tween_callback(layer.queue_free)
+
+
+## 调试：按 T 直接跳到「电视全亮」（只在调试版里有效），方便测后面钻进屏幕那一段
+func _unhandled_key_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key and key.pressed and not key.echo and key.physical_keycode == KEY_T and OS.is_debug_build():
+		if _stage and not _finale:
+			_stage.skip_to_all_lit()
+
+
+## 计分用（见 main.gd 的 _compute_stage_weights）：这一段不靠积累条推进，谱子放一遍就完，按一遍的音符数算它占这关满分的比例
+const SCORE_BY_PATTERN := true
+
+
+## 音符的颜色：长按统一是粉色，点按按音色
+func note_color(n: NoteData) -> Color:
+	return hold_progress_color if hold_beats(n) > 0.0 else sound_color(n)
+
+
+## 辅助线 / 预亮也用同一套颜色（长按的拍子是粉色）
+func guide_color(n: NoteData) -> Color:
+	return note_color(n)

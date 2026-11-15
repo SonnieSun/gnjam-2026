@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://23vo31105b7b" path="res://scripts/music/hit_meow.gd" id="7_hitmeow"]
 [ext_resource type="Script" uid="uid://12x1km25tq2n" path="res://scripts/fx/screen_fx.gd" id="7_sfx"]
 [ext_resource type="Script" uid="uid://ch2o53k10oukc" path="res://scripts/fx/meme_cues.gd" id="8_memes"]
+[ext_resource type="FontFile" uid="uid://bhupe73q6khh6" path="res://assets/fonts/CandyGem/CandyGem.fnt" id="9_candygem"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_border"]
 draw_center = false
@@ -125,6 +126,17 @@ offset_bottom = 60.0
 theme_override_font_sizes/font_size = 32
 horizontal_alignment = 1
 
+[node name="TimingLabel" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 58.0
+offset_right = 300.0
+offset_bottom = 84.0
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+
 [node name="MilestoneLabel" parent="HUD" instance=ExtResource("96_milestone")]
 anchors_preset = 6
 anchor_left = 1.0
@@ -151,6 +163,22 @@ visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+
+[node name="RankLabel" type="Label" parent="HUD"]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 20.0
+offset_right = 200.0
+offset_bottom = 220.0
+grow_horizontal = 2
+theme_override_fonts/font = ExtResource("9_candygem")
+theme_override_font_sizes/font_size = 180
+text = "S"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="GaugeBar" type="ProgressBar" parent="HUD" unique_id=1264075462]
 anchors_preset = 7

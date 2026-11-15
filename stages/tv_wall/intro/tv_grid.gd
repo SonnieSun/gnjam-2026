@@ -1,29 +1,32 @@
 class_name TvGrid
 extends Node3D
-## 只有电视的墙（电视墙关开场用）：电视机的做法和 TvWallRoom 一样（外壳、屏幕、玻璃盖、旋钮），
+## 只有电视的墙（电视墙关开场用）：电视用 Kisa 的粉色复古电视模型（stages/tv_wall/retro_tv/retro_tv.glb），
 ## 不带柜子、录像机、桌子。电视错落摆在一个竖直平面上，围着中间下方的洗衣机，背景全黑。
 ## 一开始全部不显示；light_up(i) 让第 i 台亮起来（白闪一下再显示猫脸画面）。
+## 屏幕画面用我们自己的屏幕 shader 盖在模型的 Screen 网格上（没用模型自带的 tv_screen.gd）。
 ## 屏幕里的猫脸和 TvWallRoom 一样由两个小 SubViewport 实时渲染 CATS.fbx。
 
 const SCREEN_SHADER := preload("res://stages/tv_wall/tv_screen.gdshader")
-const GLASS_SHADER := preload("res://stages/tv_wall/glass_aero.gdshader")
-const SHELLS: Array[Color] = [
-	Color(0.92, 0.94, 0.97), Color(0.62, 0.68, 1.0), Color(0.7, 0.9, 1.0),
-	Color(0.85, 0.8, 0.95), Color(0.55, 0.85, 0.8),
+const TV_MODEL := preload("res://stages/tv_wall/retro_tv/retro_tv.glb")
+## 外壳颜色（设定图的粉、紫、薄荷，加两个过渡色）；摆位表里的「外壳色」是这里的序号
+@export var shell_colors: Array[Color] = [
+	Color(1.0, 0.56, 0.76), Color(0.72, 0.62, 1.0), Color(0.5, 0.95, 0.85),
+	Color(1.0, 0.72, 0.6), Color(0.6, 0.8, 1.0),
 ]
 
-## 电视摆位：每台 [屏幕中心 x, 中心 y, 宽, 歪斜角度, 外壳色, 画面]（米；洗衣机中心在 0,0，宽 0.6 高 0.84）
+## 电视摆位：每台 [屏幕中心 x, 中心 y, 宽, 歪斜角度, 外壳色, 画面, 左右转角, 俯仰角]（米 / 度；洗衣机中心在 0,0，宽 0.6 高 0.84）。
+## 左右转角正数 = 屏幕转向右边，俯仰角正数 = 屏幕朝下。有大有小、各自歪着，朝中间的洗衣机围过来。
 @export var layout: Array = [
-	[-1.55, 1.15, 0.75, 3.0, 0, 0],
-	[-0.75, 0.95, 0.7, -3.0, 2, 1],
-	[0.15, 0.88, 0.95, 2.0, 3, 0],
-	[0.95, 1.38, 0.6, -4.0, 1, 1],
-	[1.6, 0.8, 0.8, 3.0, 4, 0],
-	[-1.2, 0.2, 0.8, -2.0, 1, 1],
-	[1.05, 0.0, 0.8, 2.5, 0, 0],
-	[-1.75, -0.55, 0.5, 4.0, 3, 1],
-	[-0.85, -0.5, 0.65, -3.0, 4, 0],
-	[1.35, -0.66, 0.75, -2.0, 2, 1],
+	[-1.6, 1.15, 0.85, 8.0, 0, 0, 28.0, 12.0],
+	[-0.75, 0.98, 0.5, -10.0, 2, 1, 14.0, 8.0],
+	[0.15, 0.92, 1.0, 4.0, 3, 0, -6.0, 10.0],
+	[0.98, 1.4, 0.45, -14.0, 1, 1, -18.0, 16.0],
+	[1.65, 0.8, 0.9, 9.0, 4, 0, -30.0, 6.0],
+	[-1.2, 0.15, 0.7, -7.0, 1, 1, 24.0, -4.0],
+	[1.05, 0.0, 0.6, 12.0, 0, 0, -20.0, -2.0],
+	[-1.8, -0.55, 0.4, 16.0, 3, 1, 34.0, -12.0],
+	[-0.85, -0.55, 0.55, -12.0, 4, 0, 16.0, -14.0],
+	[1.45, -0.6, 0.95, -6.0, 2, 1, -26.0, -10.0],
 ]
 ## 电视墙所在的深度（洗衣机正面在 z = 0.31）
 @export var wall_z := -0.05
@@ -34,6 +37,8 @@ const SHELLS: Array[Color] = [
 
 ## 每台电视：{root, mat, light, center（屏幕中心，世界坐标）, lit, t（亮起来之后过了几秒）, flash}
 var tvs: Array[Dictionary] = []
+## 闪烁强度 0~1（结尾那次长按时由舞台设）
+var flicker := 0.0
 
 var _rng := RandomNumberGenerator.new()
 var _feeds: Array[Texture2D] = []
@@ -98,6 +103,13 @@ func update(dt: float, beat_pulse: float) -> void:
 		mat.set_shader_parameter("power", power)
 		mat.set_shader_parameter("static_level", 0.3)
 		mat.set_shader_parameter("flash", tv.flash)
+		# 闪烁：每台电视各闪各的，越到后面闪得越凶
+		var dim := 1.0
+		if flicker > 0.0:
+			dim = 1.0 - flicker * (0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.001 * (38.0 + tv.home.x * 7.0) + tv.home.y * 9.0)) * _rng.randf_range(0.6, 1.0)
+		mat.set_shader_parameter("dim", dim)
+		power *= dim
+		mat.set_shader_parameter("power", power)
 		(tv.light as OmniLight3D).light_energy = lit_light_energy * power * (1.0 + beat_pulse * 0.6) + tv.flash * 1.5
 
 
@@ -140,60 +152,61 @@ func _make_feeds() -> void:
 
 func _build_tvs() -> void:
 	for t in layout:
-		var w: float = t[2]
-		var h := w * 0.8
-		var d := w * 0.85
-		var root := Node3D.new()
-		# 摆位给的是屏幕中心，电视的原点在底部中间
-		root.position = Vector3(t[0], t[1] - h * 0.5, wall_z)
-		root.rotation_degrees = Vector3(0.0, 0.0, t[3])
-		root.visible = false
-		add_child(root)
-		var shell: Color = SHELLS[t[4]]
-		_box(Vector3(w, h, d * 0.45), Vector3(0.0, h * 0.5, -d * 0.22), _plastic(shell, 0.12), root)
-		var hood := _box(Vector3(w * 0.8, h * 0.78, d * 0.5), Vector3(0.0, h * 0.5, -d * 0.65),
-				_glass(shell.lerp(Color(0.6, 0.95, 1.0), 0.5)), root)
-		hood.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		# 屏幕
-		var scr := MeshInstance3D.new()
-		var q := QuadMesh.new()
-		q.size = Vector2(w * 0.74, h * 0.7)
-		scr.mesh = q
-		scr.position = Vector3(-w * 0.06, h * 0.52, 0.006)
-		var mat := _screen_mat(t[5])
-		scr.material_override = mat
-		root.add_child(scr)
-		# 屏幕外的玻璃盖
-		var cover := MeshInstance3D.new()
-		var sp := SphereMesh.new()
-		sp.radius = 1.0
-		sp.height = 2.0
-		cover.mesh = sp
-		cover.scale = Vector3(w * 0.39, h * 0.37, 0.05)
-		cover.position = scr.position
-		var cover_mat := _glass(Color(0.75, 1.0, 0.95))
-		cover_mat.set_shader_parameter("face_alpha", 0.02)
-		cover.material_override = cover_mat
-		cover.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		root.add_child(cover)
-		# 旋钮、金色指示灯、录像带插口
-		for i in 2:
-			var knob := _cyl(w * 0.04, 0.03, Vector3(w * 0.4, h * (0.68 - i * 0.2), 0.015), _plastic(Color(0.85, 0.87, 0.9), 0.1), root)
-			knob.rotation_degrees.x = 90.0
-		_box(Vector3(0.03, 0.015, 0.01), Vector3(w * 0.4, h * 0.16, 0.005), _neon(Color(1.0, 0.8, 0.35), 3.0), root)
-		_box(Vector3(w * 0.36, 0.022, 0.01), Vector3(-w * 0.1, h * 0.08, 0.004), _plastic(Color(0.02, 0.03, 0.04), 0.3), root)
-		# 屏幕前面一盏灯：亮起来之后照亮自己的外壳和旁边的电视
-		var light := OmniLight3D.new()
-		light.position = scr.position + Vector3(0.0, 0.0, 0.6)
-		light.light_color = Color(0.45, 0.95, 0.85)
-		light.light_energy = 0.0
-		light.omni_range = 1.6
-		light.light_specular = 0.0
-		root.add_child(light)
-		tvs.append({
-			"root": root, "mat": mat, "light": light, "local_center": scr.position,
-			"lit": false, "t": 0.0, "flash": 0.0,
-		})
+		var root := TV_MODEL.instantiate() as Node3D
+		var box := _screen_box(root)
+		# 摆位给的是屏幕中心；模型原点在底部中间，屏幕朝 +Z；模型宽 1 米，缩放 = 想要的宽度
+		root.scale = Vector3.ONE * float(t[2])
+		root.rotation_degrees = Vector3(t[7], t[6], t[3])
+		root.position = Vector3(t[0], t[1], wall_z) - root.transform.basis * Vector3(box.get_center().x, box.get_center().y, box.end.z)
+		_setup_tv(root, t[4], t[5])
+
+
+## 屏幕在模型里的位置和大小（模型自己的坐标）
+func _screen_box(root: Node3D) -> AABB:
+	var scr := root.find_child("Screen", true, false) as MeshInstance3D
+	var to_root := Transform3D.IDENTITY
+	var cur: Node = scr
+	while cur != root:
+		to_root = (cur as Node3D).transform * to_root
+		cur = cur.get_parent()
+	return to_root * scr.get_aabb()
+
+
+## 一台摆好位置的电视：换外壳色、盖上屏幕 shader、加屏幕灯，登记进 tvs
+func _setup_tv(root: Node3D, color_i: int, feed: int) -> void:
+	var scr := root.find_child("Screen", true, false) as MeshInstance3D
+	var box := _screen_box(root)
+	var local_center := Vector3(box.get_center().x, box.get_center().y, box.end.z)
+	var s := root.scale.x
+	root.visible = false
+	add_child(root)
+	# 外壳和控制区换色。材质放到 material_override 上，漫画滤镜才认得（贴纸是透明的，保持原样）
+	var shell: Color = shell_colors[color_i % shell_colors.size()]
+	_tint(root.find_child("Shell", true, false), shell)
+	for part in ["Controls", "ControlsDots_L", "ControlsDots_R"]:
+		_tint(root.find_child(part, true, false), shell.darkened(0.12))
+	var mat := _screen_mat(feed)
+	scr.material_override = mat
+	# 屏幕前面一盏灯：亮起来之后照亮自己的外壳和旁边的电视
+	var light := OmniLight3D.new()
+	light.position = local_center + Vector3(0.0, 0.0, 0.6)
+	light.light_color = Color(0.45, 0.95, 0.85)
+	light.light_energy = 0.0
+	light.omni_range = 1.6 / maxf(s, 0.01)
+	light.light_specular = 0.0
+	root.add_child(light)
+	tvs.append({
+		"root": root, "mat": mat, "light": light, "local_center": local_center,
+		"screen": scr, "cover": null, "size": Vector2(box.size.x, box.size.y) * s, "home": root.position,
+		"lit": false, "t": 0.0, "flash": 0.0,
+	})
+
+
+func _tint(node: Node, col: Color) -> void:
+	var mi := node as MeshInstance3D
+	var m := (mi.get_active_material(0) as StandardMaterial3D).duplicate() as StandardMaterial3D
+	m.albedo_color = col
+	mi.material_override = m
 
 
 # ---------------- 材质 / 小工具（和 TvWallRoom 同样的做法） ----------------
@@ -228,11 +241,6 @@ static func _plastic(c: Color, rough: float) -> StandardMaterial3D:
 	return m
 
 
-static func _glass(tint: Color) -> ShaderMaterial:
-	var m := ShaderMaterial.new()
-	m.shader = GLASS_SHADER
-	m.set_shader_parameter("tint", tint)
-	return m
 
 
 static func _neon(c: Color, energy: float) -> StandardMaterial3D:
@@ -266,3 +274,58 @@ func _cyl(r: float, h: float, pos: Vector3, mat: Material, parent: Node3D = self
 	mi.material_override = mat
 	parent.add_child(mi)
 	return mi
+
+
+# ---------------- 结尾演出用 ----------------
+
+const INTRO_SCREEN_SHADER := preload("res://stages/tv_wall/intro/tv_intro_screen.gdshader")
+
+
+## 所有屏幕换成同一张图（白闪一下）。之后屏幕用 tv_intro_screen.gdshader。
+func show_image(image: Texture2D) -> void:
+	for tv in tvs:
+		var m := ShaderMaterial.new()
+		m.shader = INTRO_SCREEN_SHADER
+		m.set_shader_parameter("image", image)
+		m.set_shader_parameter("screen_aspect", tv.size.x / tv.size.y)
+		(tv.screen as MeshInstance3D).material_override = m
+		tv.mat = m
+		tv.flash = 1.0
+	flicker = 0.0
+
+
+## 第 i 台电视的屏幕材质（show_image 之后是 tv_intro_screen.gdshader 的材质）
+func screen_material(i: int) -> ShaderMaterial:
+	return tvs[i].mat
+
+
+## 屏幕的宽、高（米）
+func screen_size(i: int) -> Vector2:
+	return tvs[i].size
+
+
+## 屏幕外的玻璃盖显示 / 藏起来（镜头钻进屏幕前藏掉）
+func set_cover_visible(i: int, on: bool) -> void:
+	if tvs[i].cover:
+		(tvs[i].cover as Node3D).visible = on
+
+
+## 离屏幕中心最近的那台电视（「中间的电视」）
+func nearest_to(p: Vector3) -> int:
+	var best := 0
+	for i in tvs.size():
+		if screen_center(i).distance_to(p) < screen_center(best).distance_to(p):
+			best = i
+	return best
+
+
+## 除了第 keep 台，其他电视从它那里往外散开。amount 0 = 原位，1 = 散到最远（distance 米）
+func scatter(keep: int, amount: float, distance: float) -> void:
+	var c: Vector3 = tvs[keep].home
+	for i in tvs.size():
+		if i == keep:
+			continue
+		var tv: Dictionary = tvs[i]
+		var dir := ((tv.home as Vector3) - c)
+		dir.z = 0.0
+		(tv.root as Node3D).position = (tv.home as Vector3) + dir.normalized() * distance * amount

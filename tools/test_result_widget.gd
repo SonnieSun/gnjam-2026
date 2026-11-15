@@ -9,6 +9,8 @@ func _run() -> void:
 		assert(ResultWidget.rank_for(spec[0],spec[1]) == spec[2])
 	DirAccess.make_dir_recursive_absolute("res://docs/result_grades")
 	Levels.selected=0
+	var game_script = load("res://scripts/main.gd")
+	game_script.in_run = false
 	change_scene_to_file(Levels.GAME_SCENE)
 	await create_timer(0.8).timeout
 	var game := current_scene
@@ -16,6 +18,8 @@ func _run() -> void:
 	var judge=game.judge
 	# Plausible 100-note performances with the game's actual 100/80/50 scoring.
 	for spec in [[90,10,0,0,9800,"S"],[70,10,10,10,8300,"B"],[75,10,10,5,8800,"A"],[40,10,10,40,5300,"C"]]:
+		judge._stage_weight=0.0 # Fixture already represents a banked stage.
+		judge.possible=10000.0
 		judge.counts={NoteData.Result.PERFECT:spec[0],NoteData.Result.GREAT:spec[1],NoteData.Result.GOOD:spec[2],NoteData.Result.MISS:spec[3]}
 		judge.score=spec[4]
 		judge.max_combo=60

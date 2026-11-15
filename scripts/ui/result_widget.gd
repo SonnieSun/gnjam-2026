@@ -25,8 +25,14 @@ func show_result(judge) -> void:
 	var total := 0
 	for result in [NoteData.Result.PERFECT, NoteData.Result.GREAT, NoteData.Result.GOOD, NoteData.Result.MISS]:
 		total += int(judge.counts.get(result, 0))
-	grade = rank_for(judge.score, total)
-	accuracy = clampf(float(judge.score) / float(total * 100), 0.0, 1.0) if total > 0 else 0.0
+	# Current scoring banks weighted stages; judged-note count is not its maximum.
+	var possible: float = float(judge.get("possible")) if judge.get("possible") != null else 0.0
+	if possible > 0.0:
+		grade = judge.rank()
+		accuracy = clampf(float(judge.score) / possible,0.0,1.0)
+	else:
+		grade = rank_for(judge.score,total)
+		accuracy = clampf(float(judge.score) / float(total*100),0.0,1.0) if total > 0 else 0.0
 	grade_art.texture = GRADES[grade]
 	percent_label.text = "ACCURACY  %.2f%%" % (accuracy * 100.0)
 	var ms: float = judge.mean_offset() * 1000.0

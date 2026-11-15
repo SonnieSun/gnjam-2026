@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="SongChart" format=3]
+
+[ext_resource type="AudioStream" path="res://assets/fantasy/hat.wav" id="1_mkr00"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/kick.wav" id="2_s82gm"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/snare.wav" id="3_pay8u"]
+[ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_matbv"]
+[ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_kfdwl"]
+[ext_resource type="PackedScene" path="res://scenes/sections/kisa/tv_wall_intro.tscn" id="6_5j17s"]
+[ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="7_tyvne"]
+[ext_resource type="PackedScene" path="res://scenes/sections/kisa/earth_slap.tscn" id="8_earth"]
+
+[sub_resource type="Resource" id="Resource_h24y6"]
+script = ExtResource("5_kfdwl")
+title = "TV WALL"
+scene = ExtResource("6_5j17s")
+beats_per_rev = 8.0
+bars = PackedStringArray("k.......k.......", "k===========....", "k.......k.......", "k===========....", "k.......k.......", "k===========....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....")
+gauge_events = PackedInt32Array()
+
+[sub_resource type="Resource" id="Section_slap_warm"]
+script = ExtResource("5_kfdwl")
+title = "SLAP / WARM UP"
+scene = ExtResource("8_earth")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...k...k...k...", "k...k...k...k...")
+transition = 1
+gauge_max = 60
+use_gauge_events = true
+gauge_events = PackedInt32Array(30)
+
+[sub_resource type="Resource" id="Section_slap_charge"]
+script = ExtResource("5_kfdwl")
+title = "SLAP / CHARGE"
+joins_previous = true
+scene = ExtResource("8_earth")
+beats_per_rev = 8.0
+bars = PackedStringArray("h.h.h.h.s.......", "h.h.h.h.s.......")
+transition = 1
+gauge_max = 30
+use_gauge_events = true
+gauge_events = PackedInt32Array(15)
+
+[sub_resource type="Resource" id="Section_slap_power"]
+script = ExtResource("5_kfdwl")
+title = "SLAP / POWER"
+joins_previous = true
+scene = ExtResource("8_earth")
+beats_per_rev = 8.0
+bars = PackedStringArray("hhhhhhh.s.......", "hh.hhhh.s.......")
+transition = 1
+gauge_max = 45
+use_gauge_events = true
+gauge_events = PackedInt32Array()
+
+[resource]
+script = ExtResource("4_matbv")
+title = "TV WALL"
+stream = ExtResource("7_tyvne")
+bpm = 120.0
+rest_bars_on_switch = 2
+drum_kick = ExtResource("2_s82gm")
+drum_snare = ExtResource("3_pay8u")
+drum_hat = ExtResource("1_mkr00")
+sections = Array[ExtResource("5_kfdwl")]([SubResource("Resource_h24y6"), SubResource("Section_slap_warm"), SubResource("Section_slap_charge"), SubResource("Section_slap_power")])

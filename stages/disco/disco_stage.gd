@@ -106,9 +106,16 @@ signal stage_changed(stage: int)
 ## 墙灯、电脑屏幕每拍闪的幅度（发光强度最多变成原来的 1 + 这个值 倍）
 @export var prop_pulse := 1.5
 ## 灯球转一圈用几拍
-@export var ball_beats_per_rev := 8.0
+@export var ball_beats_per_rev := 24.0  # 光束和射灯挂在灯球上一起转；原来 8 拍一圈太快，晃眼
 
 @export_group("灯球光束和闪光")
+## 勾上 = 灯球打出来的光（光束、地上的光斑、射灯、灯球自己的光）全用白色，并且暗一点、少闪一点，不晃眼；
+## 不勾 = 原来的彩色迪斯科灯
+@export var white_light := true
+@export var white_light_color := Color(1.0, 0.97, 0.92)
+## 白光时整体亮度（乘在原来的亮度上）、闪烁和跟拍闪还剩多少
+@export_range(0.1, 1.0) var white_brightness := 0.35
+@export_range(0.0, 1.0) var white_flicker := 0.3
 ## 灯球往地上打的光束：有几根、用哪些颜色（每隔 beam_color_beats 拍颜色整体轮换一格）
 @export var beam_count := 14
 @export var beam_colors: Array[Color] = [
@@ -116,6 +123,8 @@ signal stage_changed(stage: int)
 	Color(1.0, 0.45, 0.15), Color(0.3, 1.0, 0.5), Color(1.0, 0.25, 0.3), Color(0.3, 0.5, 1.0),
 ]
 @export var beam_color_beats := 2.0
+## 勾上 = 显示灯球射出来的一根根光束（光柱本身）；不勾 = 光柱藏起来，只留它们打在地上的光斑
+@export var ball_beams_visible := false
 ## 光束亮度、每拍多亮一下、自己闪烁的幅度（0 = 不闪）
 @export var ball_beam_strength := 0.55
 @export var ball_beam_pulse := 0.5
@@ -311,7 +320,7 @@ func setup(cat: KisaSpinCat3D) -> void:
 	_setup_glints(cat)
 	for i in spot_colors.size():
 		var spot := SpotLight3D.new()
-		spot.light_color = spot_colors[i]
+		spot.light_color = white_light_color if white_light else spot_colors[i]
 		spot.light_energy = 0.0
 		spot.spot_range = 70.0
 		spot.spot_attenuation = 0.6
@@ -463,9 +472,9 @@ func update(beat: float) -> void:
 		if _ball_mirror:
 			_ball_mirror.set_shader_parameter("glow", ball_glow * 0.3 + pulse * 0.5)
 		for spot in _spot_rig.get_children():
-			(spot as SpotLight3D).light_energy = (spot_energy + pulse * spot_pulse) * ball_fade
-		_ball_light.light_energy = ball_light_energy * (0.6 + pulse) * ball_fade
-		_ball_light.light_color = beam_colors[int(beat) % beam_colors.size()]
+			(spot as SpotLight3D).light_energy = (spot_energy + pulse * spot_pulse * _calm()) * ball_fade * _dim()
+		_ball_light.light_energy = ball_light_energy * (0.6 + pulse * _calm()) * ball_fade * _dim()
+		_ball_light.light_color = white_light_color if white_light else beam_colors[int(beat) % beam_colors.size()]
 		if _ball_mirror:
 			_ball_mirror.set_shader_parameter("sparkle", ball_sparkle)
 			_ball_mirror.set_shader_parameter("sparkle_boost", pulse * ball_sparkle_pulse)
@@ -725,16 +734,27 @@ func _setup_ball_beams() -> void:
 	_beam_rig.visible = false
 
 
+## 白光时亮度乘多少 / 闪烁剩多少（彩色时都是 1，和原来一样）
+func _dim() -> float:
+	return white_brightness if white_light else 1.0
+
+
+func _calm() -> float:
+	return white_flicker if white_light else 1.0
+
+
 func _update_ball_beams(beat: float, now: float, pulse: float) -> void:
 	var shift := int(beat / beam_color_beats)
 	for i in _ball_beams.size():
-		var color := beam_colors[(i + shift) % beam_colors.size()]
+		var color := white_light_color if white_light else beam_colors[(i + shift) % beam_colors.size()]
 		# 自己的闪烁（两个不同频率的波相乘，忽明忽暗）+ 每半拍绕一圈追着亮
 		var shimmer := 0.5 + 0.5 * sin(now * 11.0 + i * 1.7) * sin(now * 6.3 + i * 2.9)
 		var chase := exp(-fposmod(beat * 2.0 - float(i) / _ball_beams.size() * 2.0, 1.0) * 4.0)
-		var k := (1.0 - ball_beam_flicker) + ball_beam_flicker * (shimmer * 0.7 + chase * 0.9)
-		k *= 1.0 + pulse * ball_beam_pulse
+		var flicker := ball_beam_flicker * _calm()
+		var k := (1.0 - flicker) + flicker * (shimmer * 0.7 + chase * 0.9)
+		k *= (1.0 + pulse * ball_beam_pulse * _calm()) * _dim()
 		var beam := _ball_beams[i]
+		beam.visible = ball_beams_visible
 		beam.set_instance_shader_parameter("beam_color", color)
 		beam.set_instance_shader_parameter("strength", ball_beam_strength * k * ball_fade)
 		_ball_beam_lights[i].light_color = color

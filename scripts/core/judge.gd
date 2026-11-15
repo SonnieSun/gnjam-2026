@@ -17,6 +17,21 @@ signal combo_milestone(combo: int)
 ## Good 的窗口早晚分开：人更容易按晚，晚的一侧稍宽
 @export var good_window_early := 0.12
 @export var good_window_late := 0.14
+## 计分（按阶段入账）：每个大关满分 level_max。阶段 = 小关，它的满分 = level_max × 它的占比
+## （占比由 main.gd 按各小关的满条值算好传进来）。一个阶段打完时，
+## 加上「这个阶段的满分 × 这个阶段的准确率」，分数只在这时跳一次，打的过程中不动。
+## 准确率 = 各档权重之和 ÷ 这个阶段判定过的音符数。连击不加分，只在结算里显示最大连击。
+## 某一关要留一部分满分给别的玩法（比如飞船关打星球），就把 accuracy_share 设小，剩下的用 add_bonus() 加。
+@export_group("计分")
+@export var level_max := 1000000
+@export var perfect_weight := 1.0
+@export var great_weight := 0.8
+@export var good_weight := 0.5
+## 结算评级：得分占满分的比例到这些线分别是 S / A / B，其余 C
+@export_range(0.0, 1.0, 0.01) var rank_s := 0.95
+@export_range(0.0, 1.0, 0.01) var rank_a := 0.85
+@export_range(0.0, 1.0, 0.01) var rank_b := 0.70
+@export_group("")
 const HIT_ACTION := "hit"
 const COMBO_MILESTONES: Array[int] = [10, 20, 50, 100, 200, 300, 400, 500]
 
@@ -27,6 +42,15 @@ var max_combo := 0
 var counts := {}
 ## 打中的音符各偏了多少秒（正 = 晚），结算时算平均偏差用
 var hit_offsets: Array[float] = []
+## 这一关准确率部分占满分的比例（进大关时回到 1；飞船关这类自己设 0.8，剩下的用 add_bonus 加）
+var accuracy_share := 1.0
+## 到现在为止已经入账的满分（算评级比例用）
+var possible := 0.0
+## 当前阶段（小关）各档的个数
+var stage_counts := {}
+## 已废弃（以前的“按关覆盖实时算分”钩子），现在不再使用，留着免得旧代码报错
+var score_rule := Callable()
+var _stage_weight := 0.0
 
 var _next := 0  # 第一个还没判定的音符
 
@@ -38,6 +62,12 @@ var _pattern_origin := 0.0
 var _pattern_k := 0
 var _section_index := 0
 var _section_notes: Array[NoteData] = []
+
+# 长按（见 begin_hold）：开头那一下照常当普通音符判，按住的部分也在这里盯，用的是同一个判定时钟
+var _hold_note: NoteData
+var _hold_end := 0.0
+var _hold_grace := 0.0
+var _hold_done := Callable()
 
 
 func _ready() -> void:
@@ -59,6 +89,7 @@ static func ensure_input() -> void:
 
 ## 换一个大关时调用（清空音符和成绩）
 func load_chart(_chart: SongChart) -> void:
+	accuracy_share = 1.0
 	reset()
 
 
@@ -68,11 +99,15 @@ func reset(_from_beat: float = 0.0) -> void:
 	combo = 0
 	max_combo = 0
 	counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GREAT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
+	stage_counts = counts.duplicate()
+	possible = 0.0
+	_stage_weight = 0.0
 	hit_offsets = []
 	notes = []
 	_next = 0
 	_pattern = []
 	_section_notes = []
+	cancel_hold()
 	stats_changed.emit()
 
 
@@ -82,6 +117,7 @@ func reset(_from_beat: float = 0.0) -> void:
 func begin_section(index: int, def: SectionDef, beats_per_bar: int,
 		start_beat: float, first_note_beat: float) -> Array[NoteData]:
 	_drop_notes_from(start_beat)
+	cancel_hold()
 	_section_index = index
 	_pattern = def.parse_notes(beats_per_bar)
 	_pattern_len = def.length_beats(beats_per_bar)
@@ -112,6 +148,7 @@ func _generate() -> void:
 		n.beat = beat
 		n.sound = d.sound
 		n.section_index = _section_index
+		n.apply_props(d)  # 谱面编辑器里给的表现属性（不影响判定）
 		notes.append(n)
 		_section_notes.append(n)
 		_pattern_k += 1
@@ -127,6 +164,9 @@ func _process(_delta: float) -> void:
 	if not Conductor.playing:
 		return
 	_generate()
+	# 长按按到了尾巴：成功
+	if _hold_note and Conductor.input_beat() >= _hold_end:
+		_finish_hold(true, _hold_end)
 	# 过了判定窗口还没按的算 Miss（可能有后面的音符已经先被判掉了，跳过它们）
 	var now := Conductor.input_time()
 	while _next < notes.size():
@@ -136,11 +176,23 @@ func _process(_delta: float) -> void:
 			continue
 		if now - Conductor.beat_to_sec(n.beat) <= good_window_late:
 			break
+		if n.free:  # 不判定的音符：过了就过了，不算 Miss
+			n.judged = true
+			_next += 1
+			continue
 		_apply(n, NoteData.Result.MISS, good_window_late)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not Conductor.playing or not event.is_action_pressed(HIT_ACTION):
+	if not Conductor.playing:
+		return
+	if event.is_action_released(HIT_ACTION):
+		# 松手的那一刻（不是下一帧）按判定时钟算；绑了好几个键时，全松开才算松手
+		if _hold_note and not Input.is_action_pressed(HIT_ACTION):
+			var b := Conductor.input_beat()
+			_finish_hold(b >= _hold_end - _hold_grace, b)
+		return
+	if not event.is_action_pressed(HIT_ACTION):
 		return
 	var now := Conductor.input_time()
 	pressed.emit(_sound_for_press(now))
@@ -149,9 +201,48 @@ func _unhandled_input(event: InputEvent) -> void:
 		var diff := now - Conductor.beat_to_sec(n.beat)
 		var r := _result_for(diff)
 		if r != NoteData.Result.NONE:
-			_apply(n, r, diff)
-			return
+			if n.free:
+				# 不判定的音符：这一下被它吃掉，当成空按交给关卡自己数（连按蓄力）
+				n.judged = true
+				while _next < notes.size() and notes[_next].judged:
+					_next += 1
+			else:
+				_apply(n, r, diff)
+				return
 	empty_hit.emit()
+
+
+## 开始盯一个长按：开头那一下已经判成打中之后，由关卡调用（一般在 note_judged 的处理里）。
+## 按住到 end_beat 算成功；在 end_beat - release_grace_beats 之后松手也算成功；更早松手算失败。
+## 结束时调 on_done(success: bool, release_beat: float)（按到尾巴时 release_beat = end_beat）。
+## 时间都用判定时钟（Conductor.input_beat()：扣了按键延迟，不含画面提前量），和按下的判定是同一把尺子。
+## 同一时间只盯一个长按；新的会顶掉旧的（旧的不回调）。换小关、重开时自动取消。
+func begin_hold(note: NoteData, end_beat: float, release_grace_beats: float, on_done: Callable) -> void:
+	_hold_note = note
+	_hold_end = end_beat
+	_hold_grace = release_grace_beats
+	_hold_done = on_done
+	if not Input.is_action_pressed(HIT_ACTION):
+		# 开头那一下判完就已经松开了（比如点得特别快）
+		_finish_hold(Conductor.input_beat() >= _hold_end - _hold_grace, Conductor.input_beat())
+
+
+## 不再盯现在这个长按（不回调）
+func cancel_hold() -> void:
+	_hold_note = null
+	_hold_done = Callable()
+
+
+## 正在盯的长按音符（没有就是 null）
+func holding() -> NoteData:
+	return _hold_note
+
+
+func _finish_hold(success: bool, release_beat: float) -> void:
+	var cb := _hold_done
+	cancel_hold()
+	if cb.is_valid():
+		cb.call(success, release_beat)
 
 
 ## 离 now 最近的音符（包括刚判过的上一个）。最近的是已经判过的 = 这一下算多按的，不去抢下一个音符。
@@ -212,17 +303,80 @@ func _apply(n: NoteData, result: int, diff: float) -> void:
 	while _next < notes.size() and notes[_next].judged:
 		_next += 1
 	counts[result] += 1
+	stage_counts[result] += 1
 	if result == NoteData.Result.MISS:
 		combo = 0
 	else:
 		combo += 1
 		max_combo = maxi(max_combo, combo)
 		hit_offsets.append(diff)
-		match result:
-			NoteData.Result.PERFECT: score += 100
-			NoteData.Result.GREAT: score += 80
-			_: score += 50
 	note_judged.emit(n, result, diff)
 	if result != NoteData.Result.MISS and combo in COMBO_MILESTONES:
 		combo_milestone.emit(combo)
+	stats_changed.emit()
+
+
+## 给一个“不判定的音符”（NoteData.free）补一个结果：连按这类玩法由关卡自己数按了几下，
+## 数完告诉这里算 Perfect / Good / Miss，照常计分、算连击、弹判定文字。
+func judge_free(n: NoteData, result: int) -> void:
+	if n == null or result == NoteData.Result.NONE:
+		return
+	_apply(n, result, 0.0)
+
+
+## 按得分占满分的比例给评级（阈值见上面“计分”一栏）
+func rank() -> String:
+	var r := float(score) / possible if possible > 0.0 else 0.0
+	if r >= rank_s:
+		return "S"
+	if r >= rank_a:
+		return "A"
+	if r >= rank_b:
+		return "B"
+	return "C"
+
+
+## 开始一个新阶段（小关）：weight = 它占这一大关满分的比例（0~1）。main.gd 在进小关时调。
+func begin_stage(weight: float) -> void:
+	stage_counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GREAT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
+	_stage_weight = weight
+
+
+## 当前阶段（小关）的满分 = level_max × 它的占比（不乘 accuracy_share）。
+## 阶段入账之后（切到下一个小关之前那一下）会变成 0。
+## 某个阶段想把分数全换成别的玩法（比如打星球）时用：accuracy_share 设 0，再按这个满分用 add_bonus 加。
+func stage_max() -> float:
+	return level_max * _stage_weight
+
+
+## 当前阶段的准确率（0~1，还没判定过音符 = 0）
+func stage_accuracy() -> float:
+	var c := stage_counts
+	var total: int = c[NoteData.Result.PERFECT] + c[NoteData.Result.GREAT] + c[NoteData.Result.GOOD] + c[NoteData.Result.MISS]
+	if total <= 0:
+		return 0.0
+	return (c[NoteData.Result.PERFECT] * perfect_weight + c[NoteData.Result.GREAT] * great_weight
+			+ c[NoteData.Result.GOOD] * good_weight) / total
+
+
+## 当前阶段打完：按准确率入账（分数在这里跳一次）。main.gd 在切小关和通关时调；同一阶段只入账一次。
+func bank_stage() -> void:
+	if _stage_weight <= 0.0:
+		return
+	var stage_max := level_max * accuracy_share * _stage_weight
+	score += roundi(stage_max * stage_accuracy())
+	possible += stage_max
+	_stage_weight = 0.0
+	stats_changed.emit()
+
+
+## 加一笔准确率以外的分（可以是负数），max_points = 这一项本来最多能拿多少（算评级比例用）
+func add_bonus(points: int, max_points: float = 0.0) -> void:
+	score = maxi(score + points, 0)
+	possible += max_points
+	stats_changed.emit()
+
+
+## 已废弃：以前按关覆盖实时算分时用，现在分数只在阶段结束时入账，这里只刷新一下显示
+func refresh_score() -> void:
 	stats_changed.emit()

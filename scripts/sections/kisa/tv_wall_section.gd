@@ -44,7 +44,7 @@ func hit_radius() -> float:
 func _update_spin(_local_beat: float, _angle: float) -> void:
 	center_on_screen()
 	if _stage:
-		_stage.update(song_beat(), notes, approach_beats)
+		_stage.update(song_beat(), own_notes(), approach_beats)
 		if autoplay:
 			_autoplay()
 	_flash = maxf(_flash - get_process_delta_time() * 2.5, 0.0)
@@ -90,6 +90,11 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, Vector2(-300.0, 0.0), "电视墙关卡：3D 画面不在编辑器里预览，F5 运行后按 4",
 				HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20)
 		return
+	if _stage:
+		draw_focus(self, hit_position(), hit_radius())
+		# 节拍辅助线：要按的拍子围着那只水果猫要砸的电视收过来；不用按的拍子围着上一台被砸的电视
+		draw_target_guides(self, hit_position(), hit_radius(), ring_travel, approach_beats,
+				func(n: NoteData) -> Array: return [_stage.screen_offset(n), _stage.screen_radius(n)])
 	if _stage:
 		# 每只飞着的水果猫：在它要砸的那台电视上画一个收过来的圈，收到和屏幕一样大时按
 		for n: NoteData in _stage.flying_notes():
