@@ -37,7 +37,7 @@ for group, names in GROUPS.items():
         shutil.copy(src[0], os.path.join(D, 'scene1', group, os.path.basename(src[0]).replace('s1_disc_', 's1_')))
         n += 1
 os.makedirs(os.path.join(D, 'sky'), exist_ok=True)
-for f in glob.glob(os.path.join(L, 'sky', '*b.wav')):          # the sky level and the bridge (make_sky.py)
+for f in glob.glob(os.path.join(L, 'sky', '*b.wav')):          # the sky level, the bridge (make_sky.py) and the cozy opening (make_cozy.py)
     shutil.copy(f, os.path.join(D, 'sky', os.path.basename(f)))
     n += 1
 for song in ('can_can', 'turkish_march', 'ode_to_joy', 'mountain_king', 'fur_elise', 'your_best_friend',

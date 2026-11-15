@@ -79,6 +79,12 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 @export var finale_look := Vector3(3.3, 6.8, 0.0)
 ## 结尾时天空（房间外面的底色）渐渐变成什么颜色
 @export var finale_sky := Color(0.13, 0.08, 0.16)
+## 猫自己飞走的结尾：飞碟走了之后推到猫的特写，离多近、视角多大、俯仰多少度
+@export var fly_closeup_distance := 15.0
+## 特写时镜头绕着猫转多少度（180 = 转到正面）
+@export var fly_closeup_turn := 165.0
+@export var fly_closeup_fov := 38.0
+@export var fly_closeup_pitch := 8.0
 ## 每拍视野「顶」一下的幅度（度）
 @export var fov_punch := 2.5
 
@@ -748,6 +754,19 @@ func fly_away(seconds: float = 4.5) -> float:
 		tu.tween_interval(seconds * 0.18)
 		tu.tween_property(_saucer_node, "position", saucer_position + Vector3(30.0, 55.0, -10.0), seconds * 0.28) \
 				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	# 镜头：飞碟走了之后推到猫的特写，停住；猫起飞时它就从特写里一下子冲出画面
+	var tcam := create_tween()
+	tcam.tween_interval(seconds * 0.30)
+	tcam.tween_callback(func():
+		_cam_a = _current_cam()
+		_cam_b = _cam_a.duplicate()
+		_cam_b["dist"] = fly_closeup_distance
+		_cam_b["fov"] = fly_closeup_fov
+		_cam_b["pitch"] = fly_closeup_pitch
+		_cam_b["yaw"] = float(_cam_a["yaw"]) + fly_closeup_turn
+		_cam_b["look"] = _cat.focus + base + up * 2.2
+		_cam_t = 0.0)
+	tcam.tween_property(self, "_cam_t", 1.0, seconds * 0.26).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	return launch
 
 

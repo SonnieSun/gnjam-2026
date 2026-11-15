@@ -10,15 +10,16 @@
 
 [sub_resource type="Resource" id="Resource_ppi0s"]
 script = ExtResource("5_n61dv")
-title = "ABDUCTION"
+title = "SKY"
 scene = ExtResource("6_woq7x")
 beats_per_rev = 8.0
+gauge_max = 200
 bars = PackedStringArray("................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................", "k.......s.......", "k.......s.......", "k.......s.......", "k.......s.......", "................", "................")
 gauge_events = PackedInt32Array()
 
 [resource]
 script = ExtResource("4_aulem")
-title = "ABDUCTION"
+title = "SKY"
 stream = ExtResource("7_aq4do")
 bpm = 120.0
 drum_kick = ExtResource("2_rcm2n")

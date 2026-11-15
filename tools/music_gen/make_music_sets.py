@@ -263,8 +263,10 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
                'cat_bass': 'cc_cat_bass', 'kichiku': 'cc_kichiku'})}]}
 
 # --- level 1, the disco litter box: a song arc that follows the level's story (160 BPM) -------------
-# The stage's gauge lines (scenes/sections/kisa/disco.tscn: gauge_max_override 470, gauge_events
-# 20 40 60 80 | 110 140 220 320 | 390) are the music's lines; keep D in step with them.
+# The stage's gauge lines (scenes/sections/kisa/disco.tscn: gauge_max_override 400, gauge_events
+# 20 40 60 80 | 110 140 190 250 | 320) are the music's lines; keep D in step with them.
+# (Until 2026-11-16 the runway was longer: 140 220 320 | 390 of 470. All Perfect at 160 BPM it took 24 s
+# from the house opening to the plaza; now 18 s.)
 #   start        CALM         half-time beat and bass
 #   1 stars      + disco chords
 #   2 ball       + the tune on the instrument                       (the disco ball appears)
@@ -277,8 +279,8 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
 #   8 plaza      A CAPPELLA   the band stops, only the cat choir (cat chords, cat bass, cat lead)
 #   PLAZA_FEVER  transition bar, then FEVER: breakbeat, full band, cat lead with the kichiku lead on top
 #   9 finale     the UFO: everything drops to the half-time beat, chords and the seal event track
-D = [v / 470 for v in (20, 40, 60, 80, 110, 140, 220, 320, 390)]
-PLAZA_FEVER = 350 / 470          # the plaza is a cappella from 320 to here, fever from here to the finale line
+D = [v / 400 for v in (20, 40, 60, 80, 110, 140, 190, 250, 320)]
+PLAZA_FEVER = 280 / 400          # the plaza is a cappella from 250 to here, fever from here to the finale line
 RV = S1 + 'rhythm_variants/s1_'
 SETS[6] = {'title': 'DISCO', 'use': True,
            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
@@ -339,9 +341,10 @@ SETS[10] = {'title': 'SKY', 'use': True,
 # file = the level file it goes with (levels/<name>.tres -> levels/music/<name>.json). The level list was
 # reordered several times; now the menu has 1 DISCO (set 6), 2 TV WALL (set 9: its sections are edited by
 # hand, so it is kept and not regenerated) and 3 SPACESHIP (set 7). A name starting with '../' is written
-# relative to levels/music: the sky level (set 10) and PIZZA (set 5) are parked in levels/alternates/.
+# relative to levels/music: PIZZA (set 5) is parked in levels/alternates/. The sky level (set 10) is an
+# interlude: levels/interludes/after_level_1_disco.tres, played after level 1 in a run, not on the menu.
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
-         10: '../alternates/abduction_music', 5: '../alternates/pizza_cat_level_5_music'}
+         10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('hit', '打中唱', 'hit'),
          ('fx', '事件', 'event'), ('fill', '过门', 'fill')]

@@ -46,6 +46,11 @@ static var run_possible := 0.0
 static var in_run := true
 ## 两关之间：等玩家按一下才开始这一关
 var _waiting_to_start := false
+## 第 1 关的温馨开头：先假装是一个温馨的养猫小游戏（八音盒、粉粉的画面），玩家按一下，画风突变，正式开始。
+## 只在一路连着玩、从第 1 关起步的时候出现，这次运行里只出现一次（重开不再放）。关掉 = 直接开始
+@export var cozy_intro := true
+static var _cozy_seen := false
+var _cozy := false
 
 @onready var section_host: Node2D = $SectionHost
 @onready var fx_layer: Node2D = $FxLayer
@@ -110,6 +115,11 @@ func _ready() -> void:
 	# 一路连着玩从上一关过来的（过门还在响）：先喘口气，玩家按一下才正式开始这一关
 	if Music.bridge_active():
 		_wait_for_start()
+	elif cozy_intro and not _cozy_seen and in_run and Levels.selected == 0 and Levels.interlude == "":
+		_cozy_seen = true
+		_cozy = true
+		Music.cozy_intro()
+		_wait_for_start()
 	else:
 		start_from(start_section)
 
@@ -122,8 +132,17 @@ func _wait_for_start() -> void:
 	layer.layer = 20
 	layer.name = "StartPrompt"
 	add_child(layer)
+	if _cozy:
+		# 温馨开头的画面（先放一个粉色的占位：一块底色和两行字；正式的美术换掉这一段就行）
+		var bg := ColorRect.new()
+		bg.color = Color("ffe9f3")
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		layer.add_child(bg)
 	var label := Label.new()
 	label.text = "%s\n\nPRESS TO START" % Levels.title()
+	if _cozy:
+		label.text = "MY SWEET KITTY\n\na cozy little pet game\n\n\npress SPACE to pet the cat"
+		label.add_theme_color_override("font_color", Color("ff7fb0"))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -136,7 +155,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_waiting_to_start = false
 		get_node("StartPrompt").queue_free()
 		get_viewport().set_input_as_handled()
-		Music.bridge_go(lead_in_beats * 60.0 / chart.bpm)  # 数拍子，正好数到第一拍
+		if _cozy:
+			_cozy = false
+			Music.cozy_snap(lead_in_beats * 60.0 / chart.bpm)  # 八音盒戛然而止，倒带倒到第一拍
+			hud.flash(Color.WHITE, 0.9, 0.35)
+		else:
+			Music.bridge_go(lead_in_beats * 60.0 / chart.bpm)  # 数拍子，正好数到第一拍
 		start_from(start_section)
 
 
@@ -237,13 +261,19 @@ func _clear_level() -> void:
 	judge.bank_stage()  # 最后一个阶段入账
 	level_cleared.emit()  # 关卡在这里可以再用 judge.add_bonus() 加别的分（比如飞船打星球）
 	# 一路连着玩：还没到最后一关就把这关成绩记下来，硬切到下一个大关
-	if in_run and Levels.selected < mini(flow_last_level, Levels.count() - 1):
+	# （这一关后面有插曲关就先去插曲关；插曲关打完再去下一个大关）
+	var after := Levels.interlude_after(Levels.selected) if Levels.interlude == "" else ""
+	if in_run and (after != "" or Levels.selected < mini(flow_last_level, Levels.count() - 1)):
 		for r in judge.counts:
 			run_counts[r] = run_counts.get(r, 0) + judge.counts[r]
 		run_max_combo = maxi(run_max_combo, judge.max_combo)
 		run_score += judge.score
 		run_possible += judge.possible
-		Levels.selected += 1
+		if after != "":
+			Levels.interlude = after
+		else:
+			Levels.interlude = ""
+			Levels.selected += 1
 		Conductor.stop()
 		Music.bridge_out()  # 过门：飞走的音效 + 等待的循环，一直响到下一关玩家按下开始
 		get_tree().change_scene_to_file.call_deferred(Levels.GAME_SCENE)
@@ -310,6 +340,7 @@ static func restart_run(tree: SceneTree) -> void:
 	run_score = 0
 	run_possible = 0.0
 	in_run = true
+	Levels.interlude = ""
 	Levels.selected = 0
 	Conductor.stop()
 	tree.change_scene_to_file(Levels.GAME_SCENE)

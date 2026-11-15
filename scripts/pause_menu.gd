@@ -46,6 +46,7 @@ func _on_menu_leaving() -> void:
 		return  # 是 close() 关掉的
 	# 转盘选了关、正在切场景
 	var main_script := preload("res://scripts/main.gd")
+	Levels.interlude = ""  # 从转盘选关：不在插曲关里了
 	main_script.in_run = Levels.selected == 0
 	main_script.run_counts = {}
 	main_script.run_max_combo = 0

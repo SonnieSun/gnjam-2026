@@ -106,8 +106,10 @@ func _ready() -> void:
 
 
 ## 第 level_index 个大关（0 起）的音乐配置：和大关文件同名（levels/level_1.tres -> levels/music/level_1.json）
+## （正在玩插曲关时，当前这一关指的是插曲关：levels/interludes/after_x.tres -> levels/music/after_x.json）
 func path_for(level_index: int) -> String:
-	return MUSIC_DIR + Levels.paths()[level_index].get_file().get_basename() + ".json"
+	var level: String = Levels.current_path() if level_index == Levels.selected else Levels.paths()[level_index]
+	return MUSIC_DIR + level.get_file().get_basename() + ".json"
 
 
 func enabled_for(level_index: int) -> bool:
@@ -385,6 +387,28 @@ func kiai(bars := 4, now := false) -> void:
 func dip(beats := 1.0) -> void:
 	if stream != null and dynamics() and Conductor.playing:
 		_dip_until = Conductor.song_beat + beats
+
+
+## 第 1 关的温馨开头：放那段八音盒的循环（一直响到 cozy_snap）
+const COZY_LOOP := "res://assets/audio/music/sky/cozy_intro_8b.wav"
+
+func cozy_intro() -> void:
+	if not ResourceLoader.exists(COZY_LOOP):
+		return
+	if _bridge_fade:
+		_bridge_fade.kill()
+	_bridge.stream = load(COZY_LOOP)
+	_bridge.volume_db = -3.0
+	_bridge.play()
+
+
+## 玩家按下去了，画风突变：八音盒戛然而止，一声 glitch 喵，一段倒带正好倒到第一拍（seconds 秒后）
+func cozy_snap(seconds := 1.5) -> void:
+	if _bridge_fade:
+		_bridge_fade.kill()
+	_bridge.stop()
+	play_sfx("glitch_meow", -3.0)
+	play_sfx("rewind_1b", -5.0, seconds)
 
 
 ## 上一关打完，要去下一关：飞走的音效 + 等待的循环（一直响到 bridge_go）
