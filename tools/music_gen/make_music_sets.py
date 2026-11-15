@@ -269,9 +269,9 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                       t('mk_keys', MK + 'fb_L0_keys_4b.wav', 'bed'), t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'),
                       t('ybf_bass', YB + 'L2_bass_8b.wav', 'bass'), t('ybfb_bass', YBB + 'L2_bass_8b.wav', 'bass'),
                       t('mk_bass', MK + 'L2_bass_4b.wav', 'bass'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
-                      t('ybf_pluck', YB + 'L3_pluck_8b.wav', 'hook'), t('ybf_cats', YB + 'L3_cat_flow_8b.wav', 'hook'),
-                      t('ybfb_cats', YBB + 'L3_cat_flow_8b.wav', 'hook'),
-                      t('mk_pluck', MK + 'L3_pluck_4b.wav', 'hook'), t('mk_cats', MK + 'L3_cat_flow_4b.wav', 'hook'),
+                      t('ybf_pluck', YB + 'L3_pluck_8b.wav', 'hook'), t('ybf_cats', YB + 'L3_cat_kichiku_8b.wav', 'hook'),
+                      t('ybfb_cats', YBB + 'L3_cat_kichiku_8b.wav', 'hook'),
+                      t('mk_pluck', MK + 'L3_pluck_4b.wav', 'hook'), t('mk_cats', MK + 'L3_cat_kichiku_4b.wav', 'hook'),
                       t('cc_cats', CC + 'L3_cat_flow_8b.wav', 'hook'),
                       t('ybf_peak', YB + 'fb_L4_peak_8b.wav', 'peak'), t('mk_peak', MK + 'fb_L4_peak_4b.wav', 'peak'),
                       t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
@@ -286,7 +286,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                    'half': [[0, W[1]]], 'groove': [[W[1], 1]],
                    'ybf_keys': [[0, W[3]]], 'ybfb_keys': [[W[3], 1]],
                    'ybf_bass': [[W[0], W[3]]], 'ybfb_bass': [[W[3], 1]],
-                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[W[0], W[2]]], 'ybf_cats': [[W[2], W[3]]], 'ybfb_cats': [[W[3], 1]],
+                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[W[0], W[2]]], 'ybf_cats': [[W[2], W[3]]], 'ybfb_cats': [[W[3], W[4]]],
                    'ybf_peak': [[W[2], 1]], 'ybf_cat_drums': [[W[1], 1]], 'ybf_kichiku': [[W[4], 1]]}},
                {'title': 'SLAP / WARM UP', 'tiers': (0.3, 0.6), 'own': {'kiai': 'mk_kichiku', 'hit': ''}, 'rules': {
                    'half': [[0, 0.3]], 'groove': [[0.3, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]],
@@ -296,7 +296,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                    'mk_pluck': [[0, 0.4]], 'mk_cats': [[0.4, 1]], 'mk_peak': [[0.75, 1]]}},
                {'title': 'SLAP / POWER', 'tiers': (0.35, 0.7), 'fever': (0.7, 1.0), 'own': {'kiai': 'cc_kichiku', 'hit': ''}, 'rules': {
                    'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]], 'cc_cat_drums': [[0, 1]],
-                   'cc_cats': [[0, 1]], 'cc_peak': [[0.35, 1]], 'cc_kichiku': [[0.7, 1]]}}]}
+                   'cc_peak': [[0.35, 1]], 'cc_kichiku': [[0.7, 1]]}}]}   # (no cc_cats: the mashing sings the tune; two cat leads at once are a mess)
 SETS[5] = {'title': 'LEVEL 5', 'use': True,
            'tracks': [SKELETON[0], t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
                       t('cc_pluck', CC + 'L3_pluck_8b.wav', 'hook'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
@@ -321,9 +321,11 @@ SETS[5] = {'title': 'LEVEL 5', 'use': True,
 #   5 house opens  transition bar, then ASK / ANSWER on the club beat: the instrument asks, the cats answer
 #                  (the cutscene has no notes, so the gauge and the music stay here while it plays)
 #   6 dance floor  the cats sing the whole tune                     (the runway)
-#   7 grid       + the future-bass peak layer
-#   8 plaza      A CAPPELLA   the band stops, only the cat choir (cat chords, cat bass, cat lead)
+#   7 grid       the band takes the tune back: the future-bass peak layer, the cats rest
+#   8 plaza      A CAPPELLA   the band stops, only the cat lead over the cat bass (no cat chords: too muddy)
 #   PLAZA_FEVER  transition bar, then FEVER: breakbeat, full band, cat lead with the kichiku lead on top
+# One tune at a time (2026-11-16), on every level: the peak layer never sounds under the cat lead, and in FEVER
+# the kichiku lead REPLACES the cat lead (two cat leads at once were a mess). Check with tools/music_gen/audit_music.py.
 #   9 finale     the UFO: everything drops to the half-time beat, chords and the seal event track
 D = [v / 430 for v in (20, 40, 60, 80, 110, 140, 190, 250, 350)]
 PLAZA_FEVER = 280 / 430          # the plaza is a cappella from 250 to here, fever from here to the finale line
@@ -341,9 +343,9 @@ SETS[6] = {'title': 'DISCO', 'use': True,
                'half': [[0, D[2]], [D[8], 1]], 'groove': [[D[2], D[4]]], 'club': [[D[4], D[7]]], 'break': [[PLAZA_FEVER, D[8]]],
                'half_bass': [[0, D[2]], [D[8], 1]], 'bass': [[D[2], D[4]]], 'club_bass': [[D[4], D[7]]],
                'cat_bass': [[D[7], PLAZA_FEVER]], 'break_bass': [[PLAZA_FEVER, D[8]]],
-               'disco_keys': [[D[0], D[4]]], 'fb_keys': [[D[4], D[7]], [PLAZA_FEVER, 1]], 'cat_stabs': [[D[7], PLAZA_FEVER]],
-               'disco_hook': [[D[1], D[4]]], 'ask_answer': [[D[4], D[5]]], 'cat_lead': [[D[5], D[8]]],
-               'disco_peak': [[D[2], D[4]]], 'fb_peak': [[D[6], D[7]], [PLAZA_FEVER, D[8]]],
+               'disco_keys': [[D[0], D[4]]], 'fb_keys': [[D[4], D[7]], [PLAZA_FEVER, 1]], 
+               'disco_hook': [[D[1], D[4]]], 'ask_answer': [[D[4], D[5]]], 'cat_lead': [[D[5], D[6]], [D[7], PLAZA_FEVER]],
+               'disco_peak': [[D[2], D[4]]], 'fb_peak': [[D[6], D[7]]],
                'cat_drums': [[D[2], D[7]], [PLAZA_FEVER, D[8]]],
                'ev_meow': [[D[3], D[4]]], 'ev_seal': [[D[8], 1]]}}]}
 
@@ -377,7 +379,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
                 'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
                 'ode_keys': [[SKY[1], 1]],
-                'ode_cats': [[SKY[2], 1]],
+                'ode_cats': [[SKY[2], SKY[3]]],
                 'doom_horns': [[SKY[0], SKY[1]]], 'holy_pad': [[SKY[1], SKY[3]]],
                 'ode_cat_drums': [[SKY[2], 1]],
                 'ufo_rise': [[0, SKY[1]]], 'ode_by_hit': [[SKY[1], SKY[2]]],
@@ -400,6 +402,8 @@ SETS[10] = {'title': 'SKY', 'use': True,
 #         75%   Ode to Joy (the sky)                 the kaleidoscope comes on here: a "holy hit", then the big finish
 #         88%   FEVER: the Ode with its kichiku lead and the cat chords on top, to the end of the game
 #       Each tune enters with its cats already singing: this is the victory lap, not a build-up.
+#       ONE cat lead at a time. The fast tunes (Turkish March, Mountain King, Can-Can) use the kichiku lead
+#       (hard cut, one cat per phrase): with every meow ringing out (the 'flow' lead) they turn to mush.
 #   The lines 50% / 75% are the stage's camera cues (level_3_spaceship.tres: fx_cues grid3 0.5, kaleido 0.75).
 TM = M + 'classics/turkish_march/turkish_march_'
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
@@ -410,14 +414,13 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       t('tm_keys', TM + 'fb_L0_keys_16b.wav', 'bed'), t('disco_keys', S1 + 'style_disco/s1_B_L0_keys_4b.wav', 'bed'),
                       t('ybf_keys', YB + 'fb_L0_keys_8b.wav', 'bed'), t('mk_keys', MK + 'fb_L0_keys_4b.wav', 'bed'),
                       t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'), t('oj_keys', OJ + 'fb_L0_keys_8b.wav', 'bed'),
-                      t('oj_stabs', OJ + 'C_stabs_8b.wav', 'event'),
                       t('tm_bass', TM + 'L2_bass_16b.wav', 'bass'), t('ybf_bass', YB + 'L2_bass_8b.wav', 'bass'),
                       t('mk_bass', MK + 'L2_bass_4b.wav', 'bass'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
                       t('oj_bass', OJ + 'L2_bass_8b.wav', 'bass'),
-                      t('tm_pluck', TM + 'L3_pluck_16b.wav', 'hook'), t('tm_cats', TM + 'L3_cat_flow_16b.wav', 'hook'),
-                      t('disco_hook', S1 + 'style_disco/s1_B_L3_hook_4b.wav', 'hook'), CATS[2],
-                      t('ybf_cats', YB + 'L3_cat_flow_8b.wav', 'hook'), t('mk_cats', MK + 'L3_cat_flow_4b.wav', 'hook'),
-                      t('cc_cats', CC + 'L3_cat_flow_8b.wav', 'hook'), t('oj_cats', OJ + 'L3_cat_flow_8b.wav', 'hook'),
+                      t('tm_pluck', TM + 'L3_pluck_16b.wav', 'hook'),
+                      CATS[2],
+                      t('ybf_cats', YB + 'L3_cat_kichiku_8b.wav', 'hook'), t('mk_lead', MK + 'L3_cat_kichiku_4b.wav', 'hook'),
+                      t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'), t('oj_cats', OJ + 'L3_cat_flow_8b.wav', 'hook'),
                       t('tm_peak', TM + 'fb_L4_peak_16b.wav', 'peak'), t('mk_peak', MK + 'fb_L4_peak_4b.wav', 'peak'),
                       t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'), t('oj_peak', OJ + 'fb_L4_peak_8b.wav', 'peak'),
                       CATS[0],
@@ -426,18 +429,18 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (3,), 'fever': (T3[3], 1.0),
                 'own': {'kiai': 'tm_kichiku', 'hit': ''}, 'rules': {
                    'half': [[0, T3[0]]], 'groove': [[T3[0], 1]], 'tm_keys': [[0, 1]], 'tm_bass': [[T3[0], 1]],
-                   'tm_pluck': [[T3[0], T3[2]]], 'tm_cats': [[T3[2], 1]], 'tm_peak': [[T3[1], 1]],
-                   'cat_drums': [[T3[1], 1]], 'tm_kichiku': [[T3[3], 1]]}},
+                   'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], 1]], 'tm_peak': [[T3[3], 1]],
+                   'cat_drums': [[T3[1], 1]]}},
                {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (1, 2, 3, 4), 'fever': (R[4], 1.0),
                 'own': {'kiai': 'oj_kichiku', 'hit': ''},
                 'tier_sfx': {1: 'crash', 2: 'crash', 3: 'crash', 4: 'sky_holy_hit'}, 'rules': {
                    'groove': [[0, 1]], 'cat_drums': [[0, 1]],
                    'disco_keys': [[0, R[0]]], 'bass': [[0, R[0]]], 'cat_lead': [[0, R[0]]],
                    'ybf_keys': [[R[0], R[1]]], 'ybf_bass': [[R[0], R[1]]], 'ybf_cats': [[R[0], R[1]]],
-                   'mk_keys': [[R[1], R[2]]], 'mk_bass': [[R[1], R[2]]], 'mk_cats': [[R[1], R[2]]], 'mk_peak': [[R[1], R[2]]],
-                   'cc_keys': [[R[2], R[3]]], 'cc_bass': [[R[2], R[3]]], 'cc_cats': [[R[2], R[3]]], 'cc_peak': [[R[2], R[3]]],
-                   'oj_keys': [[R[3], 1]], 'oj_bass': [[R[3], 1]], 'oj_cats': [[R[3], 1]], 'oj_peak': [[R[3], 1]],
-                   'oj_kichiku': [[R[4], 1]], 'oj_stabs': [[R[4], 1]]}}]}
+                   'mk_keys': [[R[1], R[2]]], 'mk_bass': [[R[1], R[2]]], 'mk_lead': [[R[1], R[2]]], 'mk_peak': [[R[1], R[2]]],
+                   'cc_keys': [[R[2], R[3]]], 'cc_bass': [[R[2], R[3]]], 'cc_lead': [[R[2], R[3]]], 'cc_peak': [[R[2], R[3]]],
+                   'oj_keys': [[R[3], 1]], 'oj_bass': [[R[3], 1]], 'oj_cats': [[R[3], R[4]]], 'oj_peak': [[R[3], 1]],
+                   'oj_kichiku': [[R[4], 1]]}}]}
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
          10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),

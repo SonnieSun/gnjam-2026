@@ -91,28 +91,20 @@
      "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_pluck_16b.wav"
     },
     {
-     "id": "tm_cats",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_cat_flow_16b.wav"
-    },
-    {
-     "id": "disco_hook",
-     "file": "res://assets/audio/music/scene1/style_disco/s1_B_L3_hook_4b.wav"
-    },
-    {
      "id": "cat_lead",
      "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
     },
     {
      "id": "ybf_cats",
-     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_flow_8b.wav"
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_kichiku_8b.wav"
     },
     {
-     "id": "mk_cats",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_flow_4b.wav"
+     "id": "mk_lead",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
     },
     {
-     "id": "cc_cats",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_flow_8b.wav"
+     "id": "cc_lead",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav"
     },
     {
      "id": "oj_cats",
@@ -170,17 +162,6 @@
    ]
   },
   {
-   "id": "fx",
-   "name": "事件",
-   "gain_db": 0.0,
-   "clips": [
-    {
-     "id": "oj_stabs",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_C_stabs_8b.wav"
-    }
-   ]
-  },
-  {
    "id": "fill",
    "name": "过门",
    "gain_db": 0.0,
@@ -225,12 +206,12 @@
      ],
      [
       0.7,
-      "tm_cats"
+      ""
      ]
     ],
     "peak": [
      [
-      0.45,
+      0.9,
       "tm_peak"
      ]
     ],
@@ -242,7 +223,7 @@
     ],
     "kiai": [
      [
-      0.9,
+      0.7,
       "tm_kichiku"
      ]
     ]
@@ -329,15 +310,19 @@
      ],
      [
       0.3,
-      "mk_cats"
+      "mk_lead"
      ],
      [
       0.5,
-      "cc_cats"
+      "cc_lead"
      ],
      [
       0.75,
       "oj_cats"
+     ],
+     [
+      0.88,
+      ""
      ]
     ],
     "peak": [
@@ -364,12 +349,6 @@
      [
       0.88,
       "oj_kichiku"
-     ]
-    ],
-    "fx": [
-     [
-      0.88,
-      "oj_stabs"
      ]
     ]
    },

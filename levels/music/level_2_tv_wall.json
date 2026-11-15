@@ -76,11 +76,11 @@
     },
     {
      "id": "ybf_cats",
-     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_flow_8b.wav"
+     "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_cat_kichiku_8b.wav"
     },
     {
      "id": "ybfb_cats",
-     "file": "res://assets/audio/music/classics/ybf_b/ybf_b_L3_cat_flow_8b.wav"
+     "file": "res://assets/audio/music/classics/ybf_b/ybf_b_L3_cat_kichiku_8b.wav"
     },
     {
      "id": "mk_pluck",
@@ -88,7 +88,7 @@
     },
     {
      "id": "mk_cats",
-     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_flow_4b.wav"
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_cat_kichiku_4b.wav"
     },
     {
      "id": "cc_cats",
@@ -223,6 +223,10 @@
      [
       0.7,
       "ybfb_cats"
+     ],
+     [
+      0.88,
+      ""
      ]
     ],
     "peak": [
@@ -392,12 +396,6 @@
      [
       0.0,
       "cc_keys"
-     ]
-    ],
-    "lead": [
-     [
-      0.0,
-      "cc_cats"
      ]
     ],
     "peak": [
