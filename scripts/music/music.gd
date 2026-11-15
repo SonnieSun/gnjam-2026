@@ -34,11 +34,17 @@ var _now := {}                          # lane id -> 现在响的片段
 var _target := PackedFloat32Array()
 var _level := PackedFloat32Array()
 var _pending := false
+## 谱子片段（不是 WAV，而是运行时按格子放喵的谱子，见 meow_player.gd）："轨道 id/片段 id" -> 谱子
+var _patterns := {}
+## 运行时放喵的节点
+var meow: MeowPlayer
 var _next_beat := 0.0
 
 
 func _ready() -> void:
 	Conductor.beat.connect(_on_beat)
+	meow = MeowPlayer.new()
+	add_child(meow)
 
 
 ## 第 level_index 个大关（0 起）的音乐配置：和大关文件同名（levels/level_1.tres -> levels/music/level_1.json）
@@ -73,10 +79,17 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_slot_clip = PackedStringArray()
 	_lane_gain.clear()
 	_now.clear()
+	_patterns.clear()
+	for key: String in meow.active.keys():
+		meow.set_active(key, {})
 	var streams: Array[AudioStream] = []
 	for lane in d.get("lanes", []):
 		_lane_gain[lane.id] = lane.get("gain_db", 0.0)
 		for clip in lane.get("clips", []):
+			# 谱子片段（{"id", "pattern": "res://levels/music/patterns/x.json"}）不进同步流，由 meow 按格子放
+			if clip.has("pattern"):
+				_patterns["%s/%s" % [lane.id, clip.id]] = MeowPlayer.read_pattern(clip.pattern)
+				continue
 			if streams.size() >= AudioStreamSynchronized.MAX_STREAMS:
 				push_warning("Music: more than %d clips, the rest are left out" % AudioStreamSynchronized.MAX_STREAMS)
 				break
@@ -152,6 +165,40 @@ func level_of(lane: String, clip: String) -> float:
 	return 0.0
 
 
+## 把一个谱子片段加进某条轨道（没有这条轨道就新建），之后就能像别的片段一样按进度切换到它。
+## 已经有同名片段就只是重新读一遍谱子。返回片段 id。
+func add_pattern_clip(lane_id: String, pattern_path: String) -> String:
+	var clip_id := pattern_path.get_file().get_basename()
+	var lanes: Array = data.get("lanes", [])
+	var lane: Dictionary = {}
+	for l: Dictionary in lanes:
+		if l.id == lane_id:
+			lane = l
+	if lane.is_empty():
+		lane = {"id": lane_id, "name": lane_id, "gain_db": 0.0, "clips": []}
+		lanes.append(lane)
+		data["lanes"] = lanes
+		_lane_gain[lane_id] = 0.0
+	var found := false
+	for c: Dictionary in lane.clips:
+		if c.id == clip_id:
+			found = true
+	if not found:
+		lane.clips.append({"id": clip_id, "pattern": pattern_path})
+	_patterns["%s/%s" % [lane_id, clip_id]] = MeowPlayer.read_pattern(pattern_path)
+	_apply_now()
+	return clip_id
+
+
+## 谱子片段的文件改了：重新读（正在播的马上换成新的）
+func reload_patterns() -> void:
+	for lane in data.get("lanes", []):
+		for clip in lane.get("clips", []):
+			if clip.has("pattern"):
+				_patterns["%s/%s" % [lane.id, clip.id]] = MeowPlayer.read_pattern(clip.pattern)
+	_apply_now()
+
+
 func set_lane_gain(lane: String, db: float) -> void:
 	_lane_gain[lane] = db
 	for i in _slot_lane.size():
@@ -179,6 +226,7 @@ func _apply_now() -> void:
 		if _now.get(lane.id, "") != c:
 			lane_switched.emit(lane.id, c)
 		_now[lane.id] = c
+		meow.set_active(lane.id, _patterns.get("%s/%s" % [lane.id, c], {}), float(_lane_gain.get(lane.id, 0.0)))
 	for i in _slot_lane.size():
 		_target[i] = 1.0 if _now.get(_slot_lane[i], "") == _slot_clip[i] else 0.0
 

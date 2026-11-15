@@ -202,10 +202,11 @@ func _on_note_judged(note: NoteData, result: int, diff_sec: float) -> void:
 	hud.show_judgement(result, diff_sec)
 	if _current and note.section_index == _index:
 		if not editing:
-			gauge.apply(result)
+			gauge.apply(_current.gauge_result(note, result))
 		_current.notify_judged(note, result)
-		hit_meow.play(result)
-		if result != NoteData.Result.MISS:
+		if _current.wants_hit_effects(note):
+			hit_meow.play(result)
+		if _current.wants_hit_effects(note) and result != NoteData.Result.MISS:
 			var fx := StarBurst.create(result != NoteData.Result.GOOD)
 			fx_layer.add_child(fx)
 			fx.start_radius = _current.hit_radius()

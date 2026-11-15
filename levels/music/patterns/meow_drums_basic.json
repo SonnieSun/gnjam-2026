@@ -1,0 +1,42 @@
+{
+	"kind": "drums",
+	"bars": 2,
+	"rows": [
+		{
+			"name": "meow low",
+			"cat": "13",
+			"midi": 67,
+			"steps": 3,
+			"gain_db": 0.0,
+			"tick": false,
+			"bars": [
+				"x.......x.......",
+				"x.......x......."
+			]
+		},
+		{
+			"name": "meow high",
+			"cat": "14",
+			"midi": 72,
+			"steps": 2,
+			"gain_db": -2.0,
+			"tick": false,
+			"bars": [
+				"....x.......x...",
+				"....x.......x.x."
+			]
+		},
+		{
+			"name": "mi",
+			"cat": "11",
+			"midi": 85,
+			"steps": 1,
+			"gain_db": -6.0,
+			"tick": true,
+			"bars": [
+				"..x...x...x...x.",
+				"..x...x...x.x.x."
+			]
+		}
+	]
+}

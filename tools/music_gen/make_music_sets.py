@@ -198,8 +198,9 @@ SETS[9] = {'title': 'TV WALL', 'use': True, 'tracks': SKELETON + style('chip', '
 
 # file = the level file it goes with (levels/<name>.tres)
 # Sets 1-4 (the old pizza test levels) have no level file any more and are skipped;
-# sets 6-9 (Kisa's levels) are now big levels 1-4, set 5 is still level 5.
-NAMES = {5: 'level_5', 6: 'level_1_disco', 7: 'level_2_spaceship', 8: 'level_3_abduction', 9: 'level_4_tv_wall'}
+# sets 6, 7, 9 (Kisa's levels) are big levels 1, 2, 4; set 5 is still level 5.
+# Set 8 (ABDUCTION) is skipped: that level moved to levels/alternates/, slot 3 is now ORBIT CAT with its own backing.
+NAMES = {5: 'level_5', 6: 'level_1_disco', 7: 'level_2_spaceship', 9: 'level_4_tv_wall'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('fx', '事件', 'event')]
 LANE_GAIN = {'kiai': -2.0}   # stacked on the cat lead, so a little under it

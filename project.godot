@@ -32,6 +32,10 @@ window/size/viewport_width=960
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 
+[filesystem]
+
+import/blender/enabled=false
+
 [gnjam]
 
 sections_folder="res://scenes/sections"
