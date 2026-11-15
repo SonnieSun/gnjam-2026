@@ -172,8 +172,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.visible = true
 			Music.cozy_snap(lead_in_beats * 60.0 / chart.bpm)  # 八音盒戛然而止，倒带倒到第一拍
 			_cozy_break()
-		else:
-			Music.bridge_go(lead_in_beats * 60.0 / chart.bpm)  # 数拍子，正好数到第一拍
+			start_from(start_section)
+			_cozy_spin(lead_in_beats * 60.0 / chart.bpm)
+			return
+		Music.bridge_go(lead_in_beats * 60.0 / chart.bpm)  # 数拍子，正好数到第一拍
 		start_from(start_section)
 
 
@@ -182,16 +184,32 @@ func _unhandled_input(event: InputEvent) -> void:
 @export_range(0.0, 1.0) var cozy_flash_strength := 0.55
 @export var cozy_flash_seconds := 0.3
 
+## 温馨开头被按破之后：关卡里那只猫自己转起来（像被按住一样一直转，比平时快），转到第一拍松开，交还给玩家的按键。
+## 转一圈几秒在 cozy_spin_time 上调。
+@export var cozy_spin_time := 0.22
+
+func _cozy_spin(seconds: float) -> void:
+	var cat: KisaSpinCat3D = null
+	for c in _current.get_children():
+		if c is KisaSpinCat3D:
+			cat = c
+	if cat == null:
+		return
+	var was_listening := cat.listen_input
+	var was_time := cat.hold_spin_time
+	cat.listen_input = false
+	cat.hold_spin_time = cozy_spin_time
+	cat.set_held(true)
+	cat.spin()
+	await get_tree().create_timer(seconds).timeout
+	if is_instance_valid(cat):
+		cat.set_held(false)
+		cat.hold_spin_time = was_time
+		cat.listen_input = was_listening
+
+
 func _cozy_break() -> void:
 	hud.flash(Color(1.0, 0.86, 0.92), cozy_flash_strength, cozy_flash_seconds)
-	# 猫转起来了：屏幕中间一只发光的虎斑猫全速转，转到第一拍冲出去（scripts/cozy_spin.gd）
-	var spin_layer := CanvasLayer.new()
-	spin_layer.layer = 15
-	add_child(spin_layer)
-	var spin_cat: Control = preload("res://scripts/cozy_spin.gd").new()
-	spin_cat.seconds = lead_in_beats * 60.0 / chart.bpm
-	spin_cat.tree_exited.connect(spin_layer.queue_free)
-	spin_layer.add_child(spin_cat)
 	# 画面放大弹回来 + 抖
 	var home := section_host.position
 	section_host.scale = Vector2.ONE * 1.35
