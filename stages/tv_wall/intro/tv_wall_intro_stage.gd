@@ -84,14 +84,17 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 ## 跟拍运镜随着进展越来越疯（进展 = 按完了几次长按 / 一共要按几次）。关掉 = 一直是上面"跟拍运镜"的强度
 @export var punk_camera := true
 ## 到最后，随机角度的幅度乘到这么多倍
-@export var punk_angle_scale := 2.4
+@export var punk_angle_scale := 1.5
 ## 到最后，远近在这个范围里一近一远地跳（镜头距离的倍数）
-@export var punk_zoom_range := Vector2(0.5, 1.5)
+@export var punk_zoom_range := Vector2(0.68, 1.3)
 ## 进展过了这两个比例，换镜头从每小节一次变成每 2 拍一次、每拍一次；换的时候也越来越"硬"（几乎是切）
 @export_range(0.0, 1.0) var punk_half_bar_at := 0.3
 @export_range(0.0, 1.0) var punk_every_beat_at := 0.7
 ## 打中、长按按完的那一下镜头猛地推近多少（占距离的比例），很快弹回去；进展越靠后推得越狠
-@export_range(0.0, 0.6) var punk_hit_zoom := 0.22
+@export_range(0.0, 0.6) var punk_hit_zoom := 0.14
+## 镜头不管怎么动，洗衣机都基本在画面中间：镜头一直对着洗衣机（舱门）和原来那一档的取景点之间的一点，
+## 推近的时候完全对准洗衣机。1 = 永远正对洗衣机，0 = 只按原来的取景（拉远后洗衣机在画面中下方）
+@export_range(0.0, 1.0) var punk_keep_centered := 0.6
 
 @export_group("开场：猫飞进洗衣机")
 ## 开场预备拍里，猫头从画面上方转着飞进舱门，正好在第一拍落进去（几拍；0 = 不放，猫一开始就在里面）
@@ -501,6 +504,10 @@ func _place_camera(zoom: float) -> void:
 	camera.rotation = Vector3.ZERO
 	if beat_camera and _beat >= 0.0:
 		var m := _beat_pose()
+		if punk_camera:
+			# 洗衣机保持在中间：对着洗衣机多一点；推得越近越要对准它，不然一推近它就出画了
+			var keep := maxf(punk_keep_centered * progress(), clampf((1.0 - float(m.scale)) * 3.0, 0.0, 1.0))
+			look = look.lerp(Vector3(opening_center.x, opening_center.y, look.z), keep)
 		var orbit := Basis.from_euler(Vector3(deg_to_rad(m.pitch), deg_to_rad(m.yaw), 0.0))
 		camera.position = look + orbit * Vector3(0.0, 0.0, dist * m.scale)
 		camera.look_at(look, Vector3.UP)
