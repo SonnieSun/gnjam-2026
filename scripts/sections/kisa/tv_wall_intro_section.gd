@@ -351,3 +351,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if key and key.pressed and not key.echo and key.physical_keycode == KEY_T and OS.is_debug_build():
 		if _stage and not _finale:
 			_stage.skip_to_all_lit()
+
+
+## 计分用（见 main.gd 的 _compute_stage_weights）：这一段不靠积累条推进，谱子放一遍就完，按一遍的音符数算它占这关满分的比例
+const SCORE_BY_PATTERN := true

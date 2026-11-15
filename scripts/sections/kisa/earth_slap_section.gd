@@ -285,3 +285,7 @@ func _send_hit(pressed: bool) -> void:
 	e.action = Judge.HIT_ACTION
 	e.pressed = pressed
 	Input.parse_input_event(e)
+
+
+## 计分用（见 main.gd 的 _compute_stage_weights）：踩镲（h）只蓄力不涨积累条，只有 k / s 涨条
+const SCORE_GAUGE_SOUNDS := "ksx"

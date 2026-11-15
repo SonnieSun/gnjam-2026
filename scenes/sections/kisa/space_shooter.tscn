@@ -1,0 +1,97 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/sections/kisa/space_shooter_section.gd" id="1"]
+[ext_resource type="PackedScene" path="res://stages/space_shooter/model/neapolitan_pizza.glb" id="pizza"]
+[ext_resource type="PackedScene" path="res://assets/art/CATS_Scratch.fbx" id="cat"]
+[ext_resource type="Texture2D" path="res://stages/spaceship/skybox/nebula_512_blue.jpg" id="sky512"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_red.glb" id="p_red"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_green.glb" id="p_green"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_jupiter.glb" id="p_jupiter"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_saturn.glb" id="p_saturn"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_earth.glb" id="p_earth"]
+[ext_resource type="PackedScene" path="res://stages/spaceship/planets/planet_twilight.glb" id="p_twilight"]
+[ext_resource type="PackedScene" path="res://stages/space_shooter/food/food_bao.glb" id="f_bao"]
+[ext_resource type="PackedScene" path="res://stages/space_shooter/food/food_taco.glb" id="f_taco"]
+[ext_resource type="PackedScene" path="res://stages/space_shooter/food/food_cupnoodle.glb" id="f_cup"]
+[ext_resource type="PackedScene" path="res://stages/space_shooter/food/food_burger.glb" id="f_burger"]
+[ext_resource type="PackedScene" path="res://stages/space_shooter/food/food_rollcake.glb" id="f_roll"]
+[ext_resource type="Script" path="res://stages/shared/y2k_fx/y2k_hit_fx_swap.gd" id="y2k_swap"]
+
+[sub_resource type="PanoramaSkyMaterial" id="sky_mat"]
+panorama = ExtResource("sky512")
+energy_multiplier = 0.55
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+radiance_size = 0
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.6, 0.62, 1, 1)
+ambient_light_energy = 0.7
+reflected_light_source = 1
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.5
+
+[node name="SpaceShooterSection" type="Node2D"]
+script = ExtResource("1")
+planet_models = Array[PackedScene]([ExtResource("p_red"), ExtResource("p_green"), ExtResource("p_jupiter"), ExtResource("p_saturn"), ExtResource("p_earth"), ExtResource("p_twilight")])
+planet_colors = Array[Color]([Color(1, 0.45, 0.35, 1), Color(0.5, 1, 0.55, 1), Color(1, 0.8, 0.55, 1), Color(1, 0.88, 0.6, 1), Color(0.55, 0.8, 1, 1), Color(0.8, 0.75, 1, 1)])
+food_models = Array[PackedScene]([ExtResource("f_bao"), ExtResource("f_taco"), ExtResource("f_cup"), ExtResource("f_burger"), ExtResource("f_roll")])
+ring_radius_ratio = 0.1
+gauge_max_override = 100
+
+[node name="View" type="SubViewportContainer" parent="."]
+offset_left = -480.0
+offset_top = -360.0
+offset_right = 480.0
+offset_bottom = 360.0
+mouse_filter = 2
+stretch = true
+
+[node name="Viewport" type="SubViewport" parent="View"]
+handle_input_locally = false
+msaa_3d = 2
+size = Vector2i(960, 720)
+render_target_update_mode = 4
+
+[node name="Camera" type="Camera3D" parent="View/Viewport"]
+transform = Transform3D(1, 0, 0, 0, 0.65, 0.76, 0, -0.76, 0.65, 0, 15, 12)
+environment = SubResource("env")
+fov = 50.0
+near = 0.1
+far = 400.0
+
+[node name="Sun" type="DirectionalLight3D" parent="View/Viewport"]
+transform = Transform3D(0.92847663, -0.27639204, 0.24806947, 0, 0.6679475, 0.7442084, -0.37139064, -0.6909801, 0.6201737, 2, 6, 5)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 1.1
+
+[node name="World" type="Node3D" parent="View/Viewport"]
+
+[node name="Player" type="Node3D" parent="View/Viewport/World"]
+unique_name_in_owner = true
+
+[node name="Pizza" parent="View/Viewport/World/Player" instance=ExtResource("pizza")]
+unique_name_in_owner = true
+transform = Transform3D(1.7, 0, 0, 0, 1.7, 0, 0, 0, 1.7, 0, -0.2, 0)
+
+[node name="Facing" type="Node3D" parent="View/Viewport/World/Player"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
+
+[node name="Cat" type="Node3D" parent="View/Viewport/World/Player/Facing"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+
+[node name="CatModel" parent="View/Viewport/World/Player/Facing/Cat" instance=ExtResource("cat")]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 1.38, 0.7)
+
+[node name="Focus" type="Marker3D" parent="View/Viewport/World/Player"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+
+[node name="Y2kHitFxSwap" type="Node" parent="."]
+script = ExtResource("y2k_swap")

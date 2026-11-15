@@ -17,6 +17,21 @@ signal combo_milestone(combo: int)
 ## Good 的窗口早晚分开：人更容易按晚，晚的一侧稍宽
 @export var good_window_early := 0.12
 @export var good_window_late := 0.14
+## 计分（按阶段入账）：每个大关满分 level_max。阶段 = 小关，它的满分 = level_max × 它的占比
+## （占比由 main.gd 按各小关的满条值算好传进来）。一个阶段打完时，
+## 加上「这个阶段的满分 × 这个阶段的准确率」，分数只在这时跳一次，打的过程中不动。
+## 准确率 = 各档权重之和 ÷ 这个阶段判定过的音符数。连击不加分，只在结算里显示最大连击。
+## 某一关要留一部分满分给别的玩法（比如飞船关打星球），就把 accuracy_share 设小，剩下的用 add_bonus() 加。
+@export_group("计分")
+@export var level_max := 1000000
+@export var perfect_weight := 1.0
+@export var great_weight := 0.8
+@export var good_weight := 0.5
+## 结算评级：得分占满分的比例到这些线分别是 S / A / B，其余 C
+@export_range(0.0, 1.0, 0.01) var rank_s := 0.95
+@export_range(0.0, 1.0, 0.01) var rank_a := 0.85
+@export_range(0.0, 1.0, 0.01) var rank_b := 0.70
+@export_group("")
 const HIT_ACTION := "hit"
 const COMBO_MILESTONES: Array[int] = [10, 20, 50, 100, 200, 300, 400, 500]
 
@@ -27,6 +42,15 @@ var max_combo := 0
 var counts := {}
 ## 打中的音符各偏了多少秒（正 = 晚），结算时算平均偏差用
 var hit_offsets: Array[float] = []
+## 这一关准确率部分占满分的比例（进大关时回到 1；飞船关这类自己设 0.8，剩下的用 add_bonus 加）
+var accuracy_share := 1.0
+## 到现在为止已经入账的满分（算评级比例用）
+var possible := 0.0
+## 当前阶段（小关）各档的个数
+var stage_counts := {}
+## 已废弃（以前的“按关覆盖实时算分”钩子），现在不再使用，留着免得旧代码报错
+var score_rule := Callable()
+var _stage_weight := 0.0
 
 var _next := 0  # 第一个还没判定的音符
 
@@ -65,6 +89,7 @@ static func ensure_input() -> void:
 
 ## 换一个大关时调用（清空音符和成绩）
 func load_chart(_chart: SongChart) -> void:
+	accuracy_share = 1.0
 	reset()
 
 
@@ -74,6 +99,9 @@ func reset(_from_beat: float = 0.0) -> void:
 	combo = 0
 	max_combo = 0
 	counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GREAT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
+	stage_counts = counts.duplicate()
+	possible = 0.0
+	_stage_weight = 0.0
 	hit_offsets = []
 	notes = []
 	_next = 0
@@ -265,17 +293,65 @@ func _apply(n: NoteData, result: int, diff: float) -> void:
 	while _next < notes.size() and notes[_next].judged:
 		_next += 1
 	counts[result] += 1
+	stage_counts[result] += 1
 	if result == NoteData.Result.MISS:
 		combo = 0
 	else:
 		combo += 1
 		max_combo = maxi(max_combo, combo)
 		hit_offsets.append(diff)
-		match result:
-			NoteData.Result.PERFECT: score += 100
-			NoteData.Result.GREAT: score += 80
-			_: score += 50
 	note_judged.emit(n, result, diff)
 	if result != NoteData.Result.MISS and combo in COMBO_MILESTONES:
 		combo_milestone.emit(combo)
+	stats_changed.emit()
+
+
+## 按得分占满分的比例给评级（阈值见上面“计分”一栏）
+func rank() -> String:
+	var r := float(score) / possible if possible > 0.0 else 0.0
+	if r >= rank_s:
+		return "S"
+	if r >= rank_a:
+		return "A"
+	if r >= rank_b:
+		return "B"
+	return "C"
+
+
+## 开始一个新阶段（小关）：weight = 它占这一大关满分的比例（0~1）。main.gd 在进小关时调。
+func begin_stage(weight: float) -> void:
+	stage_counts = {NoteData.Result.PERFECT: 0, NoteData.Result.GREAT: 0, NoteData.Result.GOOD: 0, NoteData.Result.MISS: 0}
+	_stage_weight = weight
+
+
+## 当前阶段的准确率（0~1，还没判定过音符 = 0）
+func stage_accuracy() -> float:
+	var c := stage_counts
+	var total: int = c[NoteData.Result.PERFECT] + c[NoteData.Result.GREAT] + c[NoteData.Result.GOOD] + c[NoteData.Result.MISS]
+	if total <= 0:
+		return 0.0
+	return (c[NoteData.Result.PERFECT] * perfect_weight + c[NoteData.Result.GREAT] * great_weight
+			+ c[NoteData.Result.GOOD] * good_weight) / total
+
+
+## 当前阶段打完：按准确率入账（分数在这里跳一次）。main.gd 在切小关和通关时调；同一阶段只入账一次。
+func bank_stage() -> void:
+	if _stage_weight <= 0.0:
+		return
+	var stage_max := level_max * accuracy_share * _stage_weight
+	score += roundi(stage_max * stage_accuracy())
+	possible += stage_max
+	_stage_weight = 0.0
+	stats_changed.emit()
+
+
+## 加一笔准确率以外的分（可以是负数），max_points = 这一项本来最多能拿多少（算评级比例用）
+func add_bonus(points: int, max_points: float = 0.0) -> void:
+	score = maxi(score + points, 0)
+	possible += max_points
+	stats_changed.emit()
+
+
+## 已废弃：以前按关覆盖实时算分时用，现在分数只在阶段结束时入账，这里只刷新一下显示
+func refresh_score() -> void:
 	stats_changed.emit()

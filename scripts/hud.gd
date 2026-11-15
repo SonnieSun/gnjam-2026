@@ -8,6 +8,8 @@ extends CanvasLayer
 @onready var milestone_label: Label = $MilestoneLabel
 ## 积累条（样子在 main.tscn 的 HUD/GaugeBar 里调）
 @onready var gauge_bar: ProgressBar = get_node_or_null("GaugeBar")
+## 结算评级字母（样子在 main.tscn 的 HUD/RankLabel 里调）
+@onready var rank_label: Label = get_node_or_null("RankLabel")
 
 ## 判定文字下面的小字（EARLY / LATE）。main.tscn 的 HUD/TimingLabel，没有这个节点就不显示
 @onready var timing_label: Label = get_node_or_null("TimingLabel")
@@ -141,6 +143,8 @@ func reset() -> void:
 	_last_combo = 0
 	_rest_combo()
 	result_label.visible = false
+	if rank_label:
+		rank_label.visible = false
 	if _milestone_tween:
 		_milestone_tween.kill()
 	milestone_label.modulate.a = 0.0
@@ -302,3 +306,6 @@ func show_result(judge: Judge) -> void:
 		ms, lean if absf(ms) >= 1.0 else "",
 	]
 	result_label.visible = true
+	if rank_label:
+		rank_label.text = judge.rank()
+		rank_label.visible = true

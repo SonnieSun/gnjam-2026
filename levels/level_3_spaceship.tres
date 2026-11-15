@@ -5,8 +5,10 @@
 [ext_resource type="AudioStream" path="res://assets/fantasy/snare.wav" id="3_xf1mm"]
 [ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_r8aa2"]
 [ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_hn5cp"]
-[ext_resource type="PackedScene" path="res://scenes/sections/kisa/spaceship.tscn" id="6_kr3aw"]
+[ext_resource type="PackedScene" path="res://scenes/sections/kisa/space_shooter.tscn" id="6_kr3aw"]
 [ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="7_n3wf7"]
+
+[ext_resource type="PackedScene" path="res://scenes/sections/kisa/space_pizza.tscn" id="8_spacepizza"]
 
 [sub_resource type="Resource" id="Resource_rx4hs"]
 script = ExtResource("5_hn5cp")
@@ -16,6 +18,16 @@ beats_per_rev = 8.0
 bars = PackedStringArray("k.......k.......", "k.......k.......", "k.......k.......", "k...k...k...k...", "k...s...k...s...", "k...s...k...s...", "k...s...k.k.s...", "k...s...k...s...", "k...s...k...s...", "k.......k.......", "k...............", "k.......k.......", "........k.......", "k.......k.......", "k...............", "k.......s.......")
 gauge_events = PackedInt32Array()
 
+[sub_resource type="Resource" id="Resource_spacepizza"]
+script = ExtResource("5_hn5cp")
+title = "SPACE PIZZA"
+scene = ExtResource("8_spacepizza")
+beats_per_rev = 8.0
+bars = PackedStringArray("k...s...k...s...", "k...s...k...s...")
+transition = 1
+gauge_events = PackedInt32Array()
+fx_cues = [[0.5, "grid3"], [0.75, "kaleido"]]
+
 [resource]
 script = ExtResource("4_r8aa2")
 title = "SPACESHIP"
@@ -24,4 +36,4 @@ bpm = 120.0
 drum_kick = ExtResource("2_pbufy")
 drum_snare = ExtResource("3_xf1mm")
 drum_hat = ExtResource("1_hkeyt")
-sections = Array[ExtResource("5_hn5cp")]([SubResource("Resource_rx4hs")])
+sections = Array[ExtResource("5_hn5cp")]([SubResource("Resource_rx4hs"), SubResource("Resource_spacepizza")])
