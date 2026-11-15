@@ -52,7 +52,7 @@ texture = ExtResource("2_g3eks")
 [node name="Disc" type="Node2D" parent="." unique_id=324898137]
 unique_name_in_owner = true
 visible = false
-position = Vector2(576, 650)
+position = Vector2(480, 722)
 
 [node name="Plate" type="Polygon2D" parent="Disc" unique_id=1275049770]
 color = Color(0.08235294, 0.0627451, 0.12156863, 1)
@@ -108,7 +108,7 @@ offset_right = 170.0
 offset_bottom = -228.0
 theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
 theme_override_font_sizes/font_size = 22
-text = "6 STAGES"
+text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -162,7 +162,7 @@ offset_right = 170.0
 offset_bottom = -228.0
 theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
 theme_override_font_sizes/font_size = 22
-text = "6 STAGES"
+text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -216,7 +216,7 @@ offset_right = 170.0
 offset_bottom = -228.0
 theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
 theme_override_font_sizes/font_size = 22
-text = "6 STAGES"
+text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -270,7 +270,7 @@ offset_right = 170.0
 offset_bottom = -228.0
 theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
 theme_override_font_sizes/font_size = 22
-text = "6 STAGES"
+text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -324,7 +324,7 @@ offset_right = 170.0
 offset_bottom = -228.0
 theme_override_colors/font_color = Color(0.16, 0.09, 0.25, 0.7)
 theme_override_font_sizes/font_size = 22
-text = "6 STAGES"
+text = "1 STAGE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -350,7 +350,7 @@ cat_head_controller = NodePath("../Cat/Head")
 
 [node name="Cat" type="Node2D" parent="." unique_id=890519064]
 visible = false
-position = Vector2(576, 0)
+position = Vector2(480, 0)
 
 [node name="Body" type="Polygon2D" parent="Cat" unique_id=981523442]
 position = Vector2(0, -70)
@@ -412,10 +412,10 @@ texture = ExtResource("2_4ytvr")
 
 [node name="ArrowLeft" type="Button" parent="." unique_id=756384727]
 unique_name_in_owner = true
-offset_left = 76.0
-offset_top = 110.0
-offset_right = 196.0
-offset_bottom = 240.0
+offset_left = 36.0
+offset_top = 150.0
+offset_right = 156.0
+offset_bottom = 280.0
 focus_mode = 0
 flat = true
 
@@ -427,10 +427,10 @@ polygon = PackedVector2Array(-74, -80, 74, -80, 74, 80, -74, 80)
 
 [node name="ArrowRight" type="Button" parent="." unique_id=694713718]
 unique_name_in_owner = true
-offset_left = 956.0
-offset_top = 110.0
-offset_right = 1076.0
-offset_bottom = 240.0
+offset_left = 804.0
+offset_top = 150.0
+offset_right = 924.0
+offset_bottom = 280.0
 focus_mode = 0
 flat = true
 

@@ -36,27 +36,9 @@ static func paths() -> PackedStringArray:
 	return _paths
 
 
-## 重新扫描文件夹（关卡编辑器新建了大关之后调用）
+## 重新扫描文件夹（运行中新加了大关文件之后调用）
 static func rescan() -> void:
 	_paths = PackedStringArray()
-
-
-## 关卡编辑器点“试玩”时会留下这个文件：玩哪个大关、从第几个小关开始。
-## 游戏启动时读一次就删掉；返回要从第几个小关开始（没有这个文件 = -1）。
-const EDITOR_REQUEST_FILE := "user://level_editor_play.json"
-
-static func take_editor_request() -> int:
-	if not OS.has_feature("editor") or not FileAccess.file_exists(EDITOR_REQUEST_FILE):
-		return -1
-	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(EDITOR_REQUEST_FILE))
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(EDITOR_REQUEST_FILE))
-	if not data is Dictionary:
-		return -1
-	var index := paths().find(String(data.get("level", "")))
-	if index < 0:
-		return -1
-	selected = index
-	return int(data.get("section", 0))
 
 
 static func count() -> int:

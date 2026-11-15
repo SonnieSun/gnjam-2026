@@ -1,5 +1,6 @@
 @tool
 extends SpinSection
+## （副本：原文件是 Sonnie 的 scripts/sections/ring_section.gd，main 上删掉了；迪斯科继承它，所以复制一份放在我们的文件夹里。）
 ## 缩圈段落：圆圈从屏幕外向目标圆收缩，和目标圆的白色轮廓重合时按键。
 ## - 只有一个目标（target_offsets 留一个点）= 第二关：所有圈都往中心收。
 ## - 多个目标 = 第三关：每个音符按鼓的种类去不同的目标圆

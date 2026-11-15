@@ -11,8 +11,8 @@ signal stats_changed
 ## 连击数刚好达到 COMBO_MILESTONES 里的某个值
 signal combo_milestone(combo: int)
 
-const PERFECT_WINDOW := 0.05
-const GOOD_WINDOW := 0.12
+const PERFECT_WINDOW := 0.08
+const GOOD_WINDOW := 0.2
 const HIT_ACTION := "hit"
 const COMBO_MILESTONES: Array[int] = [10, 20, 50, 100, 200, 300, 400, 500]
 

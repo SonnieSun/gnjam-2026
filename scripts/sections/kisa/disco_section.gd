@@ -1,5 +1,5 @@
 @tool
-extends "res://scripts/sections/ring_section.gd"
+extends "res://scripts/sections/kisa/ring_section.gd"
 ## 迪斯科猫砂盆关卡：判定玩法和 Sonnie 的缩圈段落完全一样（圈往中间收，和白色轮廓重合时按）。
 ## 画面是铺满屏幕的 3D isometric 房间，猫在猫砂盆里，按键就转。
 ## 舞台由通用的积累条推进（见 scripts/core/gauge.gd）：

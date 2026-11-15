@@ -1,357 +1,138 @@
 {
- "title": "LEVEL 3",
- "bpm": 160,
- "use_in_game": true,
- "quantize_beats": 4,
- "lanes": [
-  {
-   "id": "beat",
-   "name": "节奏",
-   "gain_db": 0.0,
-   "clips": [
-    {
-     "id": "groove",
-     "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav"
-    }
-   ]
-  },
-  {
-   "id": "bass",
-   "name": "低音",
-   "gain_db": 0.0,
-   "clips": [
-    {
-     "id": "bass",
-     "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
-    },
-    {
-     "id": "cat_bass",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_bass_4b.wav"
-    }
-   ]
-  },
-  {
-   "id": "bed",
-   "name": "和声",
-   "gain_db": 0.0,
-   "clips": [
-    {
-     "id": "fb_keys",
-     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L0_keys_4b.wav"
-    },
-    {
-     "id": "cat_stabs",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav"
-    }
-   ]
-  },
-  {
-   "id": "lead",
-   "name": "旋律",
-   "gain_db": 0.0,
-   "clips": [
-    {
-     "id": "fb_hook",
-     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L3_hook_4b.wav"
-    },
-    {
-     "id": "cat_lead",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
-    }
-   ]
-  },
-  {
-   "id": "peak",
-   "name": "高潮",
-   "gain_db": 0.0,
-   "clips": [
-    {
-     "id": "fb_peak",
-     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L4_peak_4b.wav"
-    }
-   ]
-  },
-  {
-   "id": "meow",
-   "name": "猫鼓",
-   "gain_db": 0.0,
-   "clips": [
-    {
-     "id": "cat_drums",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
-    }
-   ]
-  },
-  {
-   "id": "fx",
-   "name": "事件",
-   "gain_db": 0.0,
-   "clips": [
-    {
-     "id": "ev_meow",
-     "file": "res://assets/audio/music/scene1/events/s1_X_meow_4b.wav"
-    },
-    {
-     "id": "ev_seal",
-     "file": "res://assets/audio/music/scene1/events/s1_X_seal_4b.wav"
-    }
-   ]
-  }
- ],
- "sections": [
-  {
-   "title": "1 DISC",
-   "cues": {
-    "beat": [
-     [
-      0.0,
-      "groove"
-     ]
-    ],
-    "bass": [
-     [
-      0.25,
-      "bass"
-     ]
-    ],
-    "bed": [
-     [
-      0.0,
-      "fb_keys"
-     ]
-    ],
-    "lead": [
-     [
-      0.5,
-      "fb_hook"
-     ]
-    ],
-    "peak": [
-     [
-      0.75,
-      "fb_peak"
-     ]
-    ]
-   }
-  },
-  {
-   "title": "2 TAIL",
-   "cues": {
-    "beat": [
-     [
-      0.0,
-      "groove"
-     ]
-    ],
-    "bass": [
-     [
-      0.25,
-      "bass"
-     ]
-    ],
-    "bed": [
-     [
-      0.0,
-      "fb_keys"
-     ]
-    ],
-    "lead": [
-     [
-      0.5,
-      "fb_hook"
-     ]
-    ],
-    "peak": [
-     [
-      0.75,
-      "fb_peak"
-     ]
-    ],
-    "meow": [
-     [
-      0.5,
-      "cat_drums"
-     ]
-    ]
-   }
-  },
-  {
-   "title": "3 EARTH",
-   "cues": {
-    "beat": [
-     [
-      0.0,
-      "groove"
-     ]
-    ],
-    "bass": [
-     [
-      0.25,
-      "bass"
-     ]
-    ],
-    "bed": [
-     [
-      0.0,
-      "fb_keys"
-     ],
-     [
-      0.5,
-      "cat_stabs"
-     ]
-    ],
-    "lead": [
-     [
-      0.5,
-      "fb_hook"
-     ]
-    ],
-    "peak": [
-     [
-      0.75,
-      "fb_peak"
-     ]
-    ],
-    "meow": [
-     [
-      0.0,
-      "cat_drums"
-     ]
-    ]
-   }
-  },
-  {
-   "title": "4 BIGCAT",
-   "cues": {
-    "beat": [
-     [
-      0.0,
-      "groove"
-     ]
-    ],
-    "bass": [
-     [
-      0.25,
-      "bass"
-     ]
-    ],
-    "bed": [
-     [
-      0.0,
-      "cat_stabs"
-     ]
-    ],
-    "lead": [
-     [
-      0.5,
-      "cat_lead"
-     ]
-    ],
-    "peak": [
-     [
-      0.75,
-      "fb_peak"
-     ]
-    ],
-    "meow": [
-     [
-      0.0,
-      "cat_drums"
-     ]
-    ]
-   }
-  },
-  {
-   "title": "5 WASHER",
-   "cues": {
-    "beat": [
-     [
-      0.0,
-      "groove"
-     ]
-    ],
-    "bass": [
-     [
-      0.25,
-      "bass"
-     ],
-     [
-      0.5,
-      "cat_bass"
-     ]
-    ],
-    "bed": [
-     [
-      0.0,
-      "cat_stabs"
-     ]
-    ],
-    "lead": [
-     [
-      0.0,
-      "cat_lead"
-     ]
-    ],
-    "peak": [
-     [
-      0.75,
-      "fb_peak"
-     ]
-    ],
-    "meow": [
-     [
-      0.0,
-      "cat_drums"
-     ]
-    ]
-   }
-  },
-  {
-   "title": "6 UFO",
-   "cues": {
-    "beat": [
-     [
-      0.0,
-      "groove"
-     ]
-    ],
-    "bass": [
-     [
-      0.25,
-      "cat_bass"
-     ]
-    ],
-    "bed": [
-     [
-      0.0,
-      "cat_stabs"
-     ]
-    ],
-    "lead": [
-     [
-      0.0,
-      "cat_lead"
-     ]
-    ],
-    "peak": [
-     [
-      0.75,
-      "fb_peak"
-     ]
-    ],
-    "meow": [
-     [
-      0.0,
-      "cat_drums"
-     ]
-    ],
-    "fx": [
-     [
-      0.75,
-      "ev_meow"
-     ]
-    ]
-   }
-  }
- ]
+	"title": "LEVEL 3",
+	"bpm": 160,
+	"use_in_game": false,
+	"quantize_beats": 4,
+	"lanes": [
+		{
+			"id": "beat",
+			"name": "节奏",
+			"gain_db": 0.0,
+			"clips": [
+				{
+					"id": "groove",
+					"file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav"
+				}
+			]
+		},
+		{
+			"id": "bass",
+			"name": "低音",
+			"gain_db": 0.0,
+			"clips": [
+				{
+					"id": "bass",
+					"file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
+				},
+				{
+					"id": "cat_bass",
+					"file": "res://assets/audio/music/scene1/cat_band/s1_C_bass_4b.wav"
+				}
+			]
+		},
+		{
+			"id": "bed",
+			"name": "和声",
+			"gain_db": 0.0,
+			"clips": [
+				{
+					"id": "fb_keys",
+					"file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L0_keys_4b.wav"
+				},
+				{
+					"id": "cat_stabs",
+					"file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav"
+				}
+			]
+		},
+		{
+			"id": "lead",
+			"name": "旋律",
+			"gain_db": 0.0,
+			"clips": [
+				{
+					"id": "fb_hook",
+					"file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L3_hook_4b.wav"
+				},
+				{
+					"id": "cat_lead",
+					"file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_4b.wav"
+				}
+			]
+		},
+		{
+			"id": "peak",
+			"name": "高潮",
+			"gain_db": 0.0,
+			"clips": [
+				{
+					"id": "fb_peak",
+					"file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L4_peak_4b.wav"
+				}
+			]
+		},
+		{
+			"id": "meow",
+			"name": "猫鼓",
+			"gain_db": 0.0,
+			"clips": [
+				{
+					"id": "cat_drums",
+					"file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+				}
+			]
+		},
+		{
+			"id": "fx",
+			"name": "事件",
+			"gain_db": 0.0,
+			"clips": [
+				{
+					"id": "ev_meow",
+					"file": "res://assets/audio/music/scene1/events/s1_X_meow_4b.wav"
+				},
+				{
+					"id": "ev_seal",
+					"file": "res://assets/audio/music/scene1/events/s1_X_seal_4b.wav"
+				}
+			]
+		}
+	],
+	"sections": [
+		{
+			"title": "PIZZA CAT",
+			"cues": {
+				"beat": [
+					[
+						0.0,
+						"groove"
+					]
+				],
+				"bass": [
+					[
+						0.25,
+						"bass"
+					]
+				],
+				"bed": [
+					[
+						0.0,
+						"fb_keys"
+					]
+				],
+				"lead": [
+					[
+						0.5,
+						"fb_hook"
+					]
+				],
+				"peak": [
+					[
+						0.75,
+						"fb_peak"
+					]
+				]
+			}
+		}
+	]
 }

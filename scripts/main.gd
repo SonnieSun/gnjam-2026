@@ -47,11 +47,8 @@ var _cleared := false
 
 func _ready() -> void:
 	# 谱面由主菜单选中的大关决定（见 scripts/core/levels.gd）；直接运行本场景时是第 1 大关
-	var requested := Levels.take_editor_request()  # 从关卡编辑器点“试玩”进来的
-	if requested >= 0:
-		start_section = requested
 	chart = Levels.build_chart()
-	# 叠轨音乐：这一大关的音乐配置（Music Director 里编辑）开了“在游戏里用”，就用它代替谱面里的伴奏，
+	# 叠轨音乐：这一大关的音乐配置（json 里的 use_in_game）开了“在游戏里用”，就用它代替谱面里的伴奏，
 	# BPM 也跟着配置走；进度 = 积累条，小关 = 当前小关。没开的大关完全不受影响。
 	if Music.enabled_for(Levels.selected):
 		chart.stream = Music.build(Music.read(Music.path_for(Levels.selected)))
