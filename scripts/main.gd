@@ -291,6 +291,7 @@ func start_from(index: int) -> void:
 	hud.reset()
 	_cleared = false
 	_switch_at = -1.0
+	Music.restart()  # 叠轨音乐回到开头的样子（没在用它时这句什么都不做）
 	Conductor.play(-lead_in_beats)
 	_enter(index, 0.0, false)
 

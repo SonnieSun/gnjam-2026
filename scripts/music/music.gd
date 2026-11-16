@@ -382,6 +382,50 @@ func _pattern_origin(key: String) -> float:
 	return float(_tunes[tune].origin)
 
 
+## 这一大关从头重来（按 R、编辑面板跳阶段）：回到刚读进配置时的样子。不重读文件，只把状态清掉：
+## 各条轨道静音、曲子停、档位 / fever / 结尾段 / 排好的切换 / 带过来的满度都清零、还在响的结尾段和过门停掉。
+## 接着由 set_section() 排上开头该响的。
+func restart() -> void:
+	if stream == null:
+		return
+	_end_fever()
+	_set_fever_reverb(false)
+	section = -1                    # 让接下来的 set_section(0) 当成新进一个小关
+	progress = 0.0
+	progress_override = -1.0
+	effective = 0.0
+	_effective_at_beat = 0.0
+	tier = 0
+	_carry = 0.0
+	_force.clear()
+	_now.clear()
+	_pending = false
+	_outro = false
+	_outro_wait = false
+	_fill_until = -1.0
+	_plan = {}
+	_planned_for = -1
+	_riser_for = -1
+	_fill_done_for = -1
+	_fever_fill_done = false
+	_quiet_tier_change = true
+	_dip_until = -1.0
+	for i in _slot_lane.size():
+		_target[i] = 0.0
+		_level[i] = 0.0
+		_slot_stream[i].set_sync_stream_volume(_slot_index[i], SILENT_DB)
+	for tune: String in _tunes:
+		(_tunes[tune].player as AudioStreamPlayer).stop()
+		_tunes[tune].origin = INF
+	for key: String in meow.active.keys():
+		meow.set_active(key, {})
+	for p in _sfx:
+		# 只停那些几小节长的（结尾段、专门写的过门）：开场数拍子、上一关收尾和弦的尾巴照常放完
+		var playing := p.stream.resource_path.get_file() if p.playing and p.stream != null else ""
+		if playing.begins_with("out_") or playing.begins_with("tr_"):
+			p.stop()
+
+
 func clear() -> void:
 	_free_tunes()
 	_pattern_tune.clear()
@@ -498,6 +542,11 @@ func set_progress(p: float) -> void:
 ##               场景要在过门之前先做铺垫的切换用
 ## 读出来的是补齐了默认值的一份：{fill: 到底放不放过门, written, db, bars, replaces, on_bars, sfx, lead_beats}
 const ENTER_DB := -1.0
+## 档位线、fever 的两头、各条轨道的切换点在配置里只写到小数点后三位（0.256），而积累条的分数线是整数除出来的
+## （110 / 430 = 0.25581）。积累条正好停在分数线上时，进度比写下来的线小一点点，要算过线：不然关卡那边
+## 已经触发了这个阶段（拆房子、歇着不出音符），音乐却要等玩家再打中一个才换，一直停在上一段。
+## 0.0006 > 四舍五入的最大误差 0.0005，又远小于积累条的一格（满条不到 900 格时一格 > 0.0011）。
+const LINE_EPS := 0.0006
 
 func change_spec(kind: String, t := 0) -> Dictionary:
 	var out := {"fill": false, "written": "", "db": ENTER_DB, "bars": 1, "replaces": 1, "on_bars": 0, "sfx": "", "lead_beats": 0.0}
@@ -657,7 +706,7 @@ func fever_ranges(section_index: int) -> Array:
 ## 进度 p 在不在这个小关的 fever 段里
 func in_fever(p: float) -> bool:
 	for r: Array in fever_ranges(section):
-		if p + 0.0001 >= r[0] and (p < r[1] or r[1] >= 0.999):
+		if p + LINE_EPS >= r[0] and (p < r[1] or r[1] >= 0.999):
 			return true
 	return false
 
@@ -686,7 +735,7 @@ func _first_clip(lane_id: String) -> String:
 func tier_of(p: float, lines: PackedFloat32Array) -> int:
 	var k := 0
 	for line in lines:
-		if p + 0.0001 >= line:
+		if p + LINE_EPS >= line:
 			k += 1
 	return k
 
@@ -943,7 +992,7 @@ func clip_at(section_index: int, lane: String, p: float) -> String:
 	var best := -1.0
 	for cue in secs[section_index].get("cues", {}).get(lane, []):
 		var at: float = cue[0]
-		if at <= p + 0.0001 and at >= best:
+		if at <= p + LINE_EPS and at >= best:
 			best = at
 			clip = cue[1]
 	return clip
