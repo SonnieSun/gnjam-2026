@@ -90,6 +90,7 @@ var _clear_at := INF  # 猫飞出屏幕之后，到这一拍把积累条顶满�
 var _curtain := false
 var _abduct: AbductionStage  # 结尾之后接着玩的吸猫舞台（嵌在迪斯科的 3D 世界里）
 var _abduct_gauge_from := 0  # 开始吸猫时积累条的值
+var _accents: NoteAccents  # 音符的重点标记（场景里有 NoteAccents 节点才有，见 scripts/fx/note_accents.gd）
 
 
 func _ready() -> void:
@@ -111,6 +112,7 @@ func _ready() -> void:
 		_stage = KisaDiscoStage.new()
 		add_child(_stage)
 	_stage.setup(_spin_cat)
+	_accents = get_node_or_null("NoteAccents") as NoteAccents
 	_stage.external = true  # 阶段和镜头交给积累条
 	# 房间之后的几段：拆房子、路上撞水果、圆台、结尾（场景里有 Road 节点就用它，参数能在 Inspector 调）
 	_road = get_node_or_null("Road") as DiscoRoad
@@ -502,6 +504,16 @@ func _draw_rings() -> void:
 		var c := guide_color(n).lerp(Color.WHITE, k * k * 0.3)
 		c.a = clampf((1.0 - t) / 0.15, 0.0, 1.0) * lerpf(ring_alpha, 1.0, pow(k, 1.5))
 		var w := lerpf(ring_width, ring_width_near, k)
+		# 重点标记：小节线 / 重音 / 切分 / 换段之前的音符换颜色、粗细，加柔光或者多一圈细圈
+		if _accents:
+			var mark := _accents.look(n, guide_color(n))
+			if mark.kind != NoteAccents.Kind.NONE:
+				c = Color((mark.color as Color).lerp(Color.WHITE, k * k * 0.3), c.a)
+				w *= float(mark.width)
+				if mark.glow > 0.0:
+					_ellipse(hit_position(n), r, Color(c, c.a * 0.35 * float(mark.glow)), w * 2.6)
+				if mark.echo:
+					_ellipse(hit_position(n), r + w * 1.6 / judge_scale, Color(c, c.a * 0.7), maxf(w * 0.35, 2.0))
 		if k > 0.5:
 			_ellipse(hit_position(n), r, Color(c, c.a * (k - 0.5) * 0.6), w * 2.6)
 		_ellipse(hit_position(n), r, c, w)

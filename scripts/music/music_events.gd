@@ -50,6 +50,11 @@ func groove_of(clip_id: String) -> String:
 	return _clip_groove.get(clip_id, "")
 
 
+## 这种鼓型一小节里每种鼓在第几个十六分：{"kick": [...], "clap": [...], "hat": [...], "open_hat": [...]}，没有就是 {}
+func groove(groove_name: String) -> Dictionary:
+	return _grooves.get(groove_name, {})
+
+
 ## 旋律轨的这段片段是哪首曲子的旋律（"" = 没有音符数据）
 func song_of(clip_id: String) -> String:
 	_index()

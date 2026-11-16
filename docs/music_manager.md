@@ -929,3 +929,58 @@ Music.planned_change()   # 排好了还没发生的那次：{kind, id, fill_beat
 - 已经出现在路上的水果照常打完：路上的谱只停掉还没出现的（`_switch_chart_at(现在 + fruit_lead_beats, 第一个音符, "plaza")`）。原来是一过线，屏幕上的水果一下全没了。
 - 猫在第一个音符之前 `plaza_stand_bars`（1）小节滑到圆台中间站好；这一小节音乐放预备拍。
 - 所以 4 小节的安静段大约是：1 小节多还有水果 → 滑向圆台 → 最后 1 小节站在台上听节拍器 → 第一个音符。
+
+## 画面跟着音乐的信号（2026-11-17）
+
+以前画面能拿到的只有 `Conductor.beat`（每拍）和 `Music` 的 `tier_changed` / `fever_started` / `lane_switched` / `change_planned` / `count_in_started`。
+现在 `Music` 多了四个信号，说的是"现在响的这一下是什么"：
+
+```gdscript
+signal drum_kick(beat: float)                  # 节奏轨这套鼓型里的一下底鼓
+signal drum_clap(beat: float)                  # 一下拍手
+signal drum_hat(beat: float, open: bool)       # 一下镲（open = 开镲）
+signal lead_note(beat: float, midi: int, length_beats: float)   # 旋律轨这首曲子的一个音
+```
+
+- `beat` 是这一下落在第几拍（浮点）。信号在节拍走过它的那一帧发，实测最晚 7 毫秒（一帧以内）。
+- 跟着"现在在放的"走：节奏轨换了鼓型（half / groove / club / break），下一条小节线起发的就是新鼓型；旋律轨没响就不发 `lead_note`；
+  预备拍那一小节（关卡的鼓让开）和安静段（鼓停了）不发鼓的信号；属于曲子组的旋律从那首曲子自己的第 1 小节数起（`Music.tune_origin`）。
+- **底鼓不在音乐里。** 量过节奏轨的四段 loop：里面只有拍手和镲（普通的那段是反拍的开镲），底鼓是留给玩家打的。
+  所以 `drum_kick` 是"鼓型里底鼓该在的位置"（谱面的音符大多也落在这些位置上），音乐本身在那一下不一定有声；`drum_clap` 和 `drum_hat` 是听得见的。
+- 发信号的是 `Music.events`（`scripts/music/music_events.gd`，`Music` 的子节点）。`Music.events.lead_beats = 0.1` 可以让所有信号提前一点发
+  （效果自己有起势的时候用）；`Music.events.log_events = true` 把每一下打印出来；`groove_of(片段)` / `groove(名字)` / `song_of(片段)` / `song(名字)` 可以直接查数据
+  （比如提前知道下一小节的鼓点）。
+
+### 数据从哪来
+
+`levels/music/events/` 里的小 json，由 `python -I tools/music_gen/export_music_events.py <项目目录>` 写出来（只要 Python；它不运行作曲脚本，
+只把 `compose_disc.py` 的 `RHYTHMS` 和 `compose_classics.py` 的 `SONGS` 读出来）。**改了鼓型或者旋律要重跑一次。**
+
+| 文件 | 内容 |
+|---|---|
+| `grooves.json` | 四种鼓型（four / half / break / club）一小节里底鼓、拍手、镲、开镲在第几个十六分音符 |
+| `<曲子>.json` | 这首曲子的旋律：`{"bars", "cat_octave", "notes": [[第几个十六分, 音高, 多长], ...]}`，半速的曲子按听到的写（和 `docs/music_midi/` 一样） |
+
+哪段片段用哪份数据是自动认的：节奏轨看文件名（`s1_Rclub_L1_groove` → club，`s1_L1_groove` → four）再看片段 id；旋律轨看文件在 `classics/` 的哪个文件夹。
+认不出来的片段不发信号；想指定就在片段上写 `"groove": "club"` 或 `"notes": "entertainer"`。
+现在认得的：节奏轨的四段鼓，和所有经典曲子的旋律（乐器版、猫版、鬼畜版用同一份音符）。上升关的双踩鼓、猫鼓、低音、和声没有数据。
+
+注意：`stages/shared/beat_fx/` 的 **BeatFx** 是另一套、互补的东西：它从 wav 里分析出每条轨每一下的位置（打点表），挂在物品上让物品跟着某条轨闪。
+要"这条轨有声音就闪"用 BeatFx；要知道"这是底鼓 / 拍手 / 旋律的哪个音"用这里的信号。
+
+检查：`godot --headless -s tools/test_music_events.gd`（约一分钟）放第一关的音乐、把积累条走一遍，逐小节打印信号发在哪些十六分上、该在哪些上。
+38 小节（四种鼓型、迪斯科主题和 The Entertainer、过门、预备拍、安静段）全部对上。
+
+### 第一关的三个样例（`scenes/sections/kisa/disco.tscn` 里的三个节点，各有 `enabled` 开关，删掉节点就没有）
+
+| 节点 | 脚本 | 做什么 |
+|---|---|---|
+| `CatBounce` | `scripts/fx/music_bounce.gd` | 主角猫不转的时候也跟着音乐 Q 弹：底鼓那一下压扁再弹起（弹簧，体积大致不变），拍手轻一点。鼓型换了弹法跟着变；预备拍那一小节鼓让开了它也停；节奏轨整个没声的地方（圆台前的安静段）改成每拍轻轻弹一下（`beat_fallback`，设成 0 就不弹）。`kick` / `clap` / `note`（旋律的每个音点一下，默认 0）/ `squash` / `stiffness` / `damping` / `hop` 可调。它在猫和模型之间插了一层来缩放，不和按键转圈的"弹一下"打架。别的 3D 物体也能用（`target` 指过去） |
+| `NoteAccents` | `scripts/fx/note_accents.gd` | 音符的重点标记，四种：**小节线上的**（偏暖白、粗一点）、**重音**（落在这套鼓型的拍手上：橙色、更粗、外面一圈柔光）、**切分音**（不在整拍上：青色、细一点、外面多一圈细圈，看起来是双圈）、**换段之前的**（升档 / 进 fever 排好之后，换之前 4 拍里的音符：金色，每拍闪一下）。每种有自己的开关、颜色、粗细。谱面里单独指定了颜色的音符，颜色听谱面的。画音符的地方问它 `look(note, 原来的颜色)`；现在接上的只有第一关的**缩圈**（房间和圆台），路上的水果没接 |
+| `CountInDisplay` | `scripts/fx/count_in_display.gd` | 预备拍（`Music.count_in_started`）那一小节，屏幕中间每拍蹦出一个字：READY、3、2、1，下一拍就是第一个音符；每一下屏幕边上闪一圈。字（`labels`）、字号、位置、颜色可调。放进任何小关或者 `main.tscn` 都能用，不用接线 |
+
+`disco_section.gd` 为此只加了一处：`_draw_rings()` 里画圈之前问一下 `NoteAccents`（场景里没有这个节点就和原来完全一样）。
+检查：`godot --headless -s tools/test_level1_music_fx.gd`（约 15 秒）。
+
+**音符重点标记的下一步（还没做）**：现在是按规则自动判的。要每关单独设计，就给音符加一个"重点"属性（和 `color` / `size` 一样进 `ChartPattern` 和 `NoteData`，
+在谱面编辑器里按音符编辑），`NoteAccents.kind_of()` 先看它、没写再按规则；另外把水果、下落式这些别的画法也接上 `look()`。
