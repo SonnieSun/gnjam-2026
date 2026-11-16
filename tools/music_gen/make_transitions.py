@@ -14,8 +14,8 @@ two sets of drums would flam).
                            "tier_enter"): the rag's own introduction, the run down D E C A B G, and its pick-up D D#,
                            the cats joining for the second half, over G7 (G is the disco's key note and C's dominant).
   <sfx>/tr_ccb_to_cc.wav   Can-Can's four steps down (D major) -> its famous tune (G major), the pizza going into
-                           fever (a section's "fever_enter"): cut from the descent's own stems with the last bar
-                           rewritten (the run keeps climbing and hammers the high D) and an urgent drum fill.
+                           fever (a section's "fever_enter"): the famous tune's own lead-in, "G D A B, MIAO! MIAO!",
+                           cut from the famous tune's stems (the fever's band, one bar early).
   <sfx>/tr_tm_to_cc.wav    Turkish March's second section (A major) -> Can-Can's opening strain (D major): the
                            galop's own lead-in, the vamp on the dominant.
 
@@ -189,20 +189,16 @@ render('tr_disco_to_ent',
        chords=[(0, 'G', 4, 'stab'), (4, 'G7', 12, 'swell')], roll=True)
 
 # Can-Can: the four steps down (D major) -> the famous tune (G major), the pizza going into its fever.
-# NOT a separate little arrangement like the ones above (that was tried: a pluck and one cat with the two accents
-# read as "another sound cut in"). This one is THE SAME BAND playing on: the descent is rendered again by the
-# same code that makes its stems (compose_classics.build: same cats, same square lead, same chords, bass and
-# peak layer, same loudness), with its last bar rewritten, and that bar is cut out of every stem and mixed at
-# the levels the level plays them at. So when the manager swaps the last bar of the phrase for this one-shot
-# nothing changes but the notes, and a drum fill is added on top.
-#   the notes   the bar's own run up (G# A B C#) and then, instead of falling back, it keeps climbing to the high
-#               D and hammers it: short, short, LONG (the long one doubled an octave down, like every phrase end)
-#               over A7 -> D7, the dominant of the famous tune's G
-#   the drums   an urgent fill: snare on every eighth, sixteenths in the third beat, thirty-seconds in the last,
-#               growing all the way into the bar line
-# The level waits for the descent's 8-bar line ("fever_on_bars": 8), so this is always that phrase's last bar,
-# sung by the same cat as the three bars before it.
-def from_stems(name, base, bar, row, chords, levels, play_db=10.0):
+# What everybody hears in their head before the famous tune is its own lead-in: the end of the galop's phrase,
+# "G D A B | MIAO! MIAO!", two accents (G, then D) and the tune starts. So this bar is THE FEVER'S OWN BAND
+# arriving one bar early with exactly that: the famous tune is rendered again by the code that makes its stems
+# (compose_classics.build: same cats, square lead, pluck, chords, bass, peak layer, cat drums), with its last bar
+# rewritten to the phrase ending (bar 28 of the piano MIDI the user supplied), that bar is cut out of every stem
+# and mixed at the levels the fever plays them at. On the two accents the cats shout in two more octaves with a
+# crash and a big snare; under the run before them a snare fill; a thirty-second roll into the bar line.
+# Tried before and dropped: a separate little arrangement (pluck + one cat + orchestra hits: "another sound cut
+# in"), and the descent's own band with its last bar varied (the same sound, but not the lead-in people know).
+def from_stems(name, base, bar, row, chords, levels, accents=(), play_db=14.0):
     song = dict(cc.SONGS[base])
     lo, hi = bar * 16, bar * 16 + 16
     song['melody'] = sorted([n for n in song['melody'] if not lo <= n[0] < hi] + [(lo + st, p, ln) for st, p, ln in row])
@@ -210,21 +206,25 @@ def from_stems(name, base, bar, row, chords, levels, play_db=10.0):
     song['chords'][2 * bar:2 * bar + 2] = chords
     with contextlib.redirect_stdout(io.StringIO()):
         L = cc.build(song)
-    x = np.zeros((BAR_N, 2))
+    L['L3_square_dark'] = lowpass(L['L3_square'], 2200)       # the square lead as the fever plays it (make_choir_stems.py)
+    x = np.zeros((BAR_N + t2n(0.4), 2))
     for layer, db in levels:
-        x += L[layer][bar * BAR_N:(bar + 1) * BAR_N] * 10 ** (db / 20)
-    # In the game the stems that were playing fade out over the first beat of this bar (music.gd fades a lane
-    # that stops over one beat, linearly). They are playing the same band, so this fades in over that beat:
-    # the two add up to one band, not to a double one.
-    beat = t2n(BAR / 4)
-    x[:beat] *= np.linspace(0, 1, beat)[:, None]
-    hits = [0, 2, 4, 6, 8, 9, 10, 11] + [12 + i / 2 for i in range(8)]
-    for st in hits:
-        place(x, snare(0.3 + 0.45 * (st / 16) ** 1.3), t2n(st * STEP), 1.0)
-    k = np.arange(BAR_N) / BAR_N
-    x += highpass(np.stack([noise(BAR_N), noise(BAR_N)], 1), 2500) * (k ** 3)[:, None] * 0.15
+        x[:BAR_N] += L[layer][bar * BAR_N:(bar + 1) * BAR_N] * 10 ** (db / 20)
+    f = t2n(0.02)
+    x[:f] *= np.linspace(0, 1, f)[:, None]
+    for st in (0, 2, 4, 5, 6, 7):                                   # the fill under the run
+        place(x, snare(0.35 + 0.03 * st), t2n(st * STEP), 1.0)
+    for st, note in accents:                                        # MIAO! MIAO!
+        at, m = t2n(st * STEP), nm(note)
+        place(x, snare(1.0), at, 1.0)
+        place(x, cc.CRASH, at, 0.4)
+        place(x, pan(sung(m + 12, 3), 0.25), at, 1.0)
+        place(x, pan(sung(m, 3), -0.25), at, 0.9)
+    for i in range(4):                                              # the roll into the bar line
+        place(x, snare(0.45 + 0.12 * i), t2n((14 + i / 2) * STEP), 1.0)
     f = t2n(0.006)
-    x[-f:] *= np.linspace(1, 0, f)[:, None]
+    x[BAR_N - f:BAR_N] *= np.linspace(1, 0.5, f)[:, None]
+    x[BAR_N:] *= np.linspace(0.5, 0, len(x) - BAR_N)[:, None] ** 2      # only the crash and snare tails ring over
     # A full band at the stems' own levels peaks far above 1.0 (in the game the stems are summed as floats), so
     # the file is written play_db lower and the level plays it that much up (the section's "fever_enter_db").
     x = x * 10 ** (-play_db / 20)
@@ -235,12 +235,15 @@ def from_stems(name, base, bar, row, chords, levels, play_db=10.0):
     print(f'  {name}: {len(x) / SR:.2f} s, peak {np.abs(x).max():.2f}, cut from the stems of {base}')
 
 
-from_stems('tr_ccb_to_cc', 'can_can_b', 7,
-           row=[(0, 'G#5', 2), (2, 'A5', 2), (4, 'B5', 2), (6, 'C#6', 2), (8, 'D6', 2), (10, 'D6', 2), (12, 'D6', 4)],
-           chords=['A7', 'D7'],
-           # the levels of the pizza from 62.5 % (levels/music/level_3_spaceship.json; bass stems are trimmed 4 dB
-           # when they are packaged for the game)
-           levels=[('L3_cat_kichiku', 0.0), ('L3_square', -5.0), ('fb_L0_keys', 0.0), ('L2_bass', -4.0), ('fb_L4_peak', 0.0)])
+from_stems('tr_ccb_to_cc', 'can_can', 7,
+           row=[(0, 'G4', 2), (2, 'D5', 2), (4, 'A4', 2), (6, 'B4', 2), (8, 'G4', 4), (12, 'D4', 4)],
+           chords=['G', 'D7'],
+           accents=[(8, 'G4'), (12, 'D4')],
+           # the levels of the pizza's fever (levels/music/level_3_spaceship.json: the square on the fx lane -3 dB,
+           # the pluck on the kiai lane -2 dB; bass stems are trimmed 4 dB when they are packaged for the game)
+           levels=[('L3_cat_kichiku', 0.0), ('L3_square_dark', -3.0), ('L3_pluck', -2.0), ('fb_L0_keys', 0.0),
+                   ('L2_bass', -4.0), ('fb_L4_peak', 0.0), ('C_drums', 0.0)])
+
 
 def ending(name, sym, tonic):
     """The last chord of a level, in the tune's key: played the moment the level clears (the music stops there),

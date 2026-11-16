@@ -461,10 +461,10 @@
    ],
    "exit": "end_g_major",
    "fever_enter": "tr_ccb_to_cc",
-   "fever_enter_db": 10.0,
+   "fever_enter_db": 14.0,
    "fever_reverb": 0.2,
    "carry": 0,
-   "fever_on_bars": 8,
+   "fever_on_bars": 4,
    "tier_on_bars": {
     "2": 8
    },
