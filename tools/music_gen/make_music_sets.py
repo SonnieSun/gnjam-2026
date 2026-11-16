@@ -348,7 +348,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
                        t('ode_cat_drums', OJ + 'C_drums_16b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_16b.wav', 'kiai'),
                        pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
                        t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_16b.wav', 'event')] + FILL,
-            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
+            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'outro': 'out_into_the_ufo', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
                 'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
                 'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
@@ -486,7 +486,7 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
-        for k in ('exit', 'carry', 'fever_on_bars', 'fever_fill', 'enter_fill'):
+        for k in ('exit', 'outro', 'carry', 'fever_on_bars', 'fever_fill', 'enter_fill'):
             if k in sec:
                 out[k] = sec[k]
         if 'tier_on_bars' in sec:                        # going up into these tiers waits for the tune's phrase line

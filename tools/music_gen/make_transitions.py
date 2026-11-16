@@ -62,7 +62,16 @@ def swell(sym, start_step, steps, peak=0.5):
     return v, t2n(start_step * STEP)
 
 
-def render(name, lead, bass, chords, last_slide=0.0):
+def snare(gain):
+    """A synth snare for the announcing roll (a short noise burst over a 190 Hz knock)."""
+    n = t2n(0.16)
+    k = np.arange(n) / SR
+    body = np.sin(2 * np.pi * 190 * k * (1 + 0.5 * np.exp(-k / 0.01))) * np.exp(-k / 0.035)
+    v = highpass(np.stack([noise(n), noise(n)], 1), 1800) * np.exp(-k / 0.05)[:, None] * 0.9 + body[:, None] * 0.6
+    return v * gain
+
+
+def render(name, lead, bass, chords, last_slide=0.0, roll=False):
     """lead: [(step, note, steps, 'i' instrument / 'c' cat / 'b' both)]; bass: [(step, note, steps)];
     chords: [(step, symbol, steps, 'stab' or 'swell')]. One bar, plus a short tail."""
     x = np.zeros((BAR_N + t2n(0.5), 2))
@@ -86,7 +95,13 @@ def render(name, lead, bass, chords, last_slide=0.0):
             k = np.arange(n) / SR
             v = sum(osc_supersaw(mtof(m), n, voices=5, detune=0.25) for m in notes) / len(notes)
             place(x, lowpass(v, 4200) * np.exp(-k / 0.22)[:, None], t2n(step * STEP), 0.45)
-    # air rushing into the bar line
+    if roll:
+        # the drums announce the change: two calls, then a roll that tightens (eighths, sixteenths, thirty-seconds)
+        # and grows into the bar line. The one exception to "no drums in a transition": a roll is a fill on top of
+        # the level's own groove, not a second groove.
+        hits = [0, 4, 8, 10, 12, 13, 14, 14.5, 15, 15.5]
+        for j, st in enumerate(hits):
+            place(x, snare(0.35 + 0.5 * (st / 16) ** 1.5), t2n(st * STEP), 1.0)
     k = np.arange(BAR_N) / BAR_N
     air = highpass(np.stack([noise(BAR_N), noise(BAR_N)], 1), 2500) * (k ** 3)[:, None] * 0.22
     x[:BAR_N] += air
@@ -135,12 +150,13 @@ render('tr_tm_to_cc',
 # The disco theme (G minor) -> The Entertainer (C major), when the house opens in level 1. The rag's own
 # introduction (D E C A B G, the top octave of its three) in the game's eighths, then the pick-up the first
 # strain starts with (D D#, which lands on the tune's first E on the next bar line). The instrument plays it
-# all, the cats come in on the second half: the first meows of the tune they will take over later.
+# all, the cats come in on the second half, and a snare roll announces the change: the house opening is a
+# little climax and The Entertainer comes in at full strength, sung by the cats, on the next bar line.
 render('tr_disco_to_ent',
        lead=[(0, 'D6', 2, 'i'), (2, 'E6', 2, 'i'), (4, 'C6', 2, 'i'), (6, 'A5', 2, 'i'),
              (8, 'B5', 2, 'b'), (10, 'G5', 2, 'b'), (12, 'D5', 2, 'b'), (14, 'D#5', 2, 'b')],
        bass=[(0, 'G1', 6), (8, 'G1', 4), (12, 'G1', 4)],
-       chords=[(0, 'G', 4, 'stab'), (4, 'G7', 12, 'swell')])
+       chords=[(0, 'G', 4, 'stab'), (4, 'G7', 12, 'swell')], roll=True)
 
 
 def ending(name, sym, tonic):

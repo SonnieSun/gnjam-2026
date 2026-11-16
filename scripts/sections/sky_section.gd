@@ -48,6 +48,7 @@ func _on_gauge_event(index: int, _value: int) -> void:
 	_sky.set_phase(4)
 	_sky.finale(finale_beats * Conductor.sec_per_beat())
 	_clear_at = song_beat() + finale_beats
+	Music.outro()  # 音乐换成这一关写好的结尾段（小关音乐配置里的 "outro"）
 	Music.play_sfx("sky_whoosh_up", -4.0, finale_beats * Conductor.sec_per_beat() * 0.55)
 
 

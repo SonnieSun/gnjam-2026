@@ -77,6 +77,8 @@ const DIP_DB := -14.0
 ## kiai 轨上是乐器（比如 cc_double）就不让。
 const KIAI_DUCK_DB := -6.0
 var _duck_on := false
+var _outro := false       # 结尾段在放：除了鼓，别的轨道都停着（见 outro()）
+var _outro_wait := false  # 叫了 outro()，等下一条小节线
 const SFX_DIR := "res://assets/audio/sfx/"
 
 ## 实际用来选片段的进度：往上跟着积累条走，往下迟钝（见 DOWN_MARGIN）
@@ -180,6 +182,8 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_free_tunes()
 	_pattern_tune.clear()
 	_lane_gain.clear()
+	_outro = false
+	_outro_wait = false
 	_now.clear()
 	_patterns.clear()
 	_by_hit.clear()
@@ -585,6 +589,24 @@ func _enter_sfx() -> String:
 	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
 
 
+## 关卡的结尾演出开始（音符停了、玩家没有操作了）时由关卡调：下一条小节线起，除了鼓以外的轨道都停，
+## 放这个小关专门写的结尾段（小关里的 "outro": "out_ufo_takes_the_cat"，assets/audio/sfx 里几小节长的一次性音效，
+## tools/music_gen/make_outros.py 做的），一直到过关；过关那一下 "exit" 的收束和弦落在它的尾巴上。
+## 小关没写 "outro" 就什么都不变。
+func outro() -> void:
+	if _outro or _outro_wait or _outro_sfx() == "" or not dynamics():
+		return
+	_outro_wait = true
+
+
+func _outro_sfx() -> String:
+	var secs: Array = data.get("sections", [])
+	if section < 0 or section >= secs.size():
+		return ""
+	var sfx_name := str(secs[section].get("outro", ""))
+	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
+
+
 ## 这个小关打完（整关过关）时的收尾音效（"" = 没有，用通用的）
 func _exit_sfx() -> String:
 	var secs: Array = data.get("sections", [])
@@ -896,6 +918,13 @@ func _queue() -> void:
 
 func _on_beat(index: int) -> void:
 	_effective_at_beat = effective
+	if _outro_wait and index % 4 == 0:
+		_outro_wait = false
+		_outro = true
+		_force.clear()
+		play_sfx(_outro_sfx(), ENTER_DB)
+		_apply_now(index)
+		return
 	var expired := false
 	for lane_id: String in _force.keys():
 		if index >= int(round(_force[lane_id][1])):
@@ -969,7 +998,7 @@ func _apply_now(beat_index := -1) -> void:
 				break
 	# 升到要过门的那一档：这条小节线先放一小节过门，下一条小节线才真的换
 	var going_to := tier_of(eff, tier_lines(section))
-	if use_dynamics and beat_index >= 0 and going_to > tier and going_to != _fill_done_for \
+	if use_dynamics and beat_index >= 0 and going_to > tier and going_to != _fill_done_for and not _outro \
 			and _fill_clip() != "" and _wants_fill(going_to):
 		_fill_done_for = going_to
 		var written := _tier_enter(going_to)
@@ -985,7 +1014,7 @@ func _apply_now(beat_index := -1) -> void:
 		return
 	# 要进 fever：也先一小节过门
 	var fever_now := use_dynamics and in_fever(eff)
-	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and _fill_clip() != "" and _fever_fill_wanted():
+	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and _fill_clip() != "" and _fever_fill_wanted() and not _outro:
 		_fever_fill_done = true
 		_play_fill_bar()
 		_pending = true
@@ -1001,7 +1030,7 @@ func _apply_now(beat_index := -1) -> void:
 			c = _first_clip(lane.id)
 		if _force.has(lane.id):
 			c = _force[lane.id][0]
-		if muted.get(lane.id, false):
+		if muted.get(lane.id, false) or (_outro and lane.id != "beat"):
 			c = ""
 		var was: String = _now.get(lane.id, "")
 		if was != c:
@@ -1024,7 +1053,7 @@ func _apply_now(beat_index := -1) -> void:
 		meow.set_active(lane.id, _patterns.get(key, {}), float(_lane_gain.get(lane.id, 0.0)), _by_hit.has(key), _pattern_origin(key))
 	# 档位变了：升档 = 镲 + 一声上扬的喵，降档 = 一声往下的喵（刚换小关那一次不放）
 	var new_tier := tier_of(eff, tier_lines(section))
-	if use_dynamics and Conductor.playing and not _quiet_tier_change and beat_index >= 0:
+	if use_dynamics and Conductor.playing and not _quiet_tier_change and beat_index >= 0 and not _outro:
 		if new_tier > tier:
 			# 这一档有自己的音效（小关里的 "tier_sfx": {"2": "sky_holy_hit"}）就放它，不放通用的镲和喵，也不送小 kiai
 			if _tier_sfx(new_tier) != "":
