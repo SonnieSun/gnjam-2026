@@ -17,7 +17,7 @@ script = ExtResource("5_kfdwl")
 title = "TV WALL"
 scene = ExtResource("6_5j17s")
 beats_per_rev = 8.0
-bars = PackedStringArray("k.......k.......", "k.......k...k...", "k.......k.......", "k===========....")
+bars = PackedStringArray("k.......k.......", "k.......k...k...", "k.......k.......", "k========.......")
 gauge_events = PackedInt32Array()
 gauge_event_names = PackedStringArray()
 
@@ -30,8 +30,8 @@ bars = PackedStringArray("k...k...k...k...", "k...k...k...k...")
 chart = ExtResource("7_ek37n")
 transition = 1
 exit_on_bars = 4
-gauge_max = 60
-gauge_events = PackedInt32Array(30)
+gauge_max = 40
+gauge_events = PackedInt32Array(20)
 use_gauge_events = true
 gauge_event_names = PackedStringArray()
 

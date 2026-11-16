@@ -15,8 +15,9 @@ extends SpinSection
 @export var approach_beats := 3.0
 ## 圆圈从多远收过来（占画面高度的比例）
 @export var approach_travel_ratio := 0.45
-## 长按有没有尾判。关着（默认）：开头那一下打中就算成，按不按住到尾巴都行——到尾巴那一拍自动按完、推进一步，
-## 提前松手不会失败。开着：要按住到尾巴（可以提前 hold_release_grace 拍松手），松早了变灰失败。
+## 长按有没有尾判。关着（默认）：开头那一下打中就算成，分数上松早松晚都一样，提前松手不会失败。
+## 但松手那一下照样有反馈：在尾巴附近松（前后 hold_release_grace 拍，或者一直按到尾巴）= 绿闪 + 叮一声 + 画面顶一下；
+## 松早了 = 白的小闪 + 轻轻一声，洗衣机停转。开着：要按住到尾巴，松早了变灰失败。
 @export var hold_tail_judge := false
 ## （开着尾判时）长按离尾巴不到这么多拍时松手也算成
 @export var hold_release_grace := 0.3
@@ -37,16 +38,16 @@ extends SpinSection
 ## 结尾演出（散开 + 镜头钻进屏幕）至少放几拍；实际会凑到下一个小节线
 @export var finale_min_beats := 5.0
 ## 洗衣机的两套谱，都是四小节（16 拍）一个循环，长按的位置是定好的：
-##   前半段（音乐还弱的时候）用大关文件里这个小关的 bars：2-2-2-1-1 | 2-2-长按 3 拍 + 空 1 拍
-##       长按只有一个：第 2 个八拍的最后四拍（第 4 小节），按 3 拍，第 4 拍空着（曲子那里是个空拍）。
+##   前半段（音乐还弱的时候）用大关文件里这个小关的 bars：2-2-2-1-1 | 2-2-长按 2 拍 + 空 2 拍
+##       长按只有一个：第 2 个八拍的最后四拍（第 4 小节），按 2 拍，后两拍空着（曲子那里是个长音加空拍）。
 ##   前一套放完 early_loops 遍之后换成下面这套（快的阶段，猫接过主旋律），长按三个：
-##       第 1 小节的后两拍、第 2 小节的后两拍、第 4 小节（按 3 拍，空 1 拍）。
+##       第 1 小节的后两拍、第 2 小节的后两拍、第 4 小节（按 2 拍，空 2 拍）。
 ## 前一套放几遍、后一套放几遍（一遍四小节 = 曲子的一句）。循环从曲子那一句的开头算起，开头歇的两小节算在
 ## 第一遍里（所以第一遍只打后两小节）。后一套放完的那条小节线是过门和换段音符。
 @export var early_loops := 2
 @export var late_loops := 2
 @export var late_bars := PackedStringArray([
-	"k...k...k======.", "k...k...k======.", "k...k...k...k...", "k===========...."])
+	"k...k...k======.", "k...k...k======.", "k...k...k...k...", "k========......."])
 ## 钻进屏幕后切到下一个小关时，用几秒叠化盖住框架的白闪
 @export var crossfade_seconds := 0.25
 @export var autoplay := false
@@ -74,6 +75,7 @@ var _music_left := false  # 音乐已经提前换到下一个小关（在放过�
 var _fill_at := INF
 var _next_view: SubViewport
 var _hold_ok_age := INF  # 长按刚按完过了几秒（INF = 没在闪）
+var _early_age := INF  # 长按提前松手过了几秒（白的小闪）
 
 
 func _ready() -> void:
@@ -149,6 +151,7 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 			_failed.erase(n)
 	_flash = maxf(_flash - dt * 2.5, 0.0)
 	_hold_ok_age += dt
+	_early_age += dt
 	queue_redraw()
 
 
@@ -176,8 +179,8 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		_stage.hold_begin()
 		# 按住 = 洗衣机转起来：一声上扬的音效，正好在该松手的时候放完
 		Music.play_sfx("riser_1b", -11.0, hold_beats(note) * Conductor.sec_per_beat())
-		if hold_tail_judge:
-			j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
+		# 松手的时刻由 Judge 盯（和按下同一个判定时钟），有没有尾判都盯：没有尾判时只用来给反馈
+		j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
 	else:
 		_stage.tap()
 
@@ -282,8 +285,18 @@ func _update_hold() -> void:
 
 
 func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:
-	if note == _holding:
+	if note != _holding:
+		return
+	if hold_tail_judge or success:
 		_finish_hold(success)
+		if success and _stage:
+			_stage.tap()  # 松得准：猫脸再转一下、镜头顶一下
+		return
+	# 没有尾判、松早了：不算失败，给一个小的反馈
+	_early_age = 0.0
+	Music.play_sfx("kick", -9.0)
+	_holding = null
+	_stage.hold_end(true)
 
 
 func _finish_hold(success: bool) -> void:
@@ -344,6 +357,9 @@ func _draw() -> void:
 		_draw_hold_progress(center, radius, _holding)
 	if _hold_ok_age < hold_ok_seconds:
 		_draw_hold_ok(center, radius)
+	if _early_age < 0.25:
+		var ek := _early_age / 0.25
+		draw_arc(center, radius * (1.0 + 0.12 * ek), 0.0, TAU, 96, Color(1.0, 1.0, 1.0, 0.8 * (1.0 - ek)), 8.0 * (1.0 - ek) + 2.0)
 	for b in _bolts:
 		_draw_bolt(center, _stage.tv_screen_pos(b.to), 1.0 - b.age / 0.35)
 	if tap_age < 0.15:

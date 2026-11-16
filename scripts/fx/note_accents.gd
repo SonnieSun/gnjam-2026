@@ -92,6 +92,7 @@ var notes: Array[NoteData] = []
 var _kinds := {}            # NoteData -> Kind：一个音符第一次被问到时定下来，之后不变（不然飞到一半会突然换颜色）
 var _fever_at := -1.0       # 排好的那次进 fever 落在第几拍（-1 = 没有）
 var _fever_note: NoteData   # 进 fever 的那个音符
+var _extra: NoteData        # 另一个也画成七彩的音符（不放音效），比如结束音符前面的那个大长按
 var _ending := false        # 现在标的这个换段音符是"结束彩圈"（后面接过渡），不是 fever 彩圈
 var _add_in := 0            # 几帧之后检查换段那一拍有没有音符
 var _sfx: AudioStreamPlayer
@@ -99,7 +100,7 @@ var _sfx: AudioStreamPlayer
 
 ## 打中了换段音符：放它自己的音效
 func _on_note_judged(note: NoteData, result: int, _diff: float) -> void:
-	if enabled and result != NoteData.Result.MISS and _fever_at >= 0.0 and kind_of(note) == Kind.FEVER:
+	if enabled and result != NoteData.Result.MISS and _fever_at >= 0.0 and note != _extra and kind_of(note) == Kind.FEVER:
 		var s: AudioStream = end_note_sfx if _ending else change_note_sfx
 		if s:
 			_sfx.stream = s
@@ -152,7 +153,13 @@ func mark_change(beat: float, ending: bool = false) -> void:
 	_add_in = 2
 
 
+## 这个音符也画成七彩（不放换段音效）
+func mark_extra(n: NoteData) -> void:
+	_extra = n
+
+
 func _forget() -> void:
+	_extra = null
 	_kinds.clear()
 	_fever_at = -1.0
 	_fever_note = null
@@ -162,6 +169,8 @@ func _forget() -> void:
 func kind_of(n: NoteData) -> Kind:
 	if not enabled:
 		return Kind.NONE
+	if n == _extra:
+		return Kind.FEVER
 	# 换段音符：进 fever（或者 rainbow_on_tiers 里写的那一档）的那条小节线上的音符——新的一段进来的那一拍。
 	# 那一拍上没有音符就取之后一小节里的第一个。这一种要等积累条过线才知道，所以它是唯一会在音符飞过来的途中变样子的。
 	if _fever_at >= 0.0 and n.beat >= _fever_at - 0.01 and n.beat < _fever_at + 4.0:

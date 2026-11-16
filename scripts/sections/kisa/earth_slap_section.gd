@@ -219,9 +219,16 @@ func _build_zones() -> void:
 			run.append(float(list[i].beat))
 
 
+## 这一关的结束（框架的 _plan_ending，见 main.gd）：积累条满了之后下一条乐句线上来一个七彩的大长按，按满这么多拍，
+## 按完的那一拍拍下去（结束音符），然后进过渡。大长按期间蓄力条跟着涨到满，所以最后那一下一定是满蓄的 POWER SLAP。
+const ENDING_HOLD_BEATS := 8.0
+## 大长按从第几拍起（框架给；INF = 还没到结束）。从这里起不再有连按段。
+var ending_from := INF
+
+
 ## 离现在最近的还没结束的连按段：{id, start, end（全曲拍数）, beats, need}；没有连按段返回空
 func _zone_now() -> Dictionary:
-	if _zones.is_empty() or _pattern_len <= 0.0:
+	if _zones.is_empty() or _pattern_len <= 0.0 or song_beat() >= ending_from - 0.5:
 		return {}
 	if is_inf(_pattern_origin):
 		if notes.is_empty():
@@ -366,6 +373,9 @@ func _update_spin(local: float, _angle: float) -> void:
 				_judge_zone(NoteData.Result.GOOD if _charge > 0 and _charge >= _charge_target * mash_good_ratio else NoteData.Result.MISS)
 			else:
 				_zone_judged = true
+		if song_beat() >= ending_from:
+			# 结束的大长按：蓄力跟着按住的进度涨到满
+			_charge = maxi(_charge, roundi(clampf((song_beat() - ending_from) / ENDING_HOLD_BEATS, 0.0, 1.0) * _charge_target))
 		_stage.set_charge(charge_ratio() + minf(charge_over() * 0.1, 0.5))
 		_pop = maxf(_pop - dt * 9.0, 0.0)
 		_max_flash = maxf(_max_flash - dt * 2.5, 0.0)
@@ -463,6 +473,15 @@ func _draw() -> void:
 					10.0 if _charge_mode else 8.0, 16.0 if _charge_mode else 14.0))
 	if _charge_mode:
 		_draw_mash(center, radius, travel)
+	if song_beat() >= ending_from - approach_beats and song_beat() < ending_from + ENDING_HOLD_BEATS + 0.25:
+		# 结束的大长按：判定圈外面一大圈七彩的进度
+		var ep := clampf((song_beat() - ending_from) / ENDING_HOLD_BEATS, 0.0, 1.0)
+		var hue := fposmod(Time.get_ticks_msec() * 0.0006, 1.0)
+		var pulse := 1.0 + 0.04 * pow(1.0 - fposmod(song_beat(), 1.0), 2.0)
+		draw_arc(center, radius * 1.22 * pulse, 0.0, TAU, 96, Color(1.0, 1.0, 1.0, 0.25), 10.0)
+		if ep > 0.0:
+			draw_arc(center, radius * 1.22 * pulse, -PI / 2.0, -PI / 2.0 + TAU * ep, 96, Color.from_hsv(hue, 0.65, 1.0), 18.0)
+			draw_arc(center, radius * 1.22 * pulse, -PI / 2.0, -PI / 2.0 + TAU * ep, 96, Color.from_hsv(hue, 0.3, 1.0, 0.35), 34.0)
 	if tap_age < 0.15:
 		draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64, Color(1, 1, 1, 1.0 - tap_age / 0.15), 6.0)
 	if _news > 0.0:

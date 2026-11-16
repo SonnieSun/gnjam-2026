@@ -342,7 +342,9 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
 #                   chords and bass on the normal beat; now every hit sings the next note of the Ode to Joy
 #   SKY[2] SPACE    the tune plays by itself: the cats sing it, with meow drums
 #   SKY[3] FEVER    (into the UFO) transition bar, then the peak layer and the kichiku lead on top
-SKY = (0.25, 0.5, 0.7, 0.85)
+# (playtest 2026-11-17: the first part was long and the fever came late. 480 points, about 20 a bar: the first line
+#  2.4 bars sooner, the others 2 bars sooner. Was 0.25, 0.5, 0.7, 0.85.)
+SKY = (0.15, 0.42, 0.62, 0.77)
 SK = M + 'sky/sky_'
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 SETS[10] = {'title': 'SKY', 'use': True,

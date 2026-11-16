@@ -87,6 +87,7 @@ var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = �
 var _rise_pending := false  # 切关前的上扬音效还没放
 var _ending_at := -1.0  # 这次切关的结束音符在第几拍（-1 = 没有，见 _plan_ending）
 var _ending_marked := false
+var _ending_hold_at := -1.0  # 结束音符前面的大长按从第几拍起（-1 = 没有）
 var _ending_music := false
 var _prelaid_index := -1    # 已经提前铺好音符的下一个小关（-1 = 没有），见 _prelay_next
 var _prelaid_at := -1.0
@@ -321,10 +322,19 @@ func _process(_delta: float) -> void:
 		_rise_pending = false
 		Music.rise_to_bar()
 	if _ending_at >= 0.0:
-		if not _ending_marked and Conductor.song_beat >= _ending_at - 8.0:
+		if not _ending_marked and Conductor.song_beat >= (_ending_hold_at if _ending_hold_at >= 0.0 else _ending_at) - 8.0:
 			_ending_marked = true  # 结束音符：句尾那一拍上的七彩音符（那一拍没有音符就补一个）
+			var long_note: NoteData = null
+			if _ending_hold_at >= 0.0:
+				# 先是一个七彩的大长按（通用长按：ChartInput），按完的那一拍才是结束音符（拍下去的那一下）
+				long_note = judge.add_note(_ending_hold_at)
+				if long_note:
+					long_note.length = _ending_at - _ending_hold_at
+				judge.add_note(_ending_at, NoteData.Sound.SNARE)
 			if _current and _current.note_accents:
 				_current.note_accents.mark_change(_ending_at, true)
+				if long_note:
+					_current.note_accents.mark_extra(long_note)
 			else:
 				judge.add_note(_ending_at)
 		if not _ending_music and Conductor.song_beat >= _ending_at:
@@ -687,7 +697,17 @@ func _plan_ending() -> void:
 	_ending_at = _switch_at
 	_ending_marked = false
 	_ending_music = false
-	judge.end_notes_at(_ending_at)
+	# 小关脚本里写了 const ENDING_HOLD_BEATS := 8.0：那条线上先来一个这么长的七彩大长按，按完的那一拍才是结束音符
+	var hold := float((_current.get_script() as Script).get_script_constant_map().get("ENDING_HOLD_BEATS", 0.0))
+	_ending_hold_at = -1.0
+	if hold > 0.0:
+		_ending_hold_at = _switch_at
+		_ending_at = _switch_at + hold
+		judge.end_notes_at(_ending_hold_at - 0.01)  # 那条线上谱里原来的音符不要：整段让给大长按
+		if "ending_from" in _current:
+			_current.set("ending_from", _ending_hold_at)
+	else:
+		judge.end_notes_at(_ending_at)
 	var slot := 1
 	var sections: Array = Music.data.get("sections", [])
 	if _index + 1 < chart.sections.size() and _index + 1 < sections.size():
