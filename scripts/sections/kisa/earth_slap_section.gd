@@ -9,10 +9,11 @@ extends SpinSection
 ## 判定用框架的 Judge（不改）。蓄力音符只攒力量、不涨积累条（用框架留的 gauge_result 钩子），重拍才涨。
 ## 美术是 moumou 的拍地球猫（见 EarthSlapStage），3D 画面和参数在 Stage 节点里。编辑器预览里不跑 3D。
 
-## 圆圈提前几拍出现
-@export var approach_beats := 1.5
-## 圆圈从多远收过来（占画面高度的比例）
-@export var approach_travel_ratio := 0.3
+## 圆圈提前几拍出现（原来 1.5：160 BPM 下只有半秒多一点，来不及看；2 拍 = 0.75 秒）
+@export var approach_beats := 2.0
+## 圆圈从多远收过来（占画面高度的比例）。原来 0.3，外圈太小、离判定圈太近；调大之后圈从更外面收进来，
+## 配合上面多出来的半拍，收的速度和原来差不多
+@export var approach_travel_ratio := 0.45
 ## 判定圈半径（占画面高度的比例）。下面 ring_fits_earth 关掉时才用这个
 @export var ring_radius_ratio := 0.1
 ## 判定圈和地球一样大（再乘下面这个倍数，1.08 = 比地球大一圈，不挡住地球）
