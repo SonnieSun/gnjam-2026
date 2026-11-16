@@ -276,11 +276,11 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
         n = t2n(dur)
         k = np.arange(n) / SR
         v = sum(osc_supersaw(mtof(q + o), n, voices=7, detune=0.3) * g for q in notes for o, g in ((0, 1.0), (12, 0.8), (24, 0.4))) / len(notes)
-        place(x, lowpass(v, 7000) * (np.clip(k / 0.004, 0, 1) * np.exp(-k / 1.5) * np.clip((dur - k) / 0.02, 0, 1))[:, None], at, 1.1)
+        place(x, lowpass(v, 7000) * (np.clip(k / 0.004, 0, 1) * np.exp(-k / 1.5) * np.clip((dur - k) / 0.02, 0, 1))[:, None], at, 0.65)
         place(x, pan(cc.bass_note(mtof(root + 12), n), 0.0), at, 0.5)
-        place(x, cc.pluck(m + 24, dur), at, 1.0)
-        place(x, cc.square(m + 12, dur), at, 1.3)
-        place(x, cc.square(m, dur), at, 0.9)
+        place(x, cc.pluck(m + 24, dur), at, 0.8)                    # (the synths were half as loud again: the accents
+        place(x, cc.square(m + 12, dur), at, 0.7)                   # outweighed the loop they lead into)
+        place(x, cc.square(m, dur), at, 0.45)
     last = max(st for st, _ in accents)
     for i in range(2):                                              # a short roll into the bar line, after the note
         place(x, snare(0.4 + 0.15 * i), t2n((last + 3 + i / 2) * STEP), 1.0)

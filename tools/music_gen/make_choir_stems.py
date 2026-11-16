@@ -157,51 +157,82 @@ def _hat(seconds, gain):
     return highpass(np.stack([noise(n), noise(n)], 1), 7000) * np.exp(-k / seconds)[:, None] * gain
 
 
-def fever_layer(tune):
+# The climax needs dynamics of its own, or eight bars of everything is flat. Three strengths of the layer, staged
+# by the level inside the fever (levels/music/level_3_spaceship.json, the peak lane):
+#   entry    right after the transition: the full layer described above (what the two accents lead into)
+#   calm     then it steps back: no synth lead, the chords lower, light hats and backbeat, one crash; the cats in
+#            front, room to breathe
+#   max      the last stretch: everything, the synth lead also an octave up, crashes on every other bar, hats in
+#            sixteenths, a louder backbeat, toms at the end of every four bars, a snare roll and a riser into the
+#            loop point
+VARIANTS = {
+    'entry': dict(file='fever', lead=0.20, lead_up=0.0, pad=0.13, crash={0: 1.1, 4: 1.1, 2: 0.6, 6: 0.6}, open_hat=0.7, closed_hat=0.35,
+                  sixteenths=0.0, snare=0.75, toms=(3, 7), roll=False),
+    'calm': dict(file='fever_calm', lead=0.0, lead_up=0.0, pad=0.07, crash={0: 0.55}, open_hat=0.4, closed_hat=0.2,
+                 sixteenths=0.0, snare=0.45, toms=(), roll=False),
+    'max': dict(file='fever_max', lead=0.22, lead_up=0.09, pad=0.15, crash={0: 1.2, 2: 0.9, 4: 1.2, 6: 0.9}, open_hat=0.8, closed_hat=0.4,
+                sixteenths=0.22, snare=0.9, toms=(3, 7), roll=True),
+}
+
+
+def fever_layer(tune, v):
     song = cc.SONGS[tune]
     bars = len(song['chords']) // 2
     n_all = t2n(bars * BAR)
     bar_n = t2n(BAR)
     x = np.zeros((n_all + cc.TAIL, 2))
     for b in range(bars):
-        if b % 2 == 0:
-            place(x, cc.CRASH, b * bar_n, 1.1 if b % 4 == 0 else 0.6)
+        if b in v['crash']:
+            place(x, cc.CRASH, b * bar_n, v['crash'][b])
         for e in range(8):                                           # eighths
             at = b * bar_n + t2n(e * 2 * STEP)
-            place(x, _hat(0.09, 0.7) if e % 2 else _hat(0.025, 0.35), at, 1.0)
+            place(x, _hat(0.09, v['open_hat']) if e % 2 else _hat(0.025, v['closed_hat']), at, 1.0)
+            if v['sixteenths']:
+                place(x, _hat(0.02, v['sixteenths']), at + t2n(STEP), 1.0)
         for beat in (1, 3):
-            place(x, _snare(0.75), b * bar_n + t2n(beat * 4 * STEP), 1.0)
-        if b % 4 == 3:
+            place(x, _snare(v['snare']), b * bar_n + t2n(beat * 4 * STEP), 1.0)
+        if b in v['toms']:
             for i, hz in enumerate((220, 185, 185, 147, 147, 110, 110, 98)):
                 place(x, _tom(hz, 0.35 + 0.03 * i), b * bar_n + t2n((8 + i) * STEP), 1.0)
+    if v['roll']:                                                    # into the loop point
+        for i in range(8):
+            place(x, _snare(0.3 + 0.07 * i), (bars - 1) * bar_n + t2n((12 + i / 2) * STEP), 1.0)
+        k = np.arange(bar_n) / bar_n
+        place(x, highpass(np.stack([noise(bar_n), noise(bar_n)], 1), 3000) * (k ** 3)[:, None] * 0.5, (bars - 1) * bar_n, 1.0)
     lead = np.zeros_like(x)
+    high = np.zeros_like(x)
     for st, p, ln in song['melody']:
         n = t2n(ln * STEP * 0.92)
         k = np.arange(n) / SR
         m = nm(p) + song['cat_octave']
-        v = osc_supersaw(mtof(m), n, voices=7, detune=0.28) + 0.8 * osc_supersaw(mtof(m - 12), n, voices=5, detune=0.22)
-        env = np.clip(k / 0.004, 0, 1) * (0.55 + 0.45 * np.exp(-k / 0.12)) * np.clip((n / SR - k) / 0.015, 0, 1)
-        place(lead, v * env[:, None], t2n(st * STEP), 1.0)
-    lead = cc.match_rms(lowpass(lead, 2400), 0.20)
+        env = (np.clip(k / 0.004, 0, 1) * (0.55 + 0.45 * np.exp(-k / 0.12)) * np.clip((n / SR - k) / 0.015, 0, 1))[:, None]
+        place(lead, (osc_supersaw(mtof(m), n, voices=7, detune=0.28) + 0.8 * osc_supersaw(mtof(m - 12), n, voices=5, detune=0.22)) * env, t2n(st * STEP), 1.0)
+        place(high, osc_supersaw(mtof(m + 12), n, voices=5, detune=0.25) * env, t2n(st * STEP), 1.0)
+    y = x
+    if v['lead']:
+        y = y + cc.match_rms(lowpass(lead, 2400), v['lead'])
+    if v['lead_up']:
+        y = y + cc.match_rms(lowpass(high, 3500), v['lead_up'])
     pad = np.zeros_like(x)
     beat_n = bar_n // 4
     for h, sym in enumerate(song['chords']):
         notes, _ = cc.chord(sym)
         n = t2n(8 * STEP)
-        v = sum(osc_supersaw(mtof(q + o), n, voices=7, detune=0.3) * g for q in notes for o, g in ((0, 1.0), (12, 0.7), (-12, 0.6))) / len(notes)
+        w = sum(osc_supersaw(mtof(q + o), n, voices=7, detune=0.3) * g for q in notes for o, g in ((0, 1.0), (12, 0.7), (-12, 0.6))) / len(notes)
         k = (np.arange(n) % beat_n) / beat_n
-        place(pad, lowpass(v, 3200) * (0.35 + 0.65 * np.clip(k / 0.5, 0, 1) ** 1.5)[:, None], t2n(h * 8 * STEP), 1.0)   # pumps with the kick
-    pad = cc.match_rms(pad, 0.13)
-    y = cc.finish(reverb(x + lead + pad, 0.8, 0.3, mix=0.08), bars)
+        place(pad, lowpass(w, 3200) * (0.35 + 0.65 * np.clip(k / 0.5, 0, 1) ** 1.5)[:, None], t2n(h * 8 * STEP), 1.0)   # pumps with the kick
+    y = y + cc.match_rms(pad, v['pad'])
+    y = cc.finish(reverb(y, 0.8, 0.3, mix=0.08), bars)
     peak = read_wav(os.path.join(LOOPS, 'classics', f'{tune}_fb_L4_peak_{bars}b.wav'))
     y = y + peak[:len(y)]
-    path = os.path.join(LOOPS, 'classics', f'{tune}_fb_L4_peak_fever_{bars}b.wav')
+    path = os.path.join(LOOPS, 'classics', f'{tune}_fb_L4_peak_{v["file"]}_{bars}b.wav')
     # (the first try at half these levels changed nothing measurable: the layer has to be about as loud as the
-    # lead stack it joins.) Written 12 dB down so it does not clip in the file; its clip in the level has gain_db +12.
-    y = y * 0.25
+    # lead stack it joins.) Written 18 dB down so it does not clip in the file; its clip in the level has gain_db +18.
+    y = y * 0.125
     assert np.abs(y).max() < 0.99, np.abs(y).max()
     write_wav(path, y, peak=None)
     print(f'  {os.path.basename(path)}: peak {np.abs(y).max():.2f}, rms {np.sqrt((y ** 2).mean()):.3f}')
 
 
-fever_layer('can_can')
+for _name, _v in VARIANTS.items():
+    fever_layer('can_can', _v)

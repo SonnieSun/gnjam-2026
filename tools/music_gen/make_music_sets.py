@@ -375,6 +375,7 @@ TMB = M + 'classics/turkish_march_b/turkish_march_b_'   # its second section (A 
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 T3 = TIERS
 R = (0.25, 0.5, 0.625, 0.75)
+FV = (0.82, 0.90)                          # inside the pizza's fever: where its layer steps back, and where it goes to the max
 SETS[7] = {'title': 'SPACESHIP', 'use': True,
            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
                       t('tm_keys', TM + 'fb_L0_keys_16b.wav', 'bed'), t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'),
@@ -388,7 +389,8 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       t('ccb_cats', CCB + 'L3_cat_kichiku_8b.wav', 'hook'), t('ccb_square', CCB + 'L3_square_8b.wav', 'event', -5.0),
                       t('ccb_choir', CCB + 'C_choir_8b.wav', 'harm', 6.0), t('ccb_peak', CCB + 'fb_L4_peak_8b.wav', 'peak'),
                       harm('tm_harm', 'turkish_march'), harm('cc_harm', 'can_can'),
-                      t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_fever_8b.wav', 'peak', 12.0),   # the peak layer + cymbals, backbeat, a synth lead under the cats
+                      t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_fever_8b.wav', 'peak', 18.0), t('cc_peak_calm', CC + 'fb_L4_peak_fever_calm_8b.wav', 'peak', 18.0),
+                      t('cc_peak_max', CC + 'fb_L4_peak_fever_max_8b.wav', 'peak', 18.0),   # the peak layer + cymbals, backbeat, a synth lead under the cats
                       CATS[0], t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
                       t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'), t('tmb_kichiku', TMB + 'L3_cat_kichiku_8b.wav', 'kiai'),
                       t('tmb_keys', TMB + 'fb_L0_keys_8b.wav', 'bed'), t('tmb_bass', TMB + 'L2_bass_8b.wav', 'bass'),
@@ -433,7 +435,10 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                    'cca_harm': [[R[0], R[1]]],
                    'ccb_keys': [[R[1], R[3]]], 'ccb_bass': [[R[1], R[3]]], 'ccb_cats': [[R[1], R[3]]], 'ccb_square': [[R[1], R[3]]],
                    'ccb_choir': [[R[2], R[3]]], 'ccb_peak': [[R[2], R[3]]],
-                   'cc_keys': [[R[3], 1]], 'cc_bass': [[R[3], 1]], 'cc_lead': [[R[3], 1]], 'cc_harm': [[R[3], 1]], 'cc_peak': [[R[3], 1]],
+                   'cc_keys': [[R[3], 1]], 'cc_bass': [[R[3], 1]], 'cc_lead': [[R[3], 1]], 'cc_harm': [[R[3], 1]],
+                   # the climax has its own dynamics (make_choir_stems.py, VARIANTS): the full layer where the transition
+                   # lands, a step back (cats in front), and everything for the last stretch
+                   'cc_peak': [[R[3], FV[0]]], 'cc_peak_calm': [[FV[0], FV[1]]], 'cc_peak_max': [[FV[1], 1]],
                    'cc_square': [[R[3], 1]], 'cc_double': [[R[3], 1]]}}]}
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
          10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}

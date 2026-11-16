@@ -133,7 +133,19 @@
     {
      "id": "cc_peak",
      "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_fever_8b.wav",
-     "gain_db": 12.0,
+     "gain_db": 18.0,
+     "tune": "cc"
+    },
+    {
+     "id": "cc_peak_calm",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_fever_calm_8b.wav",
+     "gain_db": 18.0,
+     "tune": "cc"
+    },
+    {
+     "id": "cc_peak_max",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_fever_max_8b.wav",
+     "gain_db": 18.0,
      "tune": "cc"
     }
    ]
@@ -402,6 +414,14 @@
      [
       0.75,
       "cc_peak"
+     ],
+     [
+      0.82,
+      "cc_peak_calm"
+     ],
+     [
+      0.9,
+      "cc_peak_max"
      ]
     ],
     "meow": [

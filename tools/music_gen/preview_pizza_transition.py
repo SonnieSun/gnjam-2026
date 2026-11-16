@@ -1,5 +1,5 @@
 """Hear the pizza's transition into its fever in context, the way the game plays it: the four steps down (cats,
-choir), the transition (tr_ccb_to_cc.wav), then the famous tune in fever with the hall.
+choir), the transition (tr_ccb_to_cc.wav), then the famous tune in fever with the hall, 8 bars of each strength of its layer (entry, calm, max).
 
 A one-bar transition takes the place of the last bar of the descent's phrase; a longer one comes after the phrase.
 
@@ -40,9 +40,10 @@ tr = read_wav(TR)
 n_tr = max(1, int(len(tr) / B))                      # whole bars (the file has a short tail after them)
 before = 8 - int(SEC.get('fever_enter_replaces', 1 if n_tr == 1 else 0))     # bars of the descent that play before it
 CCB = [('L3_cat_kichiku', 0), ('L3_square', -5), ('fb_L0_keys', 0), ('L2_bass', 0), ('fb_L4_peak', 0), ('C_choir', 1)]
-CC = [('L3_cat_kichiku', 0), ('L3_square_dark', -3), ('L3_pluck', -2), ('fb_L0_keys', 0), ('L2_bass', 0), ('fb_L4_peak_fever', 12), ('C_drums', 0)]
+CC = [('L3_cat_kichiku', 0), ('L3_square_dark', -3), ('L3_pluck', -2), ('fb_L0_keys', 0), ('L2_bass', 0), ('C_drums', 0)]
+FEVER_LAYERS = ('fb_L4_peak_fever', 'fb_L4_peak_fever_calm', 'fb_L4_peak_fever_max')   # entry, calm, max: +18 dB each in the level
 start = before + n_tr                                # the bar the famous tune starts on
-total = start + 16
+total = start + 24
 pre = np.zeros((total * B + t2n(3.0), 2))
 post = np.zeros((total * B + t2n(3.0), 2))
 for bar in range(total):                             # the level's drums never stop
@@ -54,12 +55,12 @@ for part, d in CCB:                                  # the descent; the game fad
     place(pre, w, 0, db(d))
 place(pre, tr, before * B, db(PLAY_DB))
 place(post, read_wav(os.path.join(A, 'sfx', 'crash.wav')), start * B, db(-7))
-for i in range(2):
-    for part, d in CC:
+for i in range(3):
+    for part, d in CC + [(FEVER_LAYERS[i], 18)]:
         place(post, stem('can_can', part), (start + i * 8) * B, db(d))
 post = post + reverb(post, 2.2, 0.45, mix=1.0)[:len(post)] * 0.35      # the fever's hall (the game's own reverb sounds different)
 x = (pre + post)[:total * B + t2n(1.0)]
 f = t2n(0.5)
 x[-f:] *= np.linspace(1, 0, f)[:, None]
 write_wav(OUT, x, peak=0.9)
-print(f'{OUT}: {before} bars of the descent, {n_tr} bar(s) of transition, 16 bars of fever')
+print(f'{OUT}: {before} bars of the descent, {n_tr} bar(s) of transition, 24 bars of fever (entry, calm, max)')
