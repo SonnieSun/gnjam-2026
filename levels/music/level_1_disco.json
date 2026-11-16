@@ -33,12 +33,9 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "half_bass",
-     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L2_bass_4b.wav"
-    },
-    {
-     "id": "bass",
-     "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
+     "id": "dt_bass",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_L2_bass_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_bass",
@@ -58,8 +55,9 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "disco_keys",
-     "file": "res://assets/audio/music/scene1/style_disco/s1_B_L0_keys_4b.wav"
+     "id": "dt_keys",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_fb_L0_keys_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_keys",
@@ -74,8 +72,14 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "disco_hook",
-     "file": "res://assets/audio/music/scene1/style_disco/s1_B_L3_hook_4b.wav"
+     "id": "dt_square",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_L3_square_4b.wav",
+     "tune": "dt"
+    },
+    {
+     "id": "dt_cats",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_L3_cat_kichiku_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_cats",
@@ -90,8 +94,9 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "disco_peak",
-     "file": "res://assets/audio/music/scene1/style_disco/s1_B_L4_peak_4b.wav"
+     "id": "dt_peak",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_fb_L4_peak_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_peak",
@@ -106,8 +111,9 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "cat_drums",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+     "id": "dt_cat_drums",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_C_drums_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_cat_drums",
@@ -146,10 +152,6 @@
    "name": "事件",
    "gain_db": 0.0,
    "clips": [
-    {
-     "id": "ev_meow",
-     "file": "res://assets/audio/music/scene1/events/s1_X_meow_4b.wav"
-    },
     {
      "id": "ent_square_soft",
      "file": "res://assets/audio/music/classics/entertainer/entertainer_L3_square_16b.wav",
@@ -204,11 +206,7 @@
     "bass": [
      [
       0.0,
-      "half_bass"
-     ],
-     [
-      0.14,
-      "bass"
+      "dt_bass"
      ],
      [
       0.256,
@@ -226,7 +224,7 @@
     "bed": [
      [
       0.047,
-      "disco_keys"
+      "dt_keys"
      ],
      [
       0.256,
@@ -248,7 +246,11 @@
     "lead": [
      [
       0.093,
-      "disco_hook"
+      "dt_square"
+     ],
+     [
+      0.14,
+      "dt_cats"
      ],
      [
       0.256,
@@ -258,7 +260,7 @@
     "peak": [
      [
       0.14,
-      "disco_peak"
+      "dt_peak"
      ],
      [
       0.256,
@@ -279,8 +281,8 @@
     ],
     "meow": [
      [
-      0.14,
-      "cat_drums"
+      0.186,
+      "dt_cat_drums"
      ],
      [
       0.256,
@@ -320,10 +322,6 @@
      ]
     ],
     "fx": [
-     [
-      0.186,
-      "ev_meow"
-     ],
      [
       0.256,
       "ent_square_soft"

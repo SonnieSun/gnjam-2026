@@ -409,7 +409,7 @@ from_stems('tr_disco_to_ent', 'entertainer', None,
            accent_gain=0.6, play_db=14.0, band_db=-2.0,
            # what level 1 plays just before the house opens (its stage from 18.6 %), without the drum loop (that
            # one keeps playing in the game): bar 4 of the 4-bar disco loop
-           head=game_clips('level_1_disco', ('bass', 'disco_keys', 'disco_hook', 'disco_peak', 'cat_drums', 'ev_meow'), 3))
+           head=game_clips('level_1_disco', ('dt_bass', 'dt_keys', 'dt_cats', 'dt_peak', 'dt_cat_drums'), 3))
 
 
 def ending(name, sym, tonic):

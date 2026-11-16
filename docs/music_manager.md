@@ -855,3 +855,24 @@ Music.planned_change()   # 排好了还没发生的那次：{kind, id, fill_beat
 
 还没接到这套信号上的：换小关（`main.gd` 的 `_switch_at`）、进 fever 的画面、结尾段。`disco_section.gd` 里的 `DiscoMusic`（11 条分轨的旧配乐）不是死代码：关卡没开叠轨音乐（`use_in_game` 为 false）时它是后备，开着的时候自己让开。
 
+## 第一关开头换成猫乐队版的主题（2026-11-16）
+
+拆房子之前那一段原来用的是最早的那套叠轨（`scene1/`，`compose_disc.py` 做的），试玩说"真的很难听"。量出来：
+
+- 喵叫循环（`ev_meow`）不在调上：音高落在 C#、B、G#、A#，曲子是 G 小调；而且它是全场最响的旋律性声音（rms 0.143，主旋律 0.119）。
+- 猫鼓（`cat_drums`）带音高，在 E / F 附近，E 不是 G 小调的音；音量和主旋律差不多。
+- 主旋律、高潮层、猫鼓、喵叫循环的能量都挤在 150 Hz–2 kHz。旧和弦 90% 在 150–600 Hz。
+
+现在把这首主题放进后面那些曲子用的同一条管线（`compose_classics.py` 的 `SONGS['disco_theme_a']`：eurobeat 那条旋律 RIFF_A，短音写成满的八分音符让猫唱得出来，猫比乐器低一个八度；和弦 Ebmaj7 F7 Dm7 Gm7），素材在 `assets/audio/music/classics/disco_theme_a/`，曲子组 `dt`：
+
+| 进度 | 响什么 |
+|---|---|
+| 0 | 半拍的鼓 + 低音 |
+| 4.7% | + 和弦 |
+| 9.3% | + 方波弹主旋律 |
+| 14% | 完整的鼓，猫接过主旋律，+ 高潮层 |
+| 18.6% | + 猫鼓（音高定在调内的 D 和 G） |
+| 25.6% | 拆房子，过门，The Entertainer |
+
+旧的 `half_bass`、`bass`、`disco_keys`、`disco_hook`、`disco_peak`、`cat_drums`、`ev_meow` 不再用了（文件还在，点唱机里还能听）。过门 `tr_disco_to_ent` 的第 1 小节改从新乐队的音轨里切。另一条旋律（房间里原来放的 RIFF_B，十六分切分）也渲染了（`disco_theme_b`，只在 cat_sound 里），试听对比后没用：音太碎，猫唱不清楚。
+
