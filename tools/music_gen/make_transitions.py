@@ -14,8 +14,8 @@ two sets of drums would flam).
                            "tier_enter"): the rag's own introduction, the run down D E C A B G, and its pick-up D D#,
                            the cats joining for the second half, over G7 (G is the disco's key note and C's dominant).
   <sfx>/tr_ccb_to_cc.wav   Can-Can's four steps down (D major) -> its famous tune (G major), the pizza going into
-                           fever (a section's "fever_enter"): the run up, then THE TWO ACCENTS, two full-band hits
-                           on beats 3 and 4 with the cats shouting, and the famous tune lands on the next bar line.
+                           fever (a section's "fever_enter"): cut from the descent's own stems with the last bar
+                           rewritten (the run keeps climbing and hammers the high D) and an urgent drum fill.
   <sfx>/tr_tm_to_cc.wav    Turkish March's second section (A major) -> Can-Can's opening strain (D major): the
                            galop's own lead-in, the vamp on the dominant.
 
@@ -41,6 +41,7 @@ from audio import BAR, SR, highpass, lowpass, mtof, nm, noise, osc_supersaw, pan
 
 STEP = BAR / 16
 BAR_N = t2n(BAR)
+ENTER_DB = -1.0          # scripts/music/music.gd plays a written transition this much down
 CAT = cc.LONG[0]
 CAT = CAT.mean(axis=1) if CAT.ndim == 2 else CAT
 CAT_MIDI = cc.native(cc.LONG[0])
@@ -187,17 +188,59 @@ render('tr_disco_to_ent',
        bass=[(0, 'G1', 6), (8, 'G1', 4), (12, 'G1', 4)],
        chords=[(0, 'G', 4, 'stab'), (4, 'G7', 12, 'swell')], roll=True)
 
-# Can-Can: the four steps down (D major) -> the famous tune (G major), the pizza going into its fever. This bar
-# takes the place of the descent's own last bar, so it starts with that bar's run up (G# A B C# D, in sixteenths
-# here), and then the two accents everybody waits for before the tune: two full hits on beats 3 and 4, D then
-# D7 with the top going up (A, then C: the seventh that wants to fall onto the tune's first G... B), the cats
-# shouting both. A snare roll under the run.
-render('tr_ccb_to_cc',
-       lead=[(0, 'G#5', 1, 'b'), (1, 'A5', 1, 'b'), (2, 'B5', 1, 'b'), (3, 'C#6', 1, 'b'), (4, 'D6', 3, 'b')],
-       bass=[(0, 'A1', 4), (4, 'A1', 3)],
-       chords=[(0, 'A7', 7, 'swell')],
-       accents=[(8, 'D', 'A5'), (12, 'D7', 'C6')])
+# Can-Can: the four steps down (D major) -> the famous tune (G major), the pizza going into its fever.
+# NOT a separate little arrangement like the ones above (that was tried: a pluck and one cat with the two accents
+# read as "another sound cut in"). This one is THE SAME BAND playing on: the descent is rendered again by the
+# same code that makes its stems (compose_classics.build: same cats, same square lead, same chords, bass and
+# peak layer, same loudness), with its last bar rewritten, and that bar is cut out of every stem and mixed at
+# the levels the level plays them at. So when the manager swaps the last bar of the phrase for this one-shot
+# nothing changes but the notes, and a drum fill is added on top.
+#   the notes   the bar's own run up (G# A B C#) and then, instead of falling back, it keeps climbing to the high
+#               D and hammers it: short, short, LONG (the long one doubled an octave down, like every phrase end)
+#               over A7 -> D7, the dominant of the famous tune's G
+#   the drums   an urgent fill: snare on every eighth, sixteenths in the third beat, thirty-seconds in the last,
+#               growing all the way into the bar line
+# The level waits for the descent's 8-bar line ("fever_on_bars": 8), so this is always that phrase's last bar,
+# sung by the same cat as the three bars before it.
+def from_stems(name, base, bar, row, chords, levels, play_db=10.0):
+    song = dict(cc.SONGS[base])
+    lo, hi = bar * 16, bar * 16 + 16
+    song['melody'] = sorted([n for n in song['melody'] if not lo <= n[0] < hi] + [(lo + st, p, ln) for st, p, ln in row])
+    song['chords'] = list(song['chords'])
+    song['chords'][2 * bar:2 * bar + 2] = chords
+    with contextlib.redirect_stdout(io.StringIO()):
+        L = cc.build(song)
+    x = np.zeros((BAR_N, 2))
+    for layer, db in levels:
+        x += L[layer][bar * BAR_N:(bar + 1) * BAR_N] * 10 ** (db / 20)
+    # In the game the stems that were playing fade out over the first beat of this bar (music.gd fades a lane
+    # that stops over one beat, linearly). They are playing the same band, so this fades in over that beat:
+    # the two add up to one band, not to a double one.
+    beat = t2n(BAR / 4)
+    x[:beat] *= np.linspace(0, 1, beat)[:, None]
+    hits = [0, 2, 4, 6, 8, 9, 10, 11] + [12 + i / 2 for i in range(8)]
+    for st in hits:
+        place(x, snare(0.3 + 0.45 * (st / 16) ** 1.3), t2n(st * STEP), 1.0)
+    k = np.arange(BAR_N) / BAR_N
+    x += highpass(np.stack([noise(BAR_N), noise(BAR_N)], 1), 2500) * (k ** 3)[:, None] * 0.15
+    f = t2n(0.006)
+    x[-f:] *= np.linspace(1, 0, f)[:, None]
+    # A full band at the stems' own levels peaks far above 1.0 (in the game the stems are summed as floats), so
+    # the file is written play_db lower and the level plays it that much up (the section's "fever_enter_db").
+    x = x * 10 ** (-play_db / 20)
+    assert np.abs(x).max() < 1.0, np.abs(x).max()
+    write_wav(os.path.join(SFX, name + '.wav'), x, peak=None)
+    for d in COPIES:
+        shutil.copy(os.path.join(SFX, name + '.wav'), os.path.join(d, name + '.wav'))
+    print(f'  {name}: {len(x) / SR:.2f} s, peak {np.abs(x).max():.2f}, cut from the stems of {base}')
 
+
+from_stems('tr_ccb_to_cc', 'can_can_b', 7,
+           row=[(0, 'G#5', 2), (2, 'A5', 2), (4, 'B5', 2), (6, 'C#6', 2), (8, 'D6', 2), (10, 'D6', 2), (12, 'D6', 4)],
+           chords=['A7', 'D7'],
+           # the levels of the pizza from 62.5 % (levels/music/level_3_spaceship.json; bass stems are trimmed 4 dB
+           # when they are packaged for the game)
+           levels=[('L3_cat_kichiku', 0.0), ('L3_square', -5.0), ('fb_L0_keys', 0.0), ('L2_bass', -4.0), ('fb_L4_peak', 0.0)])
 
 def ending(name, sym, tonic):
     """The last chord of a level, in the tune's key: played the moment the level clears (the music stops there),

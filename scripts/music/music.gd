@@ -1066,7 +1066,8 @@ func _apply_now(beat_index := -1) -> void:
 		if into_fever != "":
 			# 进 fever 换曲子 / 换段落，有专门写的一小节过门（小关里的 "fever_enter": "tr_ccb_to_cc"）：只留鼓，这一小节交给它
 			_play_fill_bar(true)
-			play_sfx(into_fever, ENTER_DB)
+			# 从正式音轨里切出来的过门是按音轨原来的响度做的，文件里压低了存，这里按小关写的 "fever_enter_db" 抬回去
+			play_sfx(into_fever, float(data.get("sections", [])[section].get("fever_enter_db", ENTER_DB)))
 		else:
 			_play_fill_bar()
 		_pending = true
