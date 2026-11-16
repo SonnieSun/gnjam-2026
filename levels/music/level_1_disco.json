@@ -154,6 +154,18 @@
     {
      "id": "ev_meow",
      "file": "res://assets/audio/music/scene1/events/s1_X_meow_4b.wav"
+    },
+    {
+     "id": "ent_cats_soft",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_L3_cat_kichiku_16b.wav",
+     "tune": "ent",
+     "gain_db": -9.0
+    },
+    {
+     "id": "ent_square_soft",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_L3_square_16b.wav",
+     "tune": "ent",
+     "gain_db": -7.0
     }
    ]
   },
@@ -334,6 +346,14 @@
      ],
      [
       0.256,
+      "ent_cats_soft"
+     ],
+     [
+      0.326,
+      "ent_square_soft"
+     ],
+     [
+      0.442,
       ""
      ]
     ]
@@ -360,6 +380,9 @@
    "own": {
     "kiai": "",
     "hit": ""
+   },
+   "tier_enter": {
+    "5": "tr_disco_to_ent"
    }
   }
  ]

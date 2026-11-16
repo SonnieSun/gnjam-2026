@@ -471,6 +471,14 @@ func _wants_fill(t: int) -> bool:
 	return false
 
 
+## 升到这个小关的第 t 档（1 起）之前那一小节过门用的专门写的变奏（小关里的 "tier_enter"，没写就是 ""）
+func _tier_enter(t: int) -> String:
+	var secs: Array = data.get("sections", [])
+	if section < 0 or section >= secs.size():
+		return ""
+	return str(secs[section].get("tier_enter", {}).get(str(t), ""))
+
+
 ## 升到这个小关的第 t 档（1 起）时放的专用音效（没写就是 ""）
 func _tier_sfx(t: int) -> String:
 	var secs: Array = data.get("sections", [])
@@ -964,7 +972,14 @@ func _apply_now(beat_index := -1) -> void:
 	if use_dynamics and beat_index >= 0 and going_to > tier and going_to != _fill_done_for \
 			and _fill_clip() != "" and _wants_fill(going_to):
 		_fill_done_for = going_to
-		_play_fill_bar()
+		var written := _tier_enter(going_to)
+		if written != "":
+			# 这一档在小关中间换了曲子，有专门写的一小节过门（小关里的 "tier_enter": {"5": "tr_disco_to_ent"}）：
+			# 和换小关的 "enter" 一样，只留鼓，这一小节交给它
+			_play_fill_bar(true)
+			play_sfx(written, ENTER_DB)
+		else:
+			_play_fill_bar()
 		_pending = true
 		_next_beat = beat_index + base
 		return

@@ -408,29 +408,28 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                #   the transition bar   the vamp on the dominant that leads into the galop (tr_tm_to_cc)
                #   0      the opening strain ('cca', D major): the instrument plays it with drums, bass, chords
                #   25%    the cats take it, backing vocals
-               #   50%    THE FAMOUS TUNE ('cc', G major: D -> G is a V -> I), on the opening strain's 8-bar line,
-               #          the cats singing it from its first bar with the peak layer        <- the 3x3 grid camera
-               #   62%    THE FOUR STEPS DOWN ('ccb', D major again), the strain that comes right before the famous
-               #          tune in the galop: the cats sing it with THE CAT CHOIR (held meows on the chords and a
-               #          third below on the long notes: make_choir_stems.py; it takes the harm lane, there are no
-               #          off-beat backing vocals here), the square lead 5 dB down under them, on the famous
-               #          tune's 4-bar line. The choir is only here: on the fast famous tune it is clutter.
-               #   75%    FEVER: the famous tune comes back with everything (square lead without its top and 3 dB
-               #          down so it does not cover the cats, pluck doubling,
-               #          Can-Can's own cat drums), on the descent's 4-bar line           <- the kaleidoscope
+               #   50%    THE FOUR STEPS DOWN ('ccb', still D major), the strain that comes right before the famous
+               #          tune in the galop, on the opening strain's 8-bar line: the cats sing it, the square
+               #          lead 5 dB under them                                              <- the 3x3 grid camera
+               #   62%    + THE CAT CHOIR (held meows on the chords and a third below on the long notes:
+               #          make_choir_stems.py; the choir is only here, on the fast famous tune it is clutter)
+               #          and the peak layer
+               #   75%    FEVER: THE FAMOUS TUNE ('cc', G major: D -> G is a V -> I), heard here for the first time
+               #          and kept for the climax, with everything (cats, the square lead without its top and
+               #          3 dB down so it does not cover them, pluck doubling, Can-Can's own cat drums), on the
+               #          descent's 4-bar line                                              <- the kaleidoscope
                # Every change is a strain of the same galop in the galop's own order, on a phrase line, full band on
                # both sides: the tune never stops.
                {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[3], 1.0), 'fever_fill': False,
                 'carry': 0,   # must start on the opening strain: carried fullness would jump straight to the famous tune
-                'tier_on_bars': {2: 8, 3: 4}, 'fever_on_bars': 4, 'own': {'kiai': '', 'hit': ''}, 'enter': 'tr_tm_to_cc',   # no mini kiai: it would be the other strain's tune
+                'tier_on_bars': {2: 8}, 'fever_on_bars': 4, 'own': {'kiai': '', 'hit': ''}, 'enter': 'tr_tm_to_cc',   # no mini kiai: it would be the other strain's tune
                 'exit': 'end_g_major', 'rules': {
                    'groove': [[0, 1]], 'cat_drums': [[0, R[3]]], 'cc_cat_drums': [[R[3], 1]],
                    'cca_keys': [[0, R[1]]], 'cca_bass': [[0, R[1]]], 'cca_square': [[0, R[0]]], 'cca_cats': [[R[0], R[1]]],
                    'cca_harm': [[R[0], R[1]]],
-                   'cc_keys': [[R[1], R[2]], [R[3], 1]], 'cc_bass': [[R[1], R[2]], [R[3], 1]], 'cc_lead': [[R[1], R[2]], [R[3], 1]],
-                   'cc_harm': [[R[1], R[2]], [R[3], 1]], 'cc_peak': [[R[1], R[2]], [R[3], 1]],
-                   'ccb_keys': [[R[2], R[3]]], 'ccb_bass': [[R[2], R[3]]], 'ccb_cats': [[R[2], R[3]]], 'ccb_square': [[R[2], R[3]]],
+                   'ccb_keys': [[R[1], R[3]]], 'ccb_bass': [[R[1], R[3]]], 'ccb_cats': [[R[1], R[3]]], 'ccb_square': [[R[1], R[3]]],
                    'ccb_choir': [[R[2], R[3]]], 'ccb_peak': [[R[2], R[3]]],
+                   'cc_keys': [[R[3], 1]], 'cc_bass': [[R[3], 1]], 'cc_lead': [[R[3], 1]], 'cc_harm': [[R[3], 1]], 'cc_peak': [[R[3], 1]],
                    'cc_square': [[R[3], 1]], 'cc_double': [[R[3], 1]]}}]}
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
          10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}

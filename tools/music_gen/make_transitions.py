@@ -10,6 +10,9 @@ two sets of drums would flam).
                            hard-cut, landing on E (the dominant of A minor) over an E7 swell.
   <sfx>/tr_mk_to_cc.wav    Mountain King (A minor) -> Can-Can (G major): "the hall bursts open". The creeping
                            head in sixteenths, running on up the scale and chromatically up to a high D over D7.
+  <sfx>/tr_disco_to_ent.wav  the disco theme (G minor) -> The Entertainer (C major), inside level 1 (a section's
+                           "tier_enter"): the rag's own introduction, the run down D E C A B G, and its pick-up D D#,
+                           the cats joining for the second half, over G7 (G is the disco's key note and C's dominant).
   <sfx>/tr_tm_to_cc.wav    Turkish March's second section (A major) -> Can-Can's opening strain (D major): the
                            galop's own lead-in, the vamp on the dominant.
 
@@ -128,6 +131,16 @@ render('tr_tm_to_cc',
              (8, 'A4', 3, 'b'), (11, 'B5', 1, 'i'), (12, 'A5', 2, 'b'), (14, 'C#6', 1, 'i'), (15, 'E6', 1, 'i')],
        bass=[(0, 'A1', 2), (4, 'A1', 2), (8, 'A1', 2), (12, 'A1', 2), (14, 'A1', 2)],
        chords=[(0, 'A7', 4, 'stab'), (8, 'A7', 8, 'swell')], last_slide=7.0)
+
+# The disco theme (G minor) -> The Entertainer (C major), when the house opens in level 1. The rag's own
+# introduction (D E C A B G, the top octave of its three) in the game's eighths, then the pick-up the first
+# strain starts with (D D#, which lands on the tune's first E on the next bar line). The instrument plays it
+# all, the cats come in on the second half: the first meows of the tune they will take over later.
+render('tr_disco_to_ent',
+       lead=[(0, 'D6', 2, 'i'), (2, 'E6', 2, 'i'), (4, 'C6', 2, 'i'), (6, 'A5', 2, 'i'),
+             (8, 'B5', 2, 'b'), (10, 'G5', 2, 'b'), (12, 'D5', 2, 'b'), (14, 'D#5', 2, 'b')],
+       bass=[(0, 'G1', 6), (8, 'G1', 4), (12, 'G1', 4)],
+       chords=[(0, 'G', 4, 'stab'), (4, 'G7', 12, 'swell')])
 
 
 def ending(name, sym, tonic):
