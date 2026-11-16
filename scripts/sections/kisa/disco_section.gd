@@ -269,7 +269,9 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		if plan.get("kind", "") == "tier" and int(plan.get("id", -1)) == index and float(plan.commit_beat) > float(plan.fill_beat):
 			until = float(plan.commit_beat)
 		_rest_until(until, DiscoMusic.road_bars(), "plaza")
-		_road.enter_plaza(song_beat())
+		# 跟着音乐排的时候，猫是在安静段里一路滑到圆台中间的：正好在安静段结束（渐强段进来、第一个音符）那一拍到。
+		# 原来是 4 拍就滑到，然后站在中间把安静段等完。
+		_road.enter_plaza(song_beat(), until if until == float(plan.get("commit_beat", -1.0)) else -1.0)
 
 
 ## 拆房子上路（第 5 条线）。

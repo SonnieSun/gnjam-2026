@@ -334,7 +334,8 @@
       "bars": 2,
       "replaces": 1,
       "on_bars": 4,
-      "sfx": "ent_count_in"
+      "sfx": "none",
+      "count_in": true
      },
      "8": {
       "through": {

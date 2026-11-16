@@ -22,6 +22,8 @@ signal tier_changed(new_tier: int, up: bool)
 ## 场景、谱面要和音乐的切换对上，就听这个信号按这两个拍点排自己的事，不要在进度过线的那一下各自开始。
 ## 正式切换的那一下是 tier_changed / fever_started。有乐句线要等（"on_bars"）的切换，拍点是按现在在放的曲子推出来的。
 signal change_planned(kind: String, id: int, fill_beat: float, commit_beat: float)
+## 预备拍开始了（见 count_in()）：beat = 第一下落在哪一拍。画面要跟着数拍子的可以听它。
+signal count_in_started(beat: float)
 signal fever_started
 signal fever_ended
 
@@ -84,6 +86,7 @@ const KIAI_DUCK_DB := -6.0
 var _duck_on := false
 var _plan := {}           # 排好了还没发生的那次切换（见 change_planned / planned_change）
 var _planned_for := -1    # 已经为升到第几档排过
+var _count_until := -1.0  # 预备拍放到第几拍：这之前关卡的鼓让开、别的轨道压低，让那四下听得见
 var _fill_until := -1.0  # 几小节长的专门过门放到第几拍：在那之前不换（进度变了也不重新排到更早的小节线）
 var _outro := false       # 结尾段在放：除了鼓，别的轨道都停着（见 outro()）
 var _outro_wait := false  # 叫了 outro()，等下一条小节线
@@ -199,6 +202,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_free_tunes()
 	_pattern_tune.clear()
 	_lane_gain.clear()
+	_count_until = -1.0
 	_fill_until = -1.0
 	_plan = {}
 	_planned_for = -1
@@ -541,6 +545,8 @@ func set_progress(p: float) -> void:
 ##   "on_bars"   等正在放的曲子唱到几小节一句的乐句线才换（不写 = 不等）。换曲子 / 换段落的地方用，
 ##               不然新的一段会从上一句的中间唱起
 ##   "sfx"       升到这一档那一下的专用音效，代替通用的镲和喵，也不送小 kiai（"none" = 什么都不放）
+##   "count_in"  true：新的一段进来的第一小节是乐队的预备拍，"大 大 大 大"四下鼓（见 count_in()）。
+##               关卡把这一小节留空、下一小节的第一拍接上第一个音符，玩家就有一小节的时间对上拍子
 ##   "lead_beats" 最短的预备时间：进度过线到过门开始至少隔这么多拍，离下一条小节线不够就顺延一小节（不写 = 0）。
 ##               场景要在过门之前先做铺垫的切换用
 ## 读出来的是补齐了默认值的一份：{fill: 到底放不放过门, written, db, bars, replaces, on_bars, sfx, lead_beats}
@@ -572,7 +578,26 @@ func change_spec(kind: String, t := 0) -> Dictionary:
 	out.on_bars = int(raw.get("on_bars", 0))
 	out.sfx = str(raw.get("sfx", ""))
 	out.lead_beats = float(raw.get("lead_beats", 0.0))
+	out["count_in"] = bool(raw.get("count_in", false))
 	return out
+
+
+## 预备拍：从现在（应该正好是小节线）起的一小节里，"大 大 大 大"四下鼓，每拍一下（assets/audio/sfx/count_in_4.wav，
+## tools/music_gen/make_transitions.py 做的）。这一小节里关卡自己的鼓和猫鼓让开（COUNT_DRUMS_DB：预备拍就是这一小节的鼓），
+## 别的轨道压低 COUNT_DUCK_DB。量过：鼓照常响、乐队只压 7 dB 的话，这四下在 2.5–9 kHz 上比乐队本来就有的拍手和镲还小，听不出来。
+## 两种用法：切换描述里写 "count_in": true（升到那一档 / 进 fever 的那条小节线上自动放）；或者关卡自己在小节线上调。
+const COUNT_IN_SFX := "count_in_4"
+const COUNT_IN_DB := 6.0
+const COUNT_DUCK_DB := -7.0
+const COUNT_DRUMS_DB := -20.0
+const COUNT_DRUM_LANES := ["beat", "meow"]
+
+func count_in() -> void:
+	play_sfx(COUNT_IN_SFX, COUNT_IN_DB)
+	var q: float = data.get("quantize_beats", 4)
+	var at := roundf(Conductor.song_beat / q) * q if Conductor.playing else 0.0
+	_count_until = at + q - 0.3
+	count_in_started.emit(at)
 
 
 ## 排好了还没发生的那次切换：{kind, id, fill_beat, commit_beat}，没有就是 {}（见 change_planned）
@@ -1226,7 +1251,10 @@ func _apply_now(beat_index := -1) -> void:
 	if use_dynamics and Conductor.playing and not _quiet_tier_change and beat_index >= 0 and not _outro:
 		if new_tier > tier:
 			# 这一档有自己的音效（切换描述里的 "sfx"）就放它，不放通用的镲和喵
-			var own_sfx := str(change_spec("tier", new_tier).sfx)
+			var arrived := change_spec("tier", new_tier)
+			var own_sfx := str(arrived.sfx)
+			if arrived.count_in:
+				count_in()
 			if own_sfx != "":
 				play_sfx(own_sfx, -2.0)
 			else:
@@ -1250,6 +1278,8 @@ func _apply_now(beat_index := -1) -> void:
 		if fever:
 			if Conductor.playing and beat_index >= 0:
 				play_sfx("crash", -7.0)  # 进 fever 只放一声镲（原来还有一段转圈喵，太突兀，去掉了）
+			if into_fever.count_in and Conductor.playing and beat_index >= 0:
+				count_in()
 			fever_started.emit()
 		else:
 			_fever_fill_done = false
@@ -1261,6 +1291,7 @@ func _process(delta: float) -> void:
 		return
 	var beat_sec := 60.0 / bpm()
 	var dip_now := Conductor.playing and Conductor.song_beat < _dip_until
+	var count_now := Conductor.playing and Conductor.song_beat < _count_until
 	var dip_changed := dip_now != _dip_on
 	var duck_now := "kichiku" in str(_now.get("kiai", "")) and str(_now.get("lead", "")) != ""
 	var duck_changed := duck_now != _duck_on
@@ -1278,6 +1309,8 @@ func _process(delta: float) -> void:
 			cur = minf(goal, cur + step) if goal > cur else maxf(goal, cur - step)
 			_level[i] = cur
 		var db: float = SILENT_DB if cur <= 0.0001 else linear_to_db(cur) + float(_lane_gain.get(_slot_lane[i], 0.0)) + _slot_gain[i]
+		if count_now and cur > 0.0001:
+			db += COUNT_DRUMS_DB if _slot_lane[i] in COUNT_DRUM_LANES else COUNT_DUCK_DB
 		if dip_now and dipped and cur > 0.0001:
 			db += DIP_DB
 		if duck_now and ducked and cur > 0.0001:
