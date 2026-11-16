@@ -189,13 +189,15 @@ render('tr_disco_to_ent',
        chords=[(0, 'G', 4, 'stab'), (4, 'G7', 12, 'swell')], roll=True)
 
 # Can-Can: the four steps down (D major) -> the famous tune (G major), the pizza going into its fever.
-# What everybody hears in their head before the famous tune is its own lead-in: the end of the galop's phrase,
-# "G D A B | MIAO! MIAO!", two accents (G, then D) and the tune starts. So this bar is THE FEVER'S OWN BAND
-# arriving one bar early with exactly that: the famous tune is rendered again by the code that makes its stems
-# (compose_classics.build: same cats, square lead, pluck, chords, bass, peak layer, cat drums), with its last bar
-# rewritten to the phrase ending (bar 28 of the piano MIDI the user supplied), that bar is cut out of every stem
-# and mixed at the levels the fever plays them at. On the two accents the cats shout in two more octaves with a
-# crash and a big snare; under the run before them a snare fill; a thirty-second roll into the bar line.
+# What everybody hears in their head before the famous tune is the two accents its phrase starts with:
+# "MIAO! MIAO! da-da-da-da DUM DUM" (G, D, then A C B A | D D: bar 21 of the piano MIDI the user supplied; our loop
+# starts on the A C B A, so the two accents are the second half of the bar before it). So this bar is THE FEVER'S
+# OWN BAND arriving one bar early for exactly that: the famous tune is rendered again by the code that makes its
+# stems (compose_classics.build: same cats, square lead, pluck, chords, bass, peak layer, cat drums) with its
+# last bar rewritten to nothing but the two accents, that bar is cut out of every stem and mixed at the levels
+# the fever plays them at. First half: the band on the dominant, no tune, a snare roll growing. Second half: the
+# two accents, the cats shouting them in two more octaves, crash and a big snare on each; a short roll into the
+# bar line, and the tune starts.
 # Tried before and dropped: a separate little arrangement (pluck + one cat + orchestra hits: "another sound cut
 # in"), and the descent's own band with its last bar varied (the same sound, but not the lead-in people know).
 def from_stems(name, base, bar, row, chords, levels, accents=(), play_db=14.0):
@@ -212,8 +214,8 @@ def from_stems(name, base, bar, row, chords, levels, accents=(), play_db=14.0):
         x[:BAR_N] += L[layer][bar * BAR_N:(bar + 1) * BAR_N] * 10 ** (db / 20)
     f = t2n(0.02)
     x[:f] *= np.linspace(0, 1, f)[:, None]
-    for st in (0, 2, 4, 5, 6, 7):                                   # the fill under the run
-        place(x, snare(0.35 + 0.03 * st), t2n(st * STEP), 1.0)
+    for st in (0, 1, 2, 3, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5):         # the roll that announces them, growing
+        place(x, snare(0.25 + 0.06 * st), t2n(st * STEP), 1.0)
     for st, note in accents:                                        # MIAO! MIAO!
         at, m = t2n(st * STEP), nm(note)
         place(x, snare(1.0), at, 1.0)
@@ -236,8 +238,10 @@ def from_stems(name, base, bar, row, chords, levels, accents=(), play_db=14.0):
 
 
 from_stems('tr_ccb_to_cc', 'can_can', 7,
-           row=[(0, 'G4', 2), (2, 'D5', 2), (4, 'A4', 2), (6, 'B4', 2), (8, 'G4', 4), (12, 'D4', 4)],
-           chords=['G', 'D7'],
+           # No tune in the first half (v3 had the phrase ending "G D A B" there: it read as more tune, and the two
+           # accents did not stand out). The band holds the dominant under a snare roll, then: MIAO! MIAO!
+           row=[(8, 'G4', 4), (12, 'D4', 4)],
+           chords=['D7', 'G'],
            accents=[(8, 'G4'), (12, 'D4')],
            # the levels of the pizza's fever (levels/music/level_3_spaceship.json: the square on the fx lane -3 dB,
            # the pluck on the kiai lane -2 dB; bass stems are trimmed 4 dB when they are packaged for the game)
