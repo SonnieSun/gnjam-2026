@@ -1088,8 +1088,16 @@ func save() -> void:
 			for lid in cues.keys():
 				if cues[lid].is_empty():
 					cues.erase(lid)
-		err = Music.write(Music.path_for(Levels.selected), out)
-		saved += " and " + Music.path_for(Levels.selected).get_file()
+		# 音乐没改过就不重写它的文件（重写会把整个 json 换一种排版，别人正在改这个文件的话每一行都会冲突）
+		var on_disk: Dictionary = Music.read(Music.path_for(Levels.selected))
+		for sec: Dictionary in on_disk.get("sections", []):
+			var disk_cues: Dictionary = sec.get("cues", {})
+			for lid in disk_cues.keys():
+				if disk_cues[lid].is_empty():
+					disk_cues.erase(lid)
+		if out != on_disk:
+			err = Music.write(Music.path_for(Levels.selected), out)
+			saved += " and " + Music.path_for(Levels.selected).get_file()
 	dirty = err != OK
 	_status.text = ("Saved " + saved) if err == OK else ("Save failed: " + error_string(err))
 
