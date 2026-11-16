@@ -27,6 +27,18 @@ signal count_in_started(beat: float)
 signal fever_started
 signal fever_ended
 
+# ---- 画面跟着音乐的信号（scripts/music/music_events.gd 发；说明见 docs/music_manager.md「画面跟着音乐的信号」）----
+## 节奏轨现在这套鼓型里的一下底鼓 / 拍手 / 镲。beat = 它落在第几拍（浮点；发出的那一帧节拍刚走过它）。
+## 注意：节奏轨的 loop 里只有拍手和镲，底鼓是留给玩家打的，所以 drum_kick 是"鼓型里底鼓该在的地方"，音乐本身在那一下不一定有声。
+signal drum_kick(beat: float)
+signal drum_clap(beat: float)
+signal drum_hat(beat: float, open: bool)
+## 旋律轨现在这首曲子的一个音：beat = 落在第几拍，midi = 乐器弹的音高，length_beats = 多长（拍）
+signal lead_note(beat: float, midi: int, length_beats: float)
+## 发这些信号的节点（events.lead_beats 提前量、events.log_events 打印、events.groove_of() / song() 查数据）
+var events: MusicEvents
+# ---- 画面跟着音乐的信号：到这里 ----
+
 const MUSIC_DIR := "res://levels/music/"
 const SILENT_DB := -80.0
 const FADE_IN_SEC := 0.01   # 只为避免爆音；淡出 1 拍
@@ -153,6 +165,8 @@ func _ready() -> void:
 	fever_ended.connect(_set_fever_reverb.bind(false))
 	meow = MeowPlayer.new()
 	add_child(meow)
+	events = MusicEvents.new()   # 画面跟着音乐的信号
+	add_child(events)
 	for i in 3:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
