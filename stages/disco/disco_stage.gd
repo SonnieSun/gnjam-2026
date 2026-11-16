@@ -132,6 +132,10 @@ signal stage_changed(stage: int)
 ## 光束落到地上那头有多粗（3D 单位）；光束打在地上的彩色光斑多亮
 @export var ball_beam_radius := 0.9
 @export var ball_beam_light := 6.0
+## 光束打在地上的光斑（贴地的发光面片，不是真的灯，网页版省很多）：多亮（乘在 ball_beam_light 上）、多大（光束底部半径的倍数）、贴在多高
+@export var ball_spot_strength := 0.12
+@export var ball_spot_size := 1.6
+@export var ball_spot_height := -0.84
 ## 灯球表面的十字星光：同时最多几颗、多大（灯球半径的倍数）、每颗亮多久（秒）
 @export var glint_count := 9
 @export var glint_size := 1.5
@@ -201,7 +205,8 @@ var _ball_center: Node3D  # 灯球球心（灯球节点的原点在吊线上面�
 var _ball_radius := 1.0  # 球半径（_ball_center 的局部单位）
 var _beam_rig: Node3D
 var _ball_beams: Array[MeshInstance3D] = []
-var _ball_beam_lights: Array[SpotLight3D] = []
+var _ball_spots: Array[MeshInstance3D] = []  # 光束打在地上的光斑（放在猫的 3D 世界里，每帧算落点）
+var _ball_beam_dirs: Array[Vector3] = []  # 每根光束在 _beam_rig 里的方向
 var _glints: Array[MeshInstance3D] = []
 var _glint_t: Array[float] = []  # 每颗星光现在亮到哪了（0..1，>= 1 = 等下一次）
 var _glint_dir: Array[Vector3] = []
@@ -262,6 +267,7 @@ func setup(cat: KisaSpinCat3D) -> void:
 		light.omni_range = star_light_range
 		light.omni_attenuation = 0.8
 		light.light_energy = 0.0
+		light.visible = false
 		star.add_child(light)
 		_stars.append(star)
 		_star_rest.append(star.position)
@@ -322,6 +328,7 @@ func setup(cat: KisaSpinCat3D) -> void:
 		var spot := SpotLight3D.new()
 		spot.light_color = white_light_color if white_light else spot_colors[i]
 		spot.light_energy = 0.0
+		spot.visible = false
 		spot.spot_range = 70.0
 		spot.spot_attenuation = 0.6
 		spot.spot_angle = 16.0
@@ -330,6 +337,7 @@ func setup(cat: KisaSpinCat3D) -> void:
 	_ball_light = OmniLight3D.new()
 	_ball_light.omni_range = 45.0
 	_ball_light.light_energy = 0.0
+	_ball_light.visible = false
 	_ball.add_child(_ball_light)
 	_ball.position.y += 30.0
 
@@ -450,7 +458,7 @@ func update(beat: float) -> void:
 		_cat_light.position = _cat.focus + _cat.pose_position + to_cam * 4.0 + Vector3.UP * 2.0
 		var feet := _cat.pose_position  # 猫脚底（猫的旋转轴心在原点、脚踩 y = 0）
 		_top_light.position = feet + Vector3.UP * top_light_height
-		_top_light.light_energy = top_light_energy + pulse * top_light_pulse
+		_set_energy(_top_light, top_light_energy + pulse * top_light_pulse)
 		_beam.position = feet + Vector3.UP * (top_light_height / 2.0)
 		_beam_mat.set_shader_parameter("strength", beam_strength * (1.0 + pulse * 0.6))
 	if stage >= 1:
@@ -458,7 +466,7 @@ func update(beat: float) -> void:
 			# 相邻的星星隔拍轮流亮
 			var mine := exp(-fposmod(beat + i % 2, 2.0) * 3.0)
 			_star_mats[i].emission_energy_multiplier = 1.0 + mine * 3.0
-			_star_lights[i].light_energy = star_light_energy + mine * star_light_pulse
+			_set_energy(_star_lights[i], star_light_energy + mine * star_light_pulse)
 			_stars[i].scale = Vector3.ONE * (1.0 + mine * 0.25)
 			_stars[i].rotation.z = sin(beat * PI / 2.0 + i) * 0.15
 	# 墙灯、电脑屏幕：变亮之后每拍闪一下，之前保持原样
@@ -472,8 +480,8 @@ func update(beat: float) -> void:
 		if _ball_mirror:
 			_ball_mirror.set_shader_parameter("glow", ball_glow * 0.3 + pulse * 0.5)
 		for spot in _spot_rig.get_children():
-			(spot as SpotLight3D).light_energy = (spot_energy + pulse * spot_pulse * _calm()) * ball_fade * _dim()
-		_ball_light.light_energy = ball_light_energy * (0.6 + pulse * _calm()) * ball_fade * _dim()
+			_set_energy(spot as SpotLight3D, (spot_energy + pulse * spot_pulse * _calm()) * ball_fade * _dim())
+		_set_energy(_ball_light, ball_light_energy * (0.6 + pulse * _calm()) * ball_fade * _dim())
 		_ball_light.light_color = white_light_color if white_light else beam_colors[int(beat) % beam_colors.size()]
 		if _ball_mirror:
 			_ball_mirror.set_shader_parameter("sparkle", ball_sparkle)
@@ -571,17 +579,17 @@ func _leave_stage(which: int) -> void:
 			for i in _stars.size():
 				_tween(_stars[i]).tween_property(_stars[i], "position",
 						_star_rest[i] + Vector3.UP * 30.0, 0.5).set_ease(Tween.EASE_IN)
-				_star_lights[i].light_energy = 0.0
+				_set_energy(_star_lights[i], 0.0)
 				_star_mats[i].emission_energy_multiplier = 1.0
 			_set_lights(dark_ambient, dark_key, dark_background)
 		2:
 			_tween(_ball).tween_property(_ball, "position", _ball_rest + Vector3.UP * 30.0, 0.5) \
 					.set_ease(Tween.EASE_IN)
 			for spot in _spot_rig.get_children():
-				(spot as SpotLight3D).light_energy = 0.0
-			_ball_light.light_energy = 0.0
-			for light in _ball_beam_lights:
-				light.light_energy = 0.0
+				_set_energy(spot as SpotLight3D, 0.0)
+			_set_energy(_ball_light, 0.0)
+			for g in _ball_spots:
+				g.visible = false
 		3:
 			for d in _dancers:
 				var t := _tween(d)
@@ -701,6 +709,10 @@ func _setup_ball_beams() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var tilts := PackedFloat32Array([38.0, 52.0, 66.0, 46.0, 74.0, 58.0])
+	var spot_mesh := PlaneMesh.new()
+	spot_mesh.size = Vector2.ONE
+	var spot_mat := ShaderMaterial.new()
+	spot_mat.shader = preload("res://stages/disco/ground_spot.gdshader")
 	for i in beam_count:
 		var tilt := deg_to_rad(tilts[i % tilts.size()] + rng.randf_range(-4.0, 4.0))
 		var yaw := TAU * i / beam_count + rng.randf_range(-0.15, 0.15)
@@ -722,15 +734,14 @@ func _setup_ball_beams() -> void:
 		beam.transform = Transform3D(Basis(Quaternion(Vector3.UP, -dir)), dir * (start + length / 2.0))
 		_beam_rig.add_child(beam)
 		_ball_beams.append(beam)
-		var light := SpotLight3D.new()
-		light.light_energy = 0.0
-		light.spot_range = length + start + 6.0
-		light.spot_angle = rad_to_deg(atan(ball_beam_radius / (length + start))) * 1.6
-		light.spot_attenuation = 0.3
-		light.spot_angle_attenuation = 0.6
-		_beam_rig.add_child(light)
-		light.transform = Transform3D(Basis.looking_at(dir), Vector3.ZERO)
-		_ball_beam_lights.append(light)
+		_ball_beam_dirs.append(dir)
+		var spot := MeshInstance3D.new()
+		spot.mesh = spot_mesh
+		spot.material_override = spot_mat
+		spot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		spot.visible = false
+		_cat.world.add_child(spot)
+		_ball_spots.append(spot)
 	_beam_rig.visible = false
 
 
@@ -744,6 +755,10 @@ func _calm() -> float:
 
 
 func _update_ball_beams(beat: float, now: float, pulse: float) -> void:
+	if not _ball.visible or ball_fade <= 0.01:
+		for g in _ball_spots:
+			g.visible = false
+		return
 	var shift := int(beat / beam_color_beats)
 	for i in _ball_beams.size():
 		var color := white_light_color if white_light else beam_colors[(i + shift) % beam_colors.size()]
@@ -755,10 +770,37 @@ func _update_ball_beams(beat: float, now: float, pulse: float) -> void:
 		k *= (1.0 + pulse * ball_beam_pulse * _calm()) * _dim()
 		var beam := _ball_beams[i]
 		beam.visible = ball_beams_visible
-		beam.set_instance_shader_parameter("beam_color", color)
-		beam.set_instance_shader_parameter("strength", ball_beam_strength * k * ball_fade)
-		_ball_beam_lights[i].light_color = color
-		_ball_beam_lights[i].light_energy = ball_beam_light * k * ball_fade
+		if ball_beams_visible:
+			beam.set_instance_shader_parameter("beam_color", color)
+			beam.set_instance_shader_parameter("strength", ball_beam_strength * k * ball_fade)
+		_place_spot(i, color, ball_beam_light * ball_spot_strength * k * ball_fade)
+
+
+## 第 i 根光束打在地上的光斑：沿光束方向找到和地面（ball_spot_height）的交点，平放一片拉长的光斑
+func _place_spot(i: int, color: Color, strength: float) -> void:
+	var g := _ball_spots[i]
+	var dir := (_beam_rig.global_transform.basis * _ball_beam_dirs[i]).normalized()
+	var from := _ball_center.global_position
+	if dir.y > -0.05 or strength <= 0.001 or from.y <= ball_spot_height:
+		g.visible = false
+		return
+	var hit := from + dir * ((from.y - ball_spot_height) / -dir.y)
+	# 斜着打到地上的光斑顺着光束方向拉长（1 / sin 仰角）
+	var flat := Vector3(dir.x, 0.0, dir.z)
+	var along := flat.normalized() if flat.length() > 0.001 else Vector3.FORWARD
+	var r := ball_beam_radius * ball_spot_size
+	var stretch := minf(1.0 / maxf(-dir.y, 0.2), 3.0)
+	var side := Vector3.UP.cross(along)
+	g.transform = Transform3D(Basis(side * r * 2.0, Vector3.UP, along * r * 2.0 * stretch), hit)
+	g.set_instance_shader_parameter("spot_color", color)
+	g.set_instance_shader_parameter("strength", strength)
+	g.visible = true
+
+
+## 设灯的亮度；亮度为 0 时整盏灯关掉（关掉的灯不再算进每个像素，网页版省很多）
+func _set_energy(light: Light3D, energy: float) -> void:
+	light.light_energy = energy
+	light.visible = energy > 0.001
 
 
 ## 灯球的模型（球、吊绳）跟着 ball_fade 变透明；完全淡没就藏起来

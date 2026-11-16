@@ -104,6 +104,8 @@ func _ready() -> void:
 	_road.setup(_spin_cat, _stage)
 	_road.beat_guides = beat_guides and draws_own_notes()
 	_road.guide_every = guide_every
+	# 后面才出现的东西（上路的灯球、水果、猫图、发光猫、飞碟……）先在看不见的地方画几帧，免得玩到一半卡一下
+	DiscoPrewarm.run(_spin_cat, _road)
 	# 配乐从只有房间的背景节拍开始
 	_layer_gain.resize(DiscoMusic.LAYERS.size())
 	_layer_gain.fill(0.0)

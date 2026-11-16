@@ -93,7 +93,8 @@ func _ready() -> void:
 		_viewport.size = Vector2i(render_size, render_size)
 	_viewport.transparent_bg = not full_screen
 	_viewport.own_world_3d = true
-	_viewport.msaa_3d = Viewport.MSAA_4X
+	# 网页版抗锯齿降到 2 倍：4 倍在 WebGL 上每帧多画很多，桌面版不变
+	_viewport.msaa_3d = Viewport.MSAA_2X if OS.has_feature("web") else Viewport.MSAA_4X
 	add_child(_viewport)
 	world = _viewport
 
