@@ -20,7 +20,11 @@ import numpy as np
 SR = 44100
 BPM = 160.0
 STEP = 60.0 / BPM / 4.0        # a sixteenth
-ROOT = 60                      # MIDI note of the key (60 = C4)
+ROOT = 60                      # MIDI note of the key (60 = C4); set per file in the loop at the bottom
+# the keys the levels need: file suffix -> root. "" = C (level 1's Entertainer, the sky level's Ode to Joy, and the
+# Mountain King in A minor, whose relative major it is); ab = Your Best Friend (the washer); a = the Turkish March's
+# A major part (the shooter's fever); g = the Can-Can (the pizza)
+KEYS = {'': 60, '_ab': 56, '_a': 57, '_g': 55}
 OUT = os.path.join(sys.argv[1], 'assets', 'audio', 'sfx')
 rng = np.random.default_rng(7)
 
@@ -87,28 +91,50 @@ def write(name, x, peak):
     print('  %s.wav  %.2f s  peak %.2f  rms %.3f' % (name, len(x) / SR, np.max(np.abs(x)), np.sqrt(np.mean(x ** 2))))
 
 
-# --- fever_enter: up the chord in sixteenths, three octaves, then the chord rings ---------------------
-x = blank(2.2)
-steps = [0, 4, 7, 12, 16, 19, 24, 28, 31]             # root, third, fifth, three times over
-for i, s in enumerate(steps):
-    at = i * STEP
-    k = i / (len(steps) - 1)
-    place(x, pluck(ROOT + 12 + s, 0.35), at, 0.55 + 0.25 * k, pan=(k - 0.5) * 0.8)
-    place(x, bell(ROOT + 24 + s, 0.5, bright=0.7), at, 0.22 + 0.2 * k, pan=(0.5 - k) * 0.8)
-land = len(steps) * STEP                               # the chord: two beats and a bit after the bar line
-for s, pan in ((36, 0.0), (40, -0.5), (43, 0.5), (48, 0.0)):
-    place(x, bell(ROOT + 12 + s, 1.3), land, 0.5, pan)
-    place(x, pluck(ROOT + s, 0.9), land, 0.35, pan)
-place(x, hiss(land, rise=True), 0.0, 0.12)
-for i in range(10):                                    # the shimmer after the chord: little high bells, scattered
-    place(x, bell(ROOT + 48 + int(rng.choice([0, 4, 7, 12, 16])), 0.25, bright=0.5), land + 0.05 + i * 0.06, 0.12 * (1 - i / 12), pan=float(rng.uniform(-1, 1)))
-write('fever_enter', x, 0.8)
+def render(suffix):
+    make_enter(suffix)
+    make_note(suffix)
 
-# --- fever_note: a quick chime up the chord, a sparkle, a thump ----------------------------------------
-x = blank(1.0)
-for i, s in enumerate((0, 4, 7, 12)):
-    place(x, bell(ROOT + 36 + s, 0.7), i * 0.028, 0.5 + 0.12 * i, pan=(i - 1.5) * 0.3)
-place(x, hiss(0.25), 0.0, 0.18)
-t = np.arange(int(0.18 * SR)) / SR
-place(x, np.sin(2 * np.pi * (hz(ROOT - 12) * (1.0 + 0.8 * np.exp(-t / 0.02))) * t) * np.exp(-t / 0.05), 0.0, 0.5)
-write('fever_note', x, 0.75)
+
+def make_enter(suffix):
+    # --- fever_enter: up the chord in sixteenths, three octaves, then the chord rings -----------------
+    x = blank(2.2)
+    _enter(x)
+    write('fever_enter' + suffix, x, 0.8)
+
+
+def make_note(suffix):
+    x = blank(1.0)
+    _note(x)
+    write('fever_note' + suffix, x, 0.75)
+
+
+def _enter(x):
+    steps = [0, 4, 7, 12, 16, 19, 24, 28, 31]             # root, third, fifth, three times over
+    for i, s in enumerate(steps):
+        at = i * STEP
+        k = i / (len(steps) - 1)
+        place(x, pluck(ROOT + 12 + s, 0.35), at, 0.55 + 0.25 * k, pan=(k - 0.5) * 0.8)
+        place(x, bell(ROOT + 24 + s, 0.5, bright=0.7), at, 0.22 + 0.2 * k, pan=(0.5 - k) * 0.8)
+    land = len(steps) * STEP                               # the chord: two beats and a bit after the bar line
+    for s, pan in ((36, 0.0), (40, -0.5), (43, 0.5), (48, 0.0)):
+        place(x, bell(ROOT + 12 + s, 1.3), land, 0.5, pan)
+        place(x, pluck(ROOT + s, 0.9), land, 0.35, pan)
+    place(x, hiss(land, rise=True), 0.0, 0.12)
+    for i in range(10):                                    # the shimmer after the chord: little high bells, scattered
+        place(x, bell(ROOT + 48 + int(rng.choice([0, 4, 7, 12, 16])), 0.25, bright=0.5), land + 0.05 + i * 0.06, 0.12 * (1 - i / 12), pan=float(rng.uniform(-1, 1)))
+
+
+def _note(x):
+    # --- fever_note: a quick chime up the chord, a sparkle, a thump ----------------------------------
+    for i, s in enumerate((0, 4, 7, 12)):
+        place(x, bell(ROOT + 36 + s, 0.7), i * 0.028, 0.5 + 0.12 * i, pan=(i - 1.5) * 0.3)
+    place(x, hiss(0.25), 0.0, 0.18)
+    t = np.arange(int(0.18 * SR)) / SR
+    place(x, np.sin(2 * np.pi * (hz(ROOT - 12) * (1.0 + 0.8 * np.exp(-t / 0.02))) * t) * np.exp(-t / 0.05), 0.0, 0.5)
+
+
+for _suffix, _root in KEYS.items():
+    ROOT = _root
+    rng = np.random.default_rng(7)
+    render(_suffix)

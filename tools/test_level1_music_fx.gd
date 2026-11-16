@@ -138,6 +138,7 @@ func _run() -> void:
 
 	# --- fever: the colour filter comes up, the corner cannons fire, a clap fires a small pair, then it all goes ---
 	var fx: Node = section.get_node("FeverFx")
+	Music.events.set_process(false)   # only the claps this test sends: the music's own would fire cannons too
 	Music.fever_started.emit()
 	await create_timer(0.4).timeout
 	_check("fever: the level-up sound plays as it starts", fx._sfx.playing and fx._sfx.stream.resource_path.ends_with("fever_enter.wav"))

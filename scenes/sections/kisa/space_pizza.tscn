@@ -8,6 +8,10 @@
 
 [ext_resource type="Texture2D" path="res://stages/spaceship/skybox/nebula_512_blue.jpg" id="kisa_sky512"]
 [ext_resource type="PackedScene" path="res://stages/space_shooter/model/neapolitan_pizza.glb" id="kisa_pizza"]
+[ext_resource type="Script" path="res://scripts/fx/note_accents.gd" id="fx_accents"]
+[ext_resource type="Script" path="res://scripts/fx/fever_fx.gd" id="fx_fever"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/fever_enter_g.wav" id="fx_fever_enter"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/fever_note_g.wav" id="fx_fever_note"]
 
 [sub_resource type="PanoramaSkyMaterial" id="kisa_sky_mat"]
 panorama = ExtResource("kisa_sky512")
@@ -1530,3 +1534,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.5, 1)
 light_color = Color(0.41568628, 0.9098039, 1, 1)
 light_energy = 1.6
 omni_range = 9.0
+
+[node name="NoteAccents" type="Node" parent="."]
+script = ExtResource("fx_accents")
+change_note_sfx = ExtResource("fx_fever_note")
+
+[node name="FeverFx" type="CanvasLayer" parent="."]
+script = ExtResource("fx_fever")
+filter = false
+enter_sfx = ExtResource("fx_fever_enter")

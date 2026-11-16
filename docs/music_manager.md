@@ -1091,3 +1091,28 @@ signal lead_note(beat: float, midi: int, length_beats: float)   # 旋律轨这�
 只对"接着上一个小关"的小关起作用；换场景的小关（洗衣机 → 拍地球）还是原来的转场。
 
 检查：`godot --headless -s tools/test_level2.gd`（约 40 秒）。
+
+## 第三关的谱，和标记 / fever 画面铺到第二、三关（2026-11-17）
+
+**射击段的谱对齐到土耳其进行曲**（`levels/charts/level_3_spaceship_0.tres`，一个音符 = 一颗星球）。核对出三件事，都改了，别的音符没动：
+- 谱是 15 小节一轮，曲子是 16 小节：每放一轮就和曲子错开一小节。补了第 16 小节（`0 2`），现在一样长。
+- 开头四小节的音符在第 2、4 拍，而开头是半拍的鼓（底鼓在第 1 拍和第 3 拍半，拍手在第 3 拍），那两拍底下没有鼓。改到第 1、3 拍。
+- 第 9 小节唯一的音符在旋律没有音的那一拍，挪到了有音的第 3 拍。
+现在 30 个音符全部落在四拍鼓型的底鼓上，也全部落在旋律的音上（谱的第 0 拍是曲子的第 2 小节：进关先空一小节，脚本的 `chart_phases()` 里写了 `tune_offset = 4`，配拍编辑器按它对齐）。
+披萨段的谱（每小节第 1、3 拍）核对过，没问题，没改。
+
+**重点标记现在每个小关都能用**：`SpinSection.sound_color()` 是各个小关拿音符颜色的同一个地方，场景里放一个叫 `NoteAccents` 的节点，它就按标记换颜色
+（只换颜色；粗细、双圈、七彩 shader 只有第一关的缩圈画了）。连打那种不判定的音符不标。这次放了的：洗衣机、拍地球、射击、披萨。
+
+**fever 画面和声音也放进了这四个小关**（`FeverFx` 节点）。披萨段只开彩带、不开彩色滤镜（那里本来就有万花筒）。
+升阶音效和换段音符的音效按曲子的调各出了一版（`make_fever_sfx.py` 的 `KEYS`）：
+
+| 小关 | 曲子 | 用的音效 |
+|---|---|---|
+| 第一关、天空关 | The Entertainer、欢乐颂（C 大调） | `fever_enter` / `fever_note` |
+| 洗衣机 | Your Best Friend（降 A 大调） | `fever_enter_ab` / `fever_note_ab` |
+| 拍地球 | 山魔王（A 小调，用它的关系大调 C） | `fever_enter` / `fever_note` |
+| 射击 | 土耳其进行曲 fever 的 A 大调那段 | `fever_enter_a` / `fever_note_a` |
+| 披萨 | 康康舞（G 大调） | `fever_enter_g` / `fever_note_g` |
+
+检查：`godot --headless -s tools/test_level3.gd`（约 25 秒）。

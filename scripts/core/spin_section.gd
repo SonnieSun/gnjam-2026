@@ -89,6 +89,7 @@ func setup(section_def: SectionDef, section_notes: Array[NoteData]) -> void:
 
 func enter() -> void:
 	active = true
+	note_accents = get_node_or_null("NoteAccents") as NoteAccents
 	_start_note_style()
 	_on_enter()
 
@@ -117,6 +118,8 @@ func exit() -> void:
 
 ## 谱子勾了“游戏里用这个表现方式”时，音符由它画（叠在关卡画面上）
 var note_style: NoteStyle
+## 音符的重点标记（scripts/fx/note_accents.gd）：场景里放一个叫 NoteAccents 的节点就有，sound_color() 会按它换颜色
+var note_accents: NoteAccents
 ## 关掉 = 不自己叠表现方式（谱面编辑器的预览自己叠一层，就把这个关掉）
 var allow_note_style := true
 var _style_layer: CanvasLayer
@@ -390,9 +393,13 @@ const HOLD_COLOR := Color(1.0, 0.15, 0.7)
 
 
 func sound_color(note: NoteData) -> Color:
-	if note.color.a > 0.0:
-		return note.color  # 谱子里给这个音符单独指定了颜色
-	return SOUND_COLORS[note.sound % SOUND_COLORS.size()]
+	var base := note.color if note.color.a > 0.0 else SOUND_COLORS[note.sound % SOUND_COLORS.size()]  # 谱子里单独指定了颜色的用指定的
+	# 重点标记（场景里有 NoteAccents 节点才有）：小节线 / 重音 / 切分 / 换段音符换颜色。不判定的音符（连打）不标
+	if note_accents and not note.free:
+		var mark := note_accents.look(note, base)
+		if mark.kind != NoteAccents.Kind.NONE:
+			return mark.color
+	return base
 
 
 ## 判定结果对应的闪光颜色
@@ -460,6 +467,8 @@ func _process(delta: float) -> void:
 	free_spin += free_spin_vel * delta
 	step_rot += (step_rot_target - step_rot) * minf(1.0, delta * 18.0)
 	_gauge_smooth = lerpf(_gauge_smooth, float(gauge_value) / maxi(gauge_max, 1), minf(1.0, delta * 4.0))
+	if note_accents:
+		note_accents.notes = own_notes()
 	if def:
 		_update_spin(local_beat(), spin_angle())
 	if note_style:
