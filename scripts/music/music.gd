@@ -17,6 +17,11 @@ signal lane_switched(lane: String, clip: String)
 ## 档位变了（在小节线上生效的那一刻）。new_tier = 这个小关里已经过了几条档位线，up = 是升档
 signal tier_changed(new_tier: int, up: bool)
 ## FEVER 开始 / 结束（在小节线上）。画面、得分想跟着 fever 走就接这两个。
+## 预备信号：进度刚过了一条线，这次切换已经排好了，还没发生。kind = "tier"（升到第 id 档）/ "fever"（进 fever）。
+## fill_beat = 过门从哪一拍起，commit_beat = 新的那一段从哪一拍进（都是小节线；没有过门时两个一样）。
+## 场景、谱面要和音乐的切换对上，就听这个信号按这两个拍点排自己的事，不要在进度过线的那一下各自开始。
+## 正式切换的那一下是 tier_changed / fever_started。有乐句线要等（"on_bars"）的切换，拍点是按现在在放的曲子推出来的。
+signal change_planned(kind: String, id: int, fill_beat: float, commit_beat: float)
 signal fever_started
 signal fever_ended
 
@@ -77,6 +82,8 @@ const DIP_DB := -14.0
 ## kiai 轨上是乐器（比如 cc_double）就不让。
 const KIAI_DUCK_DB := -6.0
 var _duck_on := false
+var _plan := {}           # 排好了还没发生的那次切换（见 change_planned / planned_change）
+var _planned_for := -1    # 已经为升到第几档排过
 var _fill_until := -1.0  # 几小节长的专门过门放到第几拍：在那之前不换（进度变了也不重新排到更早的小节线）
 var _outro := false       # 结尾段在放：除了鼓，别的轨道都停着（见 outro()）
 var _outro_wait := false  # 叫了 outro()，等下一条小节线
@@ -193,6 +200,8 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_pattern_tune.clear()
 	_lane_gain.clear()
 	_fill_until = -1.0
+	_plan = {}
+	_planned_for = -1
 	_set_fever_reverb(false)
 	_outro = false
 	_outro_wait = false
@@ -407,6 +416,8 @@ func set_section(index: int) -> void:
 	progress = 0.0
 	effective = 0.0
 	_riser_for = -1
+	_planned_for = -1
+	_plan = {}
 	_fill_done_for = -1
 	_quiet_tier_change = true
 	_carry = 0.0
@@ -483,11 +494,13 @@ func set_progress(p: float) -> void:
 ##   "on_bars"   等正在放的曲子唱到几小节一句的乐句线才换（不写 = 不等）。换曲子 / 换段落的地方用，
 ##               不然新的一段会从上一句的中间唱起
 ##   "sfx"       升到这一档那一下的专用音效，代替通用的镲和喵，也不送小 kiai（"none" = 什么都不放）
-## 读出来的是补齐了默认值的一份：{fill: 到底放不放过门, written, db, bars, replaces, on_bars, sfx}
+##   "lead_beats" 最短的预备时间：进度过线到过门开始至少隔这么多拍，离下一条小节线不够就顺延一小节（不写 = 0）。
+##               场景要在过门之前先做铺垫的切换用
+## 读出来的是补齐了默认值的一份：{fill: 到底放不放过门, written, db, bars, replaces, on_bars, sfx, lead_beats}
 const ENTER_DB := -1.0
 
 func change_spec(kind: String, t := 0) -> Dictionary:
-	var out := {"fill": false, "written": "", "db": ENTER_DB, "bars": 1, "replaces": 1, "on_bars": 0, "sfx": ""}
+	var out := {"fill": false, "written": "", "db": ENTER_DB, "bars": 1, "replaces": 1, "on_bars": 0, "sfx": "", "lead_beats": 0.0}
 	var secs: Array = data.get("sections", [])
 	if section < 0 or section >= secs.size():
 		return out
@@ -502,7 +515,39 @@ func change_spec(kind: String, t := 0) -> Dictionary:
 	out.fill = out.written != "" or (bool(raw.get("fill", kind != "tier")) and _fill_clip() != "")
 	out.on_bars = int(raw.get("on_bars", 0))
 	out.sfx = str(raw.get("sfx", ""))
+	out.lead_beats = float(raw.get("lead_beats", 0.0))
 	return out
+
+
+## 排好了还没发生的那次切换：{kind, id, fill_beat, commit_beat}，没有就是 {}（见 change_planned）
+func planned_change() -> Dictionary:
+	return _plan
+
+
+## 进度刚过线、要升到第 up 档（或者进 fever）：算出过门从哪一拍起、新的一段从哪一拍进，发预备信号。
+## 写了 "lead_beats" 而离下一条小节线不够远，就顺延一小节（这是这里唯一会改动时间的地方）。
+func _plan_change(up: int) -> void:
+	var kind := "tier"
+	var spec := change_spec("tier", up)
+	if not spec.fill and in_fever(effective) and not fever and not _fever_fill_done:
+		kind = "fever"
+		spec = change_spec("fever")
+	var q: float = data.get("quantize_beats", 4)
+	var first := _next_beat
+	if first - Conductor.song_beat < float(spec.lead_beats):
+		first += q
+		_next_beat = first
+		_fill_until = first
+	var fill_beat := first
+	if spec.on_bars > 0:
+		var shift := q * int(spec.replaces) if kind == "fever" and spec.fill else 0.0
+		for i in 32:
+			if _on_phrase_line(fill_beat + shift, spec.on_bars):
+				break
+			fill_beat += q
+	var commit := fill_beat + (q * int(spec.bars) if spec.fill else 0.0)
+	_plan = {"kind": kind, "id": up if kind == "tier" else 0, "fill_beat": fill_beat, "commit_beat": commit}
+	change_planned.emit(kind, int(_plan.id), fill_beat, commit)
 
 
 ## 现在起放这次切换的过门：专门写的（只留鼓 + 那个一次性音效）或者通用的那一小节
@@ -969,6 +1014,9 @@ func _queue() -> void:
 	# 要升档了：先放一声上扬音效，正好在换的那一拍放完
 	if dynamics() and Conductor.playing and not _quiet_tier_change:
 		var up := tier_of(effective, tier_lines(section))
+		if up > tier and up != _planned_for:
+			_planned_for = up
+			_plan_change(up)
 		var left := (_next_beat - Conductor.song_beat) * Conductor.sec_per_beat()
 		if up > tier and up != _riser_for and left > 0.35:
 			_riser_for = up
@@ -1114,6 +1162,9 @@ func _apply_now(beat_index := -1) -> void:
 		_quiet_tier_change = false
 	if new_tier != tier:
 		tier_changed.emit(new_tier, new_tier > tier)
+	if new_tier != tier:
+		_planned_for = -1
+		_plan = {}
 	tier = new_tier
 	if hold:
 		_pending = true
