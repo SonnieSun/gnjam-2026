@@ -370,6 +370,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
 #   The lines 50% / 75% are the stage's camera cues (level_3_spaceship.tres: fx_cues grid3 0.5, kaleido 0.75).
 TM = M + 'classics/turkish_march/turkish_march_'
 CCA = M + 'classics/can_can_a/can_can_a_'             # Can-Can's opening strain (D major), the first half of the pizza
+CCB = M + 'classics/can_can_b/can_can_b_'             # Can-Can's second strain, "the four steps down" (D major)
 TMB = M + 'classics/turkish_march_b/turkish_march_b_'   # its second section (A major), the fever of the shooter
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 T3 = TIERS
@@ -383,6 +384,9 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       t('cca_keys', CCA + 'fb_L0_keys_8b.wav', 'bed'), t('cca_bass', CCA + 'L2_bass_8b.wav', 'bass'),
                       t('cca_square', CCA + 'L3_square_8b.wav', 'hook'), t('cca_cats', CCA + 'L3_cat_kichiku_8b.wav', 'hook'),
                       harm('cca_harm', 'can_can_a'),
+                      t('ccb_keys', CCB + 'fb_L0_keys_8b.wav', 'bed'), t('ccb_bass', CCB + 'L2_bass_8b.wav', 'bass'),
+                      t('ccb_cats', CCB + 'L3_cat_kichiku_8b.wav', 'hook'), t('ccb_square', CCB + 'L3_square_8b.wav', 'event'),
+                      harm('ccb_harm', 'can_can_b'), t('ccb_peak', CCB + 'fb_L4_peak_8b.wav', 'peak'),
                       harm('tm_harm', 'turkish_march'), harm('cc_harm', 'can_can'),
                       t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
                       CATS[0], t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
@@ -406,18 +410,24 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                #   25%    the cats take it, backing vocals
                #   50%    THE FAMOUS TUNE ('cc', G major: D -> G is a V -> I), on the opening strain's 8-bar line,
                #          the cats singing it from its first bar with the peak layer        <- the 3x3 grid camera
-               #   62%    + the square lead on top (the eurobeat colour)
-               #   75%    FEVER: + the pluck doubling, Can-Can's own cat drums             <- the kaleidoscope
-               # From 50 % on it only ever adds: instruments and colours pile up on the tune that is already there.
+               #   62%    THE FOUR STEPS DOWN ('ccb', D major again), the strain that comes right before the famous
+               #          tune in the galop: cats and the square lead together, on the famous tune's 4-bar line
+               #   75%    FEVER: the famous tune comes back with everything (square lead, pluck doubling,
+               #          Can-Can's own cat drums), on the descent's 4-bar line           <- the kaleidoscope
+               # Every change is a strain of the same galop in the galop's own order, on a phrase line, full band on
+               # both sides: the tune never stops.
                {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[3], 1.0), 'fever_fill': False,
                 'carry': 0,   # must start on the opening strain: carried fullness would jump straight to the famous tune
-                'tier_on_bars': {2: 8}, 'own': {'kiai': '', 'hit': ''}, 'enter': 'tr_tm_to_cc',   # no mini kiai: it would be the other strain's tune
+                'tier_on_bars': {2: 8, 3: 4}, 'fever_on_bars': 4, 'own': {'kiai': '', 'hit': ''}, 'enter': 'tr_tm_to_cc',   # no mini kiai: it would be the other strain's tune
                 'exit': 'end_g_major', 'rules': {
                    'groove': [[0, 1]], 'cat_drums': [[0, R[3]]], 'cc_cat_drums': [[R[3], 1]],
                    'cca_keys': [[0, R[1]]], 'cca_bass': [[0, R[1]]], 'cca_square': [[0, R[0]]], 'cca_cats': [[R[0], R[1]]],
                    'cca_harm': [[R[0], R[1]]],
-                   'cc_keys': [[R[1], 1]], 'cc_bass': [[R[1], 1]], 'cc_lead': [[R[1], 1]], 'cc_harm': [[R[1], 1]], 'cc_peak': [[R[1], 1]],
-                   'cc_square': [[R[2], 1]], 'cc_double': [[R[3], 1]]}}]}
+                   'cc_keys': [[R[1], R[2]], [R[3], 1]], 'cc_bass': [[R[1], R[2]], [R[3], 1]], 'cc_lead': [[R[1], R[2]], [R[3], 1]],
+                   'cc_harm': [[R[1], R[2]], [R[3], 1]], 'cc_peak': [[R[1], R[2]], [R[3], 1]],
+                   'ccb_keys': [[R[2], R[3]]], 'ccb_bass': [[R[2], R[3]]], 'ccb_cats': [[R[2], R[3]]], 'ccb_square': [[R[2], R[3]]],
+                   'ccb_harm': [[R[2], R[3]]], 'ccb_peak': [[R[2], R[3]]],
+                   'cc_square': [[R[3], 1]], 'cc_double': [[R[3], 1]]}}]}
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
          10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
@@ -435,7 +445,7 @@ LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和�
 #   3. The lead may change hands (instrument -> cats, cats -> kichiku): it is handed over, never dropped.
 #   4. A stage that takes things away (a quiet ending) drops chords, drums or the peak layer and keeps the tune.
 # tools/music_gen/check_music_sets.py prints every stage of every level and flags a tune that stops.
-TUNES = ('ybf', 'mk', 'mka', 'cc', 'cca', 'tm', 'tmb', 'ode', 'ent')
+TUNES = ('ybf', 'mk', 'mka', 'cc', 'cca', 'ccb', 'tm', 'tmb', 'ode', 'ent')
 LANE_GAIN = {'kiai': -2.0, 'harm': -5.0}   # kiai: stacked on the cat lead, so a little under it; harm: the backing vocals, well under the lead
 
 

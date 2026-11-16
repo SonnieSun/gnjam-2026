@@ -30,7 +30,7 @@ LOW, HIGH = 60, 71
 CAT = {'ode_to_joy': '01'}
 GAIN_DB = {'ode_to_joy': -3.0}
 for key in ('ode_to_joy', 'your_best_friend', 'mountain_king', 'can_can', 'turkish_march', 'turkish_march_b',
-            'can_can_a', 'entertainer'):
+            'can_can_a', 'can_can_b', 'entertainer'):
     song = cc.SONGS[key]
     if key in cc.SPEED:
         song = cc.slowed(song, cc.SPEED[key])

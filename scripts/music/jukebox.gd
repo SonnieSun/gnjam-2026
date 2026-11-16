@@ -207,7 +207,7 @@ func _songs() -> Array:
 		stems.append(_t("猫旋律 鬼畜", s120 + "C_lead_kichiku_4b.wav", false))
 		stems.append(_t("猫旋律 旧版（切短）", s120 + "C_lead_4b.wav", false))
 		out.append({"name": "120 · " + st[0], "bpm": 120.0, "stems": stems})
-	for c in [["康康舞曲", "can_can", 8], ["康康舞曲 · 开场段", "can_can_a", 8], ["The Entertainer", "entertainer", 16], ["土耳其进行曲", "turkish_march", 16], ["土耳其进行曲 · 第二段", "turkish_march_b", 8], ["山魔王", "mountain_king", 8],
+	for c in [["康康舞曲", "can_can", 8], ["康康舞曲 · 开场段", "can_can_a", 8], ["康康舞曲 · 四步下行", "can_can_b", 8], ["The Entertainer", "entertainer", 16], ["土耳其进行曲", "turkish_march", 16], ["土耳其进行曲 · 第二段", "turkish_march_b", 8], ["山魔王", "mountain_king", 8],
 			["欢乐颂", "ode_to_joy", 16], ["致爱丽丝", "fur_elise", 4],
 			["Your Best Friend", "your_best_friend", 8],   # Undertale，只给内部试玩；下面三个是它的别的段落
 			["YBF · 前奏", "ybf_intro", 4], ["YBF · B 段", "ybf_b", 8], ["YBF · 结尾", "ybf_end", 4]]:

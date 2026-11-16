@@ -775,6 +775,23 @@ SONGS['can_can_a'] = dict(
     ]),
     cat_octave=0, drum_notes=(nm('D4'), nm('A4')))
 
+# Can-Can's second strain, the one everybody knows as "the four steps down": F# D B A in quarter notes, answered
+# low, four times, the last answer running up into the famous tune (bars 9-16 of the piano MIDI the user supplied,
+# reference/midi_from_user/can_can/can_can_piano_1.mid, same key: D major). The low answer (A3 G3 G3 G3 F#3 E3 D3 D3
+# in the piano's left hand) is written an octave up so the cats can sing it. In the galop this strain comes right
+# before the famous tune, and its last bar (the run up over A7) is the lead-in to it.
+CCB_DOWN = [(0, 'F#5', 4), (4, 'D5', 4), (8, 'B4', 4), (12, 'A4', 4)]
+CCB_ANSWER = [(0, 'A4', 2), (2, 'G4', 2), (4, 'G4', 2), (6, 'G4', 2), (8, 'F#4', 2), (10, 'E4', 2), (12, 'D4', 2), (14, 'D4', 2)]
+SONGS['can_can_b'] = dict(
+    chords=['D', 'Bm', 'A7', 'D', 'D', 'Bm', 'A7', 'D', 'D', 'Bm', 'A7', 'D', 'D', 'Bm', 'A7', 'A7'],
+    melody=tune([
+        CCB_DOWN, CCB_ANSWER,
+        CCB_DOWN, [(0, 'G#4', 2), (2, 'A4', 2), (4, 'B4', 2), (6, 'C#5', 2), (8, 'E5', 2), (10, 'D5', 2), (12, 'D5', 4)],
+        CCB_DOWN, CCB_ANSWER,
+        CCB_DOWN, [(0, 'G#5', 2), (2, 'A5', 2), (4, 'B5', 2), (6, 'C#6', 2), (8, 'D6', 2), (10, 'A5', 2), (12, 'C#6', 2), (14, 'A5', 2)],
+    ]),
+    cat_octave=0, drum_notes=(nm('D4'), nm('A4')))
+
 # Scott Joplin, "The Entertainer" (1902, public domain): the first strain, 16 bars of 2/4, written like the
 # Turkish March (a step is one of the original sixteenths, a row is two original bars, played at half speed,
 # which is the rag's own tempo). Only the tune and the plain harmony are taken (read off the treble and bass of
