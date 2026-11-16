@@ -130,6 +130,30 @@ func begin_section(index: int, def: SectionDef, beats_per_bar: int,
 	return _section_notes
 
 
+## 临时加一个不在谱里的音符（比如换段音符，见 scripts/fx/note_accents.gd）：插进还没判定的音符里，按拍子排好，
+## 和谱里的音符一样判定、一样画。返回它；那一拍已经过了、或者还没铺到那么远（LOOKAHEAD_BEATS 拍以外）就不加，返回 null。
+func add_note(beat: float, sound: int = NoteData.Sound.KICK) -> NoteData:
+	_generate()
+	if beat <= Conductor.song_beat or beat > Conductor.song_beat + LOOKAHEAD_BEATS:
+		return null
+	for old in _section_notes:   # 那一拍上已经有音符了（刚铺出来的）：就用它
+		if not old.judged and absf(old.beat - beat) < 0.001:
+			return old
+	var n := NoteData.new()
+	n.beat = beat
+	n.sound = sound
+	n.section_index = _section_index
+	var i := notes.size()
+	while i > _next and notes[i - 1].beat > beat:
+		i -= 1
+	notes.insert(i, n)
+	var j := _section_notes.size()
+	while j > 0 and _section_notes[j - 1].beat > beat:
+		j -= 1
+	_section_notes.insert(j, n)
+	return n
+
+
 ## 不再出新音符，还没到的也都丢掉（大关打完时用）
 func stop_notes() -> void:
 	_pattern = []

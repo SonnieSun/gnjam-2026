@@ -103,6 +103,33 @@ func _run() -> void:
 			seen[i] = label.text
 	_check("count-in shows a word on each of the four beats", seen == {0: "READY", 1: "3", 2: "2", 3: "1"}, str(seen))
 	_check("count-in is gone after the bar", not count._label.visible)
+	# --- the change note is added when the chart has no note on the beat the new part comes in ---
+	accents.notes = section.own_notes()
+	game.judge._generate()   # the judge is switched off in this test: lay the notes out as far as it would have
+	var free_beat := ceilf(Conductor.song_beat) + 3.0
+	while section.notes.any(func(n: NoteData) -> bool: return absf(n.beat - free_beat) < 0.5):
+		free_beat += 1.0
+	var count_before: int = game.judge.notes.size()
+	Music.change_planned.emit("fever", 0, free_beat, free_beat)
+	for i in 4:
+		await process_frame
+	var added: Array = section.notes.filter(func(n: NoteData) -> bool: return is_equal_approx(n.beat, free_beat))
+	_check("no note on the change beat: one is added there", added.size() == 1 and game.judge.notes.has(added[0]), "beat %s" % free_beat)
+	var order: Array = game.judge.notes.map(func(n: NoteData) -> float: return n.beat)
+	var order_sorted := order.duplicate()
+	order_sorted.sort()
+	_check("the judge's notes are still in order", order == order_sorted)
+	_check("the added note is the rainbow change note", added.size() == 1 and accents.look(added[0], Color.WHITE).rainbow)
+	# a change on a beat that has a note: nothing is added
+	var taken: float = section.notes.filter(func(n: NoteData) -> bool: return n.beat > free_beat + 1.0)[0].beat
+	var size_now: int = game.judge.notes.size()
+	Music.change_planned.emit("fever", 0, taken, taken)
+	for i in 4:
+		await process_frame
+	var on_taken: Array = game.judge.notes.filter(func(n: NoteData) -> bool: return is_equal_approx(n.beat, taken))
+	_check("a note already on the change beat: nothing added, it is the change note", on_taken.size() == 1 and accents.look(on_taken[0], Color.WHITE).rainbow, "beat %s" % taken)
+	Music.fever_ended.emit()
+
 	# --- fever: the colour filter comes up, the corner cannons fire, a clap fires a small pair, then it all goes ---
 	var fx: Node = section.get_node("FeverFx")
 	Music.fever_started.emit()

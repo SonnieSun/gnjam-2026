@@ -7,6 +7,7 @@ extends Node
 ## 五种（一个音符同时算好几种时，按下面从上到下的顺序取第一种）：
 ##   FEVER       换段音符：新的一段进来的那一拍上的音符，动态七彩（scripts/fx/note_rainbow.gdshader）。
 ##               进 fever 的那条小节线，和 rainbow_on_tiers 里写了的那几档的那条小节线。
+##               谱里那一拍没有音符就加一个（add_change_note，用 Judge.add_note）。
 ##   LEAD_IN     （默认关着）音乐马上要换段了（Music.planned_change() 排好的那次）：换之前 lead_in_beats 拍里的音符。
 ##               要等积累条过了线才知道，只管得到过线之后才出现的音符。
 ##   ACCENT      重音：落在现在这套鼓型的拍手上（听得见的那一下）。
@@ -49,6 +50,9 @@ enum Kind { NONE, DOWNBEAT, SYNCOPATED, ACCENT, LEAD_IN, FEVER }
 @export_group("fever 的音符（七彩）")
 ## 进 fever 的那一个音符
 @export var fever := true
+## 换段的那一拍上谱里没有音符（前后 add_note_gap 拍以内都没有）就加一个，让换段音符正好落在新的一段进来的那一下
+@export var add_change_note := true
+@export var add_note_gap := 0.45
 ## 升到这几档的那一拍上的音符也是七彩的"换段音符"（比如天空关写 2：欢乐颂进来的那一拍）。档 = Music.change_planned 的 id
 @export var rainbow_on_tiers := PackedInt32Array()
 @export var fever_width := 1.5
@@ -79,6 +83,7 @@ var notes: Array[NoteData] = []
 var _kinds := {}            # NoteData -> Kind：一个音符第一次被问到时定下来，之后不变（不然飞到一半会突然换颜色）
 var _fever_at := -1.0       # 排好的那次进 fever 落在第几拍（-1 = 没有）
 var _fever_note: NoteData   # 进 fever 的那个音符
+var _add_in := 0            # 几帧之后检查换段那一拍有没有音符
 
 
 func _ready() -> void:
@@ -87,7 +92,28 @@ func _ready() -> void:
 	Music.change_planned.connect(func(kind: String, _id: int, _fill: float, commit: float) -> void:
 		if (kind == "fever" and fever) or (kind == "tier" and _id in rainbow_on_tiers):
 			_fever_at = commit
-			_fever_note = null)
+			_fever_note = null
+			_add_in = 2)   # 过两帧再看要不要加音符：关卡可能就在这一下换谱（天空关），等它换完
+
+
+func _process(_delta: float) -> void:
+	if _add_in <= 0:
+		return
+	_add_in -= 1
+	if _add_in > 0 or not enabled or not add_change_note or _fever_at < 0.0:
+		return
+	for n in notes:
+		if not n.judged and absf(n.beat - _fever_at) <= add_note_gap:
+			return   # 那一拍上（或者紧挨着）有音符：它就是换段音符
+	var judge := get_tree().current_scene.get_node_or_null("Judge") if get_tree().current_scene else null
+	if judge and judge.has_method("add_note"):
+		_fever_note = judge.add_note(_fever_at)
+		# 关卡手里的音符表通常就是判定那一份（加进去了）；不是同一份的话补进去，按拍子排好
+		if _fever_note and not notes.has(_fever_note):
+			var i := notes.size()
+			while i > 0 and notes[i - 1].beat > _fever_note.beat:
+				i -= 1
+			notes.insert(i, _fever_note)
 
 
 func _forget() -> void:
