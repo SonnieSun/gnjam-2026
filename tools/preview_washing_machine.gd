@@ -47,11 +47,11 @@ func _run() -> void:
 	var angle: float = stage._cat.rotation.z
 	stage.update(0.0, 0.1)
 	assert(not is_equal_approx(stage._cat.rotation.z, angle), "Cat still spins on tap")
-	stage.holds_done = stage.zoom_holds
 	stage.hold_begin()
 	stage.hold_update(1.0, 2.0)
-	var lit: Array = stage.hold_end(true)
-	assert(lit.size() == stage.tvs_per_hold, "Completed hold still powers televisions")
+	stage.hold_end(true)
+	stage.set_progress(float(stage.zoom_holds + 1) / stage._steps())
+	assert(stage._pending_lights.size() == stage.tvs_per_hold, "A step past the zoom powers televisions")
 	stage.skip_to_all_lit()
 	stage._zoom = float(stage.zoom_holds)
 	stage.update(0.0, 0.0)
