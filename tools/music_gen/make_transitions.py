@@ -239,20 +239,22 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
         reps = 2 if st >= 16 else 1
         for rep in range(reps):
             place(x, cc.pluck(nm(pch) + 12, STEP * (0.9 if reps == 2 else 1.6)), t2n((st + rep) * STEP), 0.4 + 0.5 * st / first_accent)
-    # drums. Bar 1: the snare with the hammering, toms answering in the gaps. Then the fill: toms down the kit in
-    # sixteenths, the snare on every eighth, thirty-seconds at the end, and one sixteenth of nothing so the first
-    # accent lands in a hole.
+    # drums: an accelerando into the accents. Before the last half bar the snare goes with the tune (eighths), toms
+    # answering at the ends of the half bars. The last half bar before the accents is split in two: its first
+    # half in sixteenths, its second half in thirty-seconds (twice as fast again), toms running down the kit
+    # under the snare; the very last thirty-second is left empty so the first accent lands in a hole.
     grow = lambda st: st / first_accent
-    for st, _, _ in rows[0] if n_bars > 1 else []:
-        place(x, snare(0.4 + 0.3 * grow(st)), t2n(st * STEP), 1.0)
-    if n_bars > 1:
-        for st, hz in ((6, 185), (7, 147), (14, 147), (15, 110)):
-            place(x, tom(hz, 0.5 + 0.2 * grow(st)), t2n(st * STEP), 1.0)
     f0 = first_accent - 8
-    for i, hz in enumerate((220, 220, 185, 185, 147, 147, 110)):
-        place(x, tom(hz, 0.4 + 0.03 * i), t2n((f0 + i) * STEP), 1.0)
-    for st in (0, 2, 4, 6):                                         # (no thirty-seconds at the end: the fill must not
-        place(x, snare(0.4 + 0.02 * st), t2n((f0 + st) * STEP), 1.0)   # be louder than the accents it leads to)
+    for st, _, _ in [n for row_i, row in enumerate(rows) for n in [(row_i * 16 + q[0], 0, 0) for q in row]]:
+        if st < f0:
+            place(x, snare(0.4 + 0.3 * grow(st)), t2n(st * STEP), 1.0)
+    for st, hz in ((6, 185), (7, 147), (14, 147), (15, 110)):
+        if st < f0:
+            place(x, tom(hz, 0.5 + 0.2 * grow(st)), t2n(st * STEP), 1.0)
+    fast = [f0 + i for i in range(4)] + [f0 + 4 + i / 2 for i in range(7)]      # 4 sixteenths, then 7 thirty-seconds
+    for i, st in enumerate(fast):
+        place(x, snare(0.3 + 0.025 * i), t2n(st * STEP), 1.0)
+        place(x, tom((220, 220, 185, 185, 165, 165, 147, 147, 123, 110, 98)[i], 0.32 + 0.02 * i), t2n(st * STEP), 1.0)
     # THE TWO ACCENTS. Measured on the version before this one: the kick was the loudest thing in the attack (the
     # pitched part 6 dB under it), the note was gone after a sixteenth (the beat's second half quieter than the
     # fill before it), and G4 / D4 hard-cut meows open dull ("mm") and sit BELOW the hammered D5. So: no kick
@@ -264,15 +266,17 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
         at, m = t2n(st * STEP), nm(note)
         dur = 4 * STEP * 0.92
         place(x, snare(0.7), at, 1.0)
-        place(x, cc.CRASH, at, 0.4)
-        for mm, g in ((m + 12, 2.2), (m, 1.5)):
+        place(x, cc.CRASH, at, 0.85)                                # the cymbal is meant to be heard on both
+        for mm, g in ((m + 12, 2.6), (m, 1.7)):
             place(x, cc.stereo(cc.resonate(cc.shout(mm, dur), cc.lift(mm), 1.0)), at, g)
         place(x, cc.stereo(cc.resonate(cc.mi(m + 12, 0.08), cc.lift(m + 12), 1.0)), at, 1.0)
+        # and a kitten's short high 'mi' two octaves up on the very front: what makes it a MIAO and not a chord
+        place(x, cc.stereo(cc.resonate(cc.mi(m + 24, 0.09), cc.lift(m + 24), 1.0)), at, 1.6)
         notes, root = cc.chord(sym)
         n = t2n(dur)
         k = np.arange(n) / SR
         v = sum(osc_supersaw(mtof(q + o), n, voices=7, detune=0.3) * g for q in notes for o, g in ((0, 1.0), (12, 0.8), (24, 0.4))) / len(notes)
-        place(x, lowpass(v, 7000) * (np.clip(k / 0.004, 0, 1) * np.exp(-k / 1.5) * np.clip((dur - k) / 0.02, 0, 1))[:, None], at, 1.5)
+        place(x, lowpass(v, 7000) * (np.clip(k / 0.004, 0, 1) * np.exp(-k / 1.5) * np.clip((dur - k) / 0.02, 0, 1))[:, None], at, 1.1)
         place(x, pan(cc.bass_note(mtof(root + 12), n), 0.0), at, 0.5)
         place(x, cc.pluck(m + 24, dur), at, 1.0)
         place(x, cc.square(m + 12, dur), at, 1.3)
