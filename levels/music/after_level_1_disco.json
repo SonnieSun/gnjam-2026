@@ -34,7 +34,8 @@
     },
     {
      "id": "ode_bass",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L2_bass_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L2_bass_16b.wav",
+     "tune": "ode"
     }
    ]
   },
@@ -49,7 +50,8 @@
     },
     {
      "id": "ode_keys",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L0_keys_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L0_keys_16b.wav",
+     "tune": "ode"
     }
    ]
   },
@@ -60,7 +62,8 @@
    "clips": [
     {
      "id": "ode_cats",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_flow_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_flow_16b.wav",
+     "tune": "ode"
     }
    ]
   },
@@ -86,7 +89,21 @@
    "clips": [
     {
      "id": "ode_cat_drums",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_C_drums_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_C_drums_16b.wav",
+     "tune": "ode"
+    }
+   ]
+  },
+  {
+   "id": "harm",
+   "name": "猫和声",
+   "gain_db": -5.0,
+   "clips": [
+    {
+     "id": "ode_harm",
+     "pattern": "res://levels/music/patterns/harm_ode_to_joy.json",
+     "by_hit": false,
+     "tune": "ode"
     }
    ]
   },
@@ -97,7 +114,8 @@
    "clips": [
     {
      "id": "ode_kichiku",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_kichiku_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L3_cat_kichiku_16b.wav",
+     "tune": "ode"
     }
    ]
   },
@@ -109,7 +127,8 @@
     {
      "id": "ode_by_hit",
      "pattern": "res://levels/music/patterns/ode_to_joy.json",
-     "by_hit": true
+     "by_hit": true,
+     "tune": "ode"
     },
     {
      "id": "ufo_rise",
@@ -129,7 +148,8 @@
     },
     {
      "id": "ode_peak",
-     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L4_peak_8b.wav"
+     "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_fb_L4_peak_16b.wav",
+     "tune": "ode"
     }
    ]
   },
@@ -213,6 +233,12 @@
       "ode_cat_drums"
      ]
     ],
+    "harm": [
+     [
+      0.7,
+      "ode_harm"
+     ]
+    ],
     "hit": [
      [
       0.0,
@@ -252,6 +278,8 @@
     0.85,
     1.0
    ],
+   "exit": "end_c_major",
+   "fever_fill": false,
    "tier_sfx": {
     "1": "none",
     "2": "sky_holy_hit"
