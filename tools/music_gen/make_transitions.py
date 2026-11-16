@@ -194,39 +194,83 @@ render('tr_disco_to_ent',
 # starts on the A C B A, so the two accents are the second half of the bar before it). So this bar is THE FEVER'S
 # OWN BAND arriving one bar early for exactly that: the famous tune is rendered again by the code that makes its
 # stems (compose_classics.build: same cats, square lead, pluck, chords, bass, peak layer, cat drums) with its
-# last bar rewritten to nothing but the two accents, that bar is cut out of every stem and mixed at the levels
-# the fever plays them at. First half: the band on the dominant, no tune, a snare roll growing. Second half: the
-# two accents, the cats shouting them in two more octaves, crash and a big snare on each; a short roll into the
-# bar line, and the tune starts.
+# last bar rewritten to nothing but the two accents, and the second half of that bar is cut out of every stem
+# and mixed at the levels the fever plays them at. The first half of the bar is the tune that was playing,
+# going on (see the call below).
 # Tried before and dropped: a separate little arrangement (pluck + one cat + orchestra hits: "another sound cut
 # in"), and the descent's own band with its last bar varied (the same sound, but not the lead-in people know).
-def from_stems(name, base, bar, row, chords, levels, accents=(), play_db=14.0):
-    song = dict(cc.SONGS[base])
-    lo, hi = bar * 16, bar * 16 + 16
+def tom(hz, gain):
+    """A synth tom for the fill: a sine that drops a fifth, with a little skin noise."""
+    n = t2n(0.2)
+    k = np.arange(n) / SR
+    ph = 2 * np.pi * np.cumsum(hz * (0.67 + 0.33 * np.exp(-k / 0.05))) / SR
+    v = np.sin(ph) * np.exp(-k / 0.07)
+    skin = lowpass(noise(n), 3000) * np.exp(-k / 0.012) * 0.3
+    return np.stack([v + skin, v + skin], 1) * gain
+
+
+def from_stems(name, head, tail, row, chords, accents, play_db=14.0):
+    """One bar made of the level's own stems. First half: `head` = (tune, bars, bar, levels), that bar of the tune
+    that is playing, read from its rendered stems (so it is exactly what the level was playing). Second half:
+    `tail` = (tune, bar, levels), that tune rendered again (compose_classics.build) with the bar rewritten to
+    `row` over `chords`. Drums and the accents are added on top."""
+    from audio import read_wav
+    h_tune, h_bars, h_bar, h_levels = head
+    t_tune, t_bar, t_levels = tail
+    half = BAR_N // 2
+    x = np.zeros((BAR_N + t2n(0.4), 2))
+    for layer, db in h_levels:
+        w = read_wav(os.path.join(LOOPS, 'classics', f'{h_tune}_{layer}_{h_bars}b.wav'))
+        x[:half] += w[h_bar * BAR_N:h_bar * BAR_N + half] * 10 ** (db / 20)
+    song = dict(cc.SONGS[t_tune])
+    lo, hi = t_bar * 16, t_bar * 16 + 16
     song['melody'] = sorted([n for n in song['melody'] if not lo <= n[0] < hi] + [(lo + st, p, ln) for st, p, ln in row])
     song['chords'] = list(song['chords'])
-    song['chords'][2 * bar:2 * bar + 2] = chords
+    song['chords'][2 * t_bar:2 * t_bar + 2] = chords
     with contextlib.redirect_stdout(io.StringIO()):
         L = cc.build(song)
     L['L3_square_dark'] = lowpass(L['L3_square'], 2200)       # the square lead as the fever plays it (make_choir_stems.py)
-    x = np.zeros((BAR_N + t2n(0.4), 2))
-    for layer, db in levels:
-        x[:BAR_N] += L[layer][bar * BAR_N:(bar + 1) * BAR_N] * 10 ** (db / 20)
-    f = t2n(0.02)
-    x[:f] *= np.linspace(0, 1, f)[:, None]
-    for st in (0, 1, 2, 3, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5):         # the roll that announces them, growing
-        place(x, snare(0.25 + 0.06 * st), t2n(st * STEP), 1.0)
-    for st, note in accents:                                        # MIAO! MIAO!
+    for layer, db in t_levels:
+        x[half:BAR_N] += L[layer][t_bar * BAR_N + half:(t_bar + 1) * BAR_N] * 10 ** (db / 20)
+    f = t2n(0.004)                                               # the seam between the two bands
+    x[half - f:half] *= np.linspace(1, 0, f)[:, None]
+    x[half:half + f] *= np.linspace(0, 1, f)[:, None]
+    # In the game the stems that were playing fade out over the first beat of this bar (music.gd fades a lane
+    # that stops over one beat, linearly). The first half IS those stems, so it fades in over that beat: the two
+    # add up to the one band that was playing, with no bump and no gap.
+    beat = BAR_N // 4
+    x[:beat] *= np.linspace(0, 1, beat)[:, None]
+    # --- the sudden change: what is added on top of the band -------------------------------------------------
+    # the run doubled two octaves of pluck higher, every note struck twice (sixteenths), getting louder
+    run = [n for n in cc.SONGS[h_tune]['melody'] if h_bar * 16 <= n[0] < h_bar * 16 + 8]
+    for j, (st, pch, ln) in enumerate(run):
+        for rep in range(2):
+            at = t2n((st - h_bar * 16 + rep) * STEP)
+            g = 0.35 + 0.1 * j + 0.05 * rep
+            place(x, cc.pluck(nm(pch) + 12, STEP * 0.9), at, g)
+            place(x, cc.pluck(nm(pch), STEP * 0.9), at, g * 0.8)
+    # the fill: toms down the kit in sixteenths with the snare on every eighth, a flam of thirty-seconds, then one
+    # sixteenth of nothing so the first accent lands in a hole
+    for st, hz in ((0, 220), (1, 220), (2, 185), (3, 185), (4, 147), (5, 147), (6, 110), (6.5, 110), (7, 98)):
+        place(x, tom(hz, 0.5 + 0.035 * st), t2n(st * STEP), 1.0)
+    for st in (0, 2, 4, 6, 7):
+        place(x, snare(0.45 + 0.05 * st), t2n(st * STEP), 1.0)
+    # the two accents: kick, big snare, crash, the cats shouting the note in two more octaves
+    for st, note in accents:
         at, m = t2n(st * STEP), nm(note)
+        place(x, cc.KICK, at, 0.9)
         place(x, snare(1.0), at, 1.0)
-        place(x, cc.CRASH, at, 0.4)
+        place(x, cc.CRASH, at, 0.45)
         place(x, pan(sung(m + 12, 3), 0.25), at, 1.0)
         place(x, pan(sung(m, 3), -0.25), at, 0.9)
-    for i in range(4):                                              # the roll into the bar line
-        place(x, snare(0.45 + 0.12 * i), t2n((14 + i / 2) * STEP), 1.0)
+    place(x, snare(0.4), t2n(10 * STEP), 1.0)                       # two little steps up to the second accent
+    place(x, snare(0.55), t2n(11 * STEP), 1.0)
+    for i in range(4):                                              # and the roll into the bar line
+        place(x, snare(0.5 + 0.12 * i), t2n((14 + i / 2) * STEP), 1.0)
+        place(x, tom(98, 0.35 + 0.08 * i), t2n((14 + i / 2) * STEP), 1.0)
     f = t2n(0.006)
     x[BAR_N - f:BAR_N] *= np.linspace(1, 0.5, f)[:, None]
-    x[BAR_N:] *= np.linspace(0.5, 0, len(x) - BAR_N)[:, None] ** 2      # only the crash and snare tails ring over
+    x[BAR_N:] *= np.linspace(0.5, 0, len(x) - BAR_N)[:, None] ** 2      # only the crash and drum tails ring over
     # A full band at the stems' own levels peaks far above 1.0 (in the game the stems are summed as floats), so
     # the file is written play_db lower and the level plays it that much up (the section's "fever_enter_db").
     x = x * 10 ** (-play_db / 20)
@@ -234,19 +278,21 @@ def from_stems(name, base, bar, row, chords, levels, accents=(), play_db=14.0):
     write_wav(os.path.join(SFX, name + '.wav'), x, peak=None)
     for d in COPIES:
         shutil.copy(os.path.join(SFX, name + '.wav'), os.path.join(d, name + '.wav'))
-    print(f'  {name}: {len(x) / SR:.2f} s, peak {np.abs(x).max():.2f}, cut from the stems of {base}')
+    print(f'  {name}: {len(x) / SR:.2f} s, peak {np.abs(x).max():.2f}, from the stems of {h_tune} and {t_tune}')
 
 
-from_stems('tr_ccb_to_cc', 'can_can', 7,
-           # No tune in the first half (v3 had the phrase ending "G D A B" there: it read as more tune, and the two
-           # accents did not stand out). The band holds the dominant under a snare roll, then: MIAO! MIAO!
-           row=[(8, 'G4', 4), (12, 'D4', 4)],
-           chords=['D7', 'G'],
-           accents=[(8, 'G4'), (12, 'D4')],
-           # the levels of the pizza's fever (levels/music/level_3_spaceship.json: the square on the fx lane -3 dB,
-           # the pluck on the kiai lane -2 dB; bass stems are trimmed 4 dB when they are packaged for the game)
-           levels=[('L3_cat_kichiku', 0.0), ('L3_square_dark', -3.0), ('L3_pluck', -2.0), ('fb_L0_keys', 0.0),
-                   ('L2_bass', -4.0), ('fb_L4_peak', 0.0), ('C_drums', 0.0)])
+# First half: the descent goes on, it is the first half of its own last bar (the run up, G# A B C#) from its own
+# stems at the levels of the pizza from 62.5 %: nothing is cut off, the tune that was playing walks into the bar.
+# What changes is on top of it: the run doubled in sixteenths two octaves up and growing, toms rolling down the
+# kit. Second half: the fever's band, one bar early, with the two accents (G, D).
+# (bass stems are trimmed 4 dB when they are packaged for the game; the square is -5 dB there, in the fever it is
+# the dark one at -3 dB on the fx lane and the pluck -2 dB on the kiai lane: levels/music/level_3_spaceship.json)
+from_stems('tr_ccb_to_cc',
+           head=('can_can_b', 8, 7, [('L3_cat_kichiku', 0.0), ('L3_square', -5.0), ('fb_L0_keys', 0.0), ('L2_bass', -4.0), ('fb_L4_peak', 0.0)]),
+           tail=('can_can', 7, [('L3_cat_kichiku', 0.0), ('L3_square_dark', -3.0), ('L3_pluck', -2.0), ('fb_L0_keys', 0.0),
+                                ('L2_bass', -4.0), ('fb_L4_peak', 0.0), ('C_drums', 0.0)]),
+           row=[(8, 'G4', 4), (12, 'D4', 4)], chords=['D7', 'G'],
+           accents=[(8, 'G4'), (12, 'D4')])
 
 
 def ending(name, sym, tonic):
