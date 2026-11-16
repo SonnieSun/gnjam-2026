@@ -976,11 +976,11 @@ signal lead_note(beat: float, midi: int, length_beats: float)   # 旋律轨这�
 | 节点 | 脚本 | 做什么 |
 |---|---|---|
 | `CatBounce` | `scripts/fx/music_bounce.gd` | 主角猫不转的时候也跟着音乐 Q 弹：底鼓那一下压扁再弹起（弹簧，体积大致不变），拍手轻一点。鼓型换了弹法跟着变；预备拍那一小节鼓让开了它也停；节奏轨整个没声的地方（圆台前的安静段）改成每拍轻轻弹一下（`beat_fallback`，设成 0 就不弹）。`kick` / `clap` / `note`（旋律的每个音点一下，默认 0）/ `squash` / `stiffness` / `damping` / `hop` 可调。它在猫和模型之间插了一层来缩放，不和按键转圈的"弹一下"打架。别的 3D 物体也能用（`target` 指过去） |
-| `NoteAccents` | `scripts/fx/note_accents.gd` | 音符的重点标记，四种：**小节线上的**（偏暖白、粗一点）、**重音**（落在这套鼓型的拍手上：橙色、更粗、外面一圈柔光）、**切分音**（不在整拍上：青色、细一点、外面多一圈细圈，看起来是双圈）、**换段之前的**（升档 / 进 fever 排好之后，换之前 4 拍里的音符：金色，每拍闪一下）。每种有自己的开关、颜色、粗细。谱面里单独指定了颜色的音符，颜色听谱面的。画音符的地方问它 `look(note, 原来的颜色)`；现在接上的只有第一关的**缩圈**（房间和圆台），路上的水果没接 |
+| `NoteAccents` | `scripts/fx/note_accents.gd` | 音符的重点标记，五种：**fever 的**（fever 里的音符，和进 fever 之前 4 拍里的：动态七彩，`scripts/fx/note_rainbow.gdshader`，彩虹沿着圈转）、**换段之前的**（升档排好之后，换之前 4 拍里的音符：金色，每拍闪一下）、**重音**（落在这套鼓型的拍手上：粉色、更粗、外面一圈柔光）、**切分音**（不在整拍上：青色、细一点、外面多一圈细圈，看起来是双圈）、**小节线上的**（偏暖白、粗一点）。每种有自己的开关、颜色、粗细。谱面里单独指定了颜色的音符，颜色听谱面的。画音符的地方问它 `look(note, 原来的颜色)`。第一关接上了两处：**缩圈**（房间和圆台，七彩用 shader）和**路上水果底下地上的圈**（`DiscoRoad.accents`；这里七彩只是整圈一起变色，水果本身不变） |
 | `CountInDisplay` | `scripts/fx/count_in_display.gd` | 预备拍（`Music.count_in_started`）那一小节，屏幕中间每拍蹦出一个字：READY、3、2、1，下一拍就是第一个音符；每一下屏幕边上闪一圈。字（`labels`）、字号、位置、颜色可调。放进任何小关或者 `main.tscn` 都能用，不用接线 |
 
-`disco_section.gd` 为此只加了一处：`_draw_rings()` 里画圈之前问一下 `NoteAccents`（场景里没有这个节点就和原来完全一样）。
+`disco_section.gd` 为此加的：`_draw_rings()` 里画圈之前问一下 `NoteAccents`，七彩的圈画在一个带材质的子节点上；`disco_road.gd` 里画地上的圈之前也问一下（场景里没有这个节点就和原来完全一样）。
 检查：`godot --headless -s tools/test_level1_music_fx.gd`（约 15 秒）。
 
 **音符重点标记的下一步（还没做）**：现在是按规则自动判的。要每关单独设计，就给音符加一个"重点"属性（和 `color` / `size` 一样进 `ChartPattern` 和 `NoteData`，
-在谱面编辑器里按音符编辑），`NoteAccents.kind_of()` 先看它、没写再按规则；另外把水果、下落式这些别的画法也接上 `look()`。
+在谱面编辑器里按音符编辑），`NoteAccents.kind_of()` 先看它、没写再按规则；另外把水果本身、下落式这些别的画法也接上 `look()`。

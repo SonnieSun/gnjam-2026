@@ -60,7 +60,7 @@ func _run() -> void:
 
 	# --- note marks, on the half-time groove (clap on step 8 = beat 2 of the bar) ---
 	# NoteAccents.Kind by number (naming the class here would compile it before the autoloads exist)
-	var K := {"NONE": 0, "DOWNBEAT": 1, "SYNCOPATED": 2, "ACCENT": 3, "LEAD_IN": 4}
+	var K := {"NONE": 0, "DOWNBEAT": 1, "SYNCOPATED": 2, "ACCENT": 3, "LEAD_IN": 4, "FEVER": 5}
 	var cases := [[12.0, K.DOWNBEAT, "bar line"], [13.0, K.NONE, "plain beat"], [14.0, K.ACCENT, "on the clap"], [13.5, K.SYNCOPATED, "off the beat"]]
 	for c: Array in cases:
 		var n := NoteData.new()
@@ -69,7 +69,18 @@ func _run() -> void:
 	Music._plan = {"kind": "fever", "id": 0, "fill_beat": 16.0, "commit_beat": 16.0}
 	var lead := NoteData.new()
 	lead.beat = 14.0
-	_check("note before a planned fever is a lead-in", accents.kind_of(lead) == K.LEAD_IN)
+	_check("note before a planned fever is a fever (rainbow) note", accents.kind_of(lead) == K.FEVER and accents.look(lead, Color.WHITE).rainbow)
+	Music._plan = {"kind": "tier", "id": 3, "fill_beat": 16.0, "commit_beat": 16.0}
+	_check("note before a planned tier change is a lead-in", accents.kind_of(lead) == K.LEAD_IN)
+	Music._plan = {}
+	Music.fever = true
+	_check("every note in fever is a fever note", accents.kind_of(lead) == K.FEVER)
+	Music.fever = false
+	# let the rings draw with every kind of mark for a while (a script error in the drawing code would show here)
+	for i in 3:
+		Music.fever = i == 1
+		await create_timer(0.5).timeout
+	Music.fever = false
 	Music._plan = {}
 
 	# --- the count-in: called on a bar line, as the music does ---

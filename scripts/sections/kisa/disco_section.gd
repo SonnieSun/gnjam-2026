@@ -91,6 +91,8 @@ var _curtain := false
 var _abduct: AbductionStage  # 结尾之后接着玩的吸猫舞台（嵌在迪斯科的 3D 世界里）
 var _abduct_gauge_from := 0  # 开始吸猫时积累条的值
 var _accents: NoteAccents  # 音符的重点标记（场景里有 NoteAccents 节点才有，见 scripts/fx/note_accents.gd）
+var _rainbow_layer: Node2D  # 七彩音符画在这一层上（它带着七彩的材质）
+var _rainbow_rings: Array = []  # 这一帧要画的七彩圈：[中心, 半径, 透明度, 粗细]
 
 
 func _ready() -> void:
@@ -113,6 +115,10 @@ func _ready() -> void:
 		add_child(_stage)
 	_stage.setup(_spin_cat)
 	_accents = get_node_or_null("NoteAccents") as NoteAccents
+	if _accents:
+		_rainbow_layer = Node2D.new()
+		add_child(_rainbow_layer)
+		_rainbow_layer.draw.connect(_draw_rainbow_rings)
 	_stage.external = true  # 阶段和镜头交给积累条
 	# 房间之后的几段：拆房子、路上撞水果、圆台、结尾（场景里有 Road 节点就用它，参数能在 Inspector 调）
 	_road = get_node_or_null("Road") as DiscoRoad
@@ -120,6 +126,7 @@ func _ready() -> void:
 		_road = DiscoRoad.new()
 		add_child(_road)
 	_road.setup(_spin_cat, _stage)
+	_road.accents = _accents
 	_road.beat_guides = beat_guides and draws_own_notes()
 	_road.guide_every = guide_every
 	# 配乐从只有房间的背景节拍开始
@@ -470,6 +477,9 @@ func _ring_radius(ahead: float, from_r: float) -> float:
 
 ## 白色判定圈 + 往里收的圈（画法同 ring_section，只是收的圈乘上 ring_alpha）
 func _draw_rings() -> void:
+	_rainbow_rings.clear()
+	if _rainbow_layer:
+		_rainbow_layer.queue_redraw()
 	if def == null or _abduct:
 		return  # 吸猫那一段的光圈是 3D 的，由吸猫舞台自己画
 	var show_judge := _road == null or _road.rings_visible(song_beat())
@@ -510,6 +520,10 @@ func _draw_rings() -> void:
 			if mark.kind != NoteAccents.Kind.NONE:
 				c = Color((mark.color as Color).lerp(Color.WHITE, k * k * 0.3), c.a)
 				w *= float(mark.width)
+				if mark.rainbow:   # 七彩的画在带材质的那一层上
+					_rainbow_rings.append([hit_position(n), r, c.a * 0.35 * float(mark.glow), w * 2.6])
+					_rainbow_rings.append([hit_position(n), r, c.a, w])
+					continue
 				if mark.glow > 0.0:
 					_ellipse(hit_position(n), r, Color(c, c.a * 0.35 * float(mark.glow)), w * 2.6)
 				if mark.echo:
@@ -517,6 +531,18 @@ func _draw_rings() -> void:
 		if k > 0.5:
 			_ellipse(hit_position(n), r, Color(c, c.a * (k - 0.5) * 0.6), w * 2.6)
 		_ellipse(hit_position(n), r, c, w)
+
+
+## 七彩的圈：画成白色，颜色由这一层的材质给（NoteAccents.rainbow_material）
+func _draw_rainbow_rings() -> void:
+	_rainbow_layer.material = _accents.rainbow_material(target_position(0))
+	var squash := _stage.ring_squash() if _stage else 1.0
+	for ring: Array in _rainbow_rings:
+		var pts := PackedVector2Array()
+		for i in 97:
+			var a := i * TAU / 96.0
+			pts.append((ring[0] as Vector2) + Vector2(cos(a), sin(a) * squash) * float(ring[1]) * judge_scale)
+		_rainbow_layer.draw_polyline(pts, Color(1, 1, 1, float(ring[2])), float(ring[3]), true)
 
 
 ## 按镜头透视画「平放在地上的圆」：横向半径 r × judge_scale，竖向再乘镜头压扁比例
