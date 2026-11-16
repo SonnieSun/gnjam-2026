@@ -534,7 +534,8 @@ func set_progress(p: float) -> void:
 ##               有它就不放通用的，只留鼓，上一段的和声、低音、旋律都让开，这几小节交给它
 ##   "db"        专门过门放多响（不写 = ENTER_DB；从正式音轨里切出来的过门文件是压低了存的，在这里抬回去）
 ##   "bars"      专门过门几小节（不写 = 1）
-##   "replaces"  它顶替上一句结尾的几小节（不写：1 小节的过门顶替 1 小节，更长的不顶替、接在那一句唱完之后）
+##   "replaces"  它顶替上一句结尾的几小节（不写：1 小节的过门顶替 1 小节，更长的不顶替、接在那一句唱完之后）。
+##               只在写了 "on_bars" 时有用：等的是「过门开头 + 这几小节」落在乐句线上
 ##   "on_bars"   等正在放的曲子唱到几小节一句的乐句线才换（不写 = 不等）。换曲子 / 换段落的地方用，
 ##               不然新的一段会从上一句的中间唱起
 ##   "sfx"       升到这一档那一下的专用音效，代替通用的镲和喵，也不送小 kiai（"none" = 什么都不放）
@@ -589,7 +590,7 @@ func _plan_change(up: int) -> void:
 		_fill_until = first
 	var fill_beat := first
 	if spec.on_bars > 0:
-		var shift := q * int(spec.replaces) if kind == "fever" and spec.fill else 0.0
+		var shift := q * int(spec.replaces) if spec.fill else 0.0
 		for i in 32:
 			if _on_phrase_line(fill_beat + shift, spec.on_bars):
 				break
@@ -1138,8 +1139,12 @@ func _apply_now(beat_index := -1) -> void:
 		var lines := tier_lines(section)
 		var up := tier_of(eff, lines)
 		for t in range(tier + 1, up + 1):
-			var wait := int(change_spec("tier", t).on_bars)
-			if wait > 0 and not _on_phrase_line(beat_index, wait):
+			var up_spec := change_spec("tier", t)
+			var wait := int(up_spec.on_bars)
+			# 和进 fever 一样：过门顶替上一句结尾的几小节时，要是乐句线的是那几小节之后的那条线
+			var t_lands := beat_index + (base * int(up_spec.replaces) if up_spec.fill else 0.0)
+			# （过门已经放过的那一档不再等：过门放完的这条线就是它该进的地方）
+			if wait > 0 and t != _fill_done_for and not _on_phrase_line(t_lands, wait):
 				eff = lines[t - 1] - 0.002
 				hold = true
 				break

@@ -254,19 +254,21 @@ func _on_gauge_event(index: int, _value: int) -> void:
 
 
 ## 拆房子上路（第 5 条线）。拆房子转镜头这段不出音符，让玩家歇一下。
-## 音乐在这一档换曲子（The Entertainer，前面有一小节专门的过门），所以不在进度过线的这一下各干各的，
-## 而是按音乐排好的拍点来（Music.planned_change()，音乐管理器的预备信号）：
-##   过线（现在）        音符停；音乐放上扬音效；等到「过门开头 - wall_first_beat 拍」才开始拆（跳舞猫退场、星星灯升走）
-##   过门小节的第一拍    第一面墙倒（过门里有军鼓滚奏）
-##   新曲子的第一拍      第二面墙倒（wall_gap_beats = 过门的 4 拍时正好），之后镜头转过去
+## 音乐在这一档换曲子（The Entertainer，前面有专门写的过门），所以不在进度过线的这一下各干各的，
+## 而是按音乐排好的拍点来（Music.planned_change()，音乐管理器的预备信号）。以「新曲子的第一拍」为准往回排：
+##   过线（现在）                          音符停；音乐放上扬音效，等 disco 那一句唱到最后一小节
+##   新曲子第一拍 - wall_first - wall_gap 拍   开始拆（跳舞猫退场、星星灯升走）= 两小节过门的开头，disco 在收它的最后一小节
+##   新曲子第一拍 - wall_gap 拍               第一面墙倒 = 过门第二小节的开头，The Entertainer 的乐队进来
+##   新曲子的第一拍                          第二面墙倒，之后镜头转过去
 ##   新曲子第 unfold_resume_bars 小节之后的那条小节线    路上的第一个水果（一句唱完）
+## （wall_first_beat 和 wall_gap_beats 都是 4 拍时正好一小节一件事。）
 ## 音乐没排这次切换时（这一关没用叠轨音乐，或者配置里这一档没有过门）和原来一样：马上开始拆，拆完再歇 road_quiet_beats 拍。
 func _begin_unfold(index: int) -> void:
 	var start := song_beat()
 	var resume_from := start + _road.unfold_beats + road_quiet_beats
 	var plan: Dictionary = Music.planned_change()
 	if plan.get("kind", "") == "tier" and int(plan.get("id", -1)) == index and float(plan.commit_beat) > float(plan.fill_beat):
-		start = maxf(start, float(plan.fill_beat) - _road.wall_first_beat)
+		start = maxf(start, float(plan.commit_beat) - _road.wall_first_beat - _road.wall_gap_beats)
 		resume_from = float(plan.commit_beat) + unfold_resume_bars * Conductor.chart.beats_per_bar
 	_unfold_resume = _rest_until(resume_from, DiscoMusic.road_bars(), "road")
 	_unfold_at = start

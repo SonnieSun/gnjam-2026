@@ -837,17 +837,21 @@ Music.planned_change()   # 排好了还没发生的那次：{kind, id, fill_beat
 
 ### 试点：第一关拆房子（第 5 条线，音乐换成 The Entertainer）
 
-`scripts/sections/kisa/disco_section.gd` 的 `_begin_unfold()`，配置里这一档 `"lead_beats": 4`：
+`scripts/sections/kisa/disco_section.gd` 的 `_begin_unfold()`，以「新曲子的第一拍」为准往回排。配置里这一档：
+`"changes": {"tier": {"5": {"fill": true, "written": "tr_disco_to_ent", "db": 14, "bars": 2, "replaces": 1, "on_bars": 4}}}`
 
 | 时刻 | 音乐 | 场景 / 谱面 |
 |---|---|---|
-| 过线 | 上扬音效（一直放到过门开头） | 音符停 |
-| 过门开头 − 4 拍 | | 开始拆：跳舞猫退场、星星灯升走 |
-| 过门小节第一拍 | 专门的过门（军鼓滚奏 + 引子） | 第一面墙倒 |
+| 过线 | 上扬音效；等 disco 那一句（4 小节）唱到最后一小节 | 音符停 |
+| 过门第 1 小节（顶替 disco 那一句的最后一小节） | **disco 自己的乐队**把最后一小节演完，军鼓开始加急（四分 → 八分） | 开始拆：跳舞猫退场、星星灯升走 |
+| 过门第 2 小节 | **The Entertainer 的乐队**进：引子 D E C A（鼓十六分 → 三十二分）、第 3 拍 喵！、第 4 拍弱起 D D# | 第一面墙倒 |
 | 新曲子第一拍 | The Entertainer 进，镲 | 第二面墙倒，之后镜头转过去 |
 | 新曲子第 5 小节 | 第二句开头 | 路上的第一个水果（`unfold_resume_bars = 4`） |
 
-过线的时机不同（离小节线 3.5 拍、2 拍、3 拍都试了），这几个相对位置都不变。音乐没排这次切换时（没用叠轨音乐，或者这一档没有过门），`_begin_unfold()` 和原来一样马上开始。
+过门是照披萨那次总结的做法做的（`make_transitions.py`，`from_stems` 加 `head`）：要进来的那支乐队从自己的音轨里切、鼓渐快、重音用猫的长喊声 + 高音 mi + 镲；这里多一条——**前一小节由正在演的那支乐队演完自己那一句**（`head=game_clips(...)`，直接取关卡里那几条轨道的最后一小节，按关卡的音量）。只用 Entertainer 的乐队做两小节的那一版听起来"前面没接上"，disco 的 loop 是被掐断的。
+响度是在前后文里量着调的：按披萨的参数重音比后面的 loop 高 5.7 dB（这里是第一关 25% 的位置，后面没有大高潮那一层来接），现在是 disco 0.340 → 过门 0.346 → 0.355 → 重音 0.389 → Entertainer 0.332。
+升档的切换现在也认 `"replaces"`（原来只有进 fever 认）；过门放过的那一档不再回头等乐句线（不然过门放完会先回到上一段一小节）。
+音乐没排这次切换时（没用叠轨音乐，或者这一档没有过门），`_begin_unfold()` 和原来一样马上开始。
 
 还没接到这套信号上的：换小关（`main.gd` 的 `_switch_at`）、进 fever 的画面、结尾段。`disco_section.gd` 里的 `DiscoMusic`（11 条分轨的旧配乐）不是死代码：关卡没开叠轨音乐（`use_in_game` 为 false）时它是后备，开着的时候自己让开。
 

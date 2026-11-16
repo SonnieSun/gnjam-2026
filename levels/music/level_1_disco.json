@@ -360,7 +360,10 @@
      "5": {
       "fill": true,
       "written": "tr_disco_to_ent",
-      "lead_beats": 4.0
+      "db": 14.0,
+      "bars": 2,
+      "replaces": 1,
+      "on_bars": 4
      }
     },
     "fever": {
