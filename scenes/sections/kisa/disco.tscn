@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/fx/music_bounce.gd" id="fx_bounce"]
 [ext_resource type="Script" path="res://scripts/fx/note_accents.gd" id="fx_accents"]
 [ext_resource type="Script" path="res://scripts/fx/count_in_display.gd" id="fx_countin"]
+[ext_resource type="Script" path="res://scripts/fx/fever_fx.gd" id="fx_fever"]
 
 [node name="DiscoSection" type="Node2D"]
 script = ExtResource("1")
@@ -50,3 +51,6 @@ script = ExtResource("fx_accents")
 
 [node name="CountInDisplay" type="CanvasLayer" parent="."]
 script = ExtResource("fx_countin")
+
+[node name="FeverFx" type="CanvasLayer" parent="."]
+script = ExtResource("fx_fever")

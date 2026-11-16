@@ -103,5 +103,20 @@ func _run() -> void:
 			seen[i] = label.text
 	_check("count-in shows a word on each of the four beats", seen == {0: "READY", 1: "3", 2: "2", 3: "1"}, str(seen))
 	_check("count-in is gone after the bar", not count._label.visible)
+	# --- fever: the colour filter comes up, the corner cannons fire, a clap fires a small pair, then it all goes ---
+	var fx: Node = section.get_node("FeverFx")
+	Music.fever_started.emit()
+	await create_timer(0.4).timeout
+	_check("fever: filter on, both big cannons and the rain going", fx._rect.visible and fx._level > 0.9
+			and fx._big[0].emitting and fx._big[1].emitting and fx._rain[0].emitting and fx._rain[1].emitting)
+	Music.drum_clap.emit(Conductor.song_beat)
+	await process_frame
+	_check("fever: a clap fires one small cannon on each side", fx._small[0].emitting and fx._small[1].emitting and not fx._small[2].emitting)
+	Music.fever_ended.emit()
+	await create_timer(0.9).timeout
+	_check("fever over: filter gone, rain stopped", not fx._rect.visible and not fx._rain[0].emitting)
+	Music.drum_clap.emit(Conductor.song_beat)
+	await process_frame
+	_check("no fever: a clap fires nothing", not fx._small[2].emitting)
 	print("LEVEL1_MUSIC_FX_%s" % ("PASS" if _fail == 0 else "FAIL (%d)" % _fail))
 	quit()
