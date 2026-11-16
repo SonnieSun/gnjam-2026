@@ -131,6 +131,13 @@ const BRIDGE_UNDER_DB := -6.0
 
 func _ready() -> void:
 	Conductor.beat.connect(_on_beat)
+	# 总线上放一个限幅器：满编制的段落（大高潮）各条音轨加起来会超过满幅，不拦着就是爆音。平时够不到它，不改变声音。
+	if not _has_limiter():
+		var lim := AudioEffectHardLimiter.new()
+		lim.ceiling_db = -0.3
+		lim.pre_gain_db = 0.0
+		lim.release = 0.1
+		AudioServer.add_bus_effect(0, lim)
 	fever_started.connect(_set_fever_reverb.bind(true))
 	fever_ended.connect(_set_fever_reverb.bind(false))
 	meow = MeowPlayer.new()
@@ -513,6 +520,13 @@ var _reverb_index := -1
 var _reverb_tween: Tween
 
 
+func _has_limiter() -> bool:
+	for i in AudioServer.get_bus_effect_count(0):
+		if AudioServer.get_bus_effect(0, i) is AudioEffectHardLimiter:
+			return true
+	return false
+
+
 func _set_fever_reverb(on: bool) -> void:
 	var secs: Array = data.get("sections", [])
 	var amount := float(secs[section].get("fever_reverb", 0.0)) if on and section >= 0 and section < secs.size() else 0.0
@@ -528,8 +542,13 @@ func _set_fever_reverb(on: bool) -> void:
 		_reverb.predelay_feedback = 0.0
 		_reverb.dry = 1.0
 		_reverb.wet = 0.0
-		AudioServer.add_bus_effect(0, _reverb)
-		_reverb_index = AudioServer.get_bus_effect_count(0) - 1
+		# 放在限幅器前面（限幅器要在最后）
+		_reverb_index = 0
+		for i in AudioServer.get_bus_effect_count(0):
+			if AudioServer.get_bus_effect(0, i) is AudioEffectHardLimiter:
+				break
+			_reverb_index = i + 1
+		AudioServer.add_bus_effect(0, _reverb, _reverb_index)
 	if _reverb_tween:
 		_reverb_tween.kill()
 	if amount > 0.0:

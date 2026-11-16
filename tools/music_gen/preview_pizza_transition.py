@@ -40,7 +40,7 @@ tr = read_wav(TR)
 n_tr = max(1, int(len(tr) / B))                      # whole bars (the file has a short tail after them)
 before = 8 - int(SEC.get('fever_enter_replaces', 1 if n_tr == 1 else 0))     # bars of the descent that play before it
 CCB = [('L3_cat_kichiku', 0), ('L3_square', -5), ('fb_L0_keys', 0), ('L2_bass', 0), ('fb_L4_peak', 0), ('C_choir', 1)]
-CC = [('L3_cat_kichiku', 0), ('L3_square_dark', -3), ('L3_pluck', -2), ('fb_L0_keys', 0), ('L2_bass', 0), ('fb_L4_peak', 0), ('C_drums', 0)]
+CC = [('L3_cat_kichiku', 0), ('L3_square_dark', -3), ('L3_pluck', -2), ('fb_L0_keys', 0), ('L2_bass', 0), ('fb_L4_peak_fever', 12), ('C_drums', 0)]
 start = before + n_tr                                # the bar the famous tune starts on
 total = start + 16
 pre = np.zeros((total * B + t2n(3.0), 2))

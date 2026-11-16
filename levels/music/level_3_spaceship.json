@@ -132,7 +132,8 @@
     },
     {
      "id": "cc_peak",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_fever_8b.wav",
+     "gain_db": 12.0,
      "tune": "cc"
     }
    ]

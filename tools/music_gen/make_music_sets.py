@@ -388,7 +388,7 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       t('ccb_cats', CCB + 'L3_cat_kichiku_8b.wav', 'hook'), t('ccb_square', CCB + 'L3_square_8b.wav', 'event', -5.0),
                       t('ccb_choir', CCB + 'C_choir_8b.wav', 'harm', 6.0), t('ccb_peak', CCB + 'fb_L4_peak_8b.wav', 'peak'),
                       harm('tm_harm', 'turkish_march'), harm('cc_harm', 'can_can'),
-                      t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
+                      t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_fever_8b.wav', 'peak', 12.0),   # the peak layer + cymbals, backbeat, a synth lead under the cats
                       CATS[0], t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
                       t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'), t('tmb_kichiku', TMB + 'L3_cat_kichiku_8b.wav', 'kiai'),
                       t('tmb_keys', TMB + 'fb_L0_keys_8b.wav', 'bed'), t('tmb_bass', TMB + 'L2_bass_8b.wav', 'bass'),

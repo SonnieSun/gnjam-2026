@@ -776,3 +776,10 @@ MIDI 的来源记在 cat_sound 的 `reference/midi_public_domain/README.md`。
 
 **自己改披萨进高潮的过门**：改 `cat_sound	ools\make_transitions.py` 里 "THE PIZZA'S TRANSITION INTO ITS FEVER" 那一块（音符、和弦、重音的写法都写在那块的注释里），然后双击 `cat_sound	ry_pizza_transition.bat`：重新渲染、放进游戏、并生成一个带前后文的试听（`deliver\previews	ransition_try\pizza_transition_in_context.wav`，用 `tools/music_gen/preview_pizza_transition.py`）。**现在用的是用户自己写的旋律**（`cat_sound/reference/midi_from_user/pizza_transition/user_transition.mid` 的第 2–3 小节），两小节：上行 G# A B C# + 属音上的 D A D A，再 D A D A + 两个都落在 G 上的重音，由 fever 的乐队演。鼓是渐快的：前面军鼓跟着旋律敲八分，第二个 D A D A 的前一个 D A 敲十六分、后一个 D A 敲三十二分（再快一倍），通鼓跟着从高到低滚下来，重音前空一个三十二分。两个重音上叠一声高两个八度的短 "mi"（喵感），镲加响。`"fever_enter_bars": 2`、`"fever_enter_replaces": 1`：过门的第一小节顶替下行段那一句的最后一小节（那一小节本来也是上行），第二小节是多出来的。`"fever_enter_replaces"` 不写时，一小节的过门顶替 1 小节，更长的不顶替、接在那一句唱完之后。两小节的"属音连敲"版留在注释里。改了小节数要同时改 `level_3_spaceship.json` 里 SPACE PIZZA 的这两个数。
 
+### 大高潮那一层（fever layer）和总线限幅器
+
+过门做大之后，接上去的名旋律 loop 反而显得弱。量出来：两个重音 rms 0.145，loop 0.092（低 4 dB）；6 kHz 以上少 13 dB（loop 里根本没有镲）；600 Hz–2 kHz 少 5 dB（重音有锯齿波、方波、拨弦，loop 的方波是削了高频的那条，所以"只剩喵"）。
+补的东西做成一条音轨 `can_can_fb_L4_peak_fever_8b.wav`（`make_choir_stems.py` 的 `fever_layer`），披萨 fever 的高潮轨用它代替原来的高潮层：原高潮层 + 镲（第 1、5 小节重镲，3、7 小节轻一点，反拍八分开镲、正拍闭镲）+ 二四拍军鼓 + 垫在猫下面的合成器主音（旋律本位和低八度的锯齿波，低通 2.4 kHz，猫叫最清楚的 2–5 kHz 还是留给猫）+ 跟着底鼓呼吸的三个八度和弦 + 第 4、8 小节后半的通鼓。第一次做的音量只有一半，量出来几乎没变化：这一层得和它要加入的那堆主音差不多响才有用。文件压低 12 dB 存，片段 `gain_db` +12。补完：loop 只比重音低约 1 dB，高频比重音还多 2 dB。
+
+`Music` 在 Master 总线上加了一个限幅器（`AudioEffectHardLimiter`，上限 −0.3 dB，放在最后；fever 的混响插在它前面）。量出来原来大高潮各条音轨加起来已经有约 0.5% 的采样超过满幅，再叠东西必须拦住。平时够不到它，不改变声音。
+
