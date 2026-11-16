@@ -75,15 +75,15 @@ func _run() -> void:
 		if n.beat >= switch_at - 0.001:
 			first_after = minf(first_after, n.beat)
 	_check("no gap: a note on the bar line of the switch", is_equal_approx(first_after, switch_at), "first note from the switch on: %s" % first_after)
-	# the room's climax is stretched: from the dancing cats (60) to the house opening (110) takes about 30 perfect
-	# hits now (the gauge rises at a third of the speed there), about eight bars of the eight-bar chart
+	# the room's climax is stretched: from the dancing cats (60) to the house opening (110) takes about 24 perfect
+	# hits now (the gauge rises slower there), eight bars of the eight-bar chart
 	_check("the gauge rises slower in the room's climax", is_equal_approx(game.gauge.gain_scale, section.room_climax_gain), "x%s" % game.gauge.gain_scale)
 	game.gauge.set_value(60)
 	var hits := 0
 	while game.gauge.value < 109 and hits < 200:
 		game.gauge.apply(NoteData.Result.PERFECT)
 		hits += 1
-	_check("60 -> 110 takes about 30 perfect hits (it was 10)", hits >= 28 and hits <= 31, "%d hits" % hits)
+	_check("60 -> 110 takes about 24 perfect hits, eight bars of the chart (it was 10)", hits >= 22 and hits <= 25, "%d hits" % hits)
 	var loop: Array = held.filter(func(n: NoteData) -> bool: return n.beat >= switch_at and n.beat < switch_at + 8.0).map(func(n: NoteData) -> float: return n.beat - switch_at)
 	_check("the climax chart builds (bar 1: two notes, bar 2: three)", loop == [0.0, 2.0, 4.0, 6.0, 7.0], str(loop))
 	# the fever: when the music plans it, the chart becomes the fever chart on that bar line and the gauge slows down
@@ -92,7 +92,12 @@ func _run() -> void:
 	Music.change_planned.emit("fever", 0, at, at)
 	await process_frame
 	var fever: Array = section.notes.filter(func(n: NoteData) -> bool: return n.beat >= at - 0.001 and n.beat < at + 8.0).map(func(n: NoteData) -> float: return n.beat - at)
-	_check("fever: its own chart from that bar line (bar 2 has the kick on the 'a' of 2)", fever == [0.0, 1.0, 2.5, 3.0, 4.0, 5.0, 5.75, 6.5, 7.0], str(fever))
+	_check("fever: its own chart from that bar line", fever == [0.0, 1.0, 2.5, 3.0, 4.0, 5.0, 6.5, 7.0], str(fever))
+	var all_notes: Array = []
+	for name: String in ["", "_room4", "_road", "_plaza", "_fever"]:
+		for d: Dictionary in load("res://levels/charts/level_1_disco_0%s.tres" % name).notes:
+			all_notes.append(fposmod(float(d.beat), 1.0))
+	_check("no chart of level 1 has a note off the half-beat grid", all_notes.all(func(f: float) -> bool: return is_zero_approx(f) or is_equal_approx(f, 0.5)))
 	_check("fever: the gauge rises slower", is_equal_approx(game.gauge.gain_scale, section.plaza_fever_gain), "x%s" % game.gauge.gain_scale)
 	print("LEVEL1_CHARTS_%s" % ("PASS" if _fail == 0 else "FAIL (%d)" % _fail))
 	quit()

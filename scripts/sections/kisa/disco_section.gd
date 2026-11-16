@@ -51,13 +51,14 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var sync_wall_gap_beats := 2.0
 @export var sync_camera_turn_from_beat := 3.0
 ## 高潮段做长：这几段里积累条涨得慢（倍数越小这一段越长；1 = 和别的段一样）。全打 Perfect 时大约：
-##   房间打开之前（跳舞猫 60 分 → 拆房子 110 分）0.33 ≈ 8 小节（原来 3 小节多）
-##   圆台的渐强段（250 → 280）0.3 ≈ 4 小节（原来 1 小节半）
-##   圆台的 fever（280 → 350）0.4 ≈ 8 小节（原来 3 小节半）
+##   房间打开之前（跳舞猫 60 分 → 拆房子 110 分）0.42 ≈ 8 小节（原来 3 小节多）
+##   圆台的渐强段（250 → 280）0.43 ≈ 4 小节（原来 1 小节半）
+##   圆台的 fever（280 → 350）0.47 ≈ 8 小节（原来 3 小节半）
+## （谱子改简单之后每小节的音符少了，所以倍数比第一版大：要的是小节数不变。改了谱子的密度，这几个数要跟着算。）
 ## 分数线和音乐的切换点都没动，只是这几段要多打几下。谱子见 tools/music_gen/make_level1_charts.py。
-@export_range(0.1, 1.0, 0.01) var room_climax_gain := 0.33
-@export_range(0.1, 1.0, 0.01) var plaza_build_gain := 0.3
-@export_range(0.1, 1.0, 0.01) var plaza_fever_gain := 0.4
+@export_range(0.1, 1.0, 0.01) var room_climax_gain := 0.42
+@export_range(0.1, 1.0, 0.01) var plaza_build_gain := 0.43
+@export_range(0.1, 1.0, 0.01) var plaza_fever_gain := 0.47
 ## 水果路滑到圆台（舞台）时歇多久再出音符（秒，大概值：会对到最近的小节线上）
 @export var plaza_rest_seconds := 5.0
 

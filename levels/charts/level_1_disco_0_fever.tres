@@ -24,9 +24,6 @@ notes = Array[Dictionary]([{
 "beat": 5.0,
 "sound": 1
 }, {
-"beat": 5.75,
-"sound": 0
-}, {
 "beat": 6.5,
 "sound": 0
 }, {
@@ -48,11 +45,8 @@ notes = Array[Dictionary]([{
 "beat": 12.0,
 "sound": 0
 }, {
-"beat": 13.75,
-"sound": 0
-}, {
-"beat": 14.5,
-"sound": 0
+"beat": 13.0,
+"sound": 1
 }, {
 "beat": 15.0,
 "sound": 1
@@ -62,9 +56,6 @@ notes = Array[Dictionary]([{
 }, {
 "beat": 17.0,
 "sound": 1
-}, {
-"beat": 17.75,
-"sound": 0
 }, {
 "beat": 18.5,
 "sound": 0
@@ -78,7 +69,7 @@ notes = Array[Dictionary]([{
 "beat": 21.0,
 "sound": 1
 }, {
-"beat": 21.75,
+"beat": 22.5,
 "sound": 0
 }, {
 "beat": 23.0,
@@ -89,9 +80,6 @@ notes = Array[Dictionary]([{
 }, {
 "beat": 25.0,
 "sound": 1
-}, {
-"beat": 25.75,
-"sound": 0
 }, {
 "beat": 26.5,
 "sound": 0
@@ -104,9 +92,6 @@ notes = Array[Dictionary]([{
 }, {
 "beat": 29.0,
 "sound": 1
-}, {
-"beat": 30.5,
-"sound": 0
 }, {
 "beat": 31.0,
 "sound": 1

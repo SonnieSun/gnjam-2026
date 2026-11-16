@@ -44,64 +44,46 @@ def write(name, notes, length):
     print(f'  {name}.tres: {len(notes)} notes in {int(length / 4)} bars')
 
 
+# Playtest, 2026-11-17: the charts written when the climaxes were made longer were "a bit messy / hard". The rules now:
+#   - a phrase is a two-bar motif that comes back, with one changed bar, not eight different bars
+#   - no sixteenth-note offsets (0.75, 1.75): notes sit on beats, plus at most ONE off-beat per bar, and it is the
+#     same off-beat all through a part (2.5), so the hand learns it
+#   - at most four notes a bar in the room and on the plaza, five on the road's last variation
+
 # THE ROOM (the disco theme), one chart per groove (checked note by note against levels/music/events/grooves.json):
-#   half-time drums, up to the dancing cats (gauge 60): kick 0 and 2.5, clap 2. The fuller bars add the kick on 2.5,
-#       the level's first off-beat note. (One chart used to serve both grooves, and its notes on beats 1 and 3
-#       had no drum under them while the half-time groove played.)
+#   half-time drums, up to the dancing cats (gauge 60): kick 0 and 2.5, clap 2. Three bars of 0 and 2, the fourth
+#       adds the kick on 2.5.
 #   four on the floor, from the dancing cats on (the "room4" phase, switched in on the bar line the groove changes):
-#       beats 1 and 3 are kicks now.
+#       the room's small climax, about eight bars (the gauge rises slower here, see disco_section.gd
+#       room_climax_gain). Every note on a beat (a kick): motif A twice, an answer B, A again a little fuller.
 write('level_1_disco_0', *bars(
     [(0, K), (2, S)],
-    [(0, K), (2, S), (2.5, K)],
+    [(0, K), (2, S)],
     [(0, K), (2, S)],
     [(0, K), (2, S), (2.5, K)]))
-#       This is the room's small climax and it lasts about eight bars now (the gauge rises slower here, see
-#       disco_section.gd room_climax_gain), so the chart is eight bars that build: two notes a bar up to five.
-#       The beats are kicks; 1.5, 2.5 and 3.5 are the groove's open hats, and the theme has a note on 1.5 and 2.5.
 write('level_1_disco_0_room4', *bars(
-    [(0, K), (2, S)],
-    [(0, K), (2, S), (3, K)],
-    [(0, K), (1.5, K), (2, S)],
-    [(0, K), (1, K), (2, S), (3, K)],
-    [(0, K), (2, S), (2.5, K), (3, K)],
-    [(0, K), (1.5, K), (2, S), (3, K)],
-    [(0, K), (1.5, K), (2, S), (2.5, K), (3, K)],
-    [(0, K), (1, K), (2, S), (3, K), (3.5, K)]))
+    [(0, K), (2, S)], [(0, K), (2, S), (3, K)],
+    [(0, K), (2, S)], [(0, K), (2, S), (3, K)],
+    [(0, K), (1, K), (2, S)], [(0, K), (1, K), (2, S), (3, K)],
+    [(0, K), (2, S), (3, K)], [(0, K), (1, K), (2, S), (3, K)]))
 
 # THE ROAD. Nothing to play in the music's two transition bars, nor in The Entertainer's first bar: that bar is the
-# band's count-in, four big drum hits (the level's "预备" beat), and the road's chart starts on the bar after it:
-# its beat 0 is the first fruit. (A version with notes in the transition bars was tried first; the count-in bar
-# is the design.) The Entertainer over the club beat, getting denser the way the old road was meant to (every note
-# a kick, beat 3 a kick and a clap):
-#   4 bars   0, 3            2 bars   0, 1.5, 3            2 bars   0, 1.5, 2.5, 3
-#   then four bars in turn:  E  C  E  D      (a perfect run is on the road for about 12 bars, so it meets E twice)
+# band's count-in (the level's "预备" beat), and the road's chart starts on the bar after it: its beat 0 is the first
+# fruit. The Entertainer over the club beat (kick 0, 0.75, 1.5, 2.5, 3, 3.5; clap 1, 3), getting denser slowly:
+#   4 bars   0, 3            4 bars   0, 1.5, 3            then four bars in turn:  C  C  C  D
 #       C = 0, 1.5, 2.5, 3          D = C with 3.5
-#       E = 0, 0.75, 1.5, 2.5, 3    the club kick's own figure: three off-beat notes in a row (0.75, 1.5, 2.5),
-#                                   the run NoteAccents marks the first note of
+# (The club kick's own three-off-beat run, 0.75 1.5 2.5, was tried here and on the plaza and taken out: too hard.)
 A = [(0, K), (3, S)]
 B = [(0, K), (1.5, K), (3, S)]
 C = [(0, K), (1.5, K), (2.5, K), (3, S)]
 D = [(0, K), (1.5, K), (2.5, K), (3, S), (3.5, K)]
-E = [(0, K), (0.75, K), (1.5, K), (2.5, K), (3, S)]
-write('level_1_disco_0_road', *bars(*([A] * 4 + [B] * 2 + [C] * 2 + [E, C, E, D] * 14)))
+write('level_1_disco_0_road', *bars(*([A] * 4 + [B] * 4 + [C, C, C, D] * 14)))
 
-# THE PLAZA, one chart per groove. Both parts last longer now (the gauge rises slower there, see disco_section.gd
-# plaza_build_gain / plaza_fever_gain), so each is a phrase that goes somewhere instead of one bar repeated.
-#   the build, on the club beat (kick 0, 0.75, 1.5, 2.5, 3, 3.5; clap 1, 3), about four bars: a note more every bar,
-#       the third bar is the club kick's own run of three off-beats
-#   the fever, on the break beat (kick 0, 1.75, 2.5; clap 1, 3), about eight bars: the claps on 1 and 3 are the
-#       frame, the kick on 1.75 (the "a" of 2) comes and goes; bars 4 and 6 leave a clap out, so the phrase breathes
-write('level_1_disco_0_plaza', *bars(
-    [(0, K), (1, S), (2.5, K), (3, S)],
-    [(0, K), (1, S), (2.5, K), (3, S), (3.5, K)],
-    [(0, K), (0.75, K), (1.5, K), (2.5, K), (3, S)],
-    [(0, K), (1, S), (1.5, K), (2.5, K), (3, S), (3.5, K)]))
-write('level_1_disco_0_fever', *bars(
-    [(0, K), (1, S), (2.5, K), (3, S)],
-    [(0, K), (1, S), (1.75, K), (2.5, K), (3, S)],
-    [(0, K), (1, S), (2.5, K), (3, S)],
-    [(0, K), (1.75, K), (2.5, K), (3, S)],
-    [(0, K), (1, S), (1.75, K), (2.5, K), (3, S)],
-    [(0, K), (1, S), (1.75, K), (3, S)],
-    [(0, K), (1, S), (1.75, K), (2.5, K), (3, S)],
-    [(0, K), (1, S), (2.5, K), (3, S)]))
+# THE PLAZA, one chart per groove; both parts last longer than they used to (disco_section.gd plaza_build_gain /
+# plaza_fever_gain). The same two shapes all through: Q = 0 1 3 (the claps on 1 and 3) and P = Q with the kick on 2.5.
+#   the build, on the club beat, about four bars:    Q P Q P
+#   the fever, on the break beat (kick 0, 1.75, 2.5; clap 1, 3), about eight bars:    P P P Q   P P P Q
+Q = [(0, K), (1, S), (3, S)]
+P = [(0, K), (1, S), (2.5, K), (3, S)]
+write('level_1_disco_0_plaza', *bars(Q, P, Q, P))
+write('level_1_disco_0_fever', *bars(P, P, P, Q, P, P, P, Q))
