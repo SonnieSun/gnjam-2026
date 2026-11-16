@@ -32,6 +32,17 @@ extends SpinSection
 ## 调试用：自动按键（看演出用，正式玩要关掉）
 ## 结尾演出（散开 + 镜头钻进屏幕）至少放几拍；实际会凑到下一个小节线
 @export var finale_min_beats := 5.0
+## 洗衣机的两套谱。前半段（音乐还弱的时候）用大关文件里这个小关的 bars：四小节 2-2-2-1-1 | 2-2-长按 4 拍。
+## 进度到 late_from_progress（猫接过主旋律）之后，在前一套的四小节线上换成下面这套，十六小节（小花唱两遍）：
+##   1-8   不长按；第 6、7 小节是两拍三连音（一小节 12 格：每两拍三下）
+##   9-12  不长按，密一点
+##   13-16 每小节一个长按
+@export_range(0.0, 1.0) var late_from_progress := 0.5
+@export var late_bars := PackedStringArray([
+	"k.......k.......", "k...k...k.......", "k.......k.......", "k...k...k...k...",
+	"k.......k.......", "k.k.k.k.k.k.", "k.k.k.k.k.k.", "k.......k.......",
+	"k...k...k.......", "k.......k...k...", "k...k...k.......", "k...k...k...k...",
+	"k==============.", "k==============.", "k==============.", "k==============."])
 ## 钻进屏幕后切到下一个小关时，用几秒叠化盖住框架的白闪
 @export var crossfade_seconds := 0.25
 @export var autoplay := false
@@ -40,6 +51,8 @@ var _stage: TvWallIntroStage
 var _hold_lens := {}  # 鼓谱里的位置（毫拍）-> 长按几拍
 var _pattern_len := 0.0
 var _pattern_origin := INF
+var _late := false  # 已经换成后半段的谱了
+var _old_holds := {}  # 换谱时还没打的旧音符 -> 它的长按几拍
 var _holding: NoteData
 var _failed := {}  # 失败的长按 -> true（尾巴过去之前画成灰色）
 var _bolts: Array[Dictionary] = []  # {"to": 电视序号, "age": 秒}
@@ -91,6 +104,8 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 	# 这一段的积累条不涨：音乐按"按完了几次长按"走（见 Music.override_progress）
 	if active:
 		Music.override_progress(1.0 if _finale else _stage.progress())
+	if active and not _late and not _finale and not late_bars.is_empty() and _stage.progress() >= late_from_progress:
+		_switch_to_late()
 	if song_beat() >= _fill_at:
 		_fill_gauge_now()
 	for tv in _stage.take_just_lit():
@@ -136,6 +151,8 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 
 ## 这个音符是长按的话返回按几拍，否则 0
 func hold_beats(n: NoteData) -> float:
+	if _old_holds.has(n):
+		return _old_holds[n]  # 换谱之前铺的音符：长度按前一套谱算好了
 	if _pattern_len <= 0.0 or notes.is_empty():
 		return 0.0
 	if is_inf(_pattern_origin):
@@ -143,6 +160,39 @@ func hold_beats(n: NoteData) -> float:
 		_pattern_origin = notes[0].beat - def.parse_notes(Conductor.chart.beats_per_bar)[0].beat
 	var rel := fposmod(n.beat - _pattern_origin, _pattern_len)
 	return _hold_lens.get(roundi(rel * 1000.0) % roundi(_pattern_len * 1000.0), 0.0)
+
+
+## 换成后半段的谱（late_bars）：前一套打到它下一次循环开头的那条线为止，之前铺好的音符照常打照常画，新的一套从那条线起算。
+func _switch_to_late() -> void:
+	var main := get_parent().get_parent()
+	if main == null or not main.get("judge") or notes.is_empty() or _pattern_len <= 0.0:
+		return
+	if is_inf(_pattern_origin):
+		_pattern_origin = notes[0].beat - def.parse_notes(Conductor.chart.beats_per_bar)[0].beat
+	var bpb: int = Conductor.chart.beats_per_bar
+	var origin := _pattern_origin + (floorf((song_beat() - _pattern_origin) / _pattern_len) + 1.0) * _pattern_len
+	if origin - song_beat() > 12.0:
+		return  # 太早：判定只提前铺 16 拍，等靠近那条线再换（下一帧再来）
+	_late = true
+	var d: SectionDef = def.duplicate()
+	d.chart = null
+	d.bars = late_bars
+	var keep: Array[NoteData] = []
+	var keep_len := {}
+	for n in notes:
+		if not n.judged and n.beat < origin - 0.001:
+			keep.append(n)
+			keep_len[n] = hold_beats(n)
+	var index: int = main.get("_index") if main.get("_index") != null else 0
+	notes = main.judge.begin_section(index, d, bpb, origin, origin)
+	for i in keep.size():
+		notes.insert(i, keep[i])
+	# （def 不换：结尾要靠它在大关里找下一个小关）
+	_pattern_len = d.length_beats(bpb)
+	_pattern_origin = origin
+	_hold_lens = d.hold_lengths(bpb)
+	_hold_lens[-1] = 0.0
+	_old_holds = keep_len
 
 
 ## 从谱面里找出长按：音符后面跟着的每个 "=" 把它延长一格

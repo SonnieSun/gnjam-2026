@@ -292,7 +292,9 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                       pattern('ybf_by_hit', 'your_best_friend', 'hit', by_hit=True),
                       harm('ybf_harm', 'your_best_friend'), harm('mk_harm', 'mountain_king')] + FILL,
            'sections': [
-               {'title': 'TV WALL', 'tiers': W, 'transition_tiers': (), 'fever': (W[4], 1.0), 'fever_fill': False,
+               {'title': 'TV WALL', 'tiers': W, 'transition_tiers': (),
+                # no fever on the washer: the level changes scene right after it, and a fever that is cut off the
+                # moment it starts was the odd thing about the end of this part (playtest, 2026-11-17)
                 'own': {'kiai': '', 'hit': 'ybf_by_hit'}, 'rules': {
                    'half': [[0, W[1]]], 'groove': [[W[1], 1]],
                    'ybf_keys': [[0, 1]], 'ybf_bass': [[W[0], 1]],

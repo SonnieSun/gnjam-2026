@@ -289,18 +289,9 @@
     0.7,
     0.88
    ],
-   "fever": [
-    0.88,
-    1.0
-   ],
    "own": {
     "kiai": "",
     "hit": "ybf_by_hit"
-   },
-   "changes": {
-    "fever": {
-     "fill": false
-    }
    }
   },
   {
