@@ -7,7 +7,7 @@ has cues: at this gauge progress (0 = section just started, 1 = gauge full) swit
 ("" = silence). The clip of the last cue at or below the current progress is the one that sounds.
 
   {"title", "bpm", "use_in_game", "quantize_beats",
-   "lanes":    [{"id", "name", "gain_db", "clips": [{"id", "file"}]}],
+   "lanes":    [{"id", "name", "gain_db", "clips": [{"id", "file", "gain_db" (optional, on top of the lane's)}]}],
    "sections": [{"title", "cues": {lane id: [[progress, clip id], ...]}}]}
 
 The sets below are written as overlapping on/off ranges per clip (easier to write by hand) and turned
@@ -385,8 +385,8 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       t('cca_square', CCA + 'L3_square_8b.wav', 'hook'), t('cca_cats', CCA + 'L3_cat_kichiku_8b.wav', 'hook'),
                       harm('cca_harm', 'can_can_a'),
                       t('ccb_keys', CCB + 'fb_L0_keys_8b.wav', 'bed'), t('ccb_bass', CCB + 'L2_bass_8b.wav', 'bass'),
-                      t('ccb_cats', CCB + 'L3_cat_kichiku_8b.wav', 'hook'), t('ccb_square', CCB + 'L3_square_8b.wav', 'event'),
-                      harm('ccb_harm', 'can_can_b'), t('ccb_peak', CCB + 'fb_L4_peak_8b.wav', 'peak'),
+                      t('ccb_cats', CCB + 'L3_cat_kichiku_8b.wav', 'hook'), t('ccb_square', CCB + 'L3_square_8b.wav', 'event', -5.0),
+                      t('ccb_choir', CCB + 'C_choir_8b.wav', 'harm', 6.0), t('ccb_peak', CCB + 'fb_L4_peak_8b.wav', 'peak'),
                       harm('tm_harm', 'turkish_march'), harm('cc_harm', 'can_can'),
                       t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
                       CATS[0], t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
@@ -411,7 +411,10 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                #   50%    THE FAMOUS TUNE ('cc', G major: D -> G is a V -> I), on the opening strain's 8-bar line,
                #          the cats singing it from its first bar with the peak layer        <- the 3x3 grid camera
                #   62%    THE FOUR STEPS DOWN ('ccb', D major again), the strain that comes right before the famous
-               #          tune in the galop: cats and the square lead together, on the famous tune's 4-bar line
+               #          tune in the galop: the cats sing it with THE CAT CHOIR (held meows on the chords and a
+               #          third below on the long notes: make_choir_stems.py; it takes the harm lane, there are no
+               #          off-beat backing vocals here), the square lead 5 dB down under them, on the famous
+               #          tune's 4-bar line. The choir is only here: on the fast famous tune it is clutter.
                #   75%    FEVER: the famous tune comes back with everything (square lead, pluck doubling,
                #          Can-Can's own cat drums), on the descent's 4-bar line           <- the kaleidoscope
                # Every change is a strain of the same galop in the galop's own order, on a phrase line, full band on
@@ -426,7 +429,7 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                    'cc_keys': [[R[1], R[2]], [R[3], 1]], 'cc_bass': [[R[1], R[2]], [R[3], 1]], 'cc_lead': [[R[1], R[2]], [R[3], 1]],
                    'cc_harm': [[R[1], R[2]], [R[3], 1]], 'cc_peak': [[R[1], R[2]], [R[3], 1]],
                    'ccb_keys': [[R[2], R[3]]], 'ccb_bass': [[R[2], R[3]]], 'ccb_cats': [[R[2], R[3]]], 'ccb_square': [[R[2], R[3]]],
-                   'ccb_harm': [[R[2], R[3]]], 'ccb_peak': [[R[2], R[3]]],
+                   'ccb_choir': [[R[2], R[3]]], 'ccb_peak': [[R[2], R[3]]],
                    'cc_square': [[R[3], 1]], 'cc_double': [[R[3], 1]]}}]}
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
          10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
@@ -454,7 +457,8 @@ def to_lanes(s):
     lanes, cues_of = [], []
     for lane_id, name, group in LANES:
         clips = [({'id': tr['id'], 'pattern': tr['pattern'], 'by_hit': tr['by_hit']} if 'pattern' in tr
-                  else {'id': tr['id'], 'file': tr['file']}) for tr in s['tracks'] if tr['group'] == group]
+                  else {'id': tr['id'], 'file': tr['file'], **({'gain_db': tr['gain_db']} if tr.get('gain_db') else {})})
+                 for tr in s['tracks'] if tr['group'] == group]
         for c in clips:                                   # the tune a clip belongs to, from its id (see TUNES)
             if c['id'].split('_')[0] in TUNES:
                 c['tune'] = c['id'].split('_')[0]

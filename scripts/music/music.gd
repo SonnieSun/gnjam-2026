@@ -33,6 +33,7 @@ var muted := {}
 
 ## 同步流里第 i 条子流是哪条轨道的哪段
 var _slot_lane := PackedStringArray()
+var _slot_gain := PackedFloat32Array()   # 片段自己的 "gain_db"（加在所在那一轨的音量上）
 var _slot_clip := PackedStringArray()
 ## 每一段在哪个同步流里、是里面的第几条（见下面的"曲子组"）
 var _slot_stream: Array[AudioStreamSynchronized] = []
@@ -171,6 +172,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	data = d
 	stream = AudioStreamSynchronized.new()
 	_slot_lane = PackedStringArray()
+	_slot_gain = PackedFloat32Array()
 	_slot_clip = PackedStringArray()
 	_slot_stream = []
 	_slot_index = PackedInt32Array()
@@ -225,6 +227,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 			_slot_tune.append(tune)
 			into.append(s)
 			_slot_lane.append(lane.id)
+			_slot_gain.append(float(clip.get("gain_db", 0.0)))
 			_slot_clip.append(clip.id)
 	stream.stream_count = streams.size()
 	for i in streams.size():
@@ -1056,7 +1059,7 @@ func _process(delta: float) -> void:
 			var step := delta / (FADE_IN_SEC if goal > cur else beat_sec)
 			cur = minf(goal, cur + step) if goal > cur else maxf(goal, cur - step)
 			_level[i] = cur
-		var db: float = SILENT_DB if cur <= 0.0001 else linear_to_db(cur) + float(_lane_gain.get(_slot_lane[i], 0.0))
+		var db: float = SILENT_DB if cur <= 0.0001 else linear_to_db(cur) + float(_lane_gain.get(_slot_lane[i], 0.0)) + _slot_gain[i]
 		if dip_now and dipped and cur > 0.0001:
 			db += DIP_DB
 		if duck_now and ducked and cur > 0.0001:

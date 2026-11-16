@@ -165,9 +165,9 @@
      "tune": "cca"
     },
     {
-     "id": "ccb_harm",
-     "pattern": "res://levels/music/patterns/harm_can_can_b.json",
-     "by_hit": false,
+     "id": "ccb_choir",
+     "file": "res://assets/audio/music/classics/can_can_b/can_can_b_C_choir_8b.wav",
+     "gain_db": 6.0,
      "tune": "ccb"
     },
     {
@@ -225,6 +225,7 @@
     {
      "id": "ccb_square",
      "file": "res://assets/audio/music/classics/can_can_b/can_can_b_L3_square_8b.wav",
+     "gain_db": -5.0,
      "tune": "ccb"
     }
    ]
@@ -438,7 +439,7 @@
      ],
      [
       0.625,
-      "ccb_harm"
+      "ccb_choir"
      ],
      [
       0.75,
