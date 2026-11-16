@@ -80,7 +80,11 @@ static func list_patterns() -> PackedStringArray:
 
 
 ## 让一个谱子片段开始 / 停止跟着节拍播（pattern 为空 = 停）
-func set_active(key: String, pattern: Dictionary, db := 0.0, sung_by_hit := false) -> void:
+## origin_beat：这个谱子从第几拍算起（它跟着的那首曲子是从哪条小节线起的）
+var origin := {}
+
+func set_active(key: String, pattern: Dictionary, db := 0.0, sung_by_hit := false, origin_beat := 0.0) -> void:
+	origin[key] = origin_beat
 	for k in _phrase_cat.keys():
 		if k.begins_with(key + "/"):
 			_phrase_cat.erase(k)
@@ -101,10 +105,11 @@ func sing_hit() -> bool:
 	if by_hit.is_empty() or not running():
 		return false
 	var sang := false
-	var step := roundi(now_beat() * 4.0)
+	var abs_step := roundi(now_beat() * 4.0)
 	for key: String in by_hit:
 		var pattern: Dictionary = active.get(key, {})
 		var total: int = maxi(int(pattern.get("bars", 1)), 1) * STEPS_PER_BAR
+		var step := abs_step - roundi(float(origin.get(key, 0.0)) * 4.0)
 		var at := posmod(step, total)
 		var best: Array = []
 		var best_d := 4
@@ -213,7 +218,10 @@ func _process(_delta: float) -> void:
 
 func _trigger(key: String, pattern: Dictionary, step: int) -> void:
 	var total: int = maxi(int(pattern.get("bars", 1)), 1) * STEPS_PER_BAR
-	var at := step % total
+	var local := step - roundi(float(origin.get(key, 0.0)) * 4.0)
+	if local < 0:
+		return
+	var at := local % total
 	var db: float = gain_db.get(key, 0.0) + float(pattern.get("gain_db", 0.0))
 	if pattern.get("kind", "") == "drums":
 		for row: Dictionary in pattern.get("rows", []):

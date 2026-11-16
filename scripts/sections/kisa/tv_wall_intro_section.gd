@@ -62,7 +62,7 @@ func _ready() -> void:
 	_stage.cat_flying.connect(func(seconds: float) -> void: Music.play_sfx("catness_down", -5.0, seconds))
 	_stage.cat_landed.connect(func() -> void:
 		Music.play_sfx("kick", -2.0)
-		Music.play_sfx("spin_meow_a", -6.0))
+		Music.play_sfx("kitten_mi", -6.0))
 
 
 func hit_position(_note: NoteData = null) -> Vector2:

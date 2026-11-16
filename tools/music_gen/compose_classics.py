@@ -215,6 +215,7 @@ def miao(midi, seconds, style='mix', flow=0.0):
 
 
 TAIL_FADE = 0.04     # a flow meow is gone this long after the next note starts
+SAME_PITCH_GAP = 0.05  # ... but this long BEFORE it when the next note repeats the pitch, so they stay two notes
 
 
 def tail_cut(v, note_n):
@@ -380,6 +381,43 @@ def halves(song):
 VOICES = {}          # lead name -> [(note index, start sample, mono sound)], for check_cat_cleanup.py
 
 
+def merge_repeats(mel, octave):
+    """For the flow lead (whole meows, legato): two notes in a row on the same high pitch (from HIGH_FROM up,
+    where every note is doubled by a hard-cut meow) become one long note: sung as written, G5 G5 came out
+    as a meow chopped in two. A short pickup into a long note on the same pitch (D5 D5 at the end of a
+    phrase) is NOT merged: that short-then-long is the shape of the ending. It is kept apart instead: the
+    pickup stops a moment before the long note starts (see put() in cat_leads)."""
+    out = []
+    for s, p, ln in mel:
+        if out and out[-1][1] == p and out[-1][0] + out[-1][2] == s and nm(p) + octave >= HIGH_FROM:
+            out[-1] = (out[-1][0], p, out[-1][2] + ln)
+        else:
+            out.append((s, p, ln))
+    return out
+
+
+# Which meow sings the fast notes of a mi_attack tune, and from where in it: "<pool><index>@<seconds in>",
+# pool L = LONG, S = SHORT, A = ACCENT (e.g. "S2@0" = the third short cat from its start, "S1@0.22" = the
+# second short cat starting 0.22 s into its meow). Measured (share of energy at 2-8 kHz in the first 0.18 s,
+# pitched to C5-A5): S2 87 %, S3 77-91 %, S1 1-17 % from its start but 73 % from 0.22 s in, S0 0-24 %.
+# The "nearest short cat" picked S0, the dullest. CAT_QUICK in the environment overrides it for test renders.
+# "own+mi" = no other cat: the phrase's cat sings the fast notes as before and a kitten's 'mi' is layered on
+# the front of each of them (long notes get no 'mi'). "own+mi_all" = the same, and on the long notes too.
+QUICK = os.environ.get('CAT_QUICK', 'own+mi_all')   # picked by ear on 2026-11-16 out of six test renders (make_quick_tests.py)
+
+
+def quick_cat(mid, shorts):
+    if QUICK.startswith('own+mi'):   # the phrase's own cat keeps the fast notes; a kitten 'mi' is layered on each
+        return None, 0.0
+    pool = {'L': LONG, 'S': SHORT, 'A': ACCENT}[QUICK[0]]
+    name, _, off = QUICK.partition('@')
+    c = pool[int(name[1:])]
+    v = (c.mean(axis=1) if c.ndim == 2 else c)[int(float(off or 0) * SR):].copy()
+    f = min(t2n(0.003), len(v) // 4)
+    v[:f] *= np.linspace(0, 1, f)
+    return v, native(c)
+
+
 def cat_leads(song, bars, last_in_phrase):
     """The cat versions of a tune: {'L3_cat', 'L3_cat_flow', 'L3_cat_pool', 'L3_cat_classic',
     'L3_cat_kichiku'}. song needs 'melody' [(16th step, note name, length in 16ths)] and 'cat_octave'."""
@@ -393,14 +431,21 @@ def cat_leads(song, bars, last_in_phrase):
     for name, style, flow in (('L3_cat', 'mix', False), ('L3_cat_flow', 'mix', True),
                               ('L3_cat_pool', 'pool', False), ('L3_cat_classic', 'classic', False)):
         x = blank(bars)
-        for i, (s, p, ln) in enumerate(song['melody']):
+        mel = merge_repeats(song['melody'], song['cat_octave']) if flow else song['melody']
+        ends = ({max(i for i, (s, _, _) in enumerate(mel) if s // 16 == b)
+                 for b in range(3, bars, 4) if any(s // 16 == b for s, _, _ in mel)} if flow else last_in_phrase)
+        for i, (s, p, ln) in enumerate(mel):
             m = nm(p) + song['cat_octave']
             nxt = mel[i + 1][0] if i + 1 < len(mel) else mel[0][0] + bars * 16
 
             def put(v, at, gain=1.0):
                 """Place one sound of this note; in the flow lead it ends just after the next note starts."""
                 if flow:
-                    v = tail_cut(v, max(0, t2n(nxt * STEP) - at))
+                    room = max(0, t2n(nxt * STEP) - at)
+                    if i + 1 < len(mel) and mel[i + 1][1] == p:
+                        # the next note is the same pitch: stop early, so the two are heard as two (short, long)
+                        room = max(t2n(0.06), room - t2n(SAME_PITCH_GAP + TAIL_FADE))
+                    v = tail_cut(v, room)
                 VOICES.setdefault(name, []).append((i, at, v * gain))
                 place(x, stereo(v), at, gain)
             # High notes: a formant-kept meow gets thin up there and stops reading as a note, so from
@@ -409,7 +454,10 @@ def cat_leads(song, bars, last_in_phrase):
             if m >= HIGH_FROM:
                 k = hit(high_cat[0], high_cat[1], m, max(ln * STEP * 0.95, 0.09))
                 put(resonate(k, m, even=True), t2n(s * STEP), float(np.interp(m, [HIGH_FROM, HIGH_FROM + 9], [0.5, 0.95])))
-            if i in last_in_phrase and ln >= 2:              # mi-mi-mi-MIAO, #6 shouting the end
+            if flow and i in ends and ln >= 2:              # the flow lead ends a phrase on one held MIAO, no stutter
+                put(resonate(shout(m, max(0.12, ln * STEP)), lift(m), FX), t2n(s * STEP), 1.25)
+                put(resonate(shout(m - 12, max(0.12, ln * STEP), 'shout_lo'), lift(m - 12), FX), t2n(s * STEP), 0.55)
+            elif i in ends and ln >= 2:                    # mi-mi-mi-MIAO, #6 shouting the end
                 for k in range(3):
                     put(resonate(mi(m), lift(m), FX), t2n(s * STEP + k * STEP / 2), 0.9)
                 sec, at = max(0.12, ln * STEP - 1.5 * STEP), t2n(s * STEP + 1.5 * STEP)
@@ -424,6 +472,9 @@ def cat_leads(song, bars, last_in_phrase):
     # phrase, never the same cat two phrases running), every note restarts its meow from the start,
     # pitched by playing it faster / slower, and is cut hard at the end of the note. Full pitch FX.
     x = blank(bars)
+    mel = song['melody']
+    bright = song.get('mi_attack', False)
+    shorts = [(c.mean(axis=1) if c.ndim == 2 else c, native(c)) for c in SHORT]
     prev = None
     for ph in range(0, bars, 4):
         idx = [i for i, (s, _, _) in enumerate(mel) if ph <= s // 16 < ph + 4]
@@ -432,11 +483,32 @@ def cat_leads(song, bars, last_in_phrase):
         mid = float(np.median([nm(mel[i][1]) + song['cat_octave'] for i in idx]))
         prev = next(c for c in sorted(range(len(everyone)), key=lambda c: abs(everyone[c][1] - mid)) if c != prev)
         sample, own = everyone[prev]
+        # Fast notes (mi_attack tunes): the phrase's cat only gets through the dull front of its meow in an
+        # eighth note ("mm", never reaching the bright part), so a run of them is a row of thuds. They go to a
+        # short cat instead, whose meow starts on the 'mi': the one nearest the phrase, the same for the phrase.
+        quick, quick_own = quick_cat(mid, shorts)
         for i in idx:
             s, p, ln = mel[i]
             m = nm(p) + song['cat_octave']
             end = i in last_in_phrase and ln >= 2
-            place(x, stereo(resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)), t2n(s * STEP), 1.3 if end else 1.0)
+            if bright and ln * STEP < 0.25 and quick is None:
+                v = resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)
+                place(x, stereo(resonate(mi(m, 0.07), lift(m), 1.0)), t2n(s * STEP), 0.75)
+            elif bright and ln * STEP < 0.25:
+                v = resonate(hit(quick, quick_own, m, ln * STEP * 0.95), m, even=True)
+            else:
+                v = resonate(hit(sample, own, m, ln * STEP * 0.95), m, even=True)
+            if bright and ln >= 4:
+                # A long note whose meow opens dull ("mmao") and only blooms in its tail: more presence on its
+                # first tenth of a second. (A kitten's 'mi' layered on the attack was tried and dropped: it
+                # read as a separate little note in front of a meow that is good as it is.)
+                n0 = min(len(v), t2n(0.11))
+                env = np.zeros(len(v))
+                env[:n0] = np.linspace(1.0, 0.0, n0) ** 0.7
+                v = v + bandpass(v, 2500, 7000) * env * 1.6
+                if QUICK == 'own+mi_all':
+                    place(x, stereo(resonate(mi(m, 0.07), lift(m), 1.0)), t2n(s * STEP), 0.75)
+            place(x, stereo(v), t2n(s * STEP), 1.3 if end else 1.0)
             if end:
                 place(x, stereo(resonate(hit(sample, own, m - 12, ln * STEP * 0.95), m - 12, even=True)), t2n(s * STEP), 0.6)
     L['L3_cat_kichiku'] = match_rms(finish(reverb(punch(highpass(x, 120)), 0.6, 0.2, mix=0.06)[: len(x)], bars), 0.135)
@@ -590,23 +662,42 @@ SONGS = {
         cat_octave=-12, drum_notes=(nm('E4'), nm('A4'))),
     # Grieg, "In the Hall of the Mountain King" (1875), the march theme in 8ths. A minor.
     'mountain_king': dict(
-        chords=['Am', 'Am', 'B7', 'Bb', 'Am', 'Am', 'C', 'G'],
+        # Bars 5-8 (added 2026-11-16): the answer, the same tune on the dominant, as the piece goes on (bars 10-13
+        # of the piano score; read off the Mutopia Project MIDI of op. 46 no. 4, public domain, moved from
+        # B minor to our A minor). The loop is now theme + answer, 8 bars.
+        chords=['Am', 'Am', 'B7', 'Bb', 'Am', 'Am', 'C', 'G', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E'],
         melody=tune([
             [(0, 'A4', 2), (2, 'B4', 2), (4, 'C5', 2), (6, 'D5', 2), (8, 'E5', 2), (10, 'C5', 2), (12, 'E5', 4)],
             [(0, 'D#5', 2), (2, 'B4', 2), (4, 'D#5', 4), (8, 'D5', 2), (10, 'Bb4', 2), (12, 'D5', 4)],
             [(0, 'A4', 2), (2, 'B4', 2), (4, 'C5', 2), (6, 'D5', 2), (8, 'E5', 2), (10, 'C5', 2), (12, 'E5', 2), (14, 'A5', 2)],
             [(0, 'G5', 2), (2, 'E5', 2), (4, 'C5', 2), (6, 'E5', 2), (8, 'G5', 8)],
+            [(0, 'E5', 2), (2, 'F#5', 2), (4, 'G#5', 2), (6, 'A5', 2), (8, 'B5', 2), (10, 'G#5', 2), (12, 'B5', 4)],
+            [(0, 'C6', 2), (2, 'G#5', 2), (4, 'C6', 4), (8, 'B5', 2), (10, 'G#5', 2), (12, 'B5', 4)],
+            [(0, 'E5', 2), (2, 'F#5', 2), (4, 'G#5', 2), (6, 'A5', 2), (8, 'B5', 2), (10, 'G#5', 2), (12, 'B5', 4)],
+            [(0, 'C6', 2), (2, 'G#5', 2), (4, 'C6', 4), (8, 'B5', 8)],
         ]),
         cat_octave=0, drum_notes=(nm('E4'), nm('A4'))),
     # Beethoven, Symphony No. 9, "Ode to Joy" (1824), on royal-road chords. C major, quarters.
     'ode_to_joy': dict(
-        chords=['C', 'C', 'G', 'G', 'Am', 'Am', 'Em', 'Em', 'F', 'F', 'C', 'C', 'Dm7', 'Dm7', 'G', 'C'],
+        chords=['C', 'C', 'G', 'G', 'Am', 'Am', 'Em', 'Em', 'F', 'F', 'C', 'C', 'Dm7', 'Dm7', 'G', 'C',
+                'G', 'G', 'G', 'C', 'G', 'G', 'Am', 'G', 'C', 'C', 'G', 'G', 'F', 'C', 'G', 'C'],
         melody=tune([
             [(0, 'E5', 4), (4, 'E5', 4), (8, 'F5', 4), (12, 'G5', 4)],
             [(0, 'G5', 4), (4, 'F5', 4), (8, 'E5', 4), (12, 'D5', 4)],
             [(0, 'C5', 4), (4, 'C5', 4), (8, 'D5', 4), (12, 'E5', 4)],
             [(0, 'E5', 6), (6, 'D5', 2), (8, 'D5', 8)],
             [(0, 'E5', 4), (4, 'E5', 4), (8, 'F5', 4), (12, 'G5', 4)],
+            [(0, 'G5', 4), (4, 'F5', 4), (8, 'E5', 4), (12, 'D5', 4)],
+            [(0, 'C5', 4), (4, 'C5', 4), (8, 'D5', 4), (12, 'E5', 4)],
+            [(0, 'D5', 6), (6, 'C5', 2), (8, 'C5', 8)],
+            # Bars 9-16 (added 2026-11-16): the middle phrase and the tune's return, so the loop is the whole
+            # hymn (A A B A), 16 bars. Read off the Mutopia Project MIDI of the hymn (public domain), moved from
+            # G to our C. The E at the end of bar 12 is tied over the bar line, as in the tune.
+            [(0, 'D5', 4), (4, 'D5', 4), (8, 'E5', 4), (12, 'C5', 4)],
+            [(0, 'D5', 4), (4, 'E5', 2), (6, 'F5', 2), (8, 'E5', 4), (12, 'C5', 4)],
+            [(0, 'D5', 4), (4, 'E5', 2), (6, 'F5', 2), (8, 'E5', 4), (12, 'D5', 4)],
+            [(0, 'C5', 4), (4, 'D5', 4), (8, 'G4', 4), (12, 'E5', 8)],
+            [(4, 'E5', 4), (8, 'F5', 4), (12, 'G5', 4)],
             [(0, 'G5', 4), (4, 'F5', 4), (8, 'E5', 4), (12, 'D5', 4)],
             [(0, 'C5', 4), (4, 'C5', 4), (8, 'D5', 4), (12, 'E5', 4)],
             [(0, 'D5', 6), (6, 'C5', 2), (8, 'C5', 8)],
@@ -648,8 +739,23 @@ SONGS = {
             [(0, 'C5', 4), (4, 'B4', 2), (6, 'A4', 1), (7, 'B4', 1), (8, 'A4', 4),
              (12, 'B4', 1), (13, 'A4', 1), (14, 'G#4', 1), (15, 'A4', 1)],
         ]),
-        cat_octave=0, drum_notes=(nm('E4'), nm('A4'))),
+        cat_octave=0, drum_notes=(nm('E4'), nm('A4')), mi_attack=True),
 }
+
+# Turkish March, the second section: the A major "janissary" tune (bars 25-32 of the rondo), the loud march
+# the piece keeps coming back to. Notes and chords read off the Mutopia Project MIDI of KV 331 / 3 (public
+# domain, typeset from IMSLP; reference/midi_public_domain/mozart_kv331_3). Same writing as the first section:
+# a step is one of the original sixteenths, a row is two original bars, played at half speed. The last two
+# notes are the pickup back into the loop.
+SONGS['turkish_march_b'] = dict(
+    chords=['A', 'A', 'D', 'E', 'A', 'A', 'E', 'A'],
+    melody=tune([
+        [(0, 'C#6', 4), (4, 'A5', 2), (6, 'B5', 2), (8, 'C#6', 2), (10, 'B5', 2), (12, 'A5', 2), (14, 'G#5', 2)],
+        [(0, 'F#5', 2), (2, 'G#5', 2), (4, 'A5', 2), (6, 'B5', 2), (8, 'G#5', 2), (10, 'E5', 2), (12, 'A5', 2), (14, 'B5', 2)],
+        [(0, 'C#6', 4), (4, 'A5', 2), (6, 'B5', 2), (8, 'C#6', 2), (10, 'B5', 2), (12, 'A5', 2), (14, 'G#5', 2)],
+        [(0, 'F#5', 2), (2, 'B5', 2), (4, 'G#5', 2), (6, 'E5', 2), (8, 'A5', 4), (12, 'A5', 2), (14, 'B5', 2)],
+    ]),
+    cat_octave=0, drum_notes=(nm('E4'), nm('A4')), mi_attack=True)
 
 # Toby Fox, "Your Best Friend" (Undertale, 2015). NOT public domain: for the team's internal playtest
 # only. The tune comes from a piano MIDI (tools/music_gen/midi_to_pattern.py, right hand); the chords are
@@ -706,7 +812,7 @@ SONGS['ybf_end'] = dict(
     cat_octave=0, drum_notes=(nm('D#4'), nm('G#4')))
 
 HALF_TIME = 2
-SPEED = {'turkish_march': HALF_TIME}
+SPEED = {'turkish_march': HALF_TIME, 'turkish_march_b': HALF_TIME}
 # Placeholder, not used yet: everything is rendered at 160 BPM. Songs listed here suit 120 better and
 # get their own 120 render later (it also needs 120 BPM drums and bass; the game already takes the
 # tempo from each level's music file, levels/music/level_N.json "bpm").

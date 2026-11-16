@@ -26,11 +26,18 @@
    "clips": [
     {
      "id": "tm_bass",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L2_bass_16b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L2_bass_16b.wav",
+     "tune": "tm"
     },
     {
      "id": "cc_bass",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav",
+     "tune": "cc"
+    },
+    {
+     "id": "tmb_bass",
+     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_L2_bass_8b.wav",
+     "tune": "tmb"
     }
    ]
   },
@@ -41,11 +48,18 @@
    "clips": [
     {
      "id": "tm_keys",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_fb_L0_keys_16b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_fb_L0_keys_16b.wav",
+     "tune": "tm"
     },
     {
      "id": "cc_keys",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav",
+     "tune": "cc"
+    },
+    {
+     "id": "tmb_keys",
+     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L0_keys_8b.wav",
+     "tune": "tmb"
     }
    ]
   },
@@ -56,15 +70,13 @@
    "clips": [
     {
      "id": "tm_pluck",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_pluck_16b.wav"
-    },
-    {
-     "id": "cc_pluck",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_pluck_16b.wav",
+     "tune": "tm"
     },
     {
      "id": "cc_lead",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav",
+     "tune": "cc"
     }
    ]
   },
@@ -74,12 +86,14 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "tm_peak",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_fb_L4_peak_16b.wav"
+     "id": "tmb_peak",
+     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L4_peak_8b.wav",
+     "tune": "tmb"
     },
     {
      "id": "cc_peak",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav",
+     "tune": "cc"
     }
    ]
   },
@@ -94,7 +108,33 @@
     },
     {
      "id": "cc_cat_drums",
-     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav",
+     "tune": "cc"
+    }
+   ]
+  },
+  {
+   "id": "harm",
+   "name": "猫和声",
+   "gain_db": -5.0,
+   "clips": [
+    {
+     "id": "tm_harm",
+     "pattern": "res://levels/music/patterns/harm_turkish_march.json",
+     "by_hit": false,
+     "tune": "tm"
+    },
+    {
+     "id": "cc_harm",
+     "pattern": "res://levels/music/patterns/harm_can_can.json",
+     "by_hit": false,
+     "tune": "cc"
+    },
+    {
+     "id": "tmb_harm",
+     "pattern": "res://levels/music/patterns/harm_turkish_march_b.json",
+     "by_hit": false,
+     "tune": "tmb"
     }
    ]
   },
@@ -105,11 +145,18 @@
    "clips": [
     {
      "id": "tm_kichiku",
-     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_cat_kichiku_16b.wav"
+     "file": "res://assets/audio/music/classics/turkish_march/turkish_march_L3_cat_kichiku_16b.wav",
+     "tune": "tm"
+    },
+    {
+     "id": "tmb_kichiku",
+     "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_L3_cat_kichiku_8b.wav",
+     "tune": "tmb"
     },
     {
      "id": "cc_double",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav"
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav",
+     "tune": "cc"
     }
    ]
   },
@@ -143,12 +190,20 @@
      [
       0.2,
       "tm_bass"
+     ],
+     [
+      0.9,
+      "tmb_bass"
      ]
     ],
     "bed": [
      [
       0.0,
       "tm_keys"
+     ],
+     [
+      0.9,
+      "tmb_keys"
      ]
     ],
     "lead": [
@@ -164,7 +219,7 @@
     "peak": [
      [
       0.9,
-      "tm_peak"
+      "tmb_peak"
      ]
     ],
     "meow": [
@@ -173,10 +228,24 @@
       "cat_drums"
      ]
     ],
+    "harm": [
+     [
+      0.7,
+      "tm_harm"
+     ],
+     [
+      0.9,
+      "tmb_harm"
+     ]
+    ],
     "kiai": [
      [
       0.7,
       "tm_kichiku"
+     ],
+     [
+      0.9,
+      "tmb_kichiku"
      ]
     ]
    },
@@ -220,10 +289,6 @@
     "lead": [
      [
       0.0,
-      "cc_pluck"
-     ],
-     [
-      0.5,
       "cc_lead"
      ]
     ],
@@ -243,9 +308,15 @@
       "cc_cat_drums"
      ]
     ],
+    "harm": [
+     [
+      0.0,
+      "cc_harm"
+     ]
+    ],
     "kiai": [
      [
-      0.75,
+      0.5,
       "cc_double"
      ]
     ]
@@ -260,6 +331,8 @@
     0.75,
     1.0
    ],
+   "exit": "end_g_major",
+   "fever_fill": false,
    "enter": "tr_tm_to_cc",
    "own": {
     "kiai": "cc_double",

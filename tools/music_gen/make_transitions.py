@@ -10,8 +10,11 @@ two sets of drums would flam).
                            hard-cut, landing on E (the dominant of A minor) over an E7 swell.
   <sfx>/tr_mk_to_cc.wav    Mountain King (A minor) -> Can-Can (G major): "the hall bursts open". The creeping
                            head in sixteenths, running on up the scale and chromatically up to a high D over D7.
-  <sfx>/tr_tm_to_cc.wav    Turkish March (A minor) -> Can-Can (G major): the march's turn figure, three times,
-                           each a step higher, then a D7 arpeggio up.
+  <sfx>/tr_tm_to_cc.wav    Turkish March's second section (A major) -> Can-Can (G major): the head of that tune
+                           in sixteenths, on up to a high D, then a D7 arpeggio up.
+
+Also the ENDINGS, one per key: the last chord when a level clears (a section's "exit"):
+  <sfx>/end_g_minor.wav, end_c_major.wav, end_g_major.wav
 
 usage: python -I make_transitions.py <loops dir> <sfx dir> [<more sfx dirs to copy into>...]
 """
@@ -117,12 +120,48 @@ render('tr_mk_to_cc',
        bass=[(0, 'A1', 4), (4, 'A1', 4), (8, 'D2', 4), (12, 'D2', 4)],
        chords=[(0, 'Am', 4, 'stab'), (8, 'D7', 8, 'swell')], last_slide=12.0)
 
-# Turkish March (Am) -> Can-Can (G): the turn figure three times, a step higher each time, then D7 up
+# Turkish March -> Can-Can (G). The shooter ends in its fever, which is the march's second section (A major),
+# so this leaves from that tune: its head (C#6 A5 B5 C#6 B5 A5 G#5) in sixteenths, on up to a high D, then D7 up.
 render('tr_tm_to_cc',
-       lead=[(0, 'B4', 1, 'b'), (1, 'A4', 1, 'b'), (2, 'G#4', 1, 'b'), (3, 'A4', 1, 'b'),
-             (4, 'C5', 1, 'b'), (5, 'B4', 1, 'b'), (6, 'A#4', 1, 'b'), (7, 'B4', 1, 'b'),
-             (8, 'D5', 1, 'b'), (9, 'C5', 1, 'b'), (10, 'B4', 1, 'b'), (11, 'C5', 1, 'b'),
+       lead=[(0, 'C#6', 2, 'b'), (2, 'A5', 1, 'b'), (3, 'B5', 1, 'b'), (4, 'C#6', 1, 'b'), (5, 'B5', 1, 'b'),
+             (6, 'A5', 1, 'b'), (7, 'G#5', 1, 'b'), (8, 'A5', 1, 'b'), (9, 'B5', 1, 'b'), (10, 'C#6', 1, 'b'), (11, 'D6', 1, 'b'),
              (12, 'D5', 1, 'i'), (13, 'F#5', 1, 'i'), (14, 'A5', 1, 'i'), (15, 'C6', 1, 'i')],
        bass=[(0, 'A1', 4), (4, 'A1', 4), (8, 'D2', 8)],
-       chords=[(0, 'Am', 4, 'stab'), (8, 'D7', 8, 'swell')], last_slide=7.0)
+       chords=[(0, 'A', 4, 'stab'), (8, 'D7', 8, 'swell')], last_slide=7.0)
+
+
+def ending(name, sym, tonic):
+    """The last chord of a level, in the tune's key: played the moment the level clears (the music stops there),
+    so it is the downbeat the tune was heading for. A big tonic chord with a kick and a crash, the cats' MIAO on
+    the tonic, two little 'mi' after it (fifth, third) and a MIAO an octave up. These have drums: nothing else
+    is playing."""
+    n = t2n(3.2)
+    x = np.zeros((n + t2n(1.5), 2))
+    k = np.arange(n) / SR
+    notes, root = cc.chord(sym)
+    v = sum(osc_supersaw(mtof(m + o), n, voices=7, detune=0.3) * g for m in notes for o, g in ((0, 1.0), (12, 0.6))) / len(notes)
+    place(x, lowpass(v, 6000) * (np.clip(k / 0.008, 0, 1) * np.exp(-k / 1.1))[:, None], 0, 0.5)
+    place(x, pan(cc.bass_note(mtof(root + 12), t2n(1.6)), 0.0), 0, 0.6)
+    place(x, cc.KICK, 0, 0.9)
+    place(x, cc.CRASH, 0, 0.5)
+    m = nm(tonic)
+    third = notes[1] + (12 if notes[1] < m else 0)
+    fifth = notes[2] + (12 if notes[2] < m else 0)
+    place(x, pan(sung(m, 7), 0.0), 0, 1.0)
+    place(x, pan(sung(m - 12, 7), -0.2), 0, 0.5)
+    place(x, pan(cc.resonate(cc.mi(fifth, 0.09), cc.lift(fifth), 1.0), 0.25), t2n(8 * STEP), 0.8)
+    place(x, pan(cc.resonate(cc.mi(third, 0.09), cc.lift(third), 1.0), -0.25), t2n(10 * STEP), 0.8)
+    place(x, pan(sung(m + 12, 6), 0.0), t2n(12 * STEP), 0.9)
+    x = reverb(x, 1.8, 0.45, mix=0.2)
+    f = t2n(0.2)
+    x[-f:] *= np.linspace(1, 0, f)[:, None]
+    write_wav(os.path.join(SFX, name + '.wav'), x, peak=0.9)
+    for d in COPIES:
+        shutil.copy(os.path.join(SFX, name + '.wav'), os.path.join(d, name + '.wav'))
+    print(f'  {name}: {len(x) / SR:.2f} s')
+
+
+ending('end_g_minor', 'Gm', 'G4')      # the disco theme (level 1)
+ending('end_c_major', 'C', 'C5')       # Ode to Joy (the sky level)
+ending('end_g_major', 'G', 'G4')       # Can-Can (the end of level 2 and of level 3)
 print('transitions done ->', SFX)
