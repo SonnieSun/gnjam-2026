@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_erph5")
-length_beats = 16.0
+length_beats = 32.0
 notes = Array[Dictionary]([{
 "beat": 0.0,
 "sound": 0
@@ -24,6 +24,9 @@ notes = Array[Dictionary]([{
 "beat": 8.0,
 "sound": 0
 }, {
+"beat": 9.5,
+"sound": 0
+}, {
 "beat": 10.0,
 "sound": 1
 }, {
@@ -37,5 +40,59 @@ notes = Array[Dictionary]([{
 "sound": 1
 }, {
 "beat": 15.0,
+"sound": 0
+}, {
+"beat": 16.0,
+"sound": 0
+}, {
+"beat": 18.0,
+"sound": 1
+}, {
+"beat": 18.5,
+"sound": 0
+}, {
+"beat": 19.0,
+"sound": 0
+}, {
+"beat": 20.0,
+"sound": 0
+}, {
+"beat": 21.5,
+"sound": 0
+}, {
+"beat": 22.0,
+"sound": 1
+}, {
+"beat": 23.0,
+"sound": 0
+}, {
+"beat": 24.0,
+"sound": 0
+}, {
+"beat": 25.5,
+"sound": 0
+}, {
+"beat": 26.0,
+"sound": 1
+}, {
+"beat": 26.5,
+"sound": 0
+}, {
+"beat": 27.0,
+"sound": 0
+}, {
+"beat": 28.0,
+"sound": 0
+}, {
+"beat": 29.0,
+"sound": 0
+}, {
+"beat": 30.0,
+"sound": 1
+}, {
+"beat": 31.0,
+"sound": 0
+}, {
+"beat": 31.5,
 "sound": 0
 }])

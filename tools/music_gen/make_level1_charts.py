@@ -55,11 +55,18 @@ write('level_1_disco_0', *bars(
     [(0, K), (2, S), (2.5, K)],
     [(0, K), (2, S)],
     [(0, K), (2, S), (2.5, K)]))
+#       This is the room's small climax and it lasts about eight bars now (the gauge rises slower here, see
+#       disco_section.gd room_climax_gain), so the chart is eight bars that build: two notes a bar up to five.
+#       The beats are kicks; 1.5, 2.5 and 3.5 are the groove's open hats, and the theme has a note on 1.5 and 2.5.
 write('level_1_disco_0_room4', *bars(
     [(0, K), (2, S)],
     [(0, K), (2, S), (3, K)],
-    [(0, K), (2, S)],
-    [(0, K), (1, K), (2, S), (3, K)]))
+    [(0, K), (1.5, K), (2, S)],
+    [(0, K), (1, K), (2, S), (3, K)],
+    [(0, K), (2, S), (2.5, K), (3, K)],
+    [(0, K), (1.5, K), (2, S), (3, K)],
+    [(0, K), (1.5, K), (2, S), (2.5, K), (3, K)],
+    [(0, K), (1, K), (2, S), (3, K), (3.5, K)]))
 
 # THE ROAD. Nothing to play in the music's two transition bars, nor in The Entertainer's first bar: that bar is the
 # band's count-in, four big drum hits (the level's "预备" beat), and the road's chart starts on the bar after it:
@@ -78,7 +85,23 @@ D = [(0, K), (1.5, K), (2.5, K), (3, S), (3.5, K)]
 E = [(0, K), (0.75, K), (1.5, K), (2.5, K), (3, S)]
 write('level_1_disco_0_road', *bars(*([A] * 4 + [B] * 2 + [C] * 2 + [E, C, E, D] * 14)))
 
-# THE PLAZA (the build on the club beat, then the fever on the break beat). 0 and 2.5 are a kick in both, 1 and 3
-# the clap in both.
-P = [(0, K), (1, S), (2.5, K), (3, S)]
-write('level_1_disco_0_plaza', *bars(P, [(0, K), (1, S), (2.5, K)], P, P))
+# THE PLAZA, one chart per groove. Both parts last longer now (the gauge rises slower there, see disco_section.gd
+# plaza_build_gain / plaza_fever_gain), so each is a phrase that goes somewhere instead of one bar repeated.
+#   the build, on the club beat (kick 0, 0.75, 1.5, 2.5, 3, 3.5; clap 1, 3), about four bars: a note more every bar,
+#       the third bar is the club kick's own run of three off-beats
+#   the fever, on the break beat (kick 0, 1.75, 2.5; clap 1, 3), about eight bars: the claps on 1 and 3 are the
+#       frame, the kick on 1.75 (the "a" of 2) comes and goes; bars 4 and 6 leave a clap out, so the phrase breathes
+write('level_1_disco_0_plaza', *bars(
+    [(0, K), (1, S), (2.5, K), (3, S)],
+    [(0, K), (1, S), (2.5, K), (3, S), (3.5, K)],
+    [(0, K), (0.75, K), (1.5, K), (2.5, K), (3, S)],
+    [(0, K), (1, S), (1.5, K), (2.5, K), (3, S), (3.5, K)]))
+write('level_1_disco_0_fever', *bars(
+    [(0, K), (1, S), (2.5, K), (3, S)],
+    [(0, K), (1, S), (1.75, K), (2.5, K), (3, S)],
+    [(0, K), (1, S), (2.5, K), (3, S)],
+    [(0, K), (1.75, K), (2.5, K), (3, S)],
+    [(0, K), (1, S), (1.75, K), (2.5, K), (3, S)],
+    [(0, K), (1, S), (1.75, K), (3, S)],
+    [(0, K), (1, S), (1.75, K), (2.5, K), (3, S)],
+    [(0, K), (1, S), (2.5, K), (3, S)]))

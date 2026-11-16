@@ -50,6 +50,14 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var sync_wall_first_beat := 0.0
 @export var sync_wall_gap_beats := 2.0
 @export var sync_camera_turn_from_beat := 3.0
+## 高潮段做长：这几段里积累条涨得慢（倍数越小这一段越长；1 = 和别的段一样）。全打 Perfect 时大约：
+##   房间打开之前（跳舞猫 60 分 → 拆房子 110 分）0.33 ≈ 8 小节（原来 3 小节多）
+##   圆台的渐强段（250 → 280）0.3 ≈ 4 小节（原来 1 小节半）
+##   圆台的 fever（280 → 350）0.4 ≈ 8 小节（原来 3 小节半）
+## 分数线和音乐的切换点都没动，只是这几段要多打几下。谱子见 tools/music_gen/make_level1_charts.py。
+@export_range(0.1, 1.0, 0.01) var room_climax_gain := 0.33
+@export_range(0.1, 1.0, 0.01) var plaza_build_gain := 0.3
+@export_range(0.1, 1.0, 0.01) var plaza_fever_gain := 0.4
 ## 水果路滑到圆台（舞台）时歇多久再出音符（秒，大概值：会对到最近的小节线上）
 @export var plaza_rest_seconds := 5.0
 
@@ -115,6 +123,7 @@ func _ready() -> void:
 		add_child(_stage)
 	_stage.setup(_spin_cat)
 	_accents = get_node_or_null("NoteAccents") as NoteAccents
+	Music.change_planned.connect(_on_change_planned)
 	if _accents:
 		_rainbow_layer = Node2D.new()
 		add_child(_rainbow_layer)
@@ -261,6 +270,14 @@ func _main_gauge() -> Gauge:
 func _on_gauge_event(index: int, _value: int) -> void:
 	if _stage == null:
 		return
+	# 高潮段做长：这一段里积累条涨得慢（见 room_climax_gain 那几个数）
+	var g := _main_gauge()
+	if g:
+		match index:
+			3: g.gain_scale = room_climax_gain
+			5: g.gain_scale = 1.0
+			8: g.gain_scale = plaza_build_gain
+			9: g.gain_scale = 1.0
 	if index <= 4:
 		_stage.enter_stage(index)
 		if index == 3:
@@ -293,6 +310,17 @@ func _on_gauge_event(index: int, _value: int) -> void:
 			var rest := plaza_rest_seconds / Conductor.sec_per_beat()
 			_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars(), "plaza")
 			_road.enter_plaza(song_beat())
+
+
+## 音乐排好了进 fever（圆台上，鼓换成碎拍的那条小节线）：谱子在同一条线换成 fever 那一份（有 fever 这份谱才换），
+## 这一段的积累条也换成 fever 的倍数。
+func _on_change_planned(kind: String, _id: int, _fill_beat: float, commit_beat: float) -> void:
+	if not active or kind != "fever":
+		return
+	_switch_chart_at(commit_beat, commit_beat, "fever")
+	var g := _main_gauge()
+	if g:
+		g.gain_scale = plaza_fever_gain
 
 
 ## 拆房子上路（第 5 条线）。
@@ -650,7 +678,8 @@ static func chart_phases() -> Array:
 		{"id": "", "name": "房间（缩圈），半拍的鼓", "event": 0},
 		{"id": "room4", "name": "房间（缩圈），四拍的鼓", "event": 3},
 		{"id": "road", "name": "水果路", "event": 5, "tune_offset": 4.0},  # 谱从 The Entertainer 的第 2 小节起（第 1 小节是预备拍）
-		{"id": "plaza", "name": "圆台（缩圈）", "event": 8},
+		{"id": "plaza", "name": "圆台（缩圈），渐强段", "event": 8},
+		{"id": "fever", "name": "圆台（缩圈），fever", "event": 8, "at": 0.652},
 		{"id": "abduct", "name": "吸猫（光圈）", "event": 9},
 	]
 
