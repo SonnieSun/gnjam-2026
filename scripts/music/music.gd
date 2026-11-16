@@ -77,6 +77,7 @@ const DIP_DB := -14.0
 ## kiai 轨上是乐器（比如 cc_double）就不让。
 const KIAI_DUCK_DB := -6.0
 var _duck_on := false
+var _fill_until := -1.0  # 几小节长的专门过门放到第几拍：在那之前不换（进度变了也不重新排到更早的小节线）
 var _outro := false       # 结尾段在放：除了鼓，别的轨道都停着（见 outro()）
 var _outro_wait := false  # 叫了 outro()，等下一条小节线
 const SFX_DIR := "res://assets/audio/sfx/"
@@ -184,6 +185,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_free_tunes()
 	_pattern_tune.clear()
 	_lane_gain.clear()
+	_fill_until = -1.0
 	_set_fever_reverb(false)
 	_outro = false
 	_outro_wait = false
@@ -485,6 +487,14 @@ func _fever_enter() -> String:
 		return ""
 	var sfx_name := str(secs[section].get("fever_enter", ""))
 	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
+
+
+## 进 fever 的专门过门有几小节（小关里的 "fever_enter_bars"，不写 = 1）
+func _fever_enter_bars() -> int:
+	var secs: Array = data.get("sections", [])
+	if section < 0 or section >= secs.size() or _fever_enter() == "":
+		return 1
+	return maxi(1, int(secs[section].get("fever_enter_bars", 1)))
 
 
 ## 大高潮的混响：小关里写 "fever_reverb": 0.2（湿声的量），进这个小关的 fever 时整个总线慢慢加上一层大厅混响，
@@ -953,6 +963,8 @@ func _queue() -> void:
 	_pending = true
 	var q: float = data.get("quantize_beats", 4)
 	_next_beat = (floorf(Conductor.song_beat / q) + 1.0) * q if Conductor.playing else 0.0
+	if Conductor.playing and _next_beat < _fill_until:
+		_next_beat = _fill_until
 	# 要升档了：先放一声上扬音效，正好在换的那一拍放完
 	if dynamics() and Conductor.playing and not _quiet_tier_change:
 		var up := tier_of(effective, tier_lines(section))
@@ -980,6 +992,11 @@ func _on_beat(index: int) -> void:
 	var carrying := _carry > 0.0 and index % 4 == 0 and index >= int(round(_carry_from))
 	if carrying and _carry_level() <= effective:
 		_carry = 0.0
+	if index < int(round(_fill_until)):      # 几小节长的专门过门还没放完：别的事都等它放完那条小节线再办
+		if expired or carrying:
+			_pending = true
+			_next_beat = maxf(_next_beat, _fill_until)
+		return
 	if expired or carrying or (_pending and index >= int(round(_next_beat))):
 		_apply_now(index)
 
@@ -1027,7 +1044,8 @@ func _apply_now(beat_index := -1) -> void:
 	if use_dynamics and beat_index >= 0 and not fever and in_fever(eff) and not _fever_fill_done:
 		var bars := _fever_on_bars()
 		# 有过门：过门占上一句的最后一小节，所以看的是下一条小节线；没有过门：这条小节线本身要是乐句线
-		var lands := beat_index + (base if _fill_clip() != "" and _fever_fill_wanted() else 0.0)
+		# （"fever_enter_bars" 写了 2 小节以上的过门不占上一句：上一句唱完，过门从乐句线起，多出来这几小节）
+		var lands := beat_index + (base if _fill_clip() != "" and _fever_fill_wanted() and _fever_enter_bars() <= 1 else 0.0)
 		if bars > 0 and not _on_phrase_line(lands, bars):
 			eff = _fever_start(eff) - 0.002
 			hold = true
@@ -1071,7 +1089,8 @@ func _apply_now(beat_index := -1) -> void:
 		else:
 			_play_fill_bar()
 		_pending = true
-		_next_beat = beat_index + base
+		_next_beat = beat_index + base * (_fever_enter_bars() if into_fever != "" else 1)
+		_fill_until = _next_beat
 		return
 	# 升档：送一小节小 kiai（fever 里本来就开着，不用送）
 	if use_dynamics and beat_index >= 0 and not _quiet_tier_change and going_to > tier and not fever_now \
