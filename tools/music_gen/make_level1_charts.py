@@ -44,9 +44,18 @@ def write(name, notes, length):
     print(f'  {name}.tres: {len(notes)} notes in {int(length / 4)} bars')
 
 
-# THE ROOM (the disco theme; half-time drums, then four on the floor). Beats 0 and 2 are a drum in both (kick /
-# clap, kick / kick), 1 and 3 are the four-on-the-floor kicks. Four bars, the second and fourth a little fuller.
+# THE ROOM (the disco theme), one chart per groove (checked note by note against levels/music/events/grooves.json):
+#   half-time drums, up to the dancing cats (gauge 60): kick 0 and 2.5, clap 2. The fuller bars add the kick on 2.5,
+#       the level's first off-beat note. (One chart used to serve both grooves, and its notes on beats 1 and 3
+#       had no drum under them while the half-time groove played.)
+#   four on the floor, from the dancing cats on (the "room4" phase, switched in on the bar line the groove changes):
+#       beats 1 and 3 are kicks now.
 write('level_1_disco_0', *bars(
+    [(0, K), (2, S)],
+    [(0, K), (2, S), (2.5, K)],
+    [(0, K), (2, S)],
+    [(0, K), (2, S), (2.5, K)]))
+write('level_1_disco_0_room4', *bars(
     [(0, K), (2, S)],
     [(0, K), (2, S), (3, K)],
     [(0, K), (2, S)],
@@ -57,13 +66,17 @@ write('level_1_disco_0', *bars(
 # its beat 0 is the first fruit. (A version with notes in the transition bars was tried first; the count-in bar
 # is the design.) The Entertainer over the club beat, getting denser the way the old road was meant to (every note
 # a kick, beat 3 a kick and a clap):
-#   4 bars   0, 3            4 bars   0, 1.5, 3            8 bars   0, 1.5, 2.5, 3
-#   then two bars in turn:   0, 1.5, 2.5, 3   /   0, 1.5, 2.5, 3, 3.5
+#   4 bars   0, 3            2 bars   0, 1.5, 3            2 bars   0, 1.5, 2.5, 3
+#   then four bars in turn:  E  C  E  D      (a perfect run is on the road for about 12 bars, so it meets E twice)
+#       C = 0, 1.5, 2.5, 3          D = C with 3.5
+#       E = 0, 0.75, 1.5, 2.5, 3    the club kick's own figure: three off-beat notes in a row (0.75, 1.5, 2.5),
+#                                   the run NoteAccents marks the first note of
 A = [(0, K), (3, S)]
 B = [(0, K), (1.5, K), (3, S)]
 C = [(0, K), (1.5, K), (2.5, K), (3, S)]
 D = [(0, K), (1.5, K), (2.5, K), (3, S), (3.5, K)]
-write('level_1_disco_0_road', *bars(*([A] * 4 + [B] * 4 + [C] * 8 + [C, D] * 24)))
+E = [(0, K), (0.75, K), (1.5, K), (2.5, K), (3, S)]
+write('level_1_disco_0_road', *bars(*([A] * 4 + [B] * 2 + [C] * 2 + [E, C, E, D] * 14)))
 
 # THE PLAZA (the build on the club beat, then the fever on the break beat). 0 and 2.5 are a kick in both, 1 and 3
 # the clap in both.

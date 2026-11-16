@@ -263,6 +263,13 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		return
 	if index <= 4:
 		_stage.enter_stage(index)
+		if index == 3:
+			# 跳舞猫：音乐的鼓在下一条小节线从半拍换成四拍，谱子跟着换成四拍那一份（有 room4 这份谱才换）。
+			# 已经出来的音符照常打完。
+			var plan3: Dictionary = Music.planned_change()
+			var bpb3: int = Conductor.chart.beats_per_bar
+			var at := float(plan3.commit_beat) if plan3.get("kind", "") == "tier" else ceilf((song_beat() + 0.01) / bpb3) * bpb3
+			_switch_chart_at(at, at, "room4")
 	elif index == 5:
 		_begin_unfold(index)
 	elif index == 6 or index == 7:
@@ -639,7 +646,8 @@ func _leave_crossfade() -> void:
 ## 某个阶段的谱子存在 levels/charts/<大关>_<第几个小关>_<id>.tres；没有这个文件就和以前一样。
 static func chart_phases() -> Array:
 	return [
-		{"id": "", "name": "房间（缩圈）", "event": 0},
+		{"id": "", "name": "房间（缩圈），半拍的鼓", "event": 0},
+		{"id": "room4", "name": "房间（缩圈），四拍的鼓", "event": 3},
 		{"id": "road", "name": "水果路", "event": 5},
 		{"id": "plaza", "name": "圆台（缩圈）", "event": 8},
 		{"id": "abduct", "name": "吸猫（光圈）", "event": 9},
