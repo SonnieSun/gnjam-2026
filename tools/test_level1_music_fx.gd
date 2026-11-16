@@ -120,6 +120,12 @@ func _run() -> void:
 	order_sorted.sort()
 	_check("the judge's notes are still in order", order == order_sorted)
 	_check("the added note is the rainbow change note", added.size() == 1 and accents.look(added[0], Color.WHITE).rainbow)
+	# hitting it plays its own sound; hitting any other note does not
+	var other: NoteData = section.notes.filter(func(n: NoteData) -> bool: return n.beat > free_beat + 0.6)[0]
+	game.judge.note_judged.emit(other, NoteData.Result.PERFECT, 0.0)
+	_check("an ordinary note has no change-note sound", not accents._sfx.playing)
+	game.judge.note_judged.emit(added[0], NoteData.Result.PERFECT, 0.0)
+	_check("hitting the change note plays its own sound", accents._sfx.playing and accents._sfx.stream.resource_path.ends_with("fever_note.wav"))
 	# a change on a beat that has a note: nothing is added
 	var taken: float = section.notes.filter(func(n: NoteData) -> bool: return n.beat > free_beat + 1.0)[0].beat
 	var size_now: int = game.judge.notes.size()
@@ -134,6 +140,7 @@ func _run() -> void:
 	var fx: Node = section.get_node("FeverFx")
 	Music.fever_started.emit()
 	await create_timer(0.4).timeout
+	_check("fever: the level-up sound plays as it starts", fx._sfx.playing and fx._sfx.stream.resource_path.ends_with("fever_enter.wav"))
 	_check("fever: filter on, both big cannons and the rain going", fx._rect.visible and fx._level > 0.9
 			and fx._big[0].emitting and fx._big[1].emitting and fx._rain[0].emitting and fx._rain[1].emitting)
 	Music.drum_clap.emit(Conductor.song_beat)

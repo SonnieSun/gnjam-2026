@@ -50,6 +50,9 @@ enum Kind { NONE, DOWNBEAT, SYNCOPATED, ACCENT, LEAD_IN, FEVER }
 @export_group("fever 的音符（七彩）")
 ## 进 fever 的那一个音符
 @export var fever := true
+## 打中换段音符（七彩的那一个）时它自己的音效（一串往上的玻璃铃声；tools/music_gen/make_fever_sfx.py 合成的，C 大调）。空 = 不放
+@export var change_note_sfx: AudioStream = preload("res://assets/audio/sfx/fever_note.wav")
+@export_range(-30.0, 6.0) var change_note_sfx_db := -8.0
 ## 换段的那一拍上谱里没有音符（前后 add_note_gap 拍以内都没有）就加一个，让换段音符正好落在新的一段进来的那一下
 @export var add_change_note := true
 @export var add_note_gap := 0.45
@@ -84,10 +87,24 @@ var _kinds := {}            # NoteData -> Kind：一个音符第一次被问到�
 var _fever_at := -1.0       # 排好的那次进 fever 落在第几拍（-1 = 没有）
 var _fever_note: NoteData   # 进 fever 的那个音符
 var _add_in := 0            # 几帧之后检查换段那一拍有没有音符
+var _sfx: AudioStreamPlayer
+
+
+## 打中了换段音符：放它自己的音效
+func _on_note_judged(note: NoteData, result: int, _diff: float) -> void:
+	if enabled and change_note_sfx and result != NoteData.Result.MISS and _fever_at >= 0.0 and kind_of(note) == Kind.FEVER:
+		_sfx.stream = change_note_sfx
+		_sfx.volume_db = change_note_sfx_db
+		_sfx.play()
 
 
 func _ready() -> void:
 	Conductor.song_started.connect(_forget)
+	_sfx = AudioStreamPlayer.new()
+	add_child(_sfx)
+	var judge := get_tree().current_scene.get_node_or_null("Judge") if get_tree().current_scene else null
+	if judge and judge.has_signal("note_judged"):
+		judge.connect("note_judged", _on_note_judged)
 	Music.fever_ended.connect(func() -> void: _fever_at = -1.0)
 	Music.change_planned.connect(func(kind: String, _id: int, _fill: float, commit: float) -> void:
 		if (kind == "fever" and fever) or (kind == "tier" and _id in rainbow_on_tiers):

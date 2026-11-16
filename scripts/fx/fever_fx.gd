@@ -30,6 +30,10 @@ extends CanvasLayer
 ## 淡入 / 淡出几秒
 @export var fade_in := 0.25
 @export var fade_out := 0.6
+@export_group("声音")
+## 进 fever 那一下的升阶音效（一串往上跑的琶音，落在一个响着的和弦上；tools/music_gen/make_fever_sfx.py 合成的，C 大调）。空 = 不放
+@export var enter_sfx: AudioStream = preload("res://assets/audio/sfx/fever_enter.wav")
+@export_range(-30.0, 6.0) var enter_sfx_db := -10.0
 @export_group("彩带")
 @export var confetti := true
 ## 进 fever：两边角落各一大炮，每边多少片
@@ -46,6 +50,7 @@ extends CanvasLayer
 
 const SMALL_CANNONS := 3   # 每边几门小炮轮着用（一门喷完要 lifetime 秒，轮着用才不会把上一把掐掉）
 
+var _sfx: AudioStreamPlayer
 var _rect: ColorRect
 var _mat: ShaderMaterial
 var _on := false
@@ -63,6 +68,8 @@ var _flutter: Curve
 
 func _ready() -> void:
 	layer = 1   # 和 ScreenFx 同一层（在它后面画），HUD（2）在上面
+	_sfx = AudioStreamPlayer.new()   # 自己的播放器：Music 那几个放一次性音效的在进 fever 那一下都占着（镲、升档的喵）
+	add_child(_sfx)
 	_rect = ColorRect.new()
 	_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -111,6 +118,10 @@ func start() -> void:
 	_on = true
 	_punch = 1.0
 	_wave = 0.0
+	if enter_sfx and Conductor.playing:
+		_sfx.stream = enter_sfx
+		_sfx.volume_db = enter_sfx_db
+		_sfx.play()
 	_flash = enter_flash if filter else 0.0
 	if confetti:
 		for c in _big:
