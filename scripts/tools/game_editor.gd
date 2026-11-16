@@ -12,6 +12,8 @@ extends CanvasLayer
 ##   Memes        左边点缩略图选素材，在当前进度加一只；选中后在画面上拖动摆位置，
 ##                还可以给它选动效（自转、绕圈、流过去……）和快慢。
 ##   音乐         每条轨道点一段 = 从当前进度起换成它。
+##   Rhythm       这个小关场景里的节奏组件（猫的 Q 弹、音符的重点标记、预备拍数字、fever 画面）的开关和数值，改了马上看到。
+##   （Phases 页每个阶段还有一个 Length：这一段做长 / 做短，见 SectionDef.phase_gain）
 ##   谱子         点格子写这个小关循环的鼓谱。
 ##
 ## 改动先只在这次运行里生效，点“保存”才写进文件：阶段 / 镜头 / 猫图 / 谱子 / 满条值写进大关的 .tres，
@@ -41,6 +43,10 @@ var _phase_name: LineEdit
 var _phase_at: SpinBox
 var _phase_pct: Label
 var _phase_sel := 0
+var _phase_gain: SpinBox
+var _phase_len: Label
+var _fever_gain: SpinBox
+var _rhythm_box: VBoxContainer
 var _fx_strip: Control
 var _fx_buttons := {}
 var _meme_chips: HFlowContainer
@@ -165,6 +171,7 @@ func _build_ui() -> void:
 			_fill_thumbnails())
 	tabs.add_child(_build_music_tab())
 	tabs.add_child(_build_pattern_tab())
+	tabs.add_child(_build_rhythm_tab())
 
 
 func _build_phase_tab() -> Control:
@@ -195,6 +202,34 @@ func _build_phase_tab() -> Control:
 	_phase_pct = _lbl("")
 	_phase_box.add_child(_phase_pct)
 	_btn(_phase_box, "Delete", _remove_phase, "Remove this gauge line. Later phases move up one slot")
+	# 这一段多长：积累条在这个阶段里涨跌的倍数（SectionDef.phase_gain），和 fever 那一段的（fever_gain）
+	var len_row := HBoxContainer.new()
+	len_row.add_theme_constant_override("separation", 6)
+	v.add_child(len_row)
+	len_row.add_child(_lbl("Length of the selected phase:  gauge ×"))
+	_phase_gain = SpinBox.new()
+	_phase_gain.min_value = 0.1
+	_phase_gain.max_value = 3.0
+	_phase_gain.step = 0.01
+	_phase_gain.tooltip_text = "How fast the gauge moves in this phase. 1 = normal; 0.5 = every hit counts half, so the phase takes twice as many hits (twice as long). The lines and the music's switch points stay where they are."
+	_phase_gain.value_changed.connect(_set_phase_gain)
+	len_row.add_child(_phase_gain)
+	_phase_len = _lbl("")
+	_phase_len.modulate.a = 0.75
+	len_row.add_child(_phase_len)
+	len_row.add_child(_lbl("      Fever:  gauge ×"))
+	_fever_gain = SpinBox.new()
+	_fever_gain.min_value = 0.0
+	_fever_gain.max_value = 3.0
+	_fever_gain.step = 0.01
+	_fever_gain.tooltip_text = "The same for the fever part of this stage, wherever the music has it. 0 = not set (fever uses its phase's number)."
+	_fever_gain.value_changed.connect(func(v2: float) -> void:
+		if _loading:
+			return
+		_def().fever_gain = v2
+		main.apply_phase_gain()
+		_mark_dirty())
+	len_row.add_child(_fever_gain)
 	var row := HBoxContainer.new()
 	v.add_child(row)
 	_btn(row, "+ Add phase at current gauge", _add_phase, "Add a gauge line at the current gauge position")
@@ -370,6 +405,100 @@ func _build_pattern_tab() -> Control:
 	return v
 
 
+## 节奏组件：小关场景里叫这几个名字的节点（有哪个列哪个）
+const RHYTHM_NODES := ["CatBounce", "NoteAccents", "CountInDisplay", "FeverFx"]
+const RHYTHM_HELP := {
+	"CatBounce": "the cat squashes and bounces with the groove (scripts/fx/music_bounce.gd)",
+	"NoteAccents": "bar-line / accent / syncopated / change notes look different (scripts/fx/note_accents.gd)",
+	"CountInDisplay": "READY 3 2 1 on a count-in (scripts/fx/count_in_display.gd)",
+	"FeverFx": "the fever picture: rainbow edge filter, confetti, the level-up sound (scripts/fx/fever_fx.gd)",
+}
+
+func _build_rhythm_tab() -> Control:
+	var scroll := ScrollContainer.new()
+	scroll.name = "Rhythm"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_rhythm_box = VBoxContainer.new()
+	_rhythm_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_rhythm_box.add_theme_constant_override("separation", 8)
+	scroll.add_child(_rhythm_box)
+	return scroll
+
+
+## 这个小关场景里有哪些节奏组件就列哪些：每个导出的开关 / 数 / 颜色一个控件，改了马上生效，记进 SectionDef.fx
+func _fill_rhythm() -> void:
+	for c in _rhythm_box.get_children():
+		_rhythm_box.remove_child(c)
+		c.queue_free()
+	var found := false
+	for node_name: String in RHYTHM_NODES:
+		var node: Node = main._current.get_node_or_null(node_name) if main._current else null
+		if node == null:
+			continue
+		found = true
+		var head := _lbl("%s  —  %s" % [node_name, RHYTHM_HELP[node_name]])
+		head.add_theme_color_override("font_color", Color("ffd23f"))
+		_rhythm_box.add_child(head)
+		var row := HFlowContainer.new()
+		row.add_theme_constant_override("h_separation", 12)
+		_rhythm_box.add_child(row)
+		for p: Dictionary in node.get_property_list():
+			if not (p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE) or not (p.usage & PROPERTY_USAGE_EDITOR):
+				continue
+			var key: String = p.name
+			var value: Variant = node.get(key)
+			var cell := HBoxContainer.new()
+			match p.type:
+				TYPE_BOOL:
+					var cb := CheckBox.new()
+					cb.text = key
+					cb.button_pressed = value
+					cb.focus_mode = Control.FOCUS_NONE
+					cb.toggled.connect(func(on: bool) -> void: _set_fx(node_name, key, on))
+					cell.add_child(cb)
+				TYPE_FLOAT, TYPE_INT:
+					cell.add_child(_lbl(key))
+					var sb := SpinBox.new()
+					sb.step = 1.0 if p.type == TYPE_INT else 0.01
+					sb.min_value = -1000.0
+					sb.max_value = 10000.0
+					if p.hint == PROPERTY_HINT_RANGE:
+						var parts: PackedStringArray = str(p.hint_string).split(",")
+						if parts.size() >= 2:
+							sb.min_value = float(parts[0])
+							sb.max_value = float(parts[1])
+					sb.value = float(value)
+					sb.value_changed.connect(func(v: float) -> void: _set_fx(node_name, key, int(v) if p.type == TYPE_INT else v))
+					cell.add_child(sb)
+				TYPE_COLOR:
+					cell.add_child(_lbl(key))
+					var pick := ColorPickerButton.new()
+					pick.color = value
+					pick.custom_minimum_size = Vector2(44, 24)
+					pick.color_changed.connect(func(c: Color) -> void: _set_fx(node_name, key, c))
+					cell.add_child(pick)
+				_:
+					cell.free()
+					continue
+			row.add_child(cell)
+	if not found:
+		var none := _lbl("This stage's scene has none of the rhythm components (nodes named CatBounce / NoteAccents / CountInDisplay / FeverFx).")
+		none.modulate.a = 0.6
+		_rhythm_box.add_child(none)
+
+
+## 改了一个组件的一个数：马上用上，记进这个小关的定义（保存时写进大关文件）
+func _set_fx(node_name: String, key: String, value: Variant) -> void:
+	var node: Node = main._current.get_node_or_null(node_name) if main._current else null
+	if node:
+		node.set(key, value)
+	var def := _def()
+	if not def.fx.has(node_name):
+		def.fx[node_name] = {}
+	def.fx[node_name][key] = value
+	_mark_dirty()
+
+
 func _lbl(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
@@ -467,6 +596,7 @@ func _load_section() -> void:
 	_fill_phases()
 	_fill_memes()
 	_fill_music()
+	_fill_rhythm()
 	_refresh()
 
 
@@ -594,6 +724,11 @@ func _fill_phases() -> void:
 			var m := e as InputEventMouseButton
 			if m and m.pressed and m.double_click and m.button_index == MOUSE_BUTTON_LEFT:
 				_jump_phase(i))
+	_loading = true
+	_phase_gain.value = _gain_of(_phase_sel)
+	_fever_gain.value = _def().fever_gain
+	_loading = false
+	_show_phase_len()
 	var on := _phase_sel > 0 and _phase_sel <= events.size()
 	for c in _phase_box.get_children().slice(1):
 		c.visible = on
@@ -611,6 +746,35 @@ func _fill_phases() -> void:
 		_fx_strip.queue_redraw()
 	for lid: String in _music_strips:
 		_music_strips[lid].markers = _markers()
+
+
+## 第 i 个阶段（0 = 第一条线之前）积累条涨跌的倍数
+func _gain_of(i: int) -> float:
+	var gains := _def().phase_gain
+	return gains[i] if i < gains.size() and gains[i] > 0.0 else 1.0
+
+
+func _set_phase_gain(v: float) -> void:
+	if _loading:
+		return
+	var def := _def()
+	var gains := def.phase_gain.duplicate()
+	while gains.size() <= maxi(_phase_sel, main.gauge.events.size()):
+		gains.append(1.0)
+	gains[_phase_sel] = v
+	def.phase_gain = gains
+	main.apply_phase_gain()
+	_show_phase_len()
+	_mark_dirty()
+
+
+## 选中的这个阶段全打 Perfect 要打几下
+func _show_phase_len() -> void:
+	var events: PackedInt32Array = main.gauge.events
+	var from := events[_phase_sel - 1] if _phase_sel > 0 and _phase_sel <= events.size() else 0
+	var to: int = events[_phase_sel] if _phase_sel < events.size() else main.gauge.max_value
+	var hits := ceili((to - from) / maxf(main.gauge.perfect_gain * _gain_of(_phase_sel), 0.01))
+	_phase_len.text = "= %d perfect hits to get through (%d → %d pts)" % [hits, from, to]
 
 
 func _select_phase(i: int) -> void:
@@ -678,6 +842,10 @@ func _add_phase() -> void:
 		i += 1
 	events.insert(i, at)
 	names.insert(i, "Phase %d" % (i + 1))
+	var gains := _def().phase_gain.duplicate()   # 新的这一段先用它所在那一段的倍数
+	if i + 1 <= gains.size():
+		gains.insert(i + 1, gains[i] if i < gains.size() else 1.0)
+		_def().phase_gain = gains
 	_phase_sel = i + 1
 	_apply_phases(events, names)
 
@@ -689,6 +857,10 @@ func _remove_phase() -> void:
 	var names := _phase_names()
 	events.remove_at(_phase_sel - 1)
 	names.remove_at(_phase_sel - 1)
+	var gains := _def().phase_gain.duplicate()
+	if _phase_sel < gains.size():
+		gains.remove_at(_phase_sel)
+		_def().phase_gain = gains
 	_phase_sel = mini(_phase_sel, events.size())
 	_apply_phases(events, names)
 
@@ -889,7 +1061,7 @@ func _resize_bars(by: int) -> void:
 
 ## 游戏里用的谱面是文件的一份副本，这里把每个小关改过的东西抄回文件里那一份再存
 func save() -> void:
-	var path: String = Levels.paths()[Levels.selected]
+	var path: String = Levels.current_path()   # 插曲关（天空关）存它自己的文件
 	var src := load(path) as SongChart
 	var err := OK
 	if src.sections.size() != main.chart.sections.size():
@@ -904,6 +1076,9 @@ func save() -> void:
 			src.sections[i].gauge_events = from.gauge_events.duplicate()
 			src.sections[i].use_gauge_events = from.use_gauge_events
 			src.sections[i].gauge_event_names = from.gauge_event_names.duplicate()
+			src.sections[i].phase_gain = from.phase_gain.duplicate()
+			src.sections[i].fever_gain = from.fever_gain
+			src.sections[i].fx = from.fx.duplicate(true)
 		err = ResourceSaver.save(src, path)
 	var saved := path.get_file()
 	if err == OK and Music.enabled_for(Levels.selected) and Music.stream != null:

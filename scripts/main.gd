@@ -108,6 +108,8 @@ func _ready() -> void:
 		section_entered.connect(Music.set_section)
 		gauge.changed.connect(func(v: int, m: int) -> void: Music.set_progress(float(v) / maxi(m, 1)))
 		# （积累条满了的那声上扬音效在 _process 里放：要正好在换小关的那条小节线上放完，而那条线可能要等乐句线）
+		Music.fever_started.connect(apply_phase_gain)
+		Music.fever_ended.connect(apply_phase_gain)
 	else:
 		Music.clear()  # 这一关不用叠轨音乐：别让上一关的喵谱子跟过来
 	ComicStyle.set_by_name(Levels.look())
@@ -369,6 +371,8 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 	_group_gauge(index, g_max)
 	gauge.begin(g_max, g_events)
 	_current.gauge_event_values = gauge.events
+	apply_phase_gain()
+	apply_section_fx()
 	section_entered.emit(index)
 
 	if joined:
@@ -582,7 +586,32 @@ func _phase_impact() -> void:
 		Music.play_sfx(phase_sound, phase_sound_db)
 
 
+## 现在这个阶段积累条涨跌的倍数（SectionDef.phase_gain / fever_gain）：进小关、过分数线、fever 开始 / 结束、
+## 编辑面板改了数的时候各算一次
+func apply_phase_gain() -> void:
+	if _index < 0 or _index >= chart.sections.size():
+		return
+	var def := chart.sections[_index]
+	var scale := def.phase_gain[gauge.events_fired] if gauge.events_fired < def.phase_gain.size() else 1.0
+	if Music.fever and def.fever_gain > 0.0:
+		scale = def.fever_gain
+	gauge.gain_scale = scale if scale > 0.0 else 1.0
+
+
+## 把这个小关存着的节奏组件设置（SectionDef.fx）套到场景里同名的节点上
+func apply_section_fx() -> void:
+	if _current == null or _index < 0:
+		return
+	var fx: Dictionary = chart.sections[_index].fx
+	for node_name: String in fx:
+		var node := _current.get_node_or_null(node_name)
+		if node:
+			for key: String in fx[node_name]:
+				node.set(key, fx[node_name][key])
+
+
 func _on_gauge_event(index: int, value: int) -> void:
+	apply_phase_gain()
 	hud.pulse_gauge(false)
 	_phase_impact()
 	if _current:

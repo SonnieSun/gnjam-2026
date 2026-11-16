@@ -77,7 +77,7 @@ func _run() -> void:
 	_check("no gap: a note on the bar line of the switch", is_equal_approx(first_after, switch_at), "first note from the switch on: %s" % first_after)
 	# the room's climax is stretched: from the dancing cats (60) to the house opening (110) takes about 24 perfect
 	# hits now (the gauge rises slower there), eight bars of the eight-bar chart
-	_check("the gauge rises slower in the room's climax", is_equal_approx(game.gauge.gain_scale, section.room_climax_gain), "x%s" % game.gauge.gain_scale)
+	_check("the gauge rises slower in the room's climax", is_equal_approx(game.gauge.gain_scale, 0.42), "x%s (the level file's phase_gain)" % game.gauge.gain_scale)
 	game.gauge.set_value(60)
 	var hits := 0
 	while game.gauge.value < 109 and hits < 200:
@@ -98,6 +98,10 @@ func _run() -> void:
 		for d: Dictionary in load("res://levels/charts/level_1_disco_0%s.tres" % name).notes:
 			all_notes.append(fposmod(float(d.beat), 1.0))
 	_check("no chart of level 1 has a note off the half-beat grid", all_notes.all(func(f: float) -> bool: return is_zero_approx(f) or is_equal_approx(f, 0.5)))
-	_check("fever: the gauge rises slower", is_equal_approx(game.gauge.gain_scale, section.plaza_fever_gain), "x%s" % game.gauge.gain_scale)
+	Music.fever = true
+	Music.fever_started.emit()
+	_check("fever: the gauge rises slower", is_equal_approx(game.gauge.gain_scale, 0.47), "x%s (the level file's fever_gain)" % game.gauge.gain_scale)
+	Music.fever = false
+	Music.fever_ended.emit()
 	print("LEVEL1_CHARTS_%s" % ("PASS" if _fail == 0 else "FAIL (%d)" % _fail))
 	quit()

@@ -32,6 +32,15 @@ enum Transition { ZOOM, CUT }
 ## 下一个小关换曲子 / 换段落、或者这是最后一个小关时用：不然那一句唱到一半就被切掉。等的时候音符照常出、照常计分。
 ## 只在用叠轨音乐的关卡里起作用（乐句从那首曲子自己的第 1 小节数起）。
 @export var exit_on_bars := 0
+## 每个阶段里积累条涨跌的倍数，用来把一段做长 / 做短：第 0 个 = 第一条分数线之前，第 i 个 = 过了第 i 条线之后，没写的是 1。
+## 0.5 = 每一下只涨一半，这一段要打两倍那么多下。分数线、满条值和音乐的切换点都不用动。
+## （游戏里 Tab 面板 Phases 页的 Length 改的就是它。）
+@export var phase_gain := PackedFloat32Array()
+## fever 那一段的倍数（0 = 不单独设，用所在阶段的）
+@export var fever_gain := 0.0
+## 节奏组件的设置：{节点名: {属性名: 值}}。进小关时套到小关场景里同名的节点上，盖过场景里填的
+## （CatBounce / NoteAccents / CountInDisplay / FeverFx；游戏里 Tab 面板 Rhythm 页改的就是它）。
+@export var fx := {}
 ## 接着上一段时，换谱面之前空几小节（大关里的 rest_bars_on_switch 是普通换关用的，一般更长）
 @export var join_rest_bars := 1
 
