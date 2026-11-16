@@ -15,8 +15,8 @@ The grooves (tools/music_gen/compose_disc.py RHYTHMS; beats of a 4/4 bar, 0 = th
 The files are ChartPattern resources (scripts/chart/chart_pattern.gd), the format both chart editors read and
 write. Kisa's beat editor (scenes/tools/kisa/beat_editor.tscn) opens them per phase (room / road / plaza) by
 these file names; its finest snap is a quarter beat and every note here is on that grid. A chart loops; a phase's
-beat 0 is where the level starts it (the room: the level's first note; the road: THE FIRST BAR OF THE MUSIC'S
-TRANSITION into The Entertainer; the plaza: the bar the music's build comes in).
+beat 0 is where the level starts it (the room: the level's first note; the road: the bar after The Entertainer's
+count-in bar; the plaza: the bar the music's build comes in).
 
 usage: python -I make_level1_charts.py <game project dir>
 """
@@ -52,21 +52,18 @@ write('level_1_disco_0', *bars(
     [(0, K), (2, S)],
     [(0, K), (1, K), (2, S), (3, K)]))
 
-# THE ROAD. It starts ON THE TRANSITION, so the two bars the music spends getting to The Entertainer are played:
-#   bar 1   the disco theme's last bar, the snare winding up            0, 2
-#   bar 2   The Entertainer's band: introduction, MIAO! on beat 3, the pick-up D D# on beat 4      0, 2 (the MIAO), 3, 3.5
-# then The Entertainer over the club beat, getting denser the way the old road was meant to (every note a kick,
-# beat 3 a kick and a clap):
+# THE ROAD. Nothing to play in the music's two transition bars, nor in The Entertainer's first bar: that bar is the
+# band's count-in, four big drum hits (the level's "预备" beat), and the road's chart starts on the bar after it:
+# its beat 0 is the first fruit. (A version with notes in the transition bars was tried first; the count-in bar
+# is the design.) The Entertainer over the club beat, getting denser the way the old road was meant to (every note
+# a kick, beat 3 a kick and a clap):
 #   4 bars   0, 3            4 bars   0, 1.5, 3            8 bars   0, 1.5, 2.5, 3
 #   then two bars in turn:   0, 1.5, 2.5, 3   /   0, 1.5, 2.5, 3, 3.5
 A = [(0, K), (3, S)]
 B = [(0, K), (1.5, K), (3, S)]
 C = [(0, K), (1.5, K), (2.5, K), (3, S)]
 D = [(0, K), (1.5, K), (2.5, K), (3, S), (3.5, K)]
-write('level_1_disco_0_road', *bars(
-    [(0, K), (2, S)],
-    [(0, K), (2, S), (3, K), (3.5, K)],
-    *([A] * 4 + [B] * 4 + [C] * 8 + [C, D] * 23)))
+write('level_1_disco_0_road', *bars(*([A] * 4 + [B] * 4 + [C] * 8 + [C, D] * 24)))
 
 # THE PLAZA (the build on the club beat, then the fever on the break beat). 0 and 2.5 are a kick in both, 1 and 3
 # the clap in both.

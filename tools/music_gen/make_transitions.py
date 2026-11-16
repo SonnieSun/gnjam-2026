@@ -447,3 +447,29 @@ ending('end_g_minor', 'Gm', 'G4')      # the disco theme (level 1)
 ending('end_c_major', 'C', 'C5')       # Ode to Joy (the sky level)
 ending('end_g_major', 'G', 'G4')       # Can-Can (the end of level 2 and of level 3)
 print('transitions done ->', SFX)
+
+
+# THE COUNT-IN of level 1's road: The Entertainer's first bar is the band's "one, two, three, four" on the drums,
+# four big hits on the beats (snare and floor tom together, each a little harder, a crash on the first one, which
+# is also the tune's entrance), and the first fruit is on the next bar line. The level plays it as the sound of
+# that tier arriving ("changes" -> "tier" -> "5" -> "sfx" in levels/music/level_1_disco.json), in place of the
+# generic crash and meow. Nothing pitched in it: the tune is already playing.
+def count_in(name):
+    x = np.zeros((BAR_N + t2n(0.6), 2))
+    place(x, cc.CRASH, 0, 0.55)
+    for i in range(4):
+        at = t2n(i * 4 * STEP)
+        g = 0.75 + 0.08 * i
+        place(x, snare(g), at, 1.0)
+        place(x, tom(123, g), at, 1.0)
+        place(x, tom(185, g * 0.6), at, 1.0)
+    x = reverb(x, 0.7, 0.3, mix=0.1)[:len(x)]
+    f = t2n(0.2)
+    x[-f:] *= np.linspace(1, 0, f)[:, None]
+    write_wav(os.path.join(SFX, name + '.wav'), x, peak=0.85)
+    for d in COPIES:
+        shutil.copy(os.path.join(SFX, name + '.wav'), os.path.join(d, name + '.wav'))
+    print(f'  {name}: {len(x) / SR:.2f} s')
+
+
+count_in('ent_count_in')

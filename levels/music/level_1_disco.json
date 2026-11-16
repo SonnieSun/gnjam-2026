@@ -334,7 +334,7 @@
       "bars": 2,
       "replaces": 1,
       "on_bars": 4,
-      "lead_beats": 4.0
+      "sfx": "ent_count_in"
      },
      "8": {
       "through": {
