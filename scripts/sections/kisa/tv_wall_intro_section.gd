@@ -1,7 +1,7 @@
 @tool
 extends SpinSection
 ## 电视墙关开场：画面中间一台洗衣机，圆圈收到门框上时按键。
-## 单点：舱门里的猫脸原地转一小段。长按时猫脸一直转、越转越快。长按（谱面里音符后面接 "="）：按住到尾巴才算成，中途松手变灰失败、不能补按。
+## 单点：舱门里的猫脸原地转一小段。长按时猫脸一直转、越转越快。长按（谱面里音符后面接 "="）：按住到尾巴才算成，没按完变灰失败（什么算按完见 Judge 的 rules）。
 ## 每完整按完一次长按推进一步：前 3 次镜头拉远，之后每次洗衣机发电、亮两台电视，直到全部亮起（见 TvWallIntroStage）。
 ## 判定用框架的 Judge：长按的开头由 Judge 当普通音符判，按住的部分交给 Judge.begin_hold 盯
 ## （松手时间和按下用同一个判定时钟，和迪斯科关同一种写法）。
@@ -11,8 +11,6 @@ extends SpinSection
 @export var approach_beats := 3.0
 ## 圆圈从多远收过来（占画面高度的比例）
 @export var approach_travel_ratio := 0.45
-## 长按离尾巴不到这么多拍时松手也算成
-@export var hold_release_grace := 0.3
 ## 长按按完（可以松手了）时：判定圈闪绿光、响一声的颜色和持续时间（秒）
 @export var hold_ok_color := Color(0.35, 1.0, 0.45)
 @export var hold_ok_seconds := 0.6
@@ -123,7 +121,7 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		_stage.hold_begin()
 		# 按住 = 洗衣机转起来：一声上扬的音效，正好在该松手的时候放完
 		Music.play_sfx("riser_1b", -11.0, hold_beats(note) * Conductor.sec_per_beat())
-		j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
+		j.begin_hold(note, note.beat + hold_beats(note), _on_hold_done.bind(note))
 	else:
 		_stage.tap()
 

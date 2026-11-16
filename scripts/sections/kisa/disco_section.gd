@@ -14,15 +14,13 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 ## 长按音符（只有这个关卡认）：谱面里在音符后面接一串 "="，比如 "k=======s......."
 ## = 底鼓按下后按住 8 格（2 拍）再松手。Sonnie 的谱面解析把 "=" 当休止，所以开头那一下
 ## 仍由 Judge 正常判定；按住的部分交给 Judge.begin_hold 盯（松手时间和按下用同一个判定时钟）：
-## 每按住满 1 拍进度 +1，按到尾巴再 +1，中途提前松手算一次 Miss（进度 -1）。长按期间不要排别的音符。长按不计入 HUD 的分数和连击。
+## 每按住满 1 拍进度 +1，按完再 +1，没按完算一次 Miss（进度 -1；什么算按完见 Judge 的 rules）。长按期间不要排别的音符。长按不计入 HUD 的分数和连击。
 ##
 ## 蓝色圆盘在 disco.tscn 里把 disc_color 设成全透明藏掉了，只留白色判定圈。
 ## 编辑器预览里仍显示原来的 2D 画面。只支持一个目标圆。
 
 ## 房间场景（里面要有 Stars/*、DiscoBall、DriftPath/* 这些定位点）
 @export var room: PackedScene = preload("res://stages/disco/disco_room.tscn")
-## 长按可以提前多少拍松手还算按完
-@export var hold_release_grace := 0.3
 ## 长按条带的透明度
 @export_range(0.0, 1.0) var hold_band_alpha := 0.4
 ## 往里收的圈：刚出现时多不透明（越靠近判定圈越亮，到判定圈时是完全不透明）
@@ -296,7 +294,7 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 			return
 		_holding = note
 		_hold_ticks = 0
-		j.begin_hold(note, _hold_ends[note], hold_release_grace, _on_hold_done.bind(note))
+		j.begin_hold(note, _hold_ends[note], _on_hold_done.bind(note))
 
 
 ## 按住的过程中：每按住满 1 拍 +1（拍数按判定时钟算）
