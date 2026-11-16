@@ -219,7 +219,8 @@
    "clips": [
     {
      "id": "cc_square",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_square_8b.wav",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_square_dark_8b.wav",
+     "gain_db": -3.0,
      "tune": "cc"
     },
     {

@@ -380,7 +380,7 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       t('tm_keys', TM + 'fb_L0_keys_16b.wav', 'bed'), t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'),
                       t('tm_bass', TM + 'L2_bass_16b.wav', 'bass'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
                       t('tm_pluck', TM + 'L3_pluck_16b.wav', 'hook'),
-                      t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'), t('cc_square', CC + 'L3_square_8b.wav', 'event'),
+                      t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'), t('cc_square', CC + 'L3_square_dark_8b.wav', 'event', -3.0),   # dark and down: the cats stay on top
                       t('cca_keys', CCA + 'fb_L0_keys_8b.wav', 'bed'), t('cca_bass', CCA + 'L2_bass_8b.wav', 'bass'),
                       t('cca_square', CCA + 'L3_square_8b.wav', 'hook'), t('cca_cats', CCA + 'L3_cat_kichiku_8b.wav', 'hook'),
                       harm('cca_harm', 'can_can_a'),
@@ -415,7 +415,8 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                #          third below on the long notes: make_choir_stems.py; it takes the harm lane, there are no
                #          off-beat backing vocals here), the square lead 5 dB down under them, on the famous
                #          tune's 4-bar line. The choir is only here: on the fast famous tune it is clutter.
-               #   75%    FEVER: the famous tune comes back with everything (square lead, pluck doubling,
+               #   75%    FEVER: the famous tune comes back with everything (square lead without its top and 3 dB
+               #          down so it does not cover the cats, pluck doubling,
                #          Can-Can's own cat drums), on the descent's 4-bar line           <- the kaleidoscope
                # Every change is a strain of the same galop in the galop's own order, on a phrase line, full band on
                # both sides: the tune never stops.

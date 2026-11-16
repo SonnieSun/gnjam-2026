@@ -106,3 +106,17 @@ for tune in TUNES:
     assert np.abs(x).max() < 0.98, np.abs(x).max()
     write_wav(path, x, peak=None)
     print(f'  {os.path.basename(path)}: peak {np.abs(x).max():.2f}, rms {np.sqrt((x ** 2).mean()):.3f}')
+
+
+# The square lead for where it doubles the cats on a fast tune (the pizza's fever, Can-Can's famous strain):
+# the same stem without its top (low-pass 2.2 kHz), so the 2-5 kHz where a meow reads belongs to the cats.
+# Picked by ear on 2026-11-16 (file 2 of deliver/previews/pizza_fever_cats_forward); the level plays it 3 dB down.
+from audio import read_wav  # noqa: E402
+
+for tune, bars in (('can_can', 8),):
+    src = os.path.join(LOOPS, 'classics', f'{tune}_L3_square_{bars}b.wav')
+    x = read_wav(src)
+    n = len(x)
+    y = lowpass(np.concatenate([x, x, x]), 2200)[n:2 * n]          # filtered as a loop: no click at the seam
+    write_wav(os.path.join(LOOPS, 'classics', f'{tune}_L3_square_dark_{bars}b.wav'), y, peak=None)
+    print(f'  {tune}_L3_square_dark_{bars}b.wav: peak {np.abs(y).max():.2f}')

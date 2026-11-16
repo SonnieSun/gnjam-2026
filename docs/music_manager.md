@@ -748,3 +748,4 @@ MIDI 的来源记在 cat_sound 的 `reference/midi_public_domain/README.md`。
 
 片段现在可以带自己的 `"gain_db"`（加在所在那一轨的音量上），生成脚本里是 `t(id, 文件, 组, 增益)`。
 
+披萨 fever 里方波盖住猫：方波换成削掉高频的版本（`can_can_L3_square_dark_8b.wav`，低通 2.2 kHz）再低 3 dB，猫叫最清楚的 2–5 kHz 留给猫（试听 `pizza_fever_cats_forward` 的第 2 个）。
