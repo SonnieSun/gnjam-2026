@@ -61,27 +61,33 @@ func _run() -> void:
 	# --- note marks, on the half-time groove (clap on step 8 = beat 2 of the bar) ---
 	# NoteAccents.Kind by number (naming the class here would compile it before the autoloads exist)
 	var K := {"NONE": 0, "DOWNBEAT": 1, "SYNCOPATED": 2, "ACCENT": 3, "LEAD_IN": 4, "FEVER": 5}
-	var cases := [[12.0, K.DOWNBEAT, "bar line"], [13.0, K.NONE, "plain beat"], [14.0, K.ACCENT, "on the clap"], [13.5, K.SYNCOPATED, "off the beat"]]
-	for c: Array in cases:
+	# a made-up bar: 12 (bar line), 13 (plain), 14 (on the clap), then three off-beats in a row 16.5 17.5 18.5, and 20
+	var made: Array[NoteData] = []
+	for b: float in [12.0, 13.0, 14.0, 16.5, 17.5, 18.5, 20.0, 24.0, 25.0]:
 		var n := NoteData.new()
-		n.beat = c[0]
-		_check("note at beat %.1f is %s" % [c[0], c[2]], accents.kind_of(n) == c[1], "kind %d" % accents.kind_of(n))
-	Music._plan = {"kind": "fever", "id": 0, "fill_beat": 16.0, "commit_beat": 16.0}
-	var lead := NoteData.new()
-	lead.beat = 14.0
-	_check("note before a planned fever is a fever (rainbow) note", accents.kind_of(lead) == K.FEVER and accents.look(lead, Color.WHITE).rainbow)
+		n.beat = b
+		made.append(n)
+	accents.notes = made
+	var want := [K.DOWNBEAT, K.NONE, K.ACCENT, K.SYNCOPATED, K.NONE, K.NONE, K.DOWNBEAT]
+	var got: Array = []
+	for i in want.size():
+		got.append(accents.kind_of(made[i]))
+	_check("bar line / plain / clap / only the first of three off-beats / bar line", got == want, str(got))
+	# a change gets planned while a note is on its way: the note keeps its mark
 	Music._plan = {"kind": "tier", "id": 3, "fill_beat": 16.0, "commit_beat": 16.0}
-	_check("note before a planned tier change is a lead-in", accents.kind_of(lead) == K.LEAD_IN)
+	_check("a marked note does not change on the way", accents.kind_of(made[2]) == K.ACCENT)
 	Music._plan = {}
+	# entering fever on beat 24: only the note on that bar line is the rainbow one
+	Music.change_planned.emit("fever", 0, 24.0, 24.0)
+	_check("the note that enters fever is the rainbow one", accents.kind_of(made[7]) == K.FEVER and accents.look(made[7], Color.WHITE).rainbow)
+	_check("the note after it is not", accents.kind_of(made[8]) == K.NONE and accents.kind_of(made[6]) == K.DOWNBEAT)
 	Music.fever = true
-	_check("every note in fever is a fever note", accents.kind_of(lead) == K.FEVER)
+	_check("nor are the other notes in fever", accents.kind_of(made[8]) == K.NONE)
 	Music.fever = false
-	# let the rings draw with every kind of mark for a while (a script error in the drawing code would show here)
-	for i in 3:
-		Music.fever = i == 1
-		await create_timer(0.5).timeout
-	Music.fever = false
-	Music._plan = {}
+	Music.fever_ended.emit()
+	accents.notes = section.own_notes()
+	# let the rings draw for a while (a script error in the drawing code would show here)
+	await create_timer(1.0).timeout
 
 	# --- the count-in: called on a bar line, as the music does ---
 	while fposmod(Conductor.song_beat, 4.0) > 0.1:

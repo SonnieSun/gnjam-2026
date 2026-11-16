@@ -480,6 +480,7 @@ func _draw_rings() -> void:
 	_rainbow_rings.clear()
 	if _rainbow_layer:
 		_rainbow_layer.queue_redraw()
+		_accents.notes = own_notes()
 	if def == null or _abduct:
 		return  # 吸猫那一段的光圈是 3D 的，由吸猫舞台自己画
 	var show_judge := _road == null or _road.rings_visible(song_beat())

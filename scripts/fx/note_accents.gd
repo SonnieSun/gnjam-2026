@@ -5,13 +5,14 @@ extends Node
 ##     var look := accents.look(note, 原来的颜色)   # {"kind", "color", "width", "glow", "echo", "rainbow"}
 ##
 ## 五种（一个音符同时算好几种时，按下面从上到下的顺序取第一种）：
-##   FEVER       fever 里的音符，和进 fever 之前 lead_in_beats 拍里的音符：动态七彩（scripts/fx/note_rainbow.gdshader）。
-##   LEAD_IN     音乐马上要换段了（升档 / 进 fever，Music.planned_change() 排好的那次）：换之前 lead_in_beats 拍里的音符，
-##               和正好落在换段那一拍上的音符。要等积累条过了线才知道，所以通常只管到最后一小节左右。
+##   FEVER       进 fever 的那一个音符（fever 开始的那条小节线上的第一个）：动态七彩（scripts/fx/note_rainbow.gdshader）。
+##   LEAD_IN     （默认关着）音乐马上要换段了（Music.planned_change() 排好的那次）：换之前 lead_in_beats 拍里的音符。
+##               要等积累条过了线才知道，只管得到过线之后才出现的音符。
 ##   ACCENT      重音：落在现在这套鼓型的拍手上（听得见的那一下）。
-##   SYNCOPATED  切分：不在整拍上（半拍、十六分）。
+##   SYNCOPATED  切分：一串连着的、不在整拍上的音符（比如三连切分）的第一个。
 ##   DOWNBEAT    小节线：一小节的第一拍。
 ## 谱面里给音符单独指定了颜色的（NoteData.color），颜色听谱面的，这里只加粗细和光。
+## 一个音符是哪一种，在它第一次出现时定下来就不再变（只有"进 fever 的那一个"例外），所以不会飞到一半换颜色。
 ##
 ## 现在是按规则自动判的样例。要做成每关单独设计：给音符加一个"重点"属性（和 color / size 一样进 ChartPattern、
 ## 在谱面编辑器里按音符编辑），kind_of() 先看它、没写再按规则，画法不用变。
@@ -33,15 +34,19 @@ enum Kind { NONE, DOWNBEAT, SYNCOPATED, ACCENT, LEAD_IN, FEVER }
 @export var accent_width := 1.6
 ## 外面常亮一圈柔光（0 = 没有）
 @export_range(0.0, 1.0) var accent_glow := 0.5
-@export_group("切分音（不在整拍上）")
+@export_group("切分音（一串的第一个）")
 @export var syncopated := true
+## 一串切分音至少几个才标（1 = 单独一个不在整拍上的音符也标；3 = 只标三连以上的）
+@export var syncopated_min_run := 1
+## 相邻两个隔多少拍以内算连着
+@export var syncopated_gap := 1.0
 @export var syncopated_color := Color(0.45, 1.0, 0.95)
 @export_range(0.0, 1.0) var syncopated_tint := 0.75
 @export var syncopated_width := 0.8
 ## 外面多画一圈细的"回声"圈（看起来是双圈），一眼能和整拍的音符分开
 @export var syncopated_echo := true
 @export_group("fever 的音符（七彩）")
-## fever 里的音符，和进 fever 之前 lead_in_beats 拍里的音符
+## 进 fever 的那一个音符
 @export var fever := true
 @export var fever_width := 1.5
 ## 外面常亮的柔光
@@ -53,7 +58,7 @@ enum Kind { NONE, DOWNBEAT, SYNCOPATED, ACCENT, LEAD_IN, FEVER }
 @export_range(0.0, 1.0) var rainbow_lift := 0.25
 @export_range(0.0, 1.0) var rainbow_sparkle := 0.2
 @export_group("换段之前的音符")
-@export var lead_in := true
+@export var lead_in := false
 ## 换段之前多少拍里的音符算
 @export var lead_in_beats := 4.0
 ## 只管进 fever（关掉 = 升档也算）
@@ -65,17 +70,54 @@ enum Kind { NONE, DOWNBEAT, SYNCOPATED, ACCENT, LEAD_IN, FEVER }
 @export_range(0.0, 1.0) var lead_in_flash := 0.5
 
 
+## 画音符的脚本每帧给一次：这个小关现在的音符（按拍子排好的）。切分音要看前一个音符是什么，没给就不判切分音。
+var notes: Array[NoteData] = []
+
+var _kinds := {}            # NoteData -> Kind：一个音符第一次被问到时定下来，之后不变（不然飞到一半会突然换颜色）
+var _fever_at := -1.0       # 排好的那次进 fever 落在第几拍（-1 = 没有）
+var _fever_note: NoteData   # 进 fever 的那个音符
+
+
+func _ready() -> void:
+	Conductor.song_started.connect(_forget)
+	Music.fever_ended.connect(func() -> void: _fever_at = -1.0)
+	Music.change_planned.connect(func(kind: String, _id: int, _fill: float, commit: float) -> void:
+		if kind == "fever":
+			_fever_at = commit
+			_fever_note = null)
+
+
+func _forget() -> void:
+	_kinds.clear()
+	_fever_at = -1.0
+	_fever_note = null
+
+
 ## 这个音符是哪一种
 func kind_of(n: NoteData) -> Kind:
 	if not enabled:
 		return Kind.NONE
-	var plan: Dictionary = Music.planned_change()
-	if fever:
-		if Music.fever:
+	# 进 fever 的那一个音符：fever 那条小节线上（或者之后一小节里）的第一个。这一种要等积累条过线才知道，
+	# 所以它是唯一会在音符飞过来的途中变样子的。
+	if fever and _fever_at >= 0.0 and n.beat >= _fever_at - 0.01 and n.beat < _fever_at + 4.0:
+		if _fever_note == null or n.beat < _fever_note.beat:
+			_fever_note = n
+		if n == _fever_note:
 			return Kind.FEVER
-		if not plan.is_empty() and plan.kind == "fever" and n.beat >= float(plan.commit_beat) - lead_in_beats - 0.01:
-			return Kind.FEVER
+	if not _kinds.has(n):
+		if _kinds.size() > 4000:
+			_kinds.clear()
+		_kinds[n] = _decide(n)
+	return _kinds[n]
+
+
+func _off_beat(beat: float) -> bool:
+	return absf(beat - roundf(beat)) > 0.05
+
+
+func _decide(n: NoteData) -> Kind:
 	if lead_in:
+		var plan: Dictionary = Music.planned_change()
 		if not plan.is_empty() and (plan.kind == "fever" or not lead_in_fever_only):
 			var commit := float(plan.commit_beat)
 			if n.beat >= commit - lead_in_beats - 0.01 and n.beat <= commit + 0.01:
@@ -86,8 +128,16 @@ func kind_of(n: NoteData) -> Kind:
 		var groove: Dictionary = Music.events.groove(Music.events.groove_of(Music.playing_clip("beat")))
 		if float(int(roundf(step)) % 16) in groove.get("clap", []):
 			return Kind.ACCENT
-	if syncopated and absf(in_bar - roundf(in_bar)) > 0.05:
-		return Kind.SYNCOPATED
+	if syncopated and _off_beat(n.beat):
+		# 一串连着的切分音（一个接一个都不在整拍上，相邻两个隔不到 syncopated_gap 拍）只标第一个
+		var i := notes.find(n)
+		if i >= 0:
+			var first := i == 0 or not _off_beat(notes[i - 1].beat) or n.beat - notes[i - 1].beat > syncopated_gap
+			var run := 1
+			while i + run < notes.size() and _off_beat(notes[i + run].beat) and notes[i + run].beat - notes[i + run - 1].beat <= syncopated_gap:
+				run += 1
+			if first and run >= syncopated_min_run:
+				return Kind.SYNCOPATED
 	if downbeat and (in_bar < 0.05 or in_bar > 3.95):
 		return Kind.DOWNBEAT
 	return Kind.NONE
