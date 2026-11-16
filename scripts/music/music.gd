@@ -497,6 +497,15 @@ func _fever_enter_bars() -> int:
 	return maxi(1, int(secs[section].get("fever_enter_bars", 1)))
 
 
+## 过门占上一句结尾的几小节（小关里的 "fever_enter_replaces"；不写：一小节的过门占 1 小节，更长的不占、接在那一句唱完之后）
+func _fever_enter_replaces() -> int:
+	var secs: Array = data.get("sections", [])
+	var bars := _fever_enter_bars()
+	if section < 0 or section >= secs.size() or _fever_enter() == "":
+		return 1
+	return clampi(int(secs[section].get("fever_enter_replaces", 1 if bars <= 1 else 0)), 0, bars)
+
+
 ## 大高潮的混响：小关里写 "fever_reverb": 0.2（湿声的量），进这个小关的 fever 时整个总线慢慢加上一层大厅混响，
 ## fever 结束、换关时收掉。加在 Master 上，所以打击音效也一起进大厅：要的就是"整体"都更大。
 var _reverb: AudioEffectReverb
@@ -1045,7 +1054,7 @@ func _apply_now(beat_index := -1) -> void:
 		var bars := _fever_on_bars()
 		# 有过门：过门占上一句的最后一小节，所以看的是下一条小节线；没有过门：这条小节线本身要是乐句线
 		# （"fever_enter_bars" 写了 2 小节以上的过门不占上一句：上一句唱完，过门从乐句线起，多出来这几小节）
-		var lands := beat_index + (base if _fill_clip() != "" and _fever_fill_wanted() and _fever_enter_bars() <= 1 else 0.0)
+		var lands := beat_index + (base * _fever_enter_replaces() if _fill_clip() != "" and _fever_fill_wanted() else 0.0)
 		if bars > 0 and not _on_phrase_line(lands, bars):
 			eff = _fever_start(eff) - 0.002
 			hold = true

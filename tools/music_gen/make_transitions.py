@@ -207,7 +207,7 @@ def tom(hz, gain):
     return np.stack([v + skin, v + skin], 1) * gain
 
 
-def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chords, play_db=14.0):
+def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chords, play_db=16.0):
     """A transition made by THE BAND THAT IS ABOUT TO PLAY: `tune` is rendered again by the code that makes its
     stems (compose_classics.build) with len(rows) bars from `first_bar` rewritten (rows: one list of
     (step, note, steps) per bar; chords: two per bar), those bars are cut out of every stem and mixed at
@@ -282,7 +282,12 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
         place(x, snare(0.4 + 0.15 * i), t2n((last + 3 + i / 2) * STEP), 1.0)
     # air rising through the whole thing
     k = np.arange(N) / N
-    x[:N] += highpass(np.stack([noise(N), noise(N)], 1), 2500) * (k ** 2.5)[:, None] * 0.12
+    x[:N] += highpass(np.stack([noise(N), noise(N)], 1), 2500) * (k ** 2.5)[:, None] * 0.2
+    # and under it the dominant's root an octave down, swelling: weight that the downbeat of the tune releases
+    n_sw = t2n(first_accent * STEP)
+    kk = np.arange(n_sw) / n_sw
+    sw = osc_supersaw(mtof(cc.chord(chords[-2])[1]), n_sw, voices=7, detune=0.3)
+    x[:n_sw] += lowpass(sw, 900) * (kk ** 2)[:, None] * 0.5
     f = t2n(0.006)
     x[N - f:N] *= np.linspace(1, 0.5, f)[:, None]
     x[N:] *= np.linspace(0.5, 0, len(x) - N)[:, None] ** 2          # only the crash and drum tails ring over
@@ -299,8 +304,12 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
 # ================================================================================================================
 # THE PIZZA'S TRANSITION INTO ITS FEVER. Edit here, then render (see "to try your own" below).
 #
-# Now: ONE bar, in place of the last bar of the descent's phrase: the descent's own ending run (G# A B C#, the
-# first half of that bar) and then the two accents (G, D). The hammered dominant of the two-bar version is gone.
+# Now: the melody THE USER WROTE for it (reference/midi_from_user/pizza_transition/user_transition.mid, bars 2-3;
+# its bar 1 is the descent itself and its bar 4 the famous tune), arranged for the fever's band. TWO bars, the
+# first of them in place of the last bar of the descent's phrase ("fever_enter_replaces": 1 in the level):
+#   bar 1            G# A B C# | D A D A      the run up and the galop's vamp on the dominant
+#   bar 2, 1st half  D A D A                  the vamp goes on, the pluck above it now in sixteenths, a tom fill
+#   bar 2, 2nd half  MIAO! MIAO!              the two accents, both on G
 #
 # To try your own:
 #   rows           one list per bar of the transition; each note is (step, 'note name', length). A bar has 16
@@ -314,8 +323,10 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
 #       python -I tools/make_transitions.py loops <a folder for the result>
 #   and copy <that folder>/tr_ccb_to_cc.wav to gnjam-2026/assets/audio/sfx/ (the game picks it up on the next run).
 #   If you change the NUMBER of bars, also set "fever_enter_bars" in levels/music/level_3_spaceship.json (section
-#   SPACE PIZZA) to it, and in tools/music_gen/make_music_sets.py so it survives a regenerate. One bar replaces
-#   the last bar of the descent's phrase; two or more come after the phrase.
+#   SPACE PIZZA) to it, and in tools/music_gen/make_music_sets.py so it survives a regenerate.
+#   "fever_enter_replaces" there = how many bars at the end of the descent's phrase the transition takes the
+#   place of (now 1: the transition's first bar is played instead of the phrase's last; 0 = the phrase is
+#   played to its end and the transition comes after it).
 #
 # The two-bar version with the hammered dominant (bars 18-21 of the piano MIDI the user supplied), for reference:
 #   rows=[[(0, 'D5', 2), (2, 'D5', 2), (4, 'D5', 2), (8, 'D5', 2), (10, 'D5', 2), (12, 'D5', 2)],
@@ -323,11 +334,12 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
 #   chords=['D', 'D', 'D7', 'G'], accents=[(24, 'G4'), (28, 'D4')]
 # ================================================================================================================
 from_stems('tr_ccb_to_cc', 'can_can', None,
-           rows=[[(0, 'G#5', 2), (2, 'A5', 2), (4, 'B5', 2), (6, 'C#6', 2), (8, 'G4', 4), (12, 'D4', 4)]],
-           chords=['A7', 'G'],
+           rows=[[(0, 'G#4', 2), (2, 'A4', 2), (4, 'B4', 2), (6, 'C#5', 2), (8, 'D5', 2), (10, 'A4', 2), (12, 'D5', 2), (14, 'A4', 2)],
+                 [(0, 'D5', 2), (2, 'A4', 2), (4, 'D5', 2), (6, 'A4', 2), (8, 'G4', 4), (12, 'G4', 4)]],
+           chords=['A7', 'D', 'D7', 'G'],
            levels=[('L3_cat_kichiku', 0.0), ('L3_square_dark', -3.0), ('L3_pluck', -2.0), ('fb_L0_keys', 0.0),
                    ('L2_bass', -4.0), ('fb_L4_peak', 0.0), ('C_drums', 0.0)],
-           accents=[(8, 'G4'), (12, 'D4')], accent_chords=['G', 'D'])
+           accents=[(24, 'G4'), (28, 'G4')], accent_chords=['G', 'G'])
 
 
 def ending(name, sym, tonic):
