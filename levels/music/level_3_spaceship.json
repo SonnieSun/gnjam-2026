@@ -460,9 +460,10 @@
     1.0
    ],
    "exit": "end_g_major",
+   "fever_enter": "tr_ccb_to_cc",
+   "fever_reverb": 0.2,
    "carry": 0,
    "fever_on_bars": 4,
-   "fever_fill": false,
    "tier_on_bars": {
     "2": 8
    },

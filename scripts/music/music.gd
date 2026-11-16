@@ -130,6 +130,8 @@ const BRIDGE_UNDER_DB := -6.0
 
 func _ready() -> void:
 	Conductor.beat.connect(_on_beat)
+	fever_started.connect(_set_fever_reverb.bind(true))
+	fever_ended.connect(_set_fever_reverb.bind(false))
 	meow = MeowPlayer.new()
 	add_child(meow)
 	for i in 3:
@@ -182,6 +184,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_free_tunes()
 	_pattern_tune.clear()
 	_lane_gain.clear()
+	_set_fever_reverb(false)
 	_outro = false
 	_outro_wait = false
 	_now.clear()
@@ -473,6 +476,49 @@ func _wants_fill(t: int) -> bool:
 		if int(v) == t:
 			return true
 	return false
+
+
+## 进 fever 之前那一小节过门用的专门写的变奏（小关里的 "fever_enter"，没写就是 ""）
+func _fever_enter() -> String:
+	var secs: Array = data.get("sections", [])
+	if section < 0 or section >= secs.size():
+		return ""
+	var sfx_name := str(secs[section].get("fever_enter", ""))
+	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
+
+
+## 大高潮的混响：小关里写 "fever_reverb": 0.2（湿声的量），进这个小关的 fever 时整个总线慢慢加上一层大厅混响，
+## fever 结束、换关时收掉。加在 Master 上，所以打击音效也一起进大厅：要的就是"整体"都更大。
+var _reverb: AudioEffectReverb
+var _reverb_index := -1
+var _reverb_tween: Tween
+
+
+func _set_fever_reverb(on: bool) -> void:
+	var secs: Array = data.get("sections", [])
+	var amount := float(secs[section].get("fever_reverb", 0.0)) if on and section >= 0 and section < secs.size() else 0.0
+	if amount <= 0.0 and _reverb == null:
+		return
+	if _reverb == null:
+		_reverb = AudioEffectReverb.new()
+		_reverb.room_size = 0.75
+		_reverb.damping = 0.35
+		_reverb.spread = 1.0
+		_reverb.hipass = 0.25
+		_reverb.predelay_msec = 40.0
+		_reverb.predelay_feedback = 0.0
+		_reverb.dry = 1.0
+		_reverb.wet = 0.0
+		AudioServer.add_bus_effect(0, _reverb)
+		_reverb_index = AudioServer.get_bus_effect_count(0) - 1
+	if _reverb_tween:
+		_reverb_tween.kill()
+	if amount > 0.0:
+		AudioServer.set_bus_effect_enabled(0, _reverb_index, true)
+	_reverb_tween = create_tween()
+	_reverb_tween.tween_property(_reverb, "wet", amount, 1.2 if amount > 0.0 else 0.6)
+	if amount <= 0.0:
+		_reverb_tween.tween_callback(AudioServer.set_bus_effect_enabled.bind(0, _reverb_index, false))
 
 
 ## 升到这个小关的第 t 档（1 起）之前那一小节过门用的专门写的变奏（小关里的 "tier_enter"，没写就是 ""）
@@ -1016,7 +1062,13 @@ func _apply_now(beat_index := -1) -> void:
 	var fever_now := use_dynamics and in_fever(eff)
 	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and _fill_clip() != "" and _fever_fill_wanted() and not _outro:
 		_fever_fill_done = true
-		_play_fill_bar()
+		var into_fever := _fever_enter()
+		if into_fever != "":
+			# 进 fever 换曲子 / 换段落，有专门写的一小节过门（小关里的 "fever_enter": "tr_ccb_to_cc"）：只留鼓，这一小节交给它
+			_play_fill_bar(true)
+			play_sfx(into_fever, ENTER_DB)
+		else:
+			_play_fill_bar()
 		_pending = true
 		_next_beat = beat_index + base
 		return

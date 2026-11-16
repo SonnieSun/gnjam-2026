@@ -13,6 +13,9 @@ two sets of drums would flam).
   <sfx>/tr_disco_to_ent.wav  the disco theme (G minor) -> The Entertainer (C major), inside level 1 (a section's
                            "tier_enter"): the rag's own introduction, the run down D E C A B G, and its pick-up D D#,
                            the cats joining for the second half, over G7 (G is the disco's key note and C's dominant).
+  <sfx>/tr_ccb_to_cc.wav   Can-Can's four steps down (D major) -> its famous tune (G major), the pizza going into
+                           fever (a section's "fever_enter"): the run up, then THE TWO ACCENTS, two full-band hits
+                           on beats 3 and 4 with the cats shouting, and the famous tune lands on the next bar line.
   <sfx>/tr_tm_to_cc.wav    Turkish March's second section (A major) -> Can-Can's opening strain (D major): the
                            galop's own lead-in, the vamp on the dominant.
 
@@ -41,6 +44,9 @@ BAR_N = t2n(BAR)
 CAT = cc.LONG[0]
 CAT = CAT.mean(axis=1) if CAT.ndim == 2 else CAT
 CAT_MIDI = cc.native(cc.LONG[0])
+SFX_SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'deliver', 'sfx')
+if not os.path.exists(os.path.join(SFX_SRC, 'orch_hit_Bb.wav')):      # run from the game repo (tools/music_gen)
+    SFX_SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets', 'audio', 'sfx')
 
 
 def sung(midi, steps):
@@ -71,7 +77,10 @@ def snare(gain):
     return v * gain
 
 
-def render(name, lead, bass, chords, last_slide=0.0, roll=False):
+ORCH = None
+
+
+def render(name, lead, bass, chords, last_slide=0.0, roll=False, accents=()):
     """lead: [(step, note, steps, 'i' instrument / 'c' cat / 'b' both)]; bass: [(step, note, steps)];
     chords: [(step, symbol, steps, 'stab' or 'swell')]. One bar, plus a short tail."""
     x = np.zeros((BAR_N + t2n(0.5), 2))
@@ -102,6 +111,26 @@ def render(name, lead, bass, chords, last_slide=0.0, roll=False):
         hits = [0, 4, 8, 10, 12, 13, 14, 14.5, 15, 15.5]
         for j, st in enumerate(hits):
             place(x, snare(0.35 + 0.5 * (st / 16) ** 1.5), t2n(st * STEP), 1.0)
+    for step, sym, shout in accents:
+        # a full-band accent: orchestra hit (the sample is a Bb chord, moved to this chord's root), crash, snare,
+        # the chord on the saws, a low octave, and the cats shouting the note in two octaves
+        global ORCH
+        if ORCH is None:
+            from audio import read_wav
+            ORCH = read_wav(os.path.join(SFX_SRC, 'orch_hit_Bb.wav'))
+        at = t2n(step * STEP)
+        notes, root = cc.chord(sym)
+        place(x, ORCH, at, 0.8, semitones=(root - nm('A#1')) % 12 if (root - nm('A#1')) % 12 <= 6 else (root - nm('A#1')) % 12 - 12)
+        place(x, cc.CRASH, at, 0.45)
+        place(x, snare(0.9), at, 1.0)
+        n = t2n(3 * STEP)
+        k = np.arange(n) / SR
+        v = sum(osc_supersaw(mtof(m + o), n, voices=7, detune=0.3) for m in notes for o in (0, 12)) / (2 * len(notes))
+        place(x, lowpass(v, 6500) * (np.clip(k / 0.004, 0, 1) * np.exp(-k / 0.16))[:, None], at, 0.7)
+        place(x, pan(cc.bass_note(mtof(root + 12), n), 0.0), at, 0.6)
+        m = nm(shout)
+        place(x, pan(sung(m, 3), 0.15), at, 1.1)
+        place(x, pan(sung(m - 12, 3), -0.15), at, 0.7)
     k = np.arange(BAR_N) / BAR_N
     air = highpass(np.stack([noise(BAR_N), noise(BAR_N)], 1), 2500) * (k ** 3)[:, None] * 0.22
     x[:BAR_N] += air
@@ -157,6 +186,17 @@ render('tr_disco_to_ent',
              (8, 'B5', 2, 'b'), (10, 'G5', 2, 'b'), (12, 'D5', 2, 'b'), (14, 'D#5', 2, 'b')],
        bass=[(0, 'G1', 6), (8, 'G1', 4), (12, 'G1', 4)],
        chords=[(0, 'G', 4, 'stab'), (4, 'G7', 12, 'swell')], roll=True)
+
+# Can-Can: the four steps down (D major) -> the famous tune (G major), the pizza going into its fever. This bar
+# takes the place of the descent's own last bar, so it starts with that bar's run up (G# A B C# D, in sixteenths
+# here), and then the two accents everybody waits for before the tune: two full hits on beats 3 and 4, D then
+# D7 with the top going up (A, then C: the seventh that wants to fall onto the tune's first G... B), the cats
+# shouting both. A snare roll under the run.
+render('tr_ccb_to_cc',
+       lead=[(0, 'G#5', 1, 'b'), (1, 'A5', 1, 'b'), (2, 'B5', 1, 'b'), (3, 'C#6', 1, 'b'), (4, 'D6', 3, 'b')],
+       bass=[(0, 'A1', 4), (4, 'A1', 3)],
+       chords=[(0, 'A7', 7, 'swell')],
+       accents=[(8, 'D', 'A5'), (12, 'D7', 'C6')])
 
 
 def ending(name, sym, tonic):

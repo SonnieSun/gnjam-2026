@@ -769,3 +769,8 @@ MIDI 的来源记在 cat_sound 的 `reference/midi_public_domain/README.md`。
 
 调用的地方：`scripts/sections/kisa/disco_section.gd` 的 `_start_finale()` 和 `scripts/sections/sky_section.gd` 的 `_on_gauge_event()`，各加了一行 `Music.outro()`。
 
+### 披萨进大高潮：两个重音的过门 + 整体混响
+
+- 小关里写 `"fever_enter": "tr_ccb_to_cc"`：进 fever 前的那一小节不放通用过门，放专门写的（只留鼓）。它占的是四步下行那一句的最后一小节，所以开头就是那一小节本来的上行跑动（G# A B C# D，十六分），后半小节是**两个重音**：第 3、4 拍各一下全乐队的重音（D，再 D7，管弦乐 hit + 镲 + 军鼓 + 猫喊），下一条小节线名旋律落下来。
+- 小关里写 `"fever_reverb": 0.2`：进这个小关的 fever 时，Master 总线上慢慢（1.2 秒）加一层大厅混响（湿声 0.2），fever 结束或换关时收掉。加在 Master 上，所以打击音效也一起进大厅。想更大就调这个数；别的小关没写就没有。
+

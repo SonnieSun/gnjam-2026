@@ -417,10 +417,12 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                #   75%    FEVER: THE FAMOUS TUNE ('cc', G major: D -> G is a V -> I), heard here for the first time
                #          and kept for the climax, with everything (cats, the square lead without its top and
                #          3 dB down so it does not cover them, pluck doubling, Can-Can's own cat drums), on the
-               #          descent's 4-bar line                                              <- the kaleidoscope
+               #          descent's 4-bar line, after a written bar that takes the place of the descent's last
+               #          one: the run up and THE TWO ACCENTS (tr_ccb_to_cc). In fever the whole mix goes into a
+               #          hall ('fever_reverb')                                             <- the kaleidoscope
                # Every change is a strain of the same galop in the galop's own order, on a phrase line, full band on
                # both sides: the tune never stops.
-               {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[3], 1.0), 'fever_fill': False,
+               {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[3], 1.0), 'fever_enter': 'tr_ccb_to_cc', 'fever_reverb': 0.2,
                 'carry': 0,   # must start on the opening strain: carried fullness would jump straight to the famous tune
                 'tier_on_bars': {2: 8}, 'fever_on_bars': 4, 'own': {'kiai': '', 'hit': ''}, 'enter': 'tr_tm_to_cc',   # no mini kiai: it would be the other strain's tune
                 'exit': 'end_g_major', 'rules': {
@@ -486,7 +488,7 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
-        for k in ('exit', 'outro', 'carry', 'fever_on_bars', 'fever_fill', 'enter_fill'):
+        for k in ('exit', 'outro', 'fever_enter', 'fever_reverb', 'carry', 'fever_on_bars', 'fever_fill', 'enter_fill'):
             if k in sec:
                 out[k] = sec[k]
         if 'tier_on_bars' in sec:                        # going up into these tiers waits for the tune's phrase line
