@@ -257,6 +257,14 @@ func _free_tunes() -> void:
 	_tunes.clear()
 
 
+## 这个片段属于哪首曲子（"" = 不属于哪首，在主同步流里）
+func _tune_of(lane_id: String, clip_id: String) -> String:
+	for i in _slot_lane.size():
+		if _slot_lane[i] == lane_id and _slot_clip[i] == clip_id:
+			return _slot_tune[i]
+	return str(_pattern_tune.get("%s/%s" % [lane_id, clip_id], ""))
+
+
 ## 这首曲子现在该不该响：它有一条轨道要响，或者它的一个喵谱子片段在用
 func _tune_wanted(tune: String) -> bool:
 	for i in _slot_tune.size():
@@ -396,7 +404,8 @@ func set_section(index: int) -> void:
 			# 这一小节由它把调带过去，下一条小节线新曲子进来
 			_play_fill_bar(true)
 			play_sfx(enter, ENTER_DB)
-		elif _fill_clip() != "":
+		elif _fill_clip() != "" and bool(data.get("sections", [])[section].get("enter_fill", true)):
+			# （同一个场景里接着走的小关写 "enter_fill": false：不放过门，旋律不断，新小关的音乐在这条小节线上直接接上）
 			_play_fill_bar()
 			play_sfx("crash", -9.0)
 
@@ -920,7 +929,9 @@ func _apply_now(beat_index := -1) -> void:
 	var hold := false
 	if use_dynamics and beat_index >= 0 and not fever and in_fever(eff) and not _fever_fill_done:
 		var bars := _fever_on_bars()
-		if bars > 0 and int(round(beat_index + base)) % (bars * 4) != 0:
+		# 有过门：过门占上一句的最后一小节，所以看的是下一条小节线；没有过门：这条小节线本身要是乐句线
+		var lands := beat_index + (base if _fill_clip() != "" and _fever_fill_wanted() else 0.0)
+		if bars > 0 and int(round(lands)) % (bars * 4) != 0:
 			eff = _fever_start(eff) - 0.002
 			hold = true
 	# 升到要过门的那一档：这条小节线先放一小节过门，下一条小节线才真的换
@@ -957,7 +968,8 @@ func _apply_now(beat_index := -1) -> void:
 			# 旋律类的轨道从一段换到另一段：等到乐句线。从没声到有声、或者要静音，不用等。
 			var q: float = lane.get("quantize_beats", PHRASE_BEATS if lane.id in PHRASE_LANES else base)
 			if use_dynamics and beat_index >= 0 and q > base and was != "" and c != "" \
-					and not _force.has(lane.id) and beat_index % int(q) != 0:
+					and not _force.has(lane.id) and beat_index % int(q) != 0 \
+					and _tune_of(lane.id, was) == _tune_of(lane.id, c):  # 换到另一首曲子的片段不等：它是从这条小节线重新起的
 				_pending = true
 				_next_beat = beat_index + base
 				c = was

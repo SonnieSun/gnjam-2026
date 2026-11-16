@@ -208,11 +208,11 @@
     ],
     "lead": [
      [
-      0.2,
+      0.0,
       "tm_pluck"
      ],
      [
-      0.7,
+      0.9,
       ""
      ]
     ],
@@ -260,6 +260,8 @@
     0.9,
     1.0
    ],
+   "fever_on_bars": 4,
+   "fever_fill": false,
    "own": {
     "kiai": "tm_kichiku",
     "hit": ""

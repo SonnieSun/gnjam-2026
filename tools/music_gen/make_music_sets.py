@@ -293,7 +293,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                 'own': {'kiai': '', 'hit': 'ybf_by_hit'}, 'rules': {
                    'half': [[0, W[1]]], 'groove': [[W[1], 1]],
                    'ybf_keys': [[0, 1]], 'ybf_bass': [[W[0], 1]],
-                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[W[0], W[2]]], 'ybf_cats': [[W[2], 1]], 'ybf_harm': [[W[2], 1]],
+                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[0, W[2]]], 'ybf_cats': [[W[2], 1]], 'ybf_harm': [[W[2], 1]],
                    'ybf_peak': [[W[3], 1]], 'ybf_cat_drums': [[W[1], 1]], 'ybf_double': [[W[4], 1]]}},
                # The washer ends on its high point and the earth is a high point too, so the earth does not start
                # over from a bare beat: after the written transition bar the new tune comes in already singing
@@ -310,7 +310,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                 'enter': 'tr_ybf_to_mk', 'rules': {
                    'groove': [[0, 1]], 'mka_keys': [[0, 1]], 'mka_bass': [[0, 1]], 'mka_cat_drums': [[0, 1]],
                    'mka_pluck': [[0, 0.5]], 'mka_cats': [[0.5, 1]]}},
-               {'title': 'SLAP / CHARGE', 'tiers': (0.4,), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''}, 'rules': {
+               {'title': 'SLAP / CHARGE', 'tiers': (0.4,), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''}, 'enter_fill': False, 'rules': {
                    'groove': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]], 'mk_cat_drums': [[0, 1]],
                    'mk_cats': [[0, 1]], 'mk_harm': [[0, 1]], 'mk_peak': [[0.4, 1]]}},
                {'title': 'SLAP / POWER', 'tiers': (0.35, 0.7), 'transition_tiers': (), 'fever': (0.7, 1.0), 'fever_fill': False,
@@ -341,17 +341,17 @@ SETS[10] = {'title': 'SKY', 'use': True,
                        t('ode_cats', OJ + 'L3_cat_flow_16b.wav', 'hook'), harm('ode_harm', 'ode_to_joy'),
                        t('doom_horns', SK + 'doom_horns_8b.wav', 'peak'), t('holy_pad', SK + 'holy_pad_8b.wav', 'peak'),
                        t('ode_cat_drums', OJ + 'C_drums_16b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_16b.wav', 'kiai'),
-                       pattern('ode_by_hit', 'ode_to_joy', 'hit', by_hit=True), pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
+                       pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
                        t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_16b.wav', 'event')] + FILL,
-            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'fever_fill': False, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
+            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
                 'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
                 'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
                 'ode_keys': [[SKY[1], 1]],
-                'ode_cats': [[SKY[2], SKY[3]]], 'ode_harm': [[SKY[2], 1]],
+                'ode_cats': [[SKY[1], 1]], 'ode_harm': [[SKY[2], 1]],
                 'doom_horns': [[SKY[0], SKY[1]]], 'holy_pad': [[SKY[1], SKY[3]]],
                 'ode_cat_drums': [[SKY[2], 1]],
-                'ufo_rise': [[0, SKY[1]]], 'ode_by_hit': [[SKY[1], SKY[2]]],
+                'ufo_rise': [[0, SKY[1]]],
                 'wind': [[0, SKY[2]]], 'ode_peak': [[SKY[3], 1]]}}]}
 
 # file = the level file it goes with (levels/<name>.tres -> levels/music/<name>.json). The level list was
@@ -388,12 +388,13 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                       harm('tmb_harm', 'turkish_march_b'),
                       t('cc_double', CC + 'L3_pluck_8b.wav', 'kiai')] + FILL,
            'sections': [
-               {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0),
+               {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0), 'fever_fill': False, 'fever_on_bars': 4,
                 'own': {'kiai': 'tm_kichiku', 'hit': ''}, 'rules': {
                    'half': [[0, T3[0]]], 'groove': [[T3[0], 1]], 'cat_drums': [[T3[1], 1]],
                    'tm_keys': [[0, T3[3]]], 'tm_bass': [[T3[0], T3[3]]],
-                   'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], T3[3]]], 'tm_harm': [[T3[2], T3[3]]],
-                   # FEVER: the march's second section, the loud A major tune, all of it at once after the fill bar
+                   'tm_pluck': [[0, T3[3]]], 'tm_kichiku': [[T3[2], T3[3]]], 'tm_harm': [[T3[2], T3[3]]],
+                   # FEVER: the march's second section, the loud A major tune, all of it at once, on a 4-bar line of
+                   # the first section (no fill bar: the tune must not stop in the middle of a scene)
                    'tmb_keys': [[T3[3], 1]], 'tmb_bass': [[T3[3], 1]], 'tmb_kichiku': [[T3[3], 1]],
                    'tmb_harm': [[T3[3], 1]], 'tmb_peak': [[T3[3], 1]]}},
                # After the written transition the Can-Can comes in already singing (the shooter ended on its high
@@ -413,6 +414,15 @@ LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和�
 # Clips whose id starts with one of these belong to that tune ("tune" in the level file): the music manager
 # plays a tune's clips from their own player and starts the tune FROM ITS FIRST BAR on the bar line it comes
 # in on (in one shared stream every clip would join wherever the loop happened to be, e.g. from bar 2).
+# RULES FOR A STAGE CHANGE INSIDE A SCENE (2026-11-16, after playtesting). A scene = what the player sees as one
+# place; a change of scene has its own written transition ('enter') or the cut-scene's fill.
+#   1. The tune is there from the first bar of a scene: a lead (instrument or cats) is cued from progress 0
+#      wherever a tune starts. Building up means adding things UNDER and AROUND the tune, not waiting for it.
+#   2. Once the tune is playing it never stops inside the scene: no cue takes the lead away, no fill bar
+#      ('transition_tiers' empty, 'fever_fill': False, 'enter_fill': False between parts of one scene).
+#   3. The lead may change hands (instrument -> cats, cats -> kichiku): it is handed over, never dropped.
+#   4. A stage that takes things away (a quiet ending) drops chords, drums or the peak layer and keeps the tune.
+# tools/music_gen/check_music_sets.py prints every stage of every level and flags a tune that stops.
 TUNES = ('ybf', 'mk', 'mka', 'cc', 'tm', 'tmb', 'ode')
 LANE_GAIN = {'kiai': -2.0, 'harm': -5.0}   # kiai: stacked on the cat lead, so a little under it; harm: the backing vocals, well under the lead
 
@@ -450,7 +460,7 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
-        for k in ('exit', 'carry', 'fever_on_bars', 'fever_fill'):                      # exit: the ending one-shot when the level clears on this section;
+        for k in ('exit', 'carry', 'fever_on_bars', 'fever_fill', 'enter_fill'):                      # exit: the ending one-shot when the level clears on this section;
             if k in sec:                                 # carry: how much of the last section's fullness comes along (0-1)
                 out[k] = sec[k]
         if 'enter' in sec:

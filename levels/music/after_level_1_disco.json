@@ -125,12 +125,6 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "ode_by_hit",
-     "pattern": "res://levels/music/patterns/ode_to_joy.json",
-     "by_hit": true,
-     "tune": "ode"
-    },
-    {
      "id": "ufo_rise",
      "pattern": "res://levels/music/patterns/ufo_rise.json",
      "by_hit": true
@@ -205,12 +199,8 @@
     ],
     "lead": [
      [
-      0.7,
+      0.5,
       "ode_cats"
-     ],
-     [
-      0.85,
-      ""
      ]
     ],
     "peak": [
@@ -246,10 +236,6 @@
      ],
      [
       0.5,
-      "ode_by_hit"
-     ],
-     [
-      0.7,
       ""
      ]
     ],
@@ -280,6 +266,9 @@
    ],
    "exit": "end_c_major",
    "fever_fill": false,
+   "own": {
+    "hit": ""
+   },
    "tier_sfx": {
     "1": "none",
     "2": "sky_holy_hit"

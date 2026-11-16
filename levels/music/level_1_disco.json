@@ -160,6 +160,7 @@
   {
    "title": "DISCO",
    "exit": "end_g_minor",
+   "fever_fill": false,
    "cues": {
     "beat": [
      [
@@ -229,6 +230,10 @@
      [
       0.651,
       "fb_keys"
+     ],
+     [
+      0.814,
+      ""
      ]
     ],
     "lead": [
@@ -243,10 +248,6 @@
      [
       0.326,
       "cat_lead"
-     ],
-     [
-      0.651,
-      ""
      ]
     ],
     "peak": [

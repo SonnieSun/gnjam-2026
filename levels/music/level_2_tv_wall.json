@@ -254,7 +254,7 @@
     ],
     "lead": [
      [
-      0.12,
+      0.0,
       "ybf_pluck"
      ],
      [
@@ -413,6 +413,7 @@
     0.4
    ],
    "transition_tiers": [],
+   "enter_fill": false,
    "own": {
     "kiai": "",
     "hit": ""
