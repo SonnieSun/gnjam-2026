@@ -469,6 +469,11 @@ func bpm() -> float:
 
 ## 进了第 index 个小关（进度从 0 开始），排到下一个边界生效
 func set_section(index: int) -> void:
+	if index == _entered_early and index == section:
+		_entered_early = -1  # 这个小关的音乐已经提前进来了（enter_early）：过门不再放一遍
+		progress_override = -1.0
+		return
+	_entered_early = -1
 	progress_override = -1.0
 	var changed := index != section
 	# 换小关不从"全开"一下掉到"什么都没有"：上一个小关走的时候有多满，新小关就先带着它的几成进来
@@ -501,6 +506,18 @@ func set_section(index: int) -> void:
 				_carry_from = _next_beat
 			if spec.written == "":
 				play_sfx("crash", -9.0)
+
+
+## 小关自己提前把音乐换到下一个小关：过门放在这个小关的结尾演出里（比如洗衣机钻进屏幕的那两小节），
+## 画面切过去的那一下新小关的音乐正好进来。在小节线上调；框架真正切关时再来的那次 set_section(index) 什么都不重放。
+## 调了之后到切关之前，这个小关要自己把进度按住（override_progress(0.0)），不然积累条顶满会被当成新小关的进度。
+var _entered_early := -1
+
+func enter_early(index: int) -> void:
+	if index == section or index < 0:
+		return
+	set_section(index)
+	_entered_early = index
 
 
 ## 换小关时带过来的"满的程度"（见 set_section）。只影响各条轨道响哪一段，不算档位、不触发 fever 和升降档的音效。

@@ -133,6 +133,13 @@ func _process(_delta: float) -> void:
 			notes.insert(i, _fever_note)
 
 
+## 小关自己指定换段音符落在第几拍（比如洗衣机谱面放完、过门进来的那一拍），和进 fever 的那一个同一种样子和音效
+func mark_change(beat: float) -> void:
+	_fever_at = beat
+	_fever_note = null
+	_add_in = 2
+
+
 func _forget() -> void:
 	_kinds.clear()
 	_fever_at = -1.0

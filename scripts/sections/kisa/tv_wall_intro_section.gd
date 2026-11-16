@@ -2,8 +2,10 @@
 extends SpinSection
 ## 电视墙关开场：画面中间一台洗衣机，圆圈收到门框上时按键。
 ## 单点：舱门里的猫脸原地转一小段。长按时猫脸一直转、越转越快。长按（谱面里音符后面接 "="）：按住到尾巴才算成，中途松手变灰失败、不能补按。
-## 推进按小节走，长度是定死的：前一套谱放 early_loops 遍、后一套放 late_loops 遍（默认一共 16 小节），放完接结尾演出。
-## 画面和音乐跟着走到第几小节一步步来——先是镜头拉远，再是洗衣机发电、一台台电视亮起来，最后一小节全亮
+## 推进按小节走，长度是定死的：前一套谱放 early_loops 遍、后一套放 late_loops 遍（默认一共 16 小节），
+## 然后是两小节过门：过门第一拍上是一个七彩的换段音符（NoteAccents），打它（漏了也一样）镜头钻进屏幕，
+## 去下一个小关的过门音乐就在这两小节里放（Music.enter_early），画面切过去时下一个小关的音乐正好进来。
+## 画面和音乐跟着走到第几小节一步步来——先是镜头拉远，再是洗衣机发电、一台台电视亮起来，换段音符前一小节全亮
 ## （见 TvWallIntroStage）。打得好坏只影响分数和连击，不影响这一段多长、电视什么时候亮。
 ## 判定用框架的 Judge：长按的开头由 Judge 当普通音符判，按住的部分交给 Judge.begin_hold 盯
 ## （松手时间和按下用同一个判定时钟，和迪斯科关同一种写法）。
@@ -39,7 +41,8 @@ extends SpinSection
 ##       长按只有一个：第 2 个八拍的最后四拍（第 4 小节）。
 ##   前一套放完 early_loops 遍之后换成下面这套（快的阶段，猫接过主旋律），长按三个：
 ##       第 1 小节的后两拍、第 2 小节的后两拍、第 4 小节整小节。
-## 前一套放几遍、后一套放几遍（一遍四小节）。后一套放完的那条小节线开始结尾演出。
+## 前一套放几遍、后一套放几遍（一遍四小节 = 曲子的一句）。循环从曲子那一句的开头算起，开头歇的两小节算在
+## 第一遍里（所以第一遍只打后两小节）。后一套放完的那条小节线是过门和换段音符。
 @export var early_loops := 2
 @export var late_loops := 2
 @export var late_bars := PackedStringArray([
@@ -62,9 +65,12 @@ var _auto_next := 0
 var _auto_release_at := -INF
 var _auto_down := false
 var _finale := false
-var _start := INF  # 谱面从哪一拍开始循环
+var _start := INF  # 第一个音符所在的小节线
+var _loop_from := INF  # 谱面的循环从哪一拍算起（对着曲子那一句的开头；可以比 _start 早）
 var _late_at := INF  # 换成后一套谱的那一拍
-var _end_at := INF  # 谱面放完、开始结尾演出的那一拍
+var _end_at := INF  # 谱面放完的那一拍 = 过门进来、换段音符所在的那一拍
+var _marked := false  # 换段音符标过了
+var _music_left := false  # 音乐已经提前换到下一个小关（在放过门）
 var _fill_at := INF
 var _next_view: SubViewport
 var _hold_ok_age := INF  # 长按刚按完过了几秒（INF = 没在闪）
@@ -106,11 +112,26 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 		_update_hold()
 	# 画面和音乐都跟着「放到第几拍」走，放完开始结尾演出
 	var ratio := 1.0 if _finale else _time_ratio()
-	_stage.set_progress(ratio)
+	# 画面比音乐早一小节走到头：电视全亮之后才来换段音符
+	var bpb_f := float(Conductor.chart.beats_per_bar)
+	var seen := ratio
+	if not _finale and not is_inf(_end_at):
+		seen = clampf((song_beat() - _start) / maxf(_end_at - bpb_f - _start, 1.0), 0.0, 1.0)
+	_stage.set_progress(seen)
+	if not _marked and note_accents and song_beat() >= _end_at - 8.0:
+		_marked = true
+		note_accents.mark_change(_end_at)
 	_stage.update(song_beat(), dt)
+	if active and not _music_left and song_beat() >= _end_at:
+		# 过门的那条小节线：音乐现在就换到下一个小关（先放它的过门），不等画面
+		var next_index := Conductor.chart.sections.find(def) + 1
+		if next_index > 0 and next_index < Conductor.chart.sections.size():
+			_music_left = true
+			Music.enter_early(next_index)
 	if active:
-		Music.override_progress(ratio)
-	if not _finale and song_beat() >= _end_at and _holding == null:
+		Music.override_progress(0.0 if _music_left else ratio)
+	# 换段音符判了（打中或漏掉，见 _on_note_judged）就开始结尾演出；万一没判到，过一拍也开始
+	if not _finale and song_beat() >= _end_at + 1.0 and _holding == null:
 		_start_finale()
 	if active and not _late and not _finale and not late_bars.is_empty() and song_beat() >= _late_at - 12.0:
 		_switch_to_late()
@@ -133,6 +154,12 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 
 func _on_note_judged(note: NoteData, result: int) -> void:
 	if _stage == null:
+		return
+	if not _finale and absf(note.beat - _end_at) < 0.01:
+		# 换段音符：打中就猫脸转一下、钻进屏幕；漏了也照样走
+		if result != NoteData.Result.MISS:
+			_stage.tap()
+		_start_finale()
 		return
 	var is_hold := hold_beats(note) > 0.0
 	if result == NoteData.Result.MISS:
@@ -157,10 +184,14 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 
 # ---------------- 进度：按小节 ----------------
 
+const MUSIC_LEAD := 6.0
+
 func _time_ratio() -> float:
 	if is_inf(_end_at):
 		return 0.0
-	return clampf((song_beat() - _start) / maxf(_end_at - _start, 1.0), 0.0, 1.0)
+	# 从曲子那一句的开头算，再提前 MUSIC_LEAD 拍：音乐过了档位线要等下一条小节线放一小节过门才换，
+	# 提前这么多，换档正好落在谱面换的那条线上（一半 = 第 32 拍：快的那套谱和猫的主旋律一起进）
+	return clampf((song_beat() + MUSIC_LEAD - _loop_from) / maxf(_end_at - _loop_from, 1.0), 0.0, 1.0)
 
 
 # ---------------- 长按 ----------------
@@ -217,7 +248,26 @@ func _parse_holds() -> void:
 	_hold_lens[-1] = 0.0  # 占个位，表示已经找过了
 	if is_inf(_start) and not notes.is_empty() and _pattern_len > 0.0:
 		_start = notes[0].beat - def.parse_notes(bpb)[0].beat
-		_late_at = _start + maxi(early_loops, 1) * _pattern_len
+		# 谱面的循环要对上曲子的循环（曲子从第 0 拍起，16 拍一句）。框架是从「开头歇完的那条小节线」起铺谱的
+		# （这一关歇两小节 = 第 8 拍），那样谱面就比曲子晚了半句：长按落到了下一句的前半。这里把谱面的起点
+		# 挪回曲子那一句的开头：歇掉的那几小节算在第一遍里，第一遍从谱面的第 3 小节打起。
+		var skip := int(roundf(fposmod(_start, _pattern_len) / bpb))
+		var main := get_parent().get_parent() if get_parent() else null
+		if skip > 0 and skip < def.bars.size() and def.chart == null and main and main.get("judge"):
+			var d: SectionDef = def.duplicate()
+			var turned := PackedStringArray()
+			for i in def.bars.size():
+				turned.append(def.bars[(i + skip) % def.bars.size()])
+			d.bars = turned
+			var index: int = main.get("_index") if main.get("_index") != null else 0
+			notes = main.judge.begin_section(index, d, bpb, _start, _start)
+			_hold_lens = d.hold_lengths(bpb)
+			_hold_lens[-1] = 0.0
+			_pattern_origin = _start
+			_loop_from = _start - skip * bpb
+		else:
+			_loop_from = _start
+		_late_at = _loop_from + maxi(early_loops, 1) * _pattern_len
 		var late_len := late_bars.size() * float(bpb)
 		_end_at = _late_at + maxi(late_loops, 0) * late_len if not late_bars.is_empty() else _late_at
 
@@ -271,8 +321,8 @@ func _draw() -> void:
 	for n in own_notes():
 		var length := hold_beats(n)
 		var ahead := beats_until(n)
-		if ahead > approach_beats or n.beat >= _end_at - 0.01:
-			break  # （放完之后的音符不会打到：不画）
+		if ahead > approach_beats or n.beat > _end_at + 0.01:
+			break  # （换段音符之后的音符不会打到：不画）
 		var tail_ahead := ahead + length
 		var failed := _failed.has(n)
 		var holding_this := n == _holding
@@ -426,6 +476,8 @@ func _start_finale() -> void:
 	var bpb: int = Conductor.chart.beats_per_bar
 	var now := song_beat()
 	var switch_at := ceilf((now + finale_min_beats) / bpb) * bpb
+	if not is_inf(_end_at):
+		switch_at = _end_at + 2.0 * bpb  # 过门两小节，放完的那条线切到下一个小关
 	var live: Texture2D = null
 	var next := _next_def()
 	if next and next.scene:
