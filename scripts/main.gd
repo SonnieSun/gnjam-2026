@@ -88,6 +88,7 @@ var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比
 var _stage_clicks: Array[float] = []  # 每个小关预计要按多少下（实时显示分数用）
 var _cleared := false
 var _credits_going := false
+var _credits_timer: SceneTreeTimer
 var _gauge_offset := 0  # 共用积累条：这一段前面的几段一共多少分
 var _gauge_total := 0   # 共用积累条：整条一共多少分
 
@@ -415,9 +416,20 @@ func _clear_level() -> void:
 		judge.score += run_score
 		judge.possible += run_possible
 	hud.show_result(judge)
+	if not hud.result_label.next_pressed.is_connected(_go_credits):
+		hud.result_label.next_pressed.connect(_go_credits)
 	# 结算画面停一会儿，自己接到片尾字幕（不回第 1 关）；字幕放完回主菜单
 	if credits_after_seconds > 0.0:
-		get_tree().create_timer(credits_after_seconds).timeout.connect(_go_credits)
+		_credits_timer = get_tree().create_timer(credits_after_seconds)
+		_credits_timer.timeout.connect(_go_credits)
+
+
+## 结算画面按 R：取消自动去片尾，这一大关从头再打一遍（前面几关一路玩的成绩还留着，打完照常合进来）
+func _restart_from_result() -> void:
+	if _credits_timer and _credits_timer.timeout.is_connected(_go_credits):
+		_credits_timer.timeout.disconnect(_go_credits)
+	_credits_timer = null
+	start_from(0)
 
 
 ## 去片尾字幕（scenes/credits.tscn）。音乐不停，接着在字幕下面放
@@ -630,8 +642,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if key.physical_keycode == KEY_ESCAPE:
 		return  # Esc 归暂停转盘管（scripts/pause_menu.gd）
 	if _cleared and hud.result_label.visible:
-		# 最终结算画面：按任意键马上去片尾字幕（不按也会自己去，见 _clear_level），字幕放完回主菜单
-		_go_credits()
+		# 最终结算画面：R 重打这一关；别的键都不管，只有 NEXT 去片尾字幕（点按钮，或打击键按两下；不按也会自己去，见 _clear_level）
+		if key.physical_keycode == KEY_R and not _credits_going:
+			_restart_from_result()
 		return
 	if key.physical_keycode == KEY_TAB and OS.is_debug_build():
 		toggle_editor()

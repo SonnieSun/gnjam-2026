@@ -7,11 +7,22 @@ const GRADES := {
 	"B": preload("res://assets/ui/result_grades/B.png"),
 	"C": preload("res://assets/ui/result_grades/C.png"),
 }
+## Next 被点了（鼠标点按钮，或者键盘打击键按两下：第一下高亮、第二下确认）
+signal next_pressed
+## 结算出来后多久才收 Next 的按键（免得打最后几个音符时连按的空格直接把结算跳过）
+@export var next_input_delay := 0.6
 var grade := "C"
 var accuracy := 0.0
 @onready var grade_art: TextureRect = $Panel/Grade
 @onready var percent_label: Label = $Panel/Accuracy
 @onready var stats: Label = $Panel/Stats
+@onready var next_button: Button = $Panel/Next
+var _next_armed := false
+var _next_done := false
+var _shown_at := 0.0
+
+func _ready() -> void:
+	next_button.pressed.connect(_fire_next)
 
 static func rank_for(score: int, judged_count: int) -> String:
 	if judged_count <= 0: return "C"
@@ -42,3 +53,30 @@ func show_result(judge) -> void:
 		judge.counts.get(NoteData.Result.PERFECT,0), judge.counts.get(NoteData.Result.GREAT,0),
 		judge.counts.get(NoteData.Result.GOOD,0), judge.counts.get(NoteData.Result.MISS,0), ms, lean]
 	visible = true
+	_next_armed = false
+	_next_done = false
+	_shown_at = Time.get_ticks_msec() / 1000.0
+	next_button.modulate = Color.WHITE
+	next_button.scale = Vector2.ONE
+
+func _unhandled_input(event: InputEvent) -> void:
+	# 只认键盘上的打击键（空格等）：鼠标点别处不算，鼠标只能点按钮本身
+	if not visible or not event is InputEventKey or event.is_echo() or not event.is_action_pressed(Judge.HIT_ACTION):
+		return
+	if Time.get_ticks_msec() / 1000.0 - _shown_at < next_input_delay:
+		return
+	get_viewport().set_input_as_handled()
+	if _next_armed:
+		_fire_next()
+		return
+	# 第一下：高亮 Next
+	_next_armed = true
+	next_button.modulate = Color(1.6, 1.4, 1.6)
+	next_button.scale = Vector2.ONE * 1.18
+	next_button.create_tween().tween_property(next_button, "scale", Vector2.ONE * 1.08, 0.15)
+
+func _fire_next() -> void:
+	if _next_done or not visible:
+		return
+	_next_done = true
+	next_pressed.emit()
