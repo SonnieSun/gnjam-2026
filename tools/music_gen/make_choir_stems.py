@@ -157,19 +157,17 @@ def _hat(seconds, gain):
     return highpass(np.stack([noise(n), noise(n)], 1), 7000) * np.exp(-k / seconds)[:, None] * gain
 
 
-# The climax needs dynamics of its own, or eight bars of everything is flat. Three strengths of the layer, staged
+# The climax needs dynamics of its own, or eight bars of everything is flat. Two strengths of the layer, staged
 # by the level inside the fever (levels/music/level_3_spaceship.json, the peak lane):
 #   entry    right after the transition: the full layer described above (what the two accents lead into)
-#   calm     then it steps back: no synth lead, the chords lower, light hats and backbeat, one crash; the cats in
-#            front, room to breathe
 #   max      the last stretch: everything, the synth lead also an octave up, crashes on every other bar, hats in
 #            sixteenths, a louder backbeat, toms at the end of every four bars, a snare roll and a riser into the
 #            loop point
+# (A third one between them that stepped back, no synth lead and light drums, was tried and dropped by ear on
+# 2026-11-16: the climax should not get smaller in the middle.)
 VARIANTS = {
     'entry': dict(file='fever', lead=0.20, lead_up=0.0, pad=0.13, crash={0: 1.1, 4: 1.1, 2: 0.6, 6: 0.6}, open_hat=0.7, closed_hat=0.35,
                   sixteenths=0.0, snare=0.75, toms=(3, 7), roll=False),
-    'calm': dict(file='fever_calm', lead=0.0, lead_up=0.0, pad=0.07, crash={0: 0.55}, open_hat=0.4, closed_hat=0.2,
-                 sixteenths=0.0, snare=0.45, toms=(), roll=False),
     'max': dict(file='fever_max', lead=0.22, lead_up=0.09, pad=0.15, crash={0: 1.2, 2: 0.9, 4: 1.2, 6: 0.9}, open_hat=0.8, closed_hat=0.4,
                 sixteenths=0.22, snare=0.9, toms=(3, 7), roll=True),
 }

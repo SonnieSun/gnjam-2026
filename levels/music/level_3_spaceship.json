@@ -137,12 +137,6 @@
      "tune": "cc"
     },
     {
-     "id": "cc_peak_calm",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_fever_calm_8b.wav",
-     "gain_db": 18.0,
-     "tune": "cc"
-    },
-    {
      "id": "cc_peak_max",
      "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_fever_max_8b.wav",
      "gain_db": 18.0,
@@ -416,11 +410,7 @@
       "cc_peak"
      ],
      [
-      0.82,
-      "cc_peak_calm"
-     ],
-     [
-      0.9,
+      0.875,
       "cc_peak_max"
      ]
     ],
