@@ -4,7 +4,8 @@ extends Node
 ## 听的是 Music 的信号（drum_kick / drum_clap / lead_note，见 docs/music_manager.md「画面跟着音乐的信号」），
 ## 所以鼓型换了（半拍 / 四拍 / club / 碎拍）弹法自然跟着变；预备拍和过门里鼓停了，它也跟着停。
 ##
-## 用法：放进小关的场景里当子节点。target 空着 = 找父节点下面的转圈猫（KisaSpinCat3D）；也可以指到任何 Node3D。
+## 用法：放进小关的场景里当子节点。target 空着 = 找父节点下面的转圈猫（KisaSpinCat3D），或者吸猫 / 上升关舞台
+## （AbductionStage）里光柱中的猫；也可以指到任何 Node3D。
 ## 做法：弹簧。每一下给它一个往下的速度（先压扁），弹簧把它拉回来、冲过头（拉长），再停住。体积大致不变
 ## （压扁时变宽）。作用在物体和它的子节点之间插进去的一层上，不改物体自己的 scale，所以和别的缩放动画不打架。
 
@@ -67,6 +68,8 @@ func _find() -> void:
 		for c in get_parent().get_children():
 			if c is KisaSpinCat3D:
 				node = (c as KisaSpinCat3D).get("_pivot")   # 猫绕着转的那个节点：脚在它的原点上
+			elif c is AbductionStage:
+				node = (c as AbductionStage).get("_cat_body")   # 光柱里的猫：原点在猫的中心，浮在空中，绕中心压扁
 	if not (node is Node3D) or node.get_child_count() == 0:
 		return
 	_joint = Node3D.new()

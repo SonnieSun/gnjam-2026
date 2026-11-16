@@ -15,6 +15,54 @@ var _bright_skipped := false
 
 var _clear_at := INF
 var _sky: SkyStage
+var _accents: NoteAccents  # 音符的重点标记（场景里有 NoteAccents 节点才有）
+var _ode_chart := false
+
+
+## 这个小关里换谱子的玩法阶段（配拍编辑器读这个）。"" = 开头的主谱（云层、风暴）；
+## "ode" = 亮起来之后：谱子就是欢乐颂的旋律（levels/charts/<关>_<小关>_ode.tres，tools/music_gen/make_tune_charts.py 写的）。
+static func chart_phases() -> Array:
+	return [
+		{"id": "", "name": "云层、风暴", "event": 0},
+		{"id": "ode", "name": "亮起来之后（欢乐颂的旋律）", "event": 0},
+	]
+
+
+## 音乐排好了"亮起来"（升到第 2 档：欢乐颂从那条小节线的第 1 小节起）：谱子在同一条小节线换成欢乐颂的旋律，
+## 所以之后每个音符都是旋律里的一个音。没有那份谱就不换，和原来一样。
+func _on_change_planned(kind: String, id: int, _fill_beat: float, commit_beat: float) -> void:
+	if not active or _ode_chart or kind != "tier" or id != 2:
+		return
+	var main := get_parent().get_parent()
+	var file := "res://levels/charts/%s_%d_ode.tres" % [Levels.current_path().get_file().get_basename(),
+			int(main.get("_index")) if main and main.get("_index") != null else 0]
+	if main == null or not main.get("judge") or not ResourceLoader.exists(file):
+		return
+	_ode_chart = true
+	var d: SectionDef = def.duplicate()
+	d.chart = load(file) as ChartPattern
+	var keep: Array[NoteData] = []
+	for n in notes:
+		if n.judged:
+			continue
+		if n.beat < commit_beat - 0.001:
+			keep.append(n)
+		elif _sky:
+			_drop_ring(n)  # 旧谱里那条小节线之后的音符不要了：已经在光柱里的圈淡掉
+	notes = main.judge.begin_section(int(main.get("_index")), d, Conductor.chart.beats_per_bar, commit_beat, commit_beat)
+	for i in keep.size():
+		notes.insert(i, keep[i])  # 还没打的旧音符留在这一关的列表里，接着画
+
+
+## 一个音符不要了：它的圈要是已经在光柱里往下落，让它淡掉（舞台只给判定过的音符收圈，不管的话会停在半空）
+func _drop_ring(n: NoteData) -> void:
+	var key := n.get_instance_id()
+	if _sky._rings.has(key):
+		var r: Dictionary = _sky._rings[key]
+		_sky._rings.erase(key)
+		r.hit = true
+		r.t = 0.0
+		_sky._fading.append(r)
 
 
 func _ready() -> void:
@@ -23,6 +71,9 @@ func _ready() -> void:
 		return
 	_sky = _stage as SkyStage
 	Music.tier_changed.connect(_on_tier)
+	Music.change_planned.connect(_on_change_planned)
+	_accents = get_node_or_null("NoteAccents") as NoteAccents
+	_stage.accents = _accents
 
 
 func _on_enter() -> void:
@@ -47,17 +98,12 @@ func _skip_next_notes(count: int) -> void:
 		if not n.judged and n.beat > now:
 			n.judged = true
 			count -= 1
-			# 已经在光柱里往下落的圈：舞台只给判定过的音符收圈，这里直接让它淡掉（不然会停在半空）
-			var key := n.get_instance_id()
-			if _sky._rings.has(key):
-				var r: Dictionary = _sky._rings[key]
-				_sky._rings.erase(key)
-				r.hit = true
-				r.t = 0.0
-				_sky._fading.append(r)
+			_drop_ring(n)
 
 
 func _update_spin(local_beat: float, angle: float) -> void:
+	if _accents:
+		_accents.notes = own_notes()
 	super(local_beat, angle)
 	if song_beat() >= _clear_at:
 		_clear_at = INF
