@@ -818,3 +818,36 @@ MIDI 的来源记在 cat_sound 的 `reference/midi_public_domain/README.md`。
 
 `outro`、`exit`、`carry`、`own`、`fever_reverb` 没变。迁移前后用同一套脚本逐拍录了三关四个场景里每条轨道响什么、哪些音效开始，86 行完全一致。
 
+## 阶段切换的同步：预备信号（2026-11-16）
+
+原来进度过一条线的那一下，场景、谱面、音乐各干各的：场景马上开始演，谱面马上停音符、过若干拍恢复，音乐等下一条小节线放过门、再下一条小节线换曲子。三者只共享"过线"这一个瞬间。
+
+现在音乐管理器把一次切换排好的时候发一个**预备信号**，别人按它给的拍点排自己的事：
+
+```gdscript
+signal change_planned(kind: String, id: int, fill_beat: float, commit_beat: float)
+Music.planned_change()   # 排好了还没发生的那次：{kind, id, fill_beat, commit_beat}，没有就是 {}
+```
+
+- `kind` = `"tier"`（升到第 `id` 档）或 `"fever"`；`fill_beat` = 过门从哪一拍起，`commit_beat` = 新的一段从哪一拍进（都是小节线，没有过门时两个一样）。
+- 正式切换的那一下还是原来的 `tier_changed` / `fever_started`。
+- 时间由音乐定（它要等乐句线、过门有固定的小节数，最挪不动），场景和谱面跟它。
+- 切换描述里可以写 `"lead_beats": 4`：最短预备时间，过线到过门开始至少隔这么多拍，离下一条小节线不够就顺延一小节。场景要在过门之前先做铺垫的切换用。这是唯一会改动音乐时间的地方，没写的切换时间和以前完全一样（逐拍比对过）。
+- 积累条先发 `changed`（音乐在这里排好）再发 `event`（小关脚本在这里收到），所以小关脚本在 `_on_gauge_event` 里直接读 `Music.planned_change()` 就行。
+
+### 试点：第一关拆房子（第 5 条线，音乐换成 The Entertainer）
+
+`scripts/sections/kisa/disco_section.gd` 的 `_begin_unfold()`，配置里这一档 `"lead_beats": 4`：
+
+| 时刻 | 音乐 | 场景 / 谱面 |
+|---|---|---|
+| 过线 | 上扬音效（一直放到过门开头） | 音符停 |
+| 过门开头 − 4 拍 | | 开始拆：跳舞猫退场、星星灯升走 |
+| 过门小节第一拍 | 专门的过门（军鼓滚奏 + 引子） | 第一面墙倒 |
+| 新曲子第一拍 | The Entertainer 进，镲 | 第二面墙倒，之后镜头转过去 |
+| 新曲子第 5 小节 | 第二句开头 | 路上的第一个水果（`unfold_resume_bars = 4`） |
+
+过线的时机不同（离小节线 3.5 拍、2 拍、3 拍都试了），这几个相对位置都不变。音乐没排这次切换时（没用叠轨音乐，或者这一档没有过门），`_begin_unfold()` 和原来一样马上开始。
+
+还没接到这套信号上的：换小关（`main.gd` 的 `_switch_at`）、进 fever 的画面、结尾段。`disco_section.gd` 里的 `DiscoMusic`（11 条分轨的旧配乐）不是死代码：关卡没开叠轨音乐（`use_in_game` 为 false）时它是后备，开着的时候自己让开。
+

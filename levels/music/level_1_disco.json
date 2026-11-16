@@ -359,7 +359,8 @@
     "tier": {
      "5": {
       "fill": true,
-      "written": "tr_disco_to_ent"
+      "written": "tr_disco_to_ent",
+      "lead_beats": 4.0
      }
     },
     "fever": {

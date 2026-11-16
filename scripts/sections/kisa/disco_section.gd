@@ -40,6 +40,8 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var crossfade_seconds := 1.2
 ## 拆完房子上路后，先空滑几拍才来第一个水果
 @export var road_quiet_beats := 8.0
+## 跟着音乐的切换拆房子时：新曲子进来之后过几小节出路上的第一个水果（4 = 它的第一句唱完）
+@export var unfold_resume_bars := 4
 ## 水果路滑到圆台（舞台）时歇多久再出音符（秒，大概值：会对到最近的小节线上）
 @export var plaza_rest_seconds := 5.0
 
@@ -69,6 +71,8 @@ var _hold_ticks := 0  # 这次长按已经给过几次「按住满 1 拍」的�
 var _circle_pos := Vector2.ZERO
 var _road: DiscoRoad
 var _layer_gain := PackedFloat32Array()  # 每条分轨现在的音量（0~1）
+var _unfold_at := INF  # 到这一拍开始拆房子（见 _begin_unfold）
+var _unfold_resume := -1.0  # 拆完之后路上第一个水果落在哪一拍
 var _fill_at := INF  # 结尾镜头放到这一拍：接着玩吸猫（或者把积累条顶满过关）
 var _clear_at := INF  # 猫飞出屏幕之后，到这一拍把积累条顶满过关
 var _curtain := false
@@ -123,6 +127,10 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	_stage.update(song_beat())
 	_road.update(song_beat(), own_notes())
 	_update_layers()
+	if song_beat() >= _unfold_at:
+		var at := _unfold_at
+		_unfold_at = INF
+		_road.start(at, _unfold_resume)
 	if song_beat() >= _fill_at:
 		_fill_at = INF
 		if abduction_after_finale:
@@ -232,9 +240,7 @@ func _on_gauge_event(index: int, _value: int) -> void:
 	if index <= 4:
 		_stage.enter_stage(index)
 	elif index == 5:
-		# 拆房子转镜头这段不出音符，让玩家歇一下；上路的第一个水果落在歇完那个小节的第 1 拍
-		var resume := _rest_until(song_beat() + _road.unfold_beats + road_quiet_beats, DiscoMusic.road_bars(), "road")
-		_road.start(song_beat(), resume)
+		_begin_unfold(index)
 	elif index == 6 or index == 7:
 		_road.set_floor(index - 5)
 	elif index == 9:
@@ -245,6 +251,25 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		var rest := plaza_rest_seconds / Conductor.sec_per_beat()
 		_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars(), "plaza")
 		_road.enter_plaza(song_beat())
+
+
+## 拆房子上路（第 5 条线）。拆房子转镜头这段不出音符，让玩家歇一下。
+## 音乐在这一档换曲子（The Entertainer，前面有一小节专门的过门），所以不在进度过线的这一下各干各的，
+## 而是按音乐排好的拍点来（Music.planned_change()，音乐管理器的预备信号）：
+##   过线（现在）        音符停；音乐放上扬音效；等到「过门开头 - wall_first_beat 拍」才开始拆（跳舞猫退场、星星灯升走）
+##   过门小节的第一拍    第一面墙倒（过门里有军鼓滚奏）
+##   新曲子的第一拍      第二面墙倒（wall_gap_beats = 过门的 4 拍时正好），之后镜头转过去
+##   新曲子第 unfold_resume_bars 小节之后的那条小节线    路上的第一个水果（一句唱完）
+## 音乐没排这次切换时（这一关没用叠轨音乐，或者配置里这一档没有过门）和原来一样：马上开始拆，拆完再歇 road_quiet_beats 拍。
+func _begin_unfold(index: int) -> void:
+	var start := song_beat()
+	var resume_from := start + _road.unfold_beats + road_quiet_beats
+	var plan: Dictionary = Music.planned_change()
+	if plan.get("kind", "") == "tier" and int(plan.get("id", -1)) == index and float(plan.commit_beat) > float(plan.fill_beat):
+		start = maxf(start, float(plan.fill_beat) - _road.wall_first_beat)
+		resume_from = float(plan.commit_beat) + unfold_resume_bars * Conductor.chart.beats_per_bar
+	_unfold_resume = _rest_until(resume_from, DiscoMusic.road_bars(), "road")
+	_unfold_at = start
 
 
 ## 积累条满了，框架会在下一个小节线切到吸猫小关。正常流程里结尾镜头早就开始了（第 9 个事件），
