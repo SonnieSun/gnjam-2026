@@ -40,6 +40,8 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var crossfade_seconds := 1.2
 ## 拆完房子上路后，先空滑几拍才来第一个水果
 @export var road_quiet_beats := 8.0
+## 跟着音乐排的时候：猫在圆台上的第一个音符之前几小节滑到中间站好（那一小节放预备拍）
+@export var plaza_stand_bars := 1
 ## 跟着音乐的切换拆房子时：新曲子进来之后过几小节出路上的第一个水果（1 = 第一小节是预备拍「大大大大」，第二小节第一拍是第一个水果）
 @export var unfold_resume_bars := 1
 ## 跟着音乐的切换拆房子时，过场压短成这样（拍；不跟音乐时用 DiscoRoad 自己的 16 / 4 / 4 / 9）：
@@ -263,15 +265,18 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		# 音乐在这一档有一段安静的过渡（只留猫唱旋律和低音，几小节）：水果一结束它就出，它一结束渐强的那一段进来，
 		# 圆台上的第一个音符就落在那一拍上（Music.planned_change() 的 commit_beat）。音乐没排的时候和原来一样歇 plaza_rest_seconds。
 		var bpb: int = Conductor.chart.beats_per_bar
-		var rest := plaza_rest_seconds / Conductor.sec_per_beat()
-		var until := song_beat() + rest - bpb * 0.5
 		var plan: Dictionary = Music.planned_change()
 		if plan.get("kind", "") == "tier" and int(plan.get("id", -1)) == index and float(plan.commit_beat) > float(plan.fill_beat):
-			until = float(plan.commit_beat)
-		_rest_until(until, DiscoMusic.road_bars(), "plaza")
-		# 跟着音乐排的时候，猫是在安静段里一路滑到圆台中间的：正好在安静段结束（渐强段进来、第一个音符）那一拍到。
-		# 原来是 4 拍就滑到，然后站在中间把安静段等完。
-		_road.enter_plaza(song_beat(), until if until == float(plan.get("commit_beat", -1.0)) else -1.0)
+			# 跟着音乐排：安静段（几小节）一半在路上、一半在圆台上——猫在安静段结束前 plaza_stand_bars 小节滑到中间站好，
+			# 那一小节音乐放预备拍（节拍器的四下），安静段一结束（渐强段进来）就是圆台上的第一个音符。
+			# 已经出现在路上的水果照常打完，不会一过线就突然没了：路上的谱只停掉还没出现的那些。
+			var first_note := float(plan.commit_beat)
+			_switch_chart_at(ceilf(song_beat() + _road.fruit_lead_beats), first_note, "plaza")
+			_road.enter_plaza(song_beat(), first_note - plaza_stand_bars * bpb)
+		else:
+			var rest := plaza_rest_seconds / Conductor.sec_per_beat()
+			_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars(), "plaza")
+			_road.enter_plaza(song_beat())
 
 
 ## 拆房子上路（第 5 条线）。

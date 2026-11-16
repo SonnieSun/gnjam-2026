@@ -86,6 +86,7 @@ const KIAI_DUCK_DB := -6.0
 var _duck_on := false
 var _plan := {}           # 排好了还没发生的那次切换（见 change_planned / planned_change）
 var _planned_for := -1    # 已经为升到第几档排过
+var _count_at := -1.0     # 到这一拍放预备拍（"count_in": "before"）
 var _count_until := -1.0  # 预备拍放到第几拍：这之前关卡的鼓让开、别的轨道压低，让那四下听得见
 var _fill_until := -1.0  # 几小节长的专门过门放到第几拍：在那之前不换（进度变了也不重新排到更早的小节线）
 var _outro := false       # 结尾段在放：除了鼓，别的轨道都停着（见 outro()）
@@ -202,6 +203,7 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_free_tunes()
 	_pattern_tune.clear()
 	_lane_gain.clear()
+	_count_at = -1.0
 	_count_until = -1.0
 	_fill_until = -1.0
 	_plan = {}
@@ -545,8 +547,9 @@ func set_progress(p: float) -> void:
 ##   "on_bars"   等正在放的曲子唱到几小节一句的乐句线才换（不写 = 不等）。换曲子 / 换段落的地方用，
 ##               不然新的一段会从上一句的中间唱起
 ##   "sfx"       升到这一档那一下的专用音效，代替通用的镲和喵，也不送小 kiai（"none" = 什么都不放）
-##   "count_in"  true：新的一段进来的第一小节是乐队的预备拍，"大 大 大 大"四下鼓（见 count_in()）。
-##               关卡把这一小节留空、下一小节的第一拍接上第一个音符，玩家就有一小节的时间对上拍子
+##   "count_in"  预备拍，节拍器的四下（见 count_in()），玩家有一小节的时间对上拍子：
+##               true / "start" = 新的一段进来的第一小节（关卡把这一小节留空，下一小节第一拍接第一个音符）；
+##               "before" = 过门的最后一小节（新的一段的第一拍就是第一个音符）
 ##   "lead_beats" 最短的预备时间：进度过线到过门开始至少隔这么多拍，离下一条小节线不够就顺延一小节（不写 = 0）。
 ##               场景要在过门之前先做铺垫的切换用
 ## 读出来的是补齐了默认值的一份：{fill: 到底放不放过门, written, db, bars, replaces, on_bars, sfx, lead_beats}
@@ -578,11 +581,12 @@ func change_spec(kind: String, t := 0) -> Dictionary:
 	out.on_bars = int(raw.get("on_bars", 0))
 	out.sfx = str(raw.get("sfx", ""))
 	out.lead_beats = float(raw.get("lead_beats", 0.0))
-	out["count_in"] = bool(raw.get("count_in", false))
+	var ci: Variant = raw.get("count_in", "")
+	out["count_in"] = ("start" if ci else "") if ci is bool else str(ci)
 	return out
 
 
-## 预备拍：从现在（应该正好是小节线）起的一小节里，"大 大 大 大"四下鼓，每拍一下（assets/audio/sfx/count_in_4.wav，
+## 预备拍：从现在（应该正好是小节线）起的一小节里，节拍器的四下，每拍一下，第一下高一点（assets/audio/sfx/count_in_4.wav，
 ## tools/music_gen/make_transitions.py 做的）。这一小节里关卡自己的鼓和猫鼓让开（COUNT_DRUMS_DB：预备拍就是这一小节的鼓），
 ## 别的轨道压低 COUNT_DUCK_DB。量过：鼓照常响、乐队只压 7 dB 的话，这四下在 2.5–9 kHz 上比乐队本来就有的拍手和镲还小，听不出来。
 ## 两种用法：切换描述里写 "count_in": true（升到那一档 / 进 fever 的那条小节线上自动放）；或者关卡自己在小节线上调。
@@ -1138,6 +1142,9 @@ func _on_beat(index: int) -> void:
 	var carrying := _carry > 0.0 and index % 4 == 0 and index >= int(round(_carry_from))
 	if carrying and _carry_level() <= effective:
 		_carry = 0.0
+	if _count_at >= 0.0 and index >= int(round(_count_at)):   # 过门的最后一小节：预备拍
+		_count_at = -1.0
+		count_in()
 	if index < int(round(_fill_until)):      # 几小节长的专门过门还没放完：别的事都等它放完那条小节线再办
 		if expired or carrying:
 			_pending = true
@@ -1205,6 +1212,10 @@ func _apply_now(beat_index := -1) -> void:
 		_next_beat = beat_index + base * int(into_tier.bars)
 		if into_tier.bars > 1:
 			_fill_until = _next_beat
+		_count_at = _next_beat - base if into_tier.count_in == "before" else -1.0
+		if _count_at >= 0.0 and int(round(_count_at)) == beat_index:
+			_count_at = -1.0
+			count_in()
 		return
 	# 要进 fever：一样
 	var fever_now := use_dynamics and in_fever(eff)
@@ -1214,6 +1225,10 @@ func _apply_now(beat_index := -1) -> void:
 		_pending = true
 		_next_beat = beat_index + base * int(into_fever.bars)
 		_fill_until = _next_beat
+		_count_at = _next_beat - base if into_fever.count_in == "before" else -1.0
+		if _count_at >= 0.0 and int(round(_count_at)) == beat_index:
+			_count_at = -1.0
+			count_in()
 		return
 	# 升档：送一小节小 kiai（fever 里本来就开着，不用送）
 	if use_dynamics and beat_index >= 0 and not _quiet_tier_change and going_to > tier and not fever_now \
@@ -1253,7 +1268,7 @@ func _apply_now(beat_index := -1) -> void:
 			# 这一档有自己的音效（切换描述里的 "sfx"）就放它，不放通用的镲和喵
 			var arrived := change_spec("tier", new_tier)
 			var own_sfx := str(arrived.sfx)
-			if arrived.count_in:
+			if arrived.count_in == "start":
 				count_in()
 			if own_sfx != "":
 				play_sfx(own_sfx, -2.0)
@@ -1278,7 +1293,7 @@ func _apply_now(beat_index := -1) -> void:
 		if fever:
 			if Conductor.playing and beat_index >= 0:
 				play_sfx("crash", -7.0)  # 进 fever 只放一声镲（原来还有一段转圈喵，太突兀，去掉了）
-			if into_fever.count_in and Conductor.playing and beat_index >= 0:
+			if into_fever.count_in == "start" and Conductor.playing and beat_index >= 0:
 				count_in()
 			fever_started.emit()
 		else:

@@ -449,37 +449,27 @@ ending('end_g_major', 'G', 'G4')       # Can-Can (the end of level 2 and of leve
 print('transitions done ->', SFX)
 
 
-# THE COUNT-IN: the band's "one, two, three, four", four big hits on the beats of one bar. A component of the music
-# manager (scripts/music/music.gd count_in(); a change's "count_in": true plays it on the bar the new part comes
-# in): the level leaves that bar empty and puts its first note on the next bar line, so the player gets a bar to
-# find the beat. For that bar the manager takes the level's own drums and cat drums out (20 dB down: the count-in
-# IS the drums of that bar) and turns the rest down 7 dB.
-# Measured in the mix: with the drum loop still playing and the band only 7 dB down, these hits added nothing at
-# 2.5-9 kHz over what the band already had on the beats (its own claps and hats are there).
-# The first version (a snare and two toms at -2 dB under the full band, as that tier's own sound) could not be
-# heard as four hits at all. What a count-in is heard BY is its click: so each hit is a pair of sticks (a very
-# short, very bright burst and a ping) on top of a rimshot, a floor tom and a kick, all four the same size, with
-# a crash on the first.
-def stick(gain):
-    n = t2n(0.06)
+# THE COUNT-IN: one bar of four clicks on the beats, A METRONOME (the first one higher, the way a metronome marks
+# the bar). A component of the music manager (scripts/music/music.gd count_in(); a change's "count_in" plays it
+# on the first bar of the new part, or on the last bar of its transition): the level leaves that bar empty and
+# puts its first note on the next bar line, so the player gets a bar to find the beat. For that bar the manager
+# takes the level's own drums and cat drums out (20 dB down) and turns the rest down 7 dB.
+# Two versions before this one were drums ("da da da da"): a snare and toms under the full band, which measured
+# 0.1-0.4 dB over the band's own claps (inaudible), and sticks + rimshot with the drums ducked. A metronome reads
+# as "counting" at once and is not mistaken for part of the groove: a short wooden tick, most of it at 1.5-4 kHz.
+def tick(hz, gain):
+    n = t2n(0.09)
     k = np.arange(n) / SR
-    click = highpass(np.stack([noise(n), noise(n)], 1), 3500) * np.exp(-k / 0.006)[:, None]
-    ping = (np.sin(2 * np.pi * 1900 * k) + 0.6 * np.sin(2 * np.pi * 2850 * k)) * np.exp(-k / 0.018)
-    return (click * 1.2 + ping[:, None] * 0.8) * gain
+    tone = (np.sin(2 * np.pi * hz * k) + 0.5 * np.sin(2 * np.pi * hz * 2.76 * k) * np.exp(-k / 0.008)) * np.exp(-k / 0.022)
+    click = highpass(np.stack([noise(n), noise(n)], 1), 2500) * np.exp(-k / 0.0025)[:, None] * 0.5
+    return (np.stack([tone, tone], 1) + click) * gain * np.clip(k / 0.0005, 0, 1)[:, None]
 
 
 def count_in(name):
-    x = np.zeros((BAR_N + t2n(0.6), 2))
-    place(x, cc.CRASH, 0, 0.35)
+    x = np.zeros((BAR_N + t2n(0.3), 2))
     for i in range(4):
-        at = t2n(i * 4 * STEP)
-        place(x, stick(2.6), at, 1.0)
-        place(x, snare(1.3), at, 1.0)
-        place(x, tom(123, 0.45), at, 1.0)
-        place(x, cc.KICK, at, 0.25)
-    x = reverb(x, 0.5, 0.25, mix=0.06)[:len(x)]
-    f = t2n(0.2)
-    x[-f:] *= np.linspace(1, 0, f)[:, None]
+        place(x, tick(2100 if i == 0 else 1575, 1.0 if i == 0 else 0.85), t2n(i * 4 * STEP), 1.0)
+    x = reverb(x, 0.25, 0.2, mix=0.04)[:len(x)]
     write_wav(os.path.join(SFX, name + '.wav'), x, peak=0.95)
     for d in COPIES:
         shutil.copy(os.path.join(SFX, name + '.wav'), os.path.join(d, name + '.wav'))
