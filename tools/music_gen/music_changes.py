@@ -14,6 +14,7 @@ still have the short keys in them (the hand-maintained level_1_disco.json was co
 
     short key in make_music_sets.py     ->  in "changes"
     'enter': 'tr_x'                         enter.written
+    'enter_db' / 'enter_bars'               enter.db / bars
     'enter_fill': False                     enter.fill
     'transition_tiers': (5,)                tier.5.fill = true
     'tier_enter': {5: 'tr_x'}               tier.5.written
@@ -28,7 +29,7 @@ import io
 import json
 import sys
 
-SHORT = ('enter', 'enter_fill', 'transition_tiers', 'tier_enter', 'tier_on_bars', 'tier_sfx', 'fever_fill', 'fever_enter',
+SHORT = ('enter', 'enter_db', 'enter_bars', 'enter_fill', 'transition_tiers', 'tier_enter', 'tier_on_bars', 'tier_sfx', 'fever_fill', 'fever_enter',
          'fever_enter_db', 'fever_enter_bars', 'fever_enter_replaces', 'fever_on_bars')
 
 
@@ -41,6 +42,9 @@ def to_changes(sec):
 
     if sec.get('enter'):
         enter['written'] = sec['enter']
+    for short, key in (('enter_db', 'db'), ('enter_bars', 'bars')):
+        if short in sec:
+            enter[key] = sec[short]
     if 'enter_fill' in sec:
         enter['fill'] = bool(sec['enter_fill'])
     for k in sec.get('transition_tiers', ()):

@@ -310,7 +310,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                # 'mka' and 'mk' are two tune groups, so the whole tune starts from its first bar after the fill bar
                # of the section change.
                {'title': 'SLAP / WARM UP', 'tiers': (0.5,), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''},
-                'enter': 'tr_ybf_to_mk', 'rules': {
+                'enter': 'tr_ybf_to_mk', 'enter_db': 14.0, 'enter_bars': 2, 'rules': {
                    'groove': [[0, 1]], 'mka_keys': [[0, 1]], 'mka_bass': [[0, 1]], 'mka_cat_drums': [[0, 1]],
                    'mka_pluck': [[0, 0.5]], 'mka_cats': [[0.5, 1]]}},
                {'title': 'SLAP / CHARGE', 'tiers': (0.4,), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''}, 'enter_fill': False, 'carry': 0, 'rules': {

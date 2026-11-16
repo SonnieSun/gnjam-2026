@@ -494,6 +494,11 @@ func set_section(index: int) -> void:
 		var spec := change_spec("enter")
 		if spec.fill:
 			_play_change(spec)
+			if spec.bars > 1:
+				# 几小节长的专门过门：新小关的音乐等它放完才进，这之前进度再变也不提前换
+				_next_beat += float(data.get("quantize_beats", 4)) * (int(spec.bars) - 1)
+				_fill_until = _next_beat
+				_carry_from = _next_beat
 			if spec.written == "":
 				play_sfx("crash", -9.0)
 

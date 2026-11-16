@@ -350,7 +350,9 @@
    },
    "changes": {
     "enter": {
-     "written": "tr_ybf_to_mk"
+     "written": "tr_ybf_to_mk",
+     "db": 14.0,
+     "bars": 2
     }
    }
   },

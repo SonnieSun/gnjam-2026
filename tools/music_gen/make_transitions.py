@@ -5,9 +5,8 @@ tune's chords and bass stop, this one-shot fills the bar, and the new tune start
 There are NO drums in these (the level's own drum loop is playing; a one-shot can start a few ms late and
 two sets of drums would flam).
 
-  <sfx>/tr_ybf_to_mk.wav   Your Best Friend (Ab major) -> Mountain King (A minor): "the smile cracks".
-                           The friendly head once on the instrument, then again a semitone up sung by a cat,
-                           hard-cut, landing on E (the dominant of A minor) over an E7 swell.
+  <sfx>/tr_ybf_to_mk.wav   Your Best Friend (Ab major) -> Mountain King (A minor), two bars: the washer's band ends
+                           its tune, then the metronome counts a bar in over E7 with the tune's pick-up.
   <sfx>/tr_mk_to_cc.wav    Mountain King (A minor) -> Can-Can (G major): "the hall bursts open". The creeping
                            head in sixteenths, running on up the scale and chromatically up to a high D over D7.
   <sfx>/tr_disco_to_ent.wav  the disco theme (G minor) -> The Entertainer (C major), inside level 1: two bars cut
@@ -151,13 +150,6 @@ def render(name, lead, bass, chords, last_slide=0.0, roll=False, accents=()):
     print(f'  {name}: {len(x) / SR:.2f} s')
 
 
-# Your Best Friend (Ab) -> Mountain King (Am): the head, then the head a semitone up, landing on E
-render('tr_ybf_to_mk',
-       lead=[(0, 'C5', 2, 'i'), (2, 'C5', 1, 'i'), (3, 'C#5', 1, 'i'), (4, 'D#5', 3, 'i'),
-             (8, 'C#5', 2, 'b'), (10, 'C#5', 1, 'c'), (11, 'D5', 1, 'c'), (12, 'E5', 4, 'b')],
-       bass=[(0, 'G#1', 7), (8, 'E1', 8)],
-       chords=[(0, 'Ab', 6, 'stab'), (8, 'E7', 8, 'swell')])
-
 # Mountain King (Am) -> Can-Can (G): the creeping head in sixteenths, then on up to a high D over D7
 render('tr_mk_to_cc',
        lead=[(0, 'A4', 1, 'b'), (1, 'B4', 1, 'b'), (2, 'C5', 1, 'b'), (3, 'D5', 1, 'b'),
@@ -195,6 +187,14 @@ def tom(hz, gain):
     return np.stack([v + skin, v + skin], 1) * gain
 
 
+def tick(hz, gain):
+    n = t2n(0.09)
+    k = np.arange(n) / SR
+    tone = (np.sin(2 * np.pi * hz * k) + 0.5 * np.sin(2 * np.pi * hz * 2.76 * k) * np.exp(-k / 0.008)) * np.exp(-k / 0.022)
+    click = highpass(np.stack([noise(n), noise(n)], 1), 2500) * np.exp(-k / 0.0025)[:, None] * 0.5
+    return (np.stack([tone, tone], 1) + click) * gain * np.clip(k / 0.0005, 0, 1)[:, None]
+
+
 def game_clips(level, ids, bar):
     """One bar of clips of a level's music file as the level plays them: [(samples of that bar, dB)] for the clip
     ids, read from the game's own files with the lane's and the clip's gain."""
@@ -212,11 +212,15 @@ def game_clips(level, ids, bar):
     return out
 
 
-def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chords, play_db=16.0, accent_gain=1.0, head=None, band_db=0.0):
+def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chords, play_db=16.0, accent_gain=1.0, head=None, band_db=0.0,
+               extras=('double', 'fill', 'air', 'swell', 'windup'), clicks=False):
     """A transition made by THE BAND THAT IS ABOUT TO PLAY: `tune` is rendered again by the code that makes its
     stems (compose_classics.build) with len(rows) bars from `first_bar` rewritten (rows: one list of
     (step, note, steps) per bar; chords: two per bar), those bars are cut out of every stem and mixed at
-    `levels`. Drums and the accents ([(step from the start, note)]) are added on top."""
+    `levels`. Drums and the accents ([(step from the start, note)]) are added on top.
+    extras: what is piled on, each can be left out when the result is cluttered: 'double' the notes doubled an
+    octave up on the pluck, 'fill' the accelerating snare and toms, 'air' the rising noise, 'swell' the low
+    swell, 'windup' the snare over the head bar. clicks: the metronome's four ticks over the last bar."""
     n_bars = len(rows)
     song = dict(cc.SONGS[tune])
     if tune in cc.SPEED:                                           # a tune the game plays at half speed
@@ -237,9 +241,9 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
         x[:N] += L[layer][first_bar * BAR_N:first_bar * BAR_N + N] * 10 ** (db / 20)
     f = t2n(0.015)
     x[:f] *= np.linspace(0, 1, f)[:, None]
-    first_accent = min(st for st, _ in accents)
+    first_accent = min([st for st, _ in accents] + [n_bars * 16])
     # the hammered notes doubled an octave up on the pluck, and from the second bar in sixteenths
-    for st, pch, ln in new_notes:
+    for st, pch, ln in new_notes if 'double' in extras else []:
         st -= lo
         if st >= first_accent:
             continue
@@ -252,14 +256,15 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
     # under the snare; the very last thirty-second is left empty so the first accent lands in a hole.
     grow = lambda st: st / first_accent
     f0 = first_accent - 8
+    do_fill = 'fill' in extras and bool(accents)
     for st, _, _ in [n for row_i, row in enumerate(rows) for n in [(row_i * 16 + q[0], 0, 0) for q in row]]:
-        if st < f0:
+        if st < f0 and do_fill:
             place(x, snare(0.4 + 0.3 * grow(st)), t2n(st * STEP), 1.0)
     for st, hz in ((6, 185), (7, 147), (14, 147), (15, 110)):
-        if st < f0:
+        if st < f0 and do_fill:
             place(x, tom(hz, 0.5 + 0.2 * grow(st)), t2n(st * STEP), 1.0)
     fast = [f0 + i for i in range(4)] + [f0 + 4 + i / 2 for i in range(7)]      # 4 sixteenths, then 7 thirty-seconds
-    for i, st in enumerate(fast):
+    for i, st in enumerate(fast if do_fill else []):
         place(x, snare(0.3 + 0.025 * i), t2n(st * STEP), 1.0)
         place(x, tom((220, 220, 185, 185, 165, 165, 147, 147, 123, 110, 98)[i], 0.32 + 0.02 * i), t2n(st * STEP), 1.0)
     # THE TWO ACCENTS. Measured on the version before this one: the kick was the loudest thing in the attack (the
@@ -273,8 +278,9 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
     for (st, note), sym in zip(accents, accent_chords):
         at, m = t2n(st * STEP), nm(note)
         dur = 4 * STEP * 0.92
-        place(x, snare(0.7), at, 1.0)
-        place(x, cc.CRASH, at, 0.85)                                # the cymbal is meant to be heard on both
+        if do_fill:
+            place(x, snare(0.7), at, 1.0)
+            place(x, cc.CRASH, at, 0.85)                            # the cymbal is meant to be heard on both
         for mm, g in ((m + 12, 2.6), (m, 1.7)):
             place(x, cc.stereo(cc.resonate(cc.shout(mm, dur), cc.lift(mm), 1.0)), at, g)
         place(x, cc.stereo(cc.resonate(cc.mi(m + 12, 0.08), cc.lift(m + 12), 1.0)), at, 1.0)
@@ -290,17 +296,22 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
         place(x, cc.square(m + 12, dur), at, 0.7)                   # outweighed the loop they lead into)
         place(x, cc.square(m, dur), at, 0.45)
     x = band + x * accent_gain
-    last = max(st for st, _ in accents)
-    for i in range(2):                                              # a short roll into the bar line, after the note
+    last = max([st for st, _ in accents] + [0])
+    for i in range(2 if do_fill else 0):                            # a short roll into the bar line, after the note
         place(x, snare(0.4 + 0.15 * i), t2n((last + 3 + i / 2) * STEP), 1.0)
     # air rising through the whole thing
     k = np.arange(N) / N
-    x[:N] += highpass(np.stack([noise(N), noise(N)], 1), 2500) * (k ** 2.5)[:, None] * 0.2
+    if 'air' in extras:
+        x[:N] += highpass(np.stack([noise(N), noise(N)], 1), 2500) * (k ** 2.5)[:, None] * 0.2
     # and under it the dominant's root an octave down, swelling: weight that the downbeat of the tune releases
     n_sw = t2n(first_accent * STEP)
     kk = np.arange(n_sw) / n_sw
     sw = osc_supersaw(mtof(cc.chord(chords[-2])[1]), n_sw, voices=7, detune=0.3)
-    x[:n_sw] += lowpass(sw, 900) * (kk ** 2)[:, None] * 0.5
+    if 'swell' in extras:
+        x[:n_sw] += lowpass(sw, 900) * (kk ** 2)[:, None] * 0.5
+    if clicks:                                                      # the metronome over the last bar (see count_in below)
+        for i in range(4):
+            place(x, tick(2100 if i == 0 else 1575, 1.0 if i == 0 else 0.85) * clicks, N - BAR_N + t2n(i * 4 * STEP), 1.0)
     f = t2n(0.006)
     x[N - f:N] *= np.linspace(1, 0.5, f)[:, None]
     x[N:] *= np.linspace(0.5, 0, len(x) - N)[:, None] ** 2          # only the crash and drum tails ring over
@@ -316,10 +327,10 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
             h += w * 10 ** (db / 20)
         beat = BAR_N // 4
         h[:beat] *= np.linspace(0, 1, beat)[:, None]
-        for i, st in enumerate((0, 4, 8, 10, 12, 14)):
+        for i, st in enumerate((0, 4, 8, 10, 12, 14) if 'windup' in extras else ()):
             place(h, snare(0.3 + 0.04 * i), t2n(st * STEP), 1.0)
         k = np.arange(BAR_N) / BAR_N
-        h += highpass(np.stack([noise(BAR_N), noise(BAR_N)], 1), 2500) * (k ** 2)[:, None] * 0.12
+        h += (0.0 if 'windup' not in extras else 1.0) * highpass(np.stack([noise(BAR_N), noise(BAR_N)], 1), 2500) * (k ** 2)[:, None] * 0.12
         x = np.concatenate([h, x])
         n_bars += 1
     # A full band at the stems' own levels peaks far above 1.0 (in the game the stems are summed as floats), so
@@ -449,6 +460,26 @@ ending('end_g_major', 'G', 'G4')       # Can-Can (the end of level 2 and of leve
 print('transitions done ->', SFX)
 
 
+# ================================================================================================================
+# LEVEL 2: THE WASHER -> THE EARTH, Your Best Friend (Ab major) -> In the Hall of the Mountain King (A minor).
+# Two bars, which is exactly how long the notes rest when the level changes section there, so the Mountain King's
+# first beat is the earth's first note:
+#   bar 1   the washer's own band plays the LAST BAR of Your Best Friend, plain (the level's stems at the level's
+#           gains: cats, chords, bass, cat drums)
+#   bar 2   the metronome's four ticks (the count-in) over the earth's bass and chords on E7, the dominant of
+#           A minor (Ab, the key just left, is its third), and on the last beat the pluck's pick-up E G#, whose G#
+#           leads into the tune's first A
+# Three versions before it were dropped by ear: the old kind (a pluck and one cat, one bar: a 4.6 dB hole in the
+# middle of the level), the full treatment of level 1 and the pizza (wind-up, doubled run, tom fill, accent, crash:
+# "cluttered", and wrong for a tune that tiptoes in), and a lean one with a small accent.
+# In levels/music/level_2_tv_wall.json: "changes" -> "enter" of SLAP / WARM UP, "bars": 2, "db": 14.
+from_stems('tr_ybf_to_mk', 'mountain_king', None,
+           rows=[[(12, 'E4', 2), (14, 'G#4', 2)]], chords=['E7', 'E7'],
+           levels=[('L3_pluck', 0.0), ('fb_L0_keys', -4.0), ('L2_bass', -4.0)],
+           accents=[], accent_chords=[], play_db=14.0, band_db=-2.0, extras=(), clicks=1.6,
+           head=game_clips('level_2_tv_wall', ('ybf_bass', 'ybf_keys', 'ybf_cats', 'ybf_cat_drums'), 7))
+
+
 # THE COUNT-IN: one bar of four clicks on the beats, A METRONOME (the first one higher, the way a metronome marks
 # the bar). A component of the music manager (scripts/music/music.gd count_in(); a change's "count_in" plays it
 # on the first bar of the new part, or on the last bar of its transition): the level leaves that bar empty and
@@ -457,14 +488,6 @@ print('transitions done ->', SFX)
 # Two versions before this one were drums ("da da da da"): a snare and toms under the full band, which measured
 # 0.1-0.4 dB over the band's own claps (inaudible), and sticks + rimshot with the drums ducked. A metronome reads
 # as "counting" at once and is not mistaken for part of the groove: a short wooden tick, most of it at 1.5-4 kHz.
-def tick(hz, gain):
-    n = t2n(0.09)
-    k = np.arange(n) / SR
-    tone = (np.sin(2 * np.pi * hz * k) + 0.5 * np.sin(2 * np.pi * hz * 2.76 * k) * np.exp(-k / 0.008)) * np.exp(-k / 0.022)
-    click = highpass(np.stack([noise(n), noise(n)], 1), 2500) * np.exp(-k / 0.0025)[:, None] * 0.5
-    return (np.stack([tone, tone], 1) + click) * gain * np.clip(k / 0.0005, 0, 1)[:, None]
-
-
 def count_in(name):
     x = np.zeros((BAR_N + t2n(0.3), 2))
     for i in range(4):
