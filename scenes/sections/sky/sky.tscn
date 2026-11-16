@@ -20,7 +20,7 @@ hop = 0.0
 [node name="NoteAccents" type="Node" parent="."]
 script = ExtResource("fx_accents")
 accent = false
-rainbow_before_tiers = PackedInt32Array(2)
+rainbow_on_tiers = PackedInt32Array(2)
 
 [node name="FeverFx" type="CanvasLayer" parent="."]
 script = ExtResource("fx_fever")
