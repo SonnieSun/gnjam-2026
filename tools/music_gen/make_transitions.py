@@ -214,6 +214,8 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
     `levels`. Drums and the accents ([(step from the start, note)]) are added on top."""
     n_bars = len(rows)
     song = dict(cc.SONGS[tune])
+    if first_bar is None:                                          # the last bars of the tune
+        first_bar = len(song['chords']) // 2 - n_bars
     lo, hi = first_bar * 16, (first_bar + n_bars) * 16
     new_notes = [(lo + j * 16 + st, p, ln) for j, row in enumerate(rows) for st, p, ln in row]
     song['melody'] = sorted([n for n in song['melody'] if not lo <= n[0] < hi] + new_notes)
@@ -294,22 +296,38 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
     print(f'  {name}: {len(x) / SR:.2f} s = {n_bars} bars, peak {np.abs(x).max():.2f}, from the stems of {tune}')
 
 
-# TWO BARS, after the descent has finished its phrase (its own last bar is the run up, "G# A B C# D A C# A", and
-# it is left alone). One bar could not hold "the old tune ends, wind up, two accents": every one-bar version was
-# cramped. This is what the galop itself does there (bars 18-21 of the piano MIDI the user supplied): it hammers
-# the dominant, and then the two accents.
-#   bar 1            D D D . D D D .     the fever's band, one octave of cats, the pluck an octave above
-#   bar 2, 1st half  D D D D             the same, the pluck now in sixteenths, a tom fill
-#   bar 2, 2nd half  MIAO! MIAO!         the two accents (G, D)
-# (the fever's levels: the dark square -3 dB on the fx lane, the pluck -2 dB on the kiai lane, bass stems are
-# trimmed 4 dB when they are packaged for the game: levels/music/level_3_spaceship.json)
-from_stems('tr_ccb_to_cc', 'can_can', 6,
-           rows=[[(0, 'D5', 2), (2, 'D5', 2), (4, 'D5', 2), (8, 'D5', 2), (10, 'D5', 2), (12, 'D5', 2)],
-                 [(0, 'D5', 2), (2, 'D5', 2), (4, 'D5', 2), (6, 'D5', 2), (8, 'G4', 4), (12, 'D4', 4)]],
-           chords=['D', 'D', 'D7', 'G'],
+# ================================================================================================================
+# THE PIZZA'S TRANSITION INTO ITS FEVER. Edit here, then render (see "to try your own" below).
+#
+# Now: ONE bar, in place of the last bar of the descent's phrase: the descent's own ending run (G# A B C#, the
+# first half of that bar) and then the two accents (G, D). The hammered dominant of the two-bar version is gone.
+#
+# To try your own:
+#   rows           one list per bar of the transition; each note is (step, 'note name', length). A bar has 16
+#                  steps (sixteenths): step 0 = beat 1, 4 = beat 2, 8 = beat 3, 12 = beat 4. Length 2 = an eighth,
+#                  4 = a quarter. Two lists = a two-bar transition.
+#   chords         two per bar (one per half bar): 'D', 'D7', 'A7', 'G', 'Em', ...
+#   accents        [(step counted from the start of the transition, 'note')]: the big hits (cats shouting, band
+#                  chord, snare, crash). accent_chords: the chord under each.
+#   levels         which stems of the famous tune play and how loud (dB); leave as is to sound like the fever.
+#   Then, from the cat_sound folder:
+#       python -I tools/make_transitions.py loops <a folder for the result>
+#   and copy <that folder>/tr_ccb_to_cc.wav to gnjam-2026/assets/audio/sfx/ (the game picks it up on the next run).
+#   If you change the NUMBER of bars, also set "fever_enter_bars" in levels/music/level_3_spaceship.json (section
+#   SPACE PIZZA) to it, and in tools/music_gen/make_music_sets.py so it survives a regenerate. One bar replaces
+#   the last bar of the descent's phrase; two or more come after the phrase.
+#
+# The two-bar version with the hammered dominant (bars 18-21 of the piano MIDI the user supplied), for reference:
+#   rows=[[(0, 'D5', 2), (2, 'D5', 2), (4, 'D5', 2), (8, 'D5', 2), (10, 'D5', 2), (12, 'D5', 2)],
+#         [(0, 'D5', 2), (2, 'D5', 2), (4, 'D5', 2), (6, 'D5', 2), (8, 'G4', 4), (12, 'D4', 4)]],
+#   chords=['D', 'D', 'D7', 'G'], accents=[(24, 'G4'), (28, 'D4')]
+# ================================================================================================================
+from_stems('tr_ccb_to_cc', 'can_can', None,
+           rows=[[(0, 'G#5', 2), (2, 'A5', 2), (4, 'B5', 2), (6, 'C#6', 2), (8, 'G4', 4), (12, 'D4', 4)]],
+           chords=['A7', 'G'],
            levels=[('L3_cat_kichiku', 0.0), ('L3_square_dark', -3.0), ('L3_pluck', -2.0), ('fb_L0_keys', 0.0),
                    ('L2_bass', -4.0), ('fb_L4_peak', 0.0), ('C_drums', 0.0)],
-           accents=[(24, 'G4'), (28, 'D4')], accent_chords=['G', 'D'])
+           accents=[(8, 'G4'), (12, 'D4')], accent_chords=['G', 'D'])
 
 
 def ending(name, sym, tonic):
