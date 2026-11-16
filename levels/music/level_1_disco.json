@@ -191,10 +191,6 @@
       "club"
      ],
      [
-      0.581,
-      ""
-     ],
-     [
       0.651,
       "break"
      ],
@@ -211,14 +207,6 @@
      [
       0.256,
       "ent_bass"
-     ],
-     [
-      0.581,
-      "ent_cat_bass"
-     ],
-     [
-      0.651,
-      "ent_bass"
      ]
     ],
     "bed": [
@@ -228,14 +216,6 @@
      ],
      [
       0.256,
-      "ent_keys"
-     ],
-     [
-      0.581,
-      ""
-     ],
-     [
-      0.651,
       "ent_keys"
      ],
      [
@@ -286,14 +266,6 @@
      ],
      [
       0.256,
-      "ent_cat_drums"
-     ],
-     [
-      0.581,
-      ""
-     ],
-     [
-      0.651,
       "ent_cat_drums"
      ],
      [
@@ -361,7 +333,16 @@
       "db": 14.0,
       "bars": 2,
       "replaces": 1,
-      "on_bars": 4
+      "on_bars": 4,
+      "lead_beats": 4.0
+     },
+     "8": {
+      "through": {
+       "bass": "ent_cat_bass",
+       "lead": "ent_cats",
+       "harm": "ent_harm"
+      },
+      "bars": 4
      }
     },
     "fever": {

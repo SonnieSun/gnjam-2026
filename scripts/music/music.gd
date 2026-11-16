@@ -532,6 +532,8 @@ func set_progress(p: float) -> void:
 ##               过门那一小节旋律是停的：曲子不换、只是往上加东西的地方写 false，旋律莫名其妙断一小节很怪。
 ##   "written"   专门写的过门（assets/audio/sfx 里的一次性音效，tools/music_gen/make_transitions.py 做的）：
 ##               有它就不放通用的，只留鼓，上一段的和声、低音、旋律都让开，这几小节交给它
+##   "through"   过门不是一个音效，而是「这几小节只响这些」：{"轨道": "片段", …}，没写的轨道都停（鼓也停）。
+##               用来做一段安静的过渡（比如只留猫唱旋律和低音），"bars" 小节之后新的一档整个进来
 ##   "db"        专门过门放多响（不写 = ENTER_DB；从正式音轨里切出来的过门文件是压低了存的，在这里抬回去）
 ##   "bars"      专门过门几小节（不写 = 1）
 ##   "replaces"  它顶替上一句结尾的几小节（不写：1 小节的过门顶替 1 小节，更长的不顶替、接在那一句唱完之后）。
@@ -550,7 +552,7 @@ const ENTER_DB := -1.0
 const LINE_EPS := 0.0006
 
 func change_spec(kind: String, t := 0) -> Dictionary:
-	var out := {"fill": false, "written": "", "db": ENTER_DB, "bars": 1, "replaces": 1, "on_bars": 0, "sfx": "", "lead_beats": 0.0}
+	var out := {"fill": false, "written": "", "through": {}, "db": ENTER_DB, "bars": 1, "replaces": 1, "on_bars": 0, "sfx": "", "lead_beats": 0.0}
 	var secs: Array = data.get("sections", [])
 	if section < 0 or section >= secs.size():
 		return out
@@ -562,7 +564,11 @@ func change_spec(kind: String, t := 0) -> Dictionary:
 		out.db = float(raw.get("db", ENTER_DB))
 		out.bars = maxi(1, int(raw.get("bars", 1)))
 		out.replaces = clampi(int(raw.get("replaces", 1 if out.bars <= 1 else 0)), 0, out.bars)
-	out.fill = out.written != "" or (bool(raw.get("fill", kind != "tier")) and _fill_clip() != "")
+	if raw.get("through", {}) is Dictionary and not (raw.get("through", {}) as Dictionary).is_empty():
+		out.through = raw.through
+		out.bars = maxi(1, int(raw.get("bars", 1)))
+		out.replaces = clampi(int(raw.get("replaces", 0)), 0, out.bars)
+	out.fill = out.written != "" or not (out.through as Dictionary).is_empty() or (bool(raw.get("fill", kind != "tier")) and _fill_clip() != "")
 	out.on_bars = int(raw.get("on_bars", 0))
 	out.sfx = str(raw.get("sfx", ""))
 	out.lead_beats = float(raw.get("lead_beats", 0.0))
@@ -602,11 +608,27 @@ func _plan_change(up: int) -> void:
 
 ## 现在起放这次切换的过门：专门写的（只留鼓 + 那个一次性音效）或者通用的那一小节
 func _play_change(spec: Dictionary) -> void:
-	if spec.written != "":
+	if not (spec.through as Dictionary).is_empty():
+		_play_through(spec.through)
+	elif spec.written != "":
 		_play_fill_bar(true)
 		play_sfx(spec.written, spec.db)
 	else:
 		_play_fill_bar()
+
+
+## 现在起只响 map 里写的那些（{轨道: 片段}），别的轨道都停。猫谱子的轨道（猫和声）照样按格子唱。
+func _play_through(map: Dictionary) -> void:
+	for lane in data.get("lanes", []):
+		var c := str(map.get(lane.id, ""))
+		if _now.get(lane.id, "") != c:
+			lane_switched.emit(lane.id, c)
+		_now[lane.id] = c
+	for i in _slot_lane.size():
+		_target[i] = 1.0 if _now.get(_slot_lane[i], "") == _slot_clip[i] else 0.0
+	for lane in data.get("lanes", []):
+		var key := "%s/%s" % [lane.id, _now.get(lane.id, "")]
+		meow.set_active(lane.id, _patterns.get(key, {}), float(_lane_gain.get(lane.id, 0.0)), _by_hit.has(key), _pattern_origin(key))
 
 
 ## 大高潮的混响：小关里写 "fever_reverb": 0.2（湿声的量），进这个小关的 fever 时整个总线慢慢加上一层大厅混响，
