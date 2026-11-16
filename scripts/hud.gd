@@ -63,6 +63,22 @@ var _gauge_span := Vector2.ZERO  # 正在闪的那一截：从多少分到多少
 var _gauge_span_gain := true
 var _gauge_span_age := 99.0
 
+## ---- 升阶的两步：预备 / 正式（Music.change_planned 是预备，到 commit 那一拍 / Music.fever_started 是正式）----
+## 预备：音乐排好了一次大的换段（有过门的升档，或者进 fever）。积累条变成金色、跟着拍子一亮一亮，
+##       一道高光从左往右扫，外面一圈金边。一直持续到正式升阶。
+## 正式：过门放完、新的一段进来的那一拍。整条白闪一下、弹一下，两圈边框往外扩开，一排小光点往上飞。
+##       进的是 fever 的话，之后整条一直是流动的七彩，到 fever 结束。
+@export var gauge_stage_fx := true
+@export var gauge_prepare_color := Color(1.0, 0.82, 0.25)
+@export var gauge_commit_seconds := 0.7
+var _prep := false
+var _prep_age := 0.0
+var _prep_commit := -1.0  # 正式升阶在第几拍
+var _prep_fever := false
+var _commit_age := 99.0
+var _fever_on := false
+var _fx_time := 0.0
+
 var _judge_tween: Tween
 var _combo_tween: Tween
 var _last_combo := 0
@@ -83,24 +99,102 @@ func _ready() -> void:
 		_gauge_marks.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_gauge_marks.draw.connect(_draw_gauge_marks)
 		gauge_bar.add_child(_gauge_marks)
+		Music.change_planned.connect(_on_change_planned)
+		Music.fever_started.connect(func() -> void:
+			_fever_on = true
+			if _prep_fever or not _prep:
+				_stage_commit())
+		Music.fever_ended.connect(func() -> void: _fever_on = false)
+
+
+func _on_change_planned(kind: String, _id: int, fill_beat: float, commit_beat: float) -> void:
+	if not gauge_stage_fx or (kind != "fever" and commit_beat <= fill_beat + 0.01):
+		return  # 小的升档（没有过门、下一条线直接换）不算
+	_prep = true
+	_prep_age = 0.0
+	_prep_commit = commit_beat
+	_prep_fever = kind == "fever"
+
+
+func _stage_commit() -> void:
+	_prep = false
+	_commit_age = 0.0
+	pulse_gauge(true)
 
 
 func _process(delta: float) -> void:
 	_gauge_span_age += delta
+	_fx_time += delta
+	_prep_age += delta
+	_commit_age += delta
+	if _prep and not _prep_fever and Conductor.playing and Conductor.song_beat >= _prep_commit:
+		_stage_commit()
+	if gauge_bar and gauge_stage_fx:
+		var tint := Color.WHITE
+		if _fever_on:
+			tint = Color.from_hsv(fposmod(_fx_time * 0.6, 1.0), 0.55, 1.0)
+		elif _prep:
+			var beat_k := pow(1.0 - fposmod(Conductor.song_beat, 1.0), 2.0) if Conductor.playing else 0.0
+			tint = Color.WHITE.lerp(gauge_prepare_color, 0.75) * (1.0 + 0.5 * beat_k)
+			tint.a = 1.0
+		gauge_bar.self_modulate = tint
 	if _gauge_marks:
 		_gauge_marks.queue_redraw()
 
 
 ## 刚进一个小关：积累条清零的这一下不算“掉分”，不闪
 func reset_gauge() -> void:
+	_prep = false
+	_fever_on = false
 	_gauge_skip = true
 	_gauge_span_age = 99.0
+
+
+## 升阶的特效（预备 / 正式），画在积累条上面那一层（可以画到条的外面）
+func _draw_stage_fx(size: Vector2) -> void:
+	if not gauge_stage_fx:
+		return
+	var box := Rect2(Vector2.ZERO, size)
+	if _prep:
+		var beat := Conductor.song_beat if Conductor.playing else _fx_time * 2.0
+		var beat_k := pow(1.0 - fposmod(beat, 1.0), 2.0)
+		var appear := clampf(_prep_age / 0.25, 0.0, 1.0)
+		# 刚进预备：白闪一下
+		if _prep_age < 0.25:
+			_gauge_marks.draw_rect(box, Color(1.0, 1.0, 1.0, 0.7 * (1.0 - appear)))
+		# 外面一圈金边，跟着拍子胀
+		var grow := 3.0 + 5.0 * beat_k
+		_gauge_marks.draw_rect(box.grow(grow), Color(gauge_prepare_color, (0.45 + 0.45 * beat_k) * appear), false, 3.0)
+		_gauge_marks.draw_rect(box.grow(grow + 5.0), Color(gauge_prepare_color, 0.18 * appear), false, 6.0)
+		# 一道斜的高光，每拍从左扫到右
+		var x := (fposmod(beat, 1.0) * 1.3 - 0.15) * size.x
+		var w := size.x * 0.08
+		var x0 := clampf(x - w, 0.0, size.x)
+		var x1 := clampf(x + w, 0.0, size.x)
+		if x1 > x0:
+			_gauge_marks.draw_rect(Rect2(x0, 2.0, x1 - x0, size.y - 4.0), Color(1.0, 1.0, 0.85, 0.5 * appear))
+	if _commit_age < gauge_commit_seconds:
+		var t := _commit_age / gauge_commit_seconds
+		var out := 1.0 - pow(1.0 - t, 3.0)
+		var c := Color.from_hsv(fposmod(_fx_time * 0.6, 1.0), 0.5, 1.0) if _fever_on else Color(1.0, 0.95, 0.7)
+		_gauge_marks.draw_rect(box, Color(1.0, 1.0, 1.0, 0.85 * pow(1.0 - t, 3.0)))
+		# 两圈边框往外扩开
+		_gauge_marks.draw_rect(box.grow(4.0 + 34.0 * out), Color(c, 0.8 * (1.0 - t)), false, 4.0 * (1.0 - t) + 1.0)
+		_gauge_marks.draw_rect(box.grow(2.0 + 16.0 * out), Color(1.0, 1.0, 1.0, 0.6 * (1.0 - t)), false, 2.0)
+		# 一排小光点往上飞
+		for i in 14:
+			var fx := (i + 0.5) / 14.0
+			var lift := (30.0 + 40.0 * fposmod(i * 0.618, 1.0)) * out
+			var sway := sin(i * 2.4 + t * 6.0) * 6.0
+			var pc := Color.from_hsv(fposmod(fx + _fx_time * 0.4, 1.0), 0.45, 1.0) if _fever_on else c
+			_gauge_marks.draw_circle(Vector2(fx * size.x + sway, -lift), 3.5 * (1.0 - t) + 0.5, Color(pc, 1.0 - t))
 
 
 ## 积累条上面那一层：阶段分数线的刻度 + 刚涨 / 刚掉的那一截闪一下
 func _draw_gauge_marks() -> void:
 	var size := _gauge_marks.size
 	var top := gauge_bar.max_value
+	_draw_stage_fx(size)
 	if top <= 0.0:
 		return
 	# 刚涨的那一截亮一下、刚掉的那一截红一下，很快褪掉

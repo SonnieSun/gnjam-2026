@@ -120,7 +120,7 @@ func _update_spin(_local_beat: float, _angle: float) -> void:
 	_stage.set_progress(seen)
 	if not _marked and note_accents and song_beat() >= _end_at - 8.0:
 		_marked = true
-		note_accents.mark_change(_end_at)
+		note_accents.mark_change(_end_at, true)  # 结束彩圈
 	_stage.update(song_beat(), dt)
 	if active and not _music_left and song_beat() >= _end_at:
 		# 过门的那条小节线：音乐现在就换到下一个小关（先放它的过门），不等画面
@@ -549,6 +549,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 ## 计分用（见 main.gd 的 _compute_stage_weights）：这一段不靠积累条推进，谱子放完就完
 const SCORE_BY_PATTERN := true
+## 这个小关自己有结尾演出：框架不用再加结束音符和过渡空位（见 main.gd 的 _plan_ending）
+const OWN_ENDING := true
 
 
 ## 音符的颜色：长按统一是粉色，点按按音色

@@ -53,6 +53,12 @@ enum Kind { NONE, DOWNBEAT, SYNCOPATED, ACCENT, LEAD_IN, FEVER }
 ## 打中换段音符（七彩的那一个）时它自己的音效（一串往上的玻璃铃声；tools/music_gen/make_fever_sfx.py 合成的，C 大调）。空 = 不放
 @export var change_note_sfx: AudioStream = preload("res://assets/audio/sfx/fever_note.wav")
 @export_range(-30.0, 6.0) var change_note_sfx_db := -8.0
+## 换段音符有两种，样子一样（七彩），音效不一样：
+##   fever 彩圈：后面接 fever / 升档，音效是上面那串往上的铃声；
+##   结束彩圈：一段结束、后面接过渡（mark_change(拍, true)），音效是下面这个——往下定住的一声鼓加一点"叮"，
+##   不是上扬的（tools/music_gen/make_end_note.py 合成的，没有明确音高，哪首曲子都能用）。
+@export var end_note_sfx: AudioStream = preload("res://assets/audio/sfx/end_note.wav")
+@export_range(-30.0, 6.0) var end_note_sfx_db := -4.0
 ## 换段的那一拍上谱里没有音符（前后 add_note_gap 拍以内都没有）就加一个，让换段音符正好落在新的一段进来的那一下
 @export var add_change_note := true
 @export var add_note_gap := 0.45
@@ -86,16 +92,19 @@ var notes: Array[NoteData] = []
 var _kinds := {}            # NoteData -> Kind：一个音符第一次被问到时定下来，之后不变（不然飞到一半会突然换颜色）
 var _fever_at := -1.0       # 排好的那次进 fever 落在第几拍（-1 = 没有）
 var _fever_note: NoteData   # 进 fever 的那个音符
+var _ending := false        # 现在标的这个换段音符是"结束彩圈"（后面接过渡），不是 fever 彩圈
 var _add_in := 0            # 几帧之后检查换段那一拍有没有音符
 var _sfx: AudioStreamPlayer
 
 
 ## 打中了换段音符：放它自己的音效
 func _on_note_judged(note: NoteData, result: int, _diff: float) -> void:
-	if enabled and change_note_sfx and result != NoteData.Result.MISS and _fever_at >= 0.0 and kind_of(note) == Kind.FEVER:
-		_sfx.stream = change_note_sfx
-		_sfx.volume_db = change_note_sfx_db
-		_sfx.play()
+	if enabled and result != NoteData.Result.MISS and _fever_at >= 0.0 and kind_of(note) == Kind.FEVER:
+		var s: AudioStream = end_note_sfx if _ending else change_note_sfx
+		if s:
+			_sfx.stream = s
+			_sfx.volume_db = end_note_sfx_db if _ending else change_note_sfx_db
+			_sfx.play()
 
 
 func _ready() -> void:
@@ -110,6 +119,7 @@ func _ready() -> void:
 		if (kind == "fever" and fever) or (kind == "tier" and _id in rainbow_on_tiers):
 			_fever_at = commit
 			_fever_note = null
+			_ending = false
 			_add_in = 2)   # 过两帧再看要不要加音符：关卡可能就在这一下换谱（天空关），等它换完
 
 
@@ -133,8 +143,10 @@ func _process(_delta: float) -> void:
 			notes.insert(i, _fever_note)
 
 
-## 小关自己指定换段音符落在第几拍（比如洗衣机谱面放完、过门进来的那一拍），和进 fever 的那一个同一种样子和音效
-func mark_change(beat: float) -> void:
+## 小关（或者框架）自己指定换段音符落在第几拍。ending = 结束彩圈：一段结束、后面接过渡的那一拍
+## （比如洗衣机谱面放完、拆房子、换场景前的句尾），音效是定住的那一声；不是的话和进 fever 的那一个一样。
+func mark_change(beat: float, ending: bool = false) -> void:
+	_ending = ending
 	_fever_at = beat
 	_fever_note = null
 	_add_in = 2

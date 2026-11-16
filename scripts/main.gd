@@ -85,6 +85,9 @@ var _index := -1
 var _current: SpinSection
 var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = 还没满）
 var _rise_pending := false  # 切关前的上扬音效还没放
+var _ending_at := -1.0  # 这次切关的结束音符在第几拍（-1 = 没有，见 _plan_ending）
+var _ending_marked := false
+var _ending_music := false
 var _prelaid_index := -1    # 已经提前铺好音符的下一个小关（-1 = 没有），见 _prelay_next
 var _prelaid_at := -1.0
 var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比例（计分用）
@@ -296,6 +299,7 @@ func start_from(index: int) -> void:
 	hud.reset()
 	_cleared = false
 	_switch_at = -1.0
+	_ending_at = -1.0
 	_prelaid_index = -1
 	Music.restart()  # 叠轨音乐回到开头的样子（没在用它时这句什么都不做）
 	Conductor.play(-lead_in_beats)
@@ -316,9 +320,21 @@ func _process(_delta: float) -> void:
 	if _rise_pending and _switch_at >= 0.0 and Conductor.song_beat >= _switch_at - chart.beats_per_bar:
 		_rise_pending = false
 		Music.rise_to_bar()
+	if _ending_at >= 0.0:
+		if not _ending_marked and Conductor.song_beat >= _ending_at - 8.0:
+			_ending_marked = true  # 结束音符：句尾那一拍上的七彩音符（那一拍没有音符就补一个）
+			if _current and _current.note_accents:
+				_current.note_accents.mark_change(_ending_at, true)
+			else:
+				judge.add_note(_ending_at)
+		if not _ending_music and Conductor.song_beat >= _ending_at:
+			_ending_music = true  # 过渡空位开始：下一个小关的过门音乐现在就放，空位结束时它的音乐正好进来
+			if _index + 1 < chart.sections.size() and Music.stream != null:
+				Music.enter_early(_index + 1)
 	if _switch_at >= 0.0 and Conductor.song_beat >= _switch_at:
 		var at := _switch_at
 		_switch_at = -1.0
+		_ending_at = -1.0
 		if _index + 1 < chart.sections.size():
 			_enter(_index + 1, at, true)
 		else:
@@ -642,13 +658,42 @@ func _on_gauge_filled() -> void:
 	if wait > 0 and Music.stream != null:
 		# 要落在乐句线上的是「这首曲子停下来的那一拍」：下一个小关进来时放过门（或者这是最后一个小关），曲子在切关的
 		# 那条线上就停；不放过门的话，音乐要到切关之后的下一条小节线才换，曲子还会多唱一小节
-		var ends := 0.0 if _index + 1 >= chart.sections.size() or _music_enters_with_fill(_index + 1) else float(bpb)
+		var ends := 0.0 if _wants_ending() or _index + 1 >= chart.sections.size() or _music_enters_with_fill(_index + 1) else float(bpb)
 		for i in wait:
 			if Music._on_phrase_line(_switch_at + ends, wait):
 				break
 			_switch_at += bpb
-	_rise_pending = Music.stream != null
+	_plan_ending()
+	_rise_pending = Music.stream != null and _ending_at < 0.0  # 结束音符后面是过渡，不放上扬音效
 	_prelay_next()
+
+
+## 换场景的结束（下一个小关不是接着这一个的，或者这是最后一个小关），小关自己没有结尾演出的
+## （有的在脚本里写 const OWN_ENDING := true）：
+##   谱面不中途删，打到切关原来定的那条线（下一条小节线 / 乐句线）为止；那条线上是一个七彩的结束音符；
+##   之后留一段过渡空位（下一个小关的过门有几小节就留几小节，至少一小节）：现在是空的——画面留在原地、
+##   没有音符，只放下一个小关的过门音乐——以后的转场演出就放这里；空位结束才真的切关。
+func _wants_ending() -> bool:
+	if _current == null or _joins(_index + 1):
+		return false
+	var s: Script = _current.get_script()
+	return not (s and s.get_script_constant_map().get("OWN_ENDING", false))
+
+
+func _plan_ending() -> void:
+	_ending_at = -1.0
+	if not _wants_ending():
+		return
+	_ending_at = _switch_at
+	_ending_marked = false
+	_ending_music = false
+	judge.end_notes_at(_ending_at)
+	var slot := 1
+	var sections: Array = Music.data.get("sections", [])
+	if _index + 1 < chart.sections.size() and _index + 1 < sections.size():
+		var enter: Dictionary = (sections[_index + 1] as Dictionary).get("changes", {}).get("enter", {})
+		slot = maxi(int(enter.get("bars", 1)), 1)
+	_switch_at = _ending_at + slot * chart.beats_per_bar
 
 
 ## 下一个小关是接着这一个继续的（同一个场景，joins_previous）：现在就把它的音符从换关那条小节线起铺出来，交给现在这个

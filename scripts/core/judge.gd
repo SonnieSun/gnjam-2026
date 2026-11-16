@@ -125,6 +125,7 @@ func begin_section(index: int, def: SectionDef, beats_per_bar: int,
 	_pattern_len = def.length_beats(beats_per_bar)
 	_pattern_origin = first_note_beat
 	_pattern_k = 0
+	_notes_end = INF
 	_section_notes = []
 	_generate()
 	return _section_notes
@@ -155,6 +156,14 @@ func add_note(beat: float, sound: int = NoteData.Sound.KICK) -> NoteData:
 
 
 ## 不再出新音符，还没到的也都丢掉（大关打完时用）
+## 谱面打到第 beat 拍为止（这一拍上的还算）：之后已经铺出来的去掉，也不再往后铺。之前的照常打。
+var _notes_end := INF
+
+func end_notes_at(beat: float) -> void:
+	_notes_end = beat
+	_drop_notes_from(beat + 0.01)
+
+
 func stop_notes() -> void:
 	_pattern = []
 	_drop_notes_from(Conductor.song_beat)
@@ -168,7 +177,7 @@ func _generate() -> void:
 	while true:
 		var d: Dictionary = _pattern[_pattern_k % _pattern.size()]
 		var beat: float = _pattern_origin + (_pattern_k / _pattern.size()) * _pattern_len + d.beat
-		if beat > horizon:
+		if beat > horizon or beat > _notes_end + 0.001:
 			break
 		var n := NoteData.new()
 		n.beat = beat

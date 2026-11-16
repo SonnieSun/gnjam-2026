@@ -157,7 +157,7 @@ func _update_spin(local_beat: float, angle: float) -> void:
 		# 换场景的那一下要有一个七彩的换段音符：房子开始拆（过门进来）的那一拍。房间的谱到这一拍为止，
 		# 这一拍上没有音符，NoteAccents 会补一个（mark_change）。
 		if _accents:
-			_accents.mark_change(_chart_stop)
+			_accents.mark_change(_chart_stop, true)  # 结束彩圈
 	if song_beat() >= _unfold_at:
 		var at := _unfold_at
 		_unfold_at = INF
@@ -295,8 +295,6 @@ func _on_gauge_event(index: int, _value: int) -> void:
 			# 已经出现在路上的水果照常打完，不会一过线就突然没了：路上的谱只停掉还没出现的那些。
 			var first_note := float(plan.commit_beat)
 			_switch_chart_at(ceilf(song_beat() + _road.fruit_lead_beats), first_note, "plaza")
-			if _accents:
-				_accents.mark_change(first_note)  # 上圆台：安静段结束、渐强段进来的那一拍（圆台上的第一个音符）是换段音符
 			_road.enter_plaza(song_beat(), first_note - plaza_stand_bars * bpb)
 		else:
 			var rest := plaza_rest_seconds / Conductor.sec_per_beat()
@@ -367,6 +365,10 @@ func _switch_chart_at(stop: float, origin: float, phase: String) -> void:
 		notes.insert(i, keep[i])  # 还没打的旧音符留在这一关的列表里，接着画
 	_hold_ends.clear()
 	_holding = null
+
+
+## 这个小关自己有结尾演出：框架不用再加结束音符和过渡空位（见 main.gd 的 _plan_ending）
+const OWN_ENDING := true
 
 
 ## 积累条满了，框架会在下一个小节线切到吸猫小关。正常流程里结尾镜头早就开始了（第 9 个事件），

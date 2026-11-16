@@ -110,6 +110,10 @@ func _update_spin(local_beat: float, angle: float) -> void:
 		_fill_gauge_now()
 
 
+## 这个小关自己有结尾演出：框架不用再加结束音符和过渡空位（见 main.gd 的 _plan_ending）
+const OWN_ENDING := true
+
+
 func _on_gauge_event(index: int, _value: int) -> void:
 	if _sky == null or index < gauge_event_values.size():
 		return
