@@ -45,7 +45,16 @@ func _ready() -> void:
 	_left.pressed.connect(turn.bind(-1))
 	_right.pressed.connect(turn.bind(1))
 	$MenuActions/Play.pressed.connect(start)
+	$MenuActions/Credit.gui_input.connect(_on_credit_input)
 	_refresh()
+
+
+## 点右下角的 Credit：盖一层制作名单，按任意键关掉回到菜单（游戏里 Esc 开的菜单也一样，游戏进度不动）
+func _on_credit_input(event: InputEvent) -> void:
+	var mb := event as InputEventMouseButton
+	if mb and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and not _starting:
+		get_viewport().set_input_as_handled()
+		preload("res://scripts/credits.gd").open_overlay(self)
 
 
 func _process(_delta: float) -> void:

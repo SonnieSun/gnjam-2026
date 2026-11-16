@@ -5,6 +5,8 @@ extends Control
 
 ## 提示文字
 @export var prompt := "press SPACE to pet the cat"
+## 进来先等几秒才出提示；在那之前按打击键（空格、鼠标）没反应
+@export var prompt_delay := 2.0
 ## 滤镜的强度（0 = 原样，1 = 最粉）
 @export_range(0.0, 1.0) var softness := 0.62
 ## 特写时把房间里打在猫身上的灯调到原来的几成
@@ -70,6 +72,12 @@ func _ready() -> void:
 	f.material = m
 	f.show_behind_parent = true
 	add_child(f)
+
+
+## 提示出来之前把打击键吞掉，main.gd 就收不到“开始”的那一下（Esc 等别的键不管）
+func _input(event: InputEvent) -> void:
+	if _t < prompt_delay and event.is_action(Judge.HIT_ACTION):
+		get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -148,7 +156,9 @@ func _draw() -> void:
 		draw_set_transform(hp, 0.0, Vector2.ONE * (0.5 + ph * 0.6))
 		draw_colored_polygon(_heart(18.0), Color(pink, 1.0 - ph))
 	draw_set_transform(Vector2.ZERO, 0.0)
-	# 提示：一条圆角的丝带，轻轻呼吸
+	# 提示：一条圆角的丝带，轻轻呼吸（等 prompt_delay 秒才出来）
+	if _t < prompt_delay:
+		return
 	var font := get_theme_default_font()
 	var fs := 34
 	var tw := font.get_string_size(prompt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
