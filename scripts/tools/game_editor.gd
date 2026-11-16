@@ -123,6 +123,7 @@ func _build_ui() -> void:
 	_btn(head, "Jukebox", _open_jukebox, "Leave the game and listen to every song and sound we have")
 	_btn(head, "Meow", _open_meow_studio, "Leave the game and write meow drums / cat melodies (they become new clips for the Music page)")
 	_btn(head, "Chart", _open_chart_editor, "Leave the game and edit this section's chart: note timing, look, glow, spin, lanes (scenes/tools/chart_editor.tscn)")
+	_btn(head, "Beats", _open_beat_editor, "Leave the game and edit this level's note charts against the music: every play phase, with the music's drum hits and melody drawn under the notes (scenes/tools/kisa/beat_editor.tscn)")
 	_btn(head, "Save", save, "Write the changes of every stage to disk")
 	_btn(head, "Close (Tab)", func() -> void: main.toggle_editor())
 
@@ -403,6 +404,13 @@ func _meow_menu(lid: String, clips: Array) -> MenuButton:
 		_mark_dirty()
 		_fill_music.call_deferred())
 	return menu
+
+
+## 配拍编辑器：离开游戏，对着音乐看 / 改这一关每个玩法阶段的谱（scenes/tools/kisa/beat_editor.tscn）。
+## 它自己按 Levels.selected / Levels.interlude 打开现在这一关（插曲关也认）。
+func _open_beat_editor() -> void:
+	Conductor.stop()
+	get_tree().change_scene_to_file("res://scenes/tools/kisa/beat_editor.tscn")
 
 
 ## 谱面编辑器：离开游戏，打开这一关、当前这个小关的谱子（scenes/tools/chart_editor.tscn）

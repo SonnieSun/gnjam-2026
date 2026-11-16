@@ -24,7 +24,7 @@ var _ode_chart := false
 static func chart_phases() -> Array:
 	return [
 		{"id": "", "name": "云层、风暴", "event": 0},
-		{"id": "ode", "name": "亮起来之后（欢乐颂的旋律）", "event": 0},
+		{"id": "ode", "name": "亮起来之后（欢乐颂的旋律）", "event": 0, "at": 0.5},  # at = 从积累条的多少开始（编辑器按它放那一段的音乐）
 	]
 
 

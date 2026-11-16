@@ -644,11 +644,12 @@ func _leave_crossfade() -> void:
 ## 这个小关里换谱子的几个玩法阶段（配拍编辑器 scenes/tools/kisa/beat_editor.tscn 读这个，给每个阶段单独配一份谱子）。
 ## id = "" 是开头用的主谱（小关的 chart / bars）；event = 积累条第几个事件起换成这一段（见 _on_gauge_event）。
 ## 某个阶段的谱子存在 levels/charts/<大关>_<第几个小关>_<id>.tres；没有这个文件就和以前一样。
+## tune_offset = 这份谱的第 0 拍在曲子的第几拍（不写 = 0），编辑器按它放音乐、画旋律。
 static func chart_phases() -> Array:
 	return [
 		{"id": "", "name": "房间（缩圈），半拍的鼓", "event": 0},
 		{"id": "room4", "name": "房间（缩圈），四拍的鼓", "event": 3},
-		{"id": "road", "name": "水果路", "event": 5},
+		{"id": "road", "name": "水果路", "event": 5, "tune_offset": 4.0},  # 谱从 The Entertainer 的第 2 小节起（第 1 小节是预备拍）
 		{"id": "plaza", "name": "圆台（缩圈）", "event": 8},
 		{"id": "abduct", "name": "吸猫（光圈）", "event": 9},
 	]
