@@ -792,3 +792,29 @@ MIDI 的来源记在 cat_sound 的 `reference/midi_public_domain/README.md`。
 
 中间试过一档"退一步"（没有合成器主音、鼓放轻），听了不要：大高潮中间不该变小。
 同时把过门里两个重音上的合成器压低了（锯齿波、方波、拨弦各低 2–6 dB）：之前重音比它引出来的 loop 还重。量出来：重音 0.098 = 刚进的 loop 0.098 → 最强 0.108（高 1 dB）。两条都压低 18 dB 存，片段 `gain_db` +18。
+
+## 切换的统一写法（2026-11-16 规整）
+
+换小关、升档、进 fever 时音乐怎么换，原来散在十几个键和三段代码里，现在是小关里的一个 `"changes"`，`music.gd` 里一个 `change_spec()` 读、一段代码走：
+
+```json
+"changes": {
+  "enter": {"written": "tr_tm_to_cc"},
+  "tier":  {"2": {"on_bars": 8}},
+  "fever": {"written": "tr_ccb_to_cc", "db": 16, "bars": 2, "replaces": 1, "on_bars": 4}
+}
+```
+
+每一项可以写 `fill`（先放一小节通用过门；不写：enter 和 fever 要，tier 不要）、`written`（专门写的过门，有它就不放通用的）、`db` / `bars` / `replaces`（专门过门多响、几小节、顶替上一句结尾几小节）、`on_bars`（等乐句线）、`sfx`（升到这一档那一下的专用音效）。
+本文前面各节提到的旧键对应如下（`make_music_sets.py` 的表里仍然用旧的短写法，输出时由 `music_changes.py` 转）：
+
+| 旧键 | 现在 |
+|---|---|
+| `"enter": "tr_x"` / `"enter_fill": false` | `changes.enter.written` / `changes.enter.fill` |
+| `"transition_tiers": [5]` / `"tier_enter": {"5": "tr_x"}` | `changes.tier.5.fill` / `.written` |
+| `"tier_on_bars": {"2": 8}` / `"tier_sfx": {"2": "x"}` | `changes.tier.2.on_bars` / `.sfx` |
+| `"fever_fill": false` / `"fever_enter": "tr_x"` | `changes.fever.fill` / `.written` |
+| `"fever_enter_db"` / `"_bars"` / `"_replaces"` / `"fever_on_bars"` | `changes.fever.db` / `bars` / `replaces` / `on_bars` |
+
+`outro`、`exit`、`carry`、`own`、`fever_reverb` 没变。迁移前后用同一套脚本逐拍录了三关四个场景里每条轨道响什么、哪些音效开始，86 行完全一致。
+

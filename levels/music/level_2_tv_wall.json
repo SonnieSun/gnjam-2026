@@ -289,15 +289,18 @@
     0.7,
     0.88
    ],
-   "transition_tiers": [],
    "fever": [
     0.88,
     1.0
    ],
-   "fever_fill": false,
    "own": {
     "kiai": "",
     "hit": "ybf_by_hit"
+   },
+   "changes": {
+    "fever": {
+     "fill": false
+    }
    }
   },
   {
@@ -341,11 +344,14 @@
    "tiers": [
     0.5
    ],
-   "transition_tiers": [],
-   "enter": "tr_ybf_to_mk",
    "own": {
     "kiai": "",
     "hit": ""
+   },
+   "changes": {
+    "enter": {
+     "written": "tr_ybf_to_mk"
+    }
    }
   },
   {
@@ -397,12 +403,15 @@
    "tiers": [
     0.4
    ],
-   "transition_tiers": [],
    "carry": 0,
-   "enter_fill": false,
    "own": {
     "kiai": "",
     "hit": ""
+   },
+   "changes": {
+    "enter": {
+     "fill": false
+    }
    }
   },
   {
@@ -467,17 +476,22 @@
     0.35,
     0.7
    ],
-   "transition_tiers": [],
    "fever": [
     0.7,
     1.0
    ],
    "carry": 0,
-   "fever_fill": false,
-   "enter_fill": false,
    "own": {
     "kiai": "mk_double",
     "hit": ""
+   },
+   "changes": {
+    "enter": {
+     "fill": false
+    },
+    "fever": {
+     "fill": false
+    }
    }
   }
  ]

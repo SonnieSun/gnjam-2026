@@ -170,13 +170,17 @@
     0.7,
     0.9
    ],
-   "transition_tiers": [
-    3
-   ],
    "fever": [
     0.9,
     1.0
-   ]
+   ],
+   "changes": {
+    "tier": {
+     "3": {
+      "fill": true
+     }
+    }
+   }
   }
  ]
 }

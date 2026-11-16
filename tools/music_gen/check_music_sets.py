@@ -29,9 +29,12 @@ for path in sorted(glob.glob(os.path.join(sys.argv[1], 'levels', 'music', '*.jso
                     cur = c
             return cur
 
+        ch = s.get('changes', {})          # how the music changes here (scripts/music/music.gd, change_spec)
         print('  %s   fill bars: tiers %s, before fever %s, on entering %s%s' % (
-            s['title'], s.get('transition_tiers') or 'none', 'yes' if s.get('fever_fill', True) and fever else 'no',
-            'no' if not s.get('enter_fill', True) else 'yes', ', written transition ' + s['enter'] if s.get('enter') else ''))
+            s['title'], [int(k) for k, v in ch.get('tier', {}).items() if v.get('fill') or v.get('written')] or 'none',
+            'yes' if (ch.get('fever', {}).get('fill', True) or ch.get('fever', {}).get('written')) and fever else 'no',
+            'no' if not ch.get('enter', {}).get('fill', True) else 'yes',
+            ', written transition ' + ch['enter']['written'] if ch.get('enter', {}).get('written') else ''))
         before = None
         for p in points:
             mel = [at(lane, p) for lane in MELODY if at(lane, p)]

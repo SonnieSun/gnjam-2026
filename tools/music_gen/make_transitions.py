@@ -326,9 +326,9 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
 #   Then, from the cat_sound folder:
 #       python -I tools/make_transitions.py loops <a folder for the result>
 #   and copy <that folder>/tr_ccb_to_cc.wav to gnjam-2026/assets/audio/sfx/ (the game picks it up on the next run).
-#   If you change the NUMBER of bars, also set "fever_enter_bars" in levels/music/level_3_spaceship.json (section
-#   SPACE PIZZA) to it, and in tools/music_gen/make_music_sets.py so it survives a regenerate.
-#   "fever_enter_replaces" there = how many bars at the end of the descent's phrase the transition takes the
+#   If you change the NUMBER of bars, also set "bars" in levels/music/level_3_spaceship.json (section SPACE
+#   PIZZA, "changes" -> "fever") to it, and 'fever_enter_bars' in tools/music_gen/make_music_sets.py so it
+#   survives a regenerate. "replaces" there = how many bars at the end of the descent's phrase the transition takes the
 #   place of (now 1: the transition's first bar is played instead of the phrase's last; 0 = the phrase is
 #   played to its end and the transition comes after it).
 #

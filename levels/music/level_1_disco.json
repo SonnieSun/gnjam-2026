@@ -174,7 +174,6 @@
   {
    "title": "DISCO",
    "exit": "end_c_major",
-   "fever_fill": false,
    "cues": {
     "beat": [
      [
@@ -347,9 +346,6 @@
     0.813953488372093,
     0.6511627906976745
    ],
-   "transition_tiers": [
-    5
-   ],
    "fever": [
     0.6511627906976745,
     0.813953488372093
@@ -358,10 +354,18 @@
     "kiai": "",
     "hit": ""
    },
-   "tier_enter": {
-    "5": "tr_disco_to_ent"
-   },
-   "outro": "out_ufo_takes_the_cat"
+   "outro": "out_ufo_takes_the_cat",
+   "changes": {
+    "tier": {
+     "5": {
+      "fill": true,
+      "written": "tr_disco_to_ent"
+     }
+    },
+    "fever": {
+     "fill": false
+    }
+   }
   }
  ]
 }

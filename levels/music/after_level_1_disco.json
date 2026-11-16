@@ -266,13 +266,21 @@
    ],
    "exit": "end_c_major",
    "outro": "out_into_the_ufo",
-   "fever_fill": false,
    "own": {
     "hit": ""
    },
-   "tier_sfx": {
-    "1": "none",
-    "2": "sky_holy_hit"
+   "changes": {
+    "tier": {
+     "1": {
+      "sfx": "none"
+     },
+     "2": {
+      "sfx": "sky_holy_hit"
+     }
+    },
+    "fever": {
+     "fill": false
+    }
    }
   }
  ]
