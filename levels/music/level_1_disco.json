@@ -41,16 +41,14 @@
      "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
     },
     {
-     "id": "club_bass",
-     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rclub_L2_bass_4b.wav"
+     "id": "ent_bass",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_L2_bass_16b.wav",
+     "tune": "ent"
     },
     {
-     "id": "break_bass",
-     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rbreak_L2_bass_4b.wav"
-    },
-    {
-     "id": "cat_bass",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_bass_4b.wav"
+     "id": "ent_cat_bass",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_C_bass_16b.wav",
+     "tune": "ent"
     }
    ]
   },
@@ -64,12 +62,9 @@
      "file": "res://assets/audio/music/scene1/style_disco/s1_B_L0_keys_4b.wav"
     },
     {
-     "id": "fb_keys",
-     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L0_keys_4b.wav"
-    },
-    {
-     "id": "cat_stabs",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_stabs_4b.wav"
+     "id": "ent_keys",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_fb_L0_keys_16b.wav",
+     "tune": "ent"
     }
    ]
   },
@@ -83,12 +78,14 @@
      "file": "res://assets/audio/music/scene1/style_disco/s1_B_L3_hook_4b.wav"
     },
     {
-     "id": "ask_answer",
-     "file": "res://assets/audio/music/scene1/ask_answer/s1_QA_B_4b.wav"
+     "id": "ent_square",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_L3_square_16b.wav",
+     "tune": "ent"
     },
     {
-     "id": "cat_lead",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_flow_4b.wav"
+     "id": "ent_cats",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_L3_cat_kichiku_16b.wav",
+     "tune": "ent"
     }
    ]
   },
@@ -102,8 +99,9 @@
      "file": "res://assets/audio/music/scene1/style_disco/s1_B_L4_peak_4b.wav"
     },
     {
-     "id": "fb_peak",
-     "file": "res://assets/audio/music/scene1/style_futurebass/s1_fb_L4_peak_4b.wav"
+     "id": "ent_peak",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_fb_L4_peak_16b.wav",
+     "tune": "ent"
     }
    ]
   },
@@ -115,6 +113,24 @@
     {
      "id": "cat_drums",
      "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+    },
+    {
+     "id": "ent_cat_drums",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_C_drums_16b.wav",
+     "tune": "ent"
+    }
+   ]
+  },
+  {
+   "id": "harm",
+   "name": "猫和声",
+   "gain_db": -5.0,
+   "clips": [
+    {
+     "id": "ent_harm",
+     "pattern": "res://levels/music/patterns/harm_entertainer.json",
+     "by_hit": false,
+     "tune": "ent"
     }
    ]
   },
@@ -124,8 +140,9 @@
    "gain_db": -2.0,
    "clips": [
     {
-     "id": "cat_kichiku",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_lead_kichiku_4b.wav"
+     "id": "ent_double",
+     "file": "res://assets/audio/music/classics/entertainer/entertainer_L3_pluck_16b.wav",
+     "tune": "ent"
     }
    ]
   },
@@ -137,10 +154,6 @@
     {
      "id": "ev_meow",
      "file": "res://assets/audio/music/scene1/events/s1_X_meow_4b.wav"
-    },
-    {
-     "id": "ev_seal",
-     "file": "res://assets/audio/music/scene1/events/s1_X_seal_4b.wav"
     }
    ]
   },
@@ -159,7 +172,7 @@
  "sections": [
   {
    "title": "DISCO",
-   "exit": "end_g_minor",
+   "exit": "end_c_major",
    "fever_fill": false,
    "cues": {
     "beat": [
@@ -199,19 +212,15 @@
      ],
      [
       0.256,
-      "club_bass"
+      "ent_bass"
      ],
      [
       0.581,
-      "cat_bass"
+      "ent_cat_bass"
      ],
      [
       0.651,
-      "break_bass"
-     ],
-     [
-      0.814,
-      "half_bass"
+      "ent_bass"
      ]
     ],
     "bed": [
@@ -221,7 +230,7 @@
      ],
      [
       0.256,
-      "fb_keys"
+      "ent_keys"
      ],
      [
       0.581,
@@ -229,7 +238,7 @@
      ],
      [
       0.651,
-      "fb_keys"
+      "ent_keys"
      ],
      [
       0.814,
@@ -243,11 +252,11 @@
      ],
      [
       0.256,
-      "ask_answer"
+      "ent_square"
      ],
      [
       0.326,
-      "cat_lead"
+      "ent_cats"
      ]
     ],
     "peak": [
@@ -258,6 +267,22 @@
      [
       0.256,
       ""
+     ],
+     [
+      0.442,
+      "ent_peak"
+     ],
+     [
+      0.581,
+      ""
+     ],
+     [
+      0.651,
+      "ent_peak"
+     ],
+     [
+      0.814,
+      ""
      ]
     ],
     "meow": [
@@ -266,12 +291,36 @@
       "cat_drums"
      ],
      [
+      0.256,
+      "ent_cat_drums"
+     ],
+     [
       0.581,
       ""
      ],
      [
       0.651,
-      "cat_drums"
+      "ent_cat_drums"
+     ],
+     [
+      0.814,
+      ""
+     ]
+    ],
+    "harm": [
+     [
+      0.326,
+      "ent_harm"
+     ],
+     [
+      0.814,
+      ""
+     ]
+    ],
+    "kiai": [
+     [
+      0.651,
+      "ent_double"
      ],
      [
       0.814,
@@ -286,10 +335,6 @@
      [
       0.256,
       ""
-     ],
-     [
-      0.814,
-      "ev_seal"
      ]
     ]
    },
@@ -311,7 +356,11 @@
    "fever": [
     0.6511627906976745,
     0.813953488372093
-   ]
+   ],
+   "own": {
+    "kiai": "",
+    "hit": ""
+   }
   }
  ]
 }

@@ -905,6 +905,17 @@ func _fever_fill_wanted() -> bool:
 	return bool(secs[section].get("fever_fill", true)) if section >= 0 and section < secs.size() else true
 
 
+## 第 beat 拍是不是正在放的那首曲子的乐句线（每 bars 小节一句，从这首曲子起播的那条小节线数起）
+func _on_phrase_line(beat: float, bars: int) -> bool:
+	var origin := 0.0
+	for lane_id in ["lead", "kiai", "bed"]:
+		var tune := _tune_of(lane_id, str(_now.get(lane_id, "")))
+		if tune != "" and _tunes.has(tune) and not is_inf(_tunes[tune].origin):
+			origin = float(_tunes[tune].origin)
+			break
+	return posmod(int(round(beat - origin)), bars * 4) == 0
+
+
 func _fever_on_bars() -> int:
 	var secs: Array = data.get("sections", [])
 	return int(secs[section].get("fever_on_bars", 0)) if section >= 0 and section < secs.size() else 0
@@ -931,9 +942,20 @@ func _apply_now(beat_index := -1) -> void:
 		var bars := _fever_on_bars()
 		# 有过门：过门占上一句的最后一小节，所以看的是下一条小节线；没有过门：这条小节线本身要是乐句线
 		var lands := beat_index + (base if _fill_clip() != "" and _fever_fill_wanted() else 0.0)
-		if bars > 0 and int(round(lands)) % (bars * 4) != 0:
+		if bars > 0 and not _on_phrase_line(lands, bars):
 			eff = _fever_start(eff) - 0.002
 			hold = true
+	# 升到某一档时要换曲子（比如披萨段到一半，康康舞从开场的那段换到最有名的那段）：小关里写
+	# "tier_on_bars": {"2": 8}，升到第 2 档要等正在放的曲子唱完 8 小节一句才换，旋律不会被拦腰切断。
+	if use_dynamics and beat_index >= 0 and not hold:
+		var lines := tier_lines(section)
+		var up := tier_of(eff, lines)
+		var wait: Dictionary = data.get("sections", [])[section].get("tier_on_bars", {}) if section < data.get("sections", []).size() else {}
+		for t in range(tier + 1, up + 1):
+			if wait.has(str(t)) and not _on_phrase_line(beat_index, int(wait[str(t)])):
+				eff = lines[t - 1] - 0.002
+				hold = true
+				break
 	# 升到要过门的那一档：这条小节线先放一小节过门，下一条小节线才真的换
 	var going_to := tier_of(eff, tier_lines(section))
 	if use_dynamics and beat_index >= 0 and going_to > tier and going_to != _fill_done_for \

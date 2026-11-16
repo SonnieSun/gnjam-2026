@@ -757,6 +757,48 @@ SONGS['turkish_march_b'] = dict(
     ]),
     cat_octave=0, drum_notes=(nm('E4'), nm('A4')), mi_attack=True)
 
+# Can-Can, the opening strain of the galop: the fast tune that comes BEFORE the famous one (which is
+# SONGS['can_can']). It is in the dominant of that tune (here D major, the famous tune in G), so going from this
+# to the famous tune is a V -> I. Read off the melody channel of a MIDI of the galop the user supplied
+# (reference/midi_from_user/can_can, bars 14-21, moved down a minor third); chords from its bass line.
+SONGS['can_can_a'] = dict(
+    chords=['A7', 'D', 'G', 'D', 'A7', 'D', 'Em', 'A', 'A7', 'D', 'G', 'D', 'A7', 'D', 'A7', 'D'],
+    melody=tune([
+        [(0, 'A4', 2), (2, 'E5', 2), (4, 'E5', 2), (6, 'F#5', 2), (8, 'E5', 2), (10, 'D5', 2), (12, 'D5', 2), (14, 'F#5', 2)],
+        [(0, 'G5', 2), (2, 'B5', 2), (4, 'D6', 2), (6, 'B5', 2), (8, 'B5', 2), (10, 'A5', 2), (12, 'A5', 4)],
+        [(0, 'B5', 2), (2, 'C#5', 2), (4, 'C#5', 2), (6, 'B5', 2), (8, 'A5', 2), (10, 'D5', 2), (12, 'D5', 2), (14, 'F#5', 2)],
+        [(0, 'F#5', 2), (2, 'E5', 2), (4, 'F#5', 2), (6, 'E5', 2), (8, 'F#5', 2), (10, 'E5', 2), (12, 'F#5', 2), (14, 'E5', 2)],
+        [(0, 'A4', 2), (2, 'E5', 2), (4, 'E5', 2), (6, 'F#5', 2), (8, 'E5', 2), (10, 'D5', 2), (12, 'D5', 2), (14, 'F#5', 2)],
+        [(0, 'G5', 2), (2, 'B5', 2), (4, 'D6', 2), (6, 'B5', 2), (8, 'B5', 2), (10, 'A5', 2), (12, 'A5', 4)],
+        [(0, 'B5', 2), (2, 'C#5', 2), (4, 'C#5', 2), (6, 'B5', 2), (8, 'A5', 2), (10, 'D5', 2), (12, 'D5', 2), (14, 'F#5', 2)],
+        [(0, 'F#5', 2), (2, 'E5', 2), (4, 'F#5', 2), (6, 'E5', 2), (8, 'E5', 2), (10, 'D5', 2), (12, 'D5', 4)],
+    ]),
+    cat_octave=0, drum_notes=(nm('D4'), nm('A4')))
+
+# Scott Joplin, "The Entertainer" (1902, public domain): the first strain, 16 bars of 2/4, written like the
+# Turkish March (a step is one of the original sixteenths, a row is two original bars, played at half speed,
+# which is the rag's own tempo). Only the tune and the plain harmony are taken (read off the treble and bass of
+# a MIDI the user supplied, reference/midi_from_user/the_entertainer); that file is a modern arrangement,
+# none of its arranging is used. The low "E C E C E C" figure is written an octave up so the whole tune sits
+# in one octave and a half for the cats.
+ENT_A = [(0, 'E5', 1), (1, 'C6', 2), (3, 'E5', 1), (4, 'C6', 2), (6, 'E5', 1), (7, 'C6', 6), (13, 'C6', 1), (14, 'D6', 1), (15, 'D#6', 1)]
+ENT_B = [(0, 'E6', 1), (1, 'C6', 1), (2, 'D6', 1), (3, 'E6', 2), (5, 'B5', 1), (6, 'D6', 2), (8, 'C6', 6)]
+SONGS['entertainer'] = dict(
+    chords=['C', 'F', 'G7', 'C', 'C', 'F', 'D7', 'G7', 'C', 'F', 'G7', 'C', 'C7', 'F', 'G7', 'C'],
+    melody=tune([
+        ENT_A,
+        ENT_B + [(14, 'D5', 1), (15, 'D#5', 1)],
+        [(0, 'E5', 1), (1, 'C6', 2), (3, 'E5', 1), (4, 'C6', 2), (6, 'E5', 1), (7, 'C6', 7), (14, 'A5', 1), (15, 'G5', 1)],
+        [(0, 'F#5', 1), (1, 'A5', 1), (2, 'C6', 1), (3, 'E6', 2), (5, 'D6', 1), (6, 'C6', 1), (7, 'A5', 1), (8, 'D6', 6),
+         (14, 'D5', 1), (15, 'D#5', 1)],
+        ENT_A,
+        ENT_B + [(14, 'C6', 1), (15, 'D6', 1)],
+        [(0, 'E6', 1), (1, 'C6', 1), (2, 'D6', 1), (3, 'E6', 2), (5, 'C6', 1), (6, 'D6', 1), (7, 'C6', 1),
+         (8, 'E6', 1), (9, 'C6', 1), (10, 'D6', 1), (11, 'E6', 2), (13, 'C6', 1), (14, 'D6', 1), (15, 'C6', 1)],
+        ENT_B + [(14, 'D5', 1), (15, 'D#5', 1)],
+    ]),
+    cat_octave=-12, drum_notes=(nm('E4'), nm('G4')), mi_attack=True)
+
 # Toby Fox, "Your Best Friend" (Undertale, 2015). NOT public domain: for the team's internal playtest
 # only. The tune comes from a piano MIDI (tools/music_gen/midi_to_pattern.py, right hand); the chords are
 # read off its left hand. Ab major, the first 8 bars. The original is at 120 BPM.
@@ -812,7 +854,7 @@ SONGS['ybf_end'] = dict(
     cat_octave=0, drum_notes=(nm('D#4'), nm('G#4')))
 
 HALF_TIME = 2
-SPEED = {'turkish_march': HALF_TIME, 'turkish_march_b': HALF_TIME}
+SPEED = {'turkish_march': HALF_TIME, 'turkish_march_b': HALF_TIME, 'entertainer': HALF_TIME}
 # Placeholder, not used yet: everything is rendered at 160 BPM. Songs listed here suit 120 better and
 # get their own 120 render later (it also needs 120 BPM drums and bass; the game already takes the
 # tempo from each level's music file, levels/music/level_N.json "bpm").

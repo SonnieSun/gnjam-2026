@@ -35,6 +35,11 @@
      "tune": "cc"
     },
     {
+     "id": "cca_bass",
+     "file": "res://assets/audio/music/classics/can_can_a/can_can_a_L2_bass_8b.wav",
+     "tune": "cca"
+    },
+    {
      "id": "tmb_bass",
      "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_L2_bass_8b.wav",
      "tune": "tmb"
@@ -57,6 +62,11 @@
      "tune": "cc"
     },
     {
+     "id": "cca_keys",
+     "file": "res://assets/audio/music/classics/can_can_a/can_can_a_fb_L0_keys_8b.wav",
+     "tune": "cca"
+    },
+    {
      "id": "tmb_keys",
      "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L0_keys_8b.wav",
      "tune": "tmb"
@@ -77,6 +87,16 @@
      "id": "cc_lead",
      "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav",
      "tune": "cc"
+    },
+    {
+     "id": "cca_square",
+     "file": "res://assets/audio/music/classics/can_can_a/can_can_a_L3_square_8b.wav",
+     "tune": "cca"
+    },
+    {
+     "id": "cca_cats",
+     "file": "res://assets/audio/music/classics/can_can_a/can_can_a_L3_cat_kichiku_8b.wav",
+     "tune": "cca"
     }
    ]
   },
@@ -119,6 +139,12 @@
    "gain_db": -5.0,
    "clips": [
     {
+     "id": "cca_harm",
+     "pattern": "res://levels/music/patterns/harm_can_can_a.json",
+     "by_hit": false,
+     "tune": "cca"
+    },
+    {
      "id": "tm_harm",
      "pattern": "res://levels/music/patterns/harm_turkish_march.json",
      "by_hit": false,
@@ -156,6 +182,18 @@
     {
      "id": "cc_double",
      "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav",
+     "tune": "cc"
+    }
+   ]
+  },
+  {
+   "id": "fx",
+   "name": "事件",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cc_square",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_square_8b.wav",
      "tune": "cc"
     }
    ]
@@ -279,24 +317,40 @@
     "bass": [
      [
       0.0,
+      "cca_bass"
+     ],
+     [
+      0.5,
       "cc_bass"
      ]
     ],
     "bed": [
      [
       0.0,
+      "cca_keys"
+     ],
+     [
+      0.5,
       "cc_keys"
      ]
     ],
     "lead": [
      [
       0.0,
+      "cca_square"
+     ],
+     [
+      0.25,
+      "cca_cats"
+     ],
+     [
+      0.5,
       "cc_lead"
      ]
     ],
     "peak": [
      [
-      0.25,
+      0.5,
       "cc_peak"
      ]
     ],
@@ -312,20 +366,31 @@
     ],
     "harm": [
      [
-      0.0,
+      0.25,
+      "cca_harm"
+     ],
+     [
+      0.5,
       "cc_harm"
      ]
     ],
     "kiai": [
      [
-      0.5,
+      0.75,
       "cc_double"
+     ]
+    ],
+    "fx": [
+     [
+      0.625,
+      "cc_square"
      ]
     ]
    },
    "tiers": [
     0.25,
     0.5,
+    0.625,
     0.75
    ],
    "transition_tiers": [],
@@ -334,10 +399,14 @@
     1.0
    ],
    "exit": "end_g_major",
+   "carry": 0,
    "fever_fill": false,
+   "tier_on_bars": {
+    "2": 8
+   },
    "enter": "tr_tm_to_cc",
    "own": {
-    "kiai": "cc_double",
+    "kiai": "",
     "hit": ""
    }
   }

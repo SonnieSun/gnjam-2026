@@ -11,6 +11,8 @@ All 160 BPM, 4/4, one file = one loop. Not used by the game.
 | can_can.mid | level 2 (last part of the earth) and level 3 (the pizza) | 8 | 48 | 16 | D7 G C D7 D7 G D7 G D7 G C D7 D7 G D7 G |
 | turkish_march.mid | level 3, the shooter | 16 | 76 | 43 | Am Am Am Am E E Am Am Em Em Em Em B7 B7 Em Em Am Am Am Am E E Am Am E E Dm Dm E7 E7 Am Am |
 | turkish_march_b.mid | level 3, the shooter in fever | 8 | 29 | 32 | A A A A D D E E A A A A E E A A |
+| can_can_a.mid | level 3, the first half of the pizza | 8 | 61 | 16 | A7 D G D A7 D Em A A7 D G D A7 D A7 D |
+| entertainer.mid | level 1, from the house opening on | 16 | 77 | 32 | C C F F G7 G7 C C C C F F D7 D7 G7 G7 C C F F G7 G7 C C C7 C7 F F G7 G7 C C |
 | scene1_theme.mid | level 1 (the disco theme) | 4 | hook A 25, hook B 36 | - | Ebmaj7 F7 Dm7 Gm7, one per bar |
 
 Kick steps of the four grooves (a step is a sixteenth, 0 = the first beat of the bar):
