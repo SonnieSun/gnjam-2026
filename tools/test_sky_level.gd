@@ -69,6 +69,13 @@ func _run() -> void:
 	var sorted := beats.duplicate()
 	sorted.sort()
 	_check("the notes before it are still there, in order", kept == still and beats == sorted, str(still))
+	# the last note before Ode to Joy is the rainbow one, and only that one
+	var accents: Node = section.get_node("NoteAccents")
+	var rainbow := []
+	for n: NoteData in section.notes:
+		if accents.look(n, Color.WHITE).rainbow:
+			rainbow.append(n.beat)
+	_check("the last note before Ode to Joy is the rainbow one, and only it", rainbow == [still[-1]], "rainbow: %s" % str(rainbow))
 	var fx: Node = section.get_node("FeverFx")
 	_check("no fever picture yet", not fx._on)
 	game.gauge.set_value(420)       # 87.5 %

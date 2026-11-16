@@ -6,6 +6,7 @@ extends Node
 ##
 ## 五种（一个音符同时算好几种时，按下面从上到下的顺序取第一种）：
 ##   FEVER       进 fever 的那一个音符（fever 开始的那条小节线上的第一个）：动态七彩（scripts/fx/note_rainbow.gdshader）。
+##               rainbow_before_tiers 里写了的那几档，升上去之前的最后一个音符也是。
 ##   LEAD_IN     （默认关着）音乐马上要换段了（Music.planned_change() 排好的那次）：换之前 lead_in_beats 拍里的音符。
 ##               要等积累条过了线才知道，只管得到过线之后才出现的音符。
 ##   ACCENT      重音：落在现在这套鼓型的拍手上（听得见的那一下）。
@@ -48,6 +49,8 @@ enum Kind { NONE, DOWNBEAT, SYNCOPATED, ACCENT, LEAD_IN, FEVER }
 @export_group("fever 的音符（七彩）")
 ## 进 fever 的那一个音符
 @export var fever := true
+## 升到这几档之前的最后一个音符也是七彩的（比如天空关写 2：欢乐颂出现前的最后一个音符）。档 = Music.change_planned 的 id
+@export var rainbow_before_tiers := PackedInt32Array()
 @export var fever_width := 1.5
 ## 外面常亮的柔光
 @export_range(0.0, 1.0) var fever_glow := 0.6
@@ -76,6 +79,7 @@ var notes: Array[NoteData] = []
 var _kinds := {}            # NoteData -> Kind：一个音符第一次被问到时定下来，之后不变（不然飞到一半会突然换颜色）
 var _fever_at := -1.0       # 排好的那次进 fever 落在第几拍（-1 = 没有）
 var _fever_note: NoteData   # 进 fever 的那个音符
+var _before_at := -1.0      # 排好的那次升档（rainbow_before_tiers 里的）落在第几拍：它之前的最后一个音符是七彩的
 
 
 func _ready() -> void:
@@ -84,13 +88,16 @@ func _ready() -> void:
 	Music.change_planned.connect(func(kind: String, _id: int, _fill: float, commit: float) -> void:
 		if kind == "fever":
 			_fever_at = commit
-			_fever_note = null)
+			_fever_note = null
+		elif kind == "tier" and _id in rainbow_before_tiers:
+			_before_at = commit)
 
 
 func _forget() -> void:
 	_kinds.clear()
 	_fever_at = -1.0
 	_fever_note = null
+	_before_at = -1.0
 
 
 ## 这个音符是哪一种
@@ -103,6 +110,15 @@ func kind_of(n: NoteData) -> Kind:
 		if _fever_note == null or n.beat < _fever_note.beat:
 			_fever_note = n
 		if n == _fever_note:
+			return Kind.FEVER
+	# 换段之前的最后一个音符（rainbow_before_tiers）：音符表里那一拍之前最晚的一个
+	if _before_at >= 0.0 and n.beat < _before_at - 0.01 and n.beat >= _before_at - 8.0:
+		var last := true
+		for other in notes:
+			if other.beat > n.beat + 0.001 and other.beat < _before_at - 0.01:
+				last = false
+				break
+		if last:
 			return Kind.FEVER
 	if not _kinds.has(n):
 		if _kinds.size() > 4000:
