@@ -40,7 +40,7 @@ os.makedirs(os.path.join(D, 'sky'), exist_ok=True)
 for f in glob.glob(os.path.join(L, 'sky', '*b.wav')):          # the sky level, the bridge (make_sky.py) and the cozy opening (make_cozy.py)
     shutil.copy(f, os.path.join(D, 'sky', os.path.basename(f)))
     n += 1
-for song in ('can_can', 'turkish_march', 'turkish_march_b', 'ode_to_joy', 'mountain_king', 'fur_elise', 'your_best_friend',
+for song in ('can_can', 'can_can_a', 'can_can_b', 'entertainer', 'turkish_march', 'turkish_march_b', 'ode_to_joy', 'mountain_king', 'fur_elise', 'your_best_friend',
              'ybf_intro', 'ybf_b', 'ybf_end'):
     os.makedirs(os.path.join(D, 'classics', song), exist_ok=True)
     for f in glob.glob(os.path.join(L, 'classics', f'{song}_*b.wav')):

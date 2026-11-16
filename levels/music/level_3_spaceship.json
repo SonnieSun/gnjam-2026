@@ -35,6 +35,16 @@
      "tune": "cc"
     },
     {
+     "id": "cca_bass",
+     "file": "res://assets/audio/music/classics/can_can_a/can_can_a_L2_bass_8b.wav",
+     "tune": "cca"
+    },
+    {
+     "id": "ccb_bass",
+     "file": "res://assets/audio/music/classics/can_can_b/can_can_b_L2_bass_8b.wav",
+     "tune": "ccb"
+    },
+    {
      "id": "tmb_bass",
      "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_L2_bass_8b.wav",
      "tune": "tmb"
@@ -57,6 +67,16 @@
      "tune": "cc"
     },
     {
+     "id": "cca_keys",
+     "file": "res://assets/audio/music/classics/can_can_a/can_can_a_fb_L0_keys_8b.wav",
+     "tune": "cca"
+    },
+    {
+     "id": "ccb_keys",
+     "file": "res://assets/audio/music/classics/can_can_b/can_can_b_fb_L0_keys_8b.wav",
+     "tune": "ccb"
+    },
+    {
      "id": "tmb_keys",
      "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L0_keys_8b.wav",
      "tune": "tmb"
@@ -77,6 +97,21 @@
      "id": "cc_lead",
      "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav",
      "tune": "cc"
+    },
+    {
+     "id": "cca_square",
+     "file": "res://assets/audio/music/classics/can_can_a/can_can_a_L3_square_8b.wav",
+     "tune": "cca"
+    },
+    {
+     "id": "cca_cats",
+     "file": "res://assets/audio/music/classics/can_can_a/can_can_a_L3_cat_kichiku_8b.wav",
+     "tune": "cca"
+    },
+    {
+     "id": "ccb_cats",
+     "file": "res://assets/audio/music/classics/can_can_b/can_can_b_L3_cat_kichiku_8b.wav",
+     "tune": "ccb"
     }
    ]
   },
@@ -86,13 +121,25 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "ccb_peak",
+     "file": "res://assets/audio/music/classics/can_can_b/can_can_b_fb_L4_peak_8b.wav",
+     "tune": "ccb"
+    },
+    {
      "id": "tmb_peak",
      "file": "res://assets/audio/music/classics/turkish_march_b/turkish_march_b_fb_L4_peak_8b.wav",
      "tune": "tmb"
     },
     {
      "id": "cc_peak",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_fever_8b.wav",
+     "gain_db": 18.0,
+     "tune": "cc"
+    },
+    {
+     "id": "cc_peak_max",
+     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_fever_max_8b.wav",
+     "gain_db": 18.0,
      "tune": "cc"
     }
    ]
@@ -118,6 +165,18 @@
    "name": "猫和声",
    "gain_db": -5.0,
    "clips": [
+    {
+     "id": "cca_harm",
+     "pattern": "res://levels/music/patterns/harm_can_can_a.json",
+     "by_hit": false,
+     "tune": "cca"
+    },
+    {
+     "id": "ccb_choir",
+     "file": "res://assets/audio/music/classics/can_can_b/can_can_b_C_choir_8b.wav",
+     "gain_db": 6.0,
+     "tune": "ccb"
+    },
     {
      "id": "tm_harm",
      "pattern": "res://levels/music/patterns/harm_turkish_march.json",
@@ -157,6 +216,25 @@
      "id": "cc_double",
      "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav",
      "tune": "cc"
+    }
+   ]
+  },
+  {
+   "id": "fx",
+   "name": "事件",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "cc_square",
+     "file": "res://assets/audio/music/classics/can_can/can_can_L3_square_dark_8b.wav",
+     "gain_db": -3.0,
+     "tune": "cc"
+    },
+    {
+     "id": "ccb_square",
+     "file": "res://assets/audio/music/classics/can_can_b/can_can_b_L3_square_8b.wav",
+     "gain_db": -5.0,
+     "tune": "ccb"
     }
    ]
   },
@@ -208,11 +286,11 @@
     ],
     "lead": [
      [
-      0.2,
+      0.0,
       "tm_pluck"
      ],
      [
-      0.7,
+      0.9,
       ""
      ]
     ],
@@ -260,6 +338,8 @@
     0.9,
     1.0
    ],
+   "fever_on_bars": 4,
+   "fever_fill": false,
    "own": {
     "kiai": "tm_kichiku",
     "hit": ""
@@ -277,25 +357,61 @@
     "bass": [
      [
       0.0,
+      "cca_bass"
+     ],
+     [
+      0.5,
+      "ccb_bass"
+     ],
+     [
+      0.75,
       "cc_bass"
      ]
     ],
     "bed": [
      [
       0.0,
+      "cca_keys"
+     ],
+     [
+      0.5,
+      "ccb_keys"
+     ],
+     [
+      0.75,
       "cc_keys"
      ]
     ],
     "lead": [
      [
       0.0,
+      "cca_square"
+     ],
+     [
+      0.25,
+      "cca_cats"
+     ],
+     [
+      0.5,
+      "ccb_cats"
+     ],
+     [
+      0.75,
       "cc_lead"
      ]
     ],
     "peak": [
      [
-      0.25,
+      0.625,
+      "ccb_peak"
+     ],
+     [
+      0.75,
       "cc_peak"
+     ],
+     [
+      0.875,
+      "cc_peak_max"
      ]
     ],
     "meow": [
@@ -310,20 +426,43 @@
     ],
     "harm": [
      [
-      0.0,
+      0.25,
+      "cca_harm"
+     ],
+     [
+      0.5,
+      ""
+     ],
+     [
+      0.625,
+      "ccb_choir"
+     ],
+     [
+      0.75,
       "cc_harm"
      ]
     ],
     "kiai": [
      [
-      0.5,
+      0.75,
       "cc_double"
+     ]
+    ],
+    "fx": [
+     [
+      0.5,
+      "ccb_square"
+     ],
+     [
+      0.75,
+      "cc_square"
      ]
     ]
    },
    "tiers": [
     0.25,
     0.5,
+    0.625,
     0.75
    ],
    "transition_tiers": [],
@@ -332,10 +471,19 @@
     1.0
    ],
    "exit": "end_g_major",
-   "fever_fill": false,
+   "fever_enter": "tr_ccb_to_cc",
+   "fever_enter_db": 16.0,
+   "fever_enter_bars": 2,
+   "fever_enter_replaces": 1,
+   "fever_reverb": 0.2,
+   "carry": 0,
+   "fever_on_bars": 4,
+   "tier_on_bars": {
+    "2": 8
+   },
    "enter": "tr_tm_to_cc",
    "own": {
-    "kiai": "cc_double",
+    "kiai": "",
     "hit": ""
    }
   }

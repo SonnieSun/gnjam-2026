@@ -7,7 +7,7 @@ has cues: at this gauge progress (0 = section just started, 1 = gauge full) swit
 ("" = silence). The clip of the last cue at or below the current progress is the one that sounds.
 
   {"title", "bpm", "use_in_game", "quantize_beats",
-   "lanes":    [{"id", "name", "gain_db", "clips": [{"id", "file"}]}],
+   "lanes":    [{"id", "name", "gain_db", "clips": [{"id", "file", "gain_db" (optional, on top of the lane's)}]}],
    "sections": [{"title", "cues": {lane id: [[progress, clip id], ...]}}]}
 
 The sets below are written as overlapping on/off ranges per clip (easier to write by hand) and turned
@@ -263,7 +263,7 @@ RV = S1 + 'rhythm_variants/s1_'
 #       This part's gauge never fills: the section script feeds Music its own progress (holds done / holds needed).
 #   SLAP (the earth, three parts)  In the Hall of the Mountain King, all three parts: sneaking, louder, everything.
 #       The mashing sings its tune (runtime kichiku, in the section script).
-#       The last part (POWER) changes to Can-Can.
+#       The last part (POWER) is its climax: break beat, the instrument doubling the cats, the square lead in fever.
 # RULE (2026-11-16): a level may change tune, but never with the generic fill: every change of tune has its own
 # written one-bar transition ('enter': a variation on the tune that is leaving, walking into the new key;
 # tools/music_gen/make_transitions.py). Without one, Mountain King -> Can-Can in the middle of the earth sounded
@@ -274,9 +274,8 @@ W = (0.12, 0.3, 0.5, 0.7, 0.88)       # the washer's lines, in "holds done" (3 z
 SETS[9] = {'title': 'TV WALL', 'use': True,
            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
                       t('ybf_keys', YB + 'fb_L0_keys_8b.wav', 'bed'), t('mk_keys', MK + 'fb_L0_keys_8b.wav', 'bed'),
-                      t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
-                      t('cc_cats', CC + 'L3_cat_kichiku_8b.wav', 'hook'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
-                      t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'), t('cc_double', CC + 'L3_pluck_8b.wav', 'kiai'),
+                      t('break', RV + 'Rbreak_L1_groove_4b.wav', 'groove'),
+                      t('mk_double', MK + 'L3_pluck_8b.wav', 'kiai'), t('mk_square', MK + 'L3_square_8b.wav', 'event'),
                       t('ybf_bass', YB + 'L2_bass_8b.wav', 'bass'), t('mk_bass', MK + 'L2_bass_8b.wav', 'bass'),
                       t('ybf_pluck', YB + 'L3_pluck_8b.wav', 'hook'), t('ybf_cats', YB + 'L3_cat_kichiku_8b.wav', 'hook'),
                       t('mk_cats', MK + 'L3_cat_kichiku_8b.wav', 'hook'),
@@ -287,13 +286,13 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                       t('ybf_cat_drums', YB + 'C_drums_8b.wav', 'cat'), t('mk_cat_drums', MK + 'C_drums_8b.wav', 'cat'),
                       t('ybf_double', YB + 'L3_pluck_8b.wav', 'kiai'),
                       pattern('ybf_by_hit', 'your_best_friend', 'hit', by_hit=True),
-                      harm('ybf_harm', 'your_best_friend'), harm('mk_harm', 'mountain_king'), harm('cc_harm', 'can_can')] + FILL,
+                      harm('ybf_harm', 'your_best_friend'), harm('mk_harm', 'mountain_king')] + FILL,
            'sections': [
                {'title': 'TV WALL', 'tiers': W, 'transition_tiers': (), 'fever': (W[4], 1.0), 'fever_fill': False,
                 'own': {'kiai': '', 'hit': 'ybf_by_hit'}, 'rules': {
                    'half': [[0, W[1]]], 'groove': [[W[1], 1]],
                    'ybf_keys': [[0, 1]], 'ybf_bass': [[W[0], 1]],
-                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[W[0], W[2]]], 'ybf_cats': [[W[2], 1]], 'ybf_harm': [[W[2], 1]],
+                   'ybf_by_hit': [[0, W[1]]], 'ybf_pluck': [[0, W[2]]], 'ybf_cats': [[W[2], 1]], 'ybf_harm': [[W[2], 1]],
                    'ybf_peak': [[W[3], 1]], 'ybf_cat_drums': [[W[1], 1]], 'ybf_double': [[W[4], 1]]}},
                # The washer ends on its high point and the earth is a high point too, so the earth does not start
                # over from a bare beat: after the written transition bar the new tune comes in already singing
@@ -310,13 +309,19 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                 'enter': 'tr_ybf_to_mk', 'rules': {
                    'groove': [[0, 1]], 'mka_keys': [[0, 1]], 'mka_bass': [[0, 1]], 'mka_cat_drums': [[0, 1]],
                    'mka_pluck': [[0, 0.5]], 'mka_cats': [[0.5, 1]]}},
-               {'title': 'SLAP / CHARGE', 'tiers': (0.4,), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''}, 'rules': {
+               {'title': 'SLAP / CHARGE', 'tiers': (0.4,), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''}, 'enter_fill': False, 'carry': 0, 'rules': {
                    'groove': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]], 'mk_cat_drums': [[0, 1]],
                    'mk_cats': [[0, 1]], 'mk_harm': [[0, 1]], 'mk_peak': [[0.4, 1]]}},
+               # POWER: the Mountain King's own climax (Can-Can is kept for the end of the game): the same tune goes on
+               # without a break, the drums turn into the 2-step 'break' beat, the instrument doubles the cats, and in
+               # fever the square lead joins.
                {'title': 'SLAP / POWER', 'tiers': (0.35, 0.7), 'transition_tiers': (), 'fever': (0.7, 1.0), 'fever_fill': False,
-                'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_mk_to_cc', 'exit': 'end_g_major', 'rules': {
-                   'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]], 'cc_cat_drums': [[0, 1]],
-                   'cc_cats': [[0, 1]], 'cc_harm': [[0, 1]], 'cc_peak': [[0.35, 1]], 'cc_double': [[0.7, 1]]}}]}
+                'enter_fill': False, 'carry': 0, 'own': {'kiai': 'mk_double', 'hit': ''}, 'rules': {   # carry 0: these parts start full
+                   # already; carried fullness would switch the extra layers on, off and on again
+
+                   'break': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]], 'mk_cat_drums': [[0, 1]],
+                   'mk_cats': [[0, 1]], 'mk_harm': [[0, 1]], 'mk_peak': [[0, 1]],
+                   'mk_double': [[0.35, 1]], 'mk_square': [[0.7, 1]]}}]}
 
 # --- the sky level (the UFO / abduction level, to become level 2) -----------------------------------
 # The cat is pulled up by the beam: through the clouds, into a storm with doom horns, then it suddenly
@@ -341,17 +346,17 @@ SETS[10] = {'title': 'SKY', 'use': True,
                        t('ode_cats', OJ + 'L3_cat_flow_16b.wav', 'hook'), harm('ode_harm', 'ode_to_joy'),
                        t('doom_horns', SK + 'doom_horns_8b.wav', 'peak'), t('holy_pad', SK + 'holy_pad_8b.wav', 'peak'),
                        t('ode_cat_drums', OJ + 'C_drums_16b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_16b.wav', 'kiai'),
-                       pattern('ode_by_hit', 'ode_to_joy', 'hit', by_hit=True), pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
+                       pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
                        t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_16b.wav', 'event')] + FILL,
-            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'fever_fill': False, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
+            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'outro': 'out_into_the_ufo', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
                 'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
                 'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
                 'ode_keys': [[SKY[1], 1]],
-                'ode_cats': [[SKY[2], SKY[3]]], 'ode_harm': [[SKY[2], 1]],
+                'ode_cats': [[SKY[1], 1]], 'ode_harm': [[SKY[2], 1]],
                 'doom_horns': [[SKY[0], SKY[1]]], 'holy_pad': [[SKY[1], SKY[3]]],
                 'ode_cat_drums': [[SKY[2], 1]],
-                'ufo_rise': [[0, SKY[1]]], 'ode_by_hit': [[SKY[1], SKY[2]]],
+                'ufo_rise': [[0, SKY[1]]],
                 'wind': [[0, SKY[2]]], 'ode_peak': [[SKY[3], 1]]}}]}
 
 # file = the level file it goes with (levels/<name>.tres -> levels/music/<name>.json). The level list was
@@ -361,50 +366,80 @@ SETS[10] = {'title': 'SKY', 'use': True,
 # interlude: levels/interludes/after_level_1_disco.tres, played after level 1 in a run, not on the menu.
 # --- level 3, SPACESHIP: the last level. The shooter has its own tune; the pizza is Can-Can ----------
 #   SPACESHIP (shooting planets)   Turkish March, the one tune not heard yet: fast, a chase. Five tiers as usual.
-#   SPACE PIZZA (the last part of the game): Can-Can, one tune from start to finish.
-#       (Until 2026-11-16 this was a medley of five tunes, one per stretch of the gauge. Switching key every
-#       few bars with a transition bar each time sounded like a bad mix, so it is one tune now.)
-#         0     the cats sing the tune from the first bar (the kichiku lead), backing vocals, drums, bass, chords
-#         25%   + the peak layer
-#         50%   + the instrument doubling the cats                                        <- the 3x3 grid camera
-#         75%   FEVER to the end of the game: Can-Can's own cat drums take over            <- the kaleidoscope
+#   SPACE PIZZA (the last part of the game): all Can-Can, see the comment on the section below.
 #   The lines 50% / 75% are the stage's camera cues (level_3_spaceship.tres: fx_cues grid3 0.5, kaleido 0.75).
 TM = M + 'classics/turkish_march/turkish_march_'
+CCA = M + 'classics/can_can_a/can_can_a_'             # Can-Can's opening strain (D major), the first half of the pizza
+CCB = M + 'classics/can_can_b/can_can_b_'             # Can-Can's second strain, "the four steps down" (D major)
 TMB = M + 'classics/turkish_march_b/turkish_march_b_'   # its second section (A major), the fever of the shooter
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 T3 = TIERS
-R = (0.25, 0.5, 0.75)
+R = (0.25, 0.5, 0.625, 0.75)
+FV = 0.875                                 # inside the pizza's fever: where its layer goes from the entry one to the max
 SETS[7] = {'title': 'SPACESHIP', 'use': True,
            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), SKELETON[0],
                       t('tm_keys', TM + 'fb_L0_keys_16b.wav', 'bed'), t('cc_keys', CC + 'fb_L0_keys_8b.wav', 'bed'),
                       t('tm_bass', TM + 'L2_bass_16b.wav', 'bass'), t('cc_bass', CC + 'L2_bass_8b.wav', 'bass'),
                       t('tm_pluck', TM + 'L3_pluck_16b.wav', 'hook'),
-                      t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'),
+                      t('cc_lead', CC + 'L3_cat_kichiku_8b.wav', 'hook'), t('cc_square', CC + 'L3_square_dark_8b.wav', 'event', -3.0),   # dark and down: the cats stay on top
+                      t('cca_keys', CCA + 'fb_L0_keys_8b.wav', 'bed'), t('cca_bass', CCA + 'L2_bass_8b.wav', 'bass'),
+                      t('cca_square', CCA + 'L3_square_8b.wav', 'hook'), t('cca_cats', CCA + 'L3_cat_kichiku_8b.wav', 'hook'),
+                      harm('cca_harm', 'can_can_a'),
+                      t('ccb_keys', CCB + 'fb_L0_keys_8b.wav', 'bed'), t('ccb_bass', CCB + 'L2_bass_8b.wav', 'bass'),
+                      t('ccb_cats', CCB + 'L3_cat_kichiku_8b.wav', 'hook'), t('ccb_square', CCB + 'L3_square_8b.wav', 'event', -5.0),
+                      t('ccb_choir', CCB + 'C_choir_8b.wav', 'harm', 6.0), t('ccb_peak', CCB + 'fb_L4_peak_8b.wav', 'peak'),
                       harm('tm_harm', 'turkish_march'), harm('cc_harm', 'can_can'),
-                      t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_8b.wav', 'peak'),
+                      t('tmb_peak', TMB + 'fb_L4_peak_8b.wav', 'peak'), t('cc_peak', CC + 'fb_L4_peak_fever_8b.wav', 'peak', 18.0),
+                      t('cc_peak_max', CC + 'fb_L4_peak_fever_max_8b.wav', 'peak', 18.0),   # the peak layer + cymbals, backbeat, a synth lead under the cats
                       CATS[0], t('cc_cat_drums', CC + 'C_drums_8b.wav', 'cat'),
                       t('tm_kichiku', TM + 'L3_cat_kichiku_16b.wav', 'kiai'), t('tmb_kichiku', TMB + 'L3_cat_kichiku_8b.wav', 'kiai'),
                       t('tmb_keys', TMB + 'fb_L0_keys_8b.wav', 'bed'), t('tmb_bass', TMB + 'L2_bass_8b.wav', 'bass'),
                       harm('tmb_harm', 'turkish_march_b'),
                       t('cc_double', CC + 'L3_pluck_8b.wav', 'kiai')] + FILL,
            'sections': [
-               {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0),
+               {'title': 'SPACESHIP', 'tiers': T3, 'transition_tiers': (), 'fever': (T3[3], 1.0), 'fever_fill': False, 'fever_on_bars': 4,
                 'own': {'kiai': 'tm_kichiku', 'hit': ''}, 'rules': {
                    'half': [[0, T3[0]]], 'groove': [[T3[0], 1]], 'cat_drums': [[T3[1], 1]],
                    'tm_keys': [[0, T3[3]]], 'tm_bass': [[T3[0], T3[3]]],
-                   'tm_pluck': [[T3[0], T3[2]]], 'tm_kichiku': [[T3[2], T3[3]]], 'tm_harm': [[T3[2], T3[3]]],
-                   # FEVER: the march's second section, the loud A major tune, all of it at once after the fill bar
+                   'tm_pluck': [[0, T3[3]]], 'tm_kichiku': [[T3[2], T3[3]]], 'tm_harm': [[T3[2], T3[3]]],
+                   # FEVER: the march's second section, the loud A major tune, all of it at once, on a 4-bar line of
+                   # the first section (no fill bar: the tune must not stop in the middle of a scene)
                    'tmb_keys': [[T3[3], 1]], 'tmb_bass': [[T3[3], 1]], 'tmb_kichiku': [[T3[3], 1]],
                    'tmb_harm': [[T3[3], 1]], 'tmb_peak': [[T3[3], 1]]}},
-               # After the written transition the Can-Can comes in already singing (the shooter ended on its high
-               # point). The cats' tune then NEVER stops or changes hands: the camera cues (grid at 50 %, kaleidoscope
-               # at 75 %) are marked by adding things, not by swapping the lead or a fill bar (which cut the tune
-               # for a bar at the kaleidoscope: 'fever_fill': False).
-               {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[2], 1.0), 'fever_fill': False,
-                'own': {'kiai': 'cc_double', 'hit': ''}, 'enter': 'tr_tm_to_cc', 'exit': 'end_g_major', 'rules': {
-                   'groove': [[0, 1]], 'cc_keys': [[0, 1]], 'cc_bass': [[0, 1]], 'cc_lead': [[0, 1]], 'cc_harm': [[0, 1]],
-                   'cat_drums': [[0, R[2]]], 'cc_cat_drums': [[R[2], 1]],
-                   'cc_peak': [[R[0], 1]], 'cc_double': [[R[1], 1]]}}]}
+               # The pizza is all Can-Can, in the order the galop itself goes:
+               #   the transition bar   the vamp on the dominant that leads into the galop (tr_tm_to_cc)
+               #   0      the opening strain ('cca', D major): the instrument plays it with drums, bass, chords
+               #   25%    the cats take it, backing vocals
+               #   50%    THE FOUR STEPS DOWN ('ccb', still D major), the strain that comes right before the famous
+               #          tune in the galop, on the opening strain's 8-bar line: the cats sing it, the square
+               #          lead 5 dB under them                                              <- the 3x3 grid camera
+               #   62%    + THE CAT CHOIR (held meows on the chords and a third below on the long notes:
+               #          make_choir_stems.py; the choir is only here, on the fast famous tune it is clutter)
+               #          and the peak layer
+               #   75%    FEVER: THE FAMOUS TUNE ('cc', G major: D -> G is a V -> I), heard here for the first time
+               #          and kept for the climax, with everything (cats, the square lead without its top and
+               #          3 dB down so it does not cover them, pluck doubling, Can-Can's own cat drums), on the
+               #          descent's 4-bar line, through TWO written bars (tr_ccb_to_cc), the first in place of the
+               #          phrase's last bar: the melody the user wrote for it (run up, the vamp D A D A, and the
+               #          two accents on G, "MIAO! MIAO!"), played by the fever's own band.
+               #          In fever the whole mix goes into a
+               #          hall ('fever_reverb')                                             <- the kaleidoscope
+               # Every change is a strain of the same galop in the galop's own order, on a phrase line, full band on
+               # both sides: the tune never stops.
+               {'title': 'SPACE PIZZA', 'tiers': R, 'transition_tiers': (), 'fever': (R[3], 1.0), 'fever_enter': 'tr_ccb_to_cc', 'fever_enter_db': 16.0, 'fever_enter_bars': 2, 'fever_enter_replaces': 1, 'fever_reverb': 0.2,
+                'carry': 0,   # must start on the opening strain: carried fullness would jump straight to the famous tune
+                'tier_on_bars': {2: 8}, 'fever_on_bars': 4, 'own': {'kiai': '', 'hit': ''}, 'enter': 'tr_tm_to_cc',   # no mini kiai: it would be the other strain's tune
+                'exit': 'end_g_major', 'rules': {
+                   'groove': [[0, 1]], 'cat_drums': [[0, R[3]]], 'cc_cat_drums': [[R[3], 1]],
+                   'cca_keys': [[0, R[1]]], 'cca_bass': [[0, R[1]]], 'cca_square': [[0, R[0]]], 'cca_cats': [[R[0], R[1]]],
+                   'cca_harm': [[R[0], R[1]]],
+                   'ccb_keys': [[R[1], R[3]]], 'ccb_bass': [[R[1], R[3]]], 'ccb_cats': [[R[1], R[3]]], 'ccb_square': [[R[1], R[3]]],
+                   'ccb_choir': [[R[2], R[3]]], 'ccb_peak': [[R[2], R[3]]],
+                   'cc_keys': [[R[3], 1]], 'cc_bass': [[R[3], 1]], 'cc_lead': [[R[3], 1]], 'cc_harm': [[R[3], 1]],
+                   # the climax has its own dynamics (make_choir_stems.py, VARIANTS): the full layer where the transition
+                   # lands, and everything for the last stretch (a step back between them was tried and dropped)
+                   'cc_peak': [[R[3], FV]], 'cc_peak_max': [[FV, 1]],
+                   'cc_square': [[R[3], 1]], 'cc_double': [[R[3], 1]]}}]}
 NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
          10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
@@ -413,7 +448,16 @@ LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和�
 # Clips whose id starts with one of these belong to that tune ("tune" in the level file): the music manager
 # plays a tune's clips from their own player and starts the tune FROM ITS FIRST BAR on the bar line it comes
 # in on (in one shared stream every clip would join wherever the loop happened to be, e.g. from bar 2).
-TUNES = ('ybf', 'mk', 'mka', 'cc', 'tm', 'tmb', 'ode')
+# RULES FOR A STAGE CHANGE INSIDE A SCENE (2026-11-16, after playtesting). A scene = what the player sees as one
+# place; a change of scene has its own written transition ('enter') or the cut-scene's fill.
+#   1. The tune is there from the first bar of a scene: a lead (instrument or cats) is cued from progress 0
+#      wherever a tune starts. Building up means adding things UNDER and AROUND the tune, not waiting for it.
+#   2. Once the tune is playing it never stops inside the scene: no cue takes the lead away, no fill bar
+#      ('transition_tiers' empty, 'fever_fill': False, 'enter_fill': False between parts of one scene).
+#   3. The lead may change hands (instrument -> cats, cats -> kichiku): it is handed over, never dropped.
+#   4. A stage that takes things away (a quiet ending) drops chords, drums or the peak layer and keeps the tune.
+# tools/music_gen/check_music_sets.py prints every stage of every level and flags a tune that stops.
+TUNES = ('ybf', 'mk', 'mka', 'cc', 'cca', 'ccb', 'tm', 'tmb', 'ode', 'ent')
 LANE_GAIN = {'kiai': -2.0, 'harm': -5.0}   # kiai: stacked on the cat lead, so a little under it; harm: the backing vocals, well under the lead
 
 
@@ -422,7 +466,8 @@ def to_lanes(s):
     lanes, cues_of = [], []
     for lane_id, name, group in LANES:
         clips = [({'id': tr['id'], 'pattern': tr['pattern'], 'by_hit': tr['by_hit']} if 'pattern' in tr
-                  else {'id': tr['id'], 'file': tr['file']}) for tr in s['tracks'] if tr['group'] == group]
+                  else {'id': tr['id'], 'file': tr['file'], **({'gain_db': tr['gain_db']} if tr.get('gain_db') else {})})
+                 for tr in s['tracks'] if tr['group'] == group]
         for c in clips:                                   # the tune a clip belongs to, from its id (see TUNES)
             if c['id'].split('_')[0] in TUNES:
                 c['tune'] = c['id'].split('_')[0]
@@ -450,9 +495,11 @@ def to_lanes(s):
             out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
-        for k in ('exit', 'carry', 'fever_on_bars', 'fever_fill'):                      # exit: the ending one-shot when the level clears on this section;
-            if k in sec:                                 # carry: how much of the last section's fullness comes along (0-1)
+        for k in ('exit', 'outro', 'fever_enter', 'fever_enter_db', 'fever_enter_bars', 'fever_enter_replaces', 'fever_reverb', 'carry', 'fever_on_bars', 'fever_fill', 'enter_fill'):
+            if k in sec:
                 out[k] = sec[k]
+        if 'tier_on_bars' in sec:                        # going up into these tiers waits for the tune's phrase line
+            out['tier_on_bars'] = {str(k): v for k, v in sec['tier_on_bars'].items()}
         if 'enter' in sec:
             out['enter'] = sec['enter']               # a designed one-bar transition into this section (a new tune)
         if 'own' in sec:

@@ -16,6 +16,10 @@
     {
      "id": "groove",
      "file": "res://assets/audio/music/scene1/skeleton/s1_L1_groove_4b.wav"
+    },
+    {
+     "id": "break",
+     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rbreak_L1_groove_4b.wav"
     }
    ]
   },
@@ -24,11 +28,6 @@
    "name": "低音",
    "gain_db": 0.0,
    "clips": [
-    {
-     "id": "cc_bass",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L2_bass_8b.wav",
-     "tune": "cc"
-    },
     {
      "id": "ybf_bass",
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L2_bass_8b.wav",
@@ -62,11 +61,6 @@
      "tune": "mk"
     },
     {
-     "id": "cc_keys",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L0_keys_8b.wav",
-     "tune": "cc"
-    },
-    {
      "id": "mka_keys",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_fb_L0_keys_4b.wav",
      "tune": "mka"
@@ -78,11 +72,6 @@
    "name": "旋律",
    "gain_db": 0.0,
    "clips": [
-    {
-     "id": "cc_cats",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_cat_kichiku_8b.wav",
-     "tune": "cc"
-    },
     {
      "id": "ybf_pluck",
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_L3_pluck_8b.wav",
@@ -116,11 +105,6 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "cc_peak",
-     "file": "res://assets/audio/music/classics/can_can/can_can_fb_L4_peak_8b.wav",
-     "tune": "cc"
-    },
-    {
      "id": "ybf_peak",
      "file": "res://assets/audio/music/classics/your_best_friend/your_best_friend_fb_L4_peak_8b.wav",
      "tune": "ybf"
@@ -137,11 +121,6 @@
    "name": "猫鼓",
    "gain_db": 0.0,
    "clips": [
-    {
-     "id": "cc_cat_drums",
-     "file": "res://assets/audio/music/classics/can_can/can_can_C_drums_8b.wav",
-     "tune": "cc"
-    },
     {
      "id": "mka_cat_drums",
      "file": "res://assets/audio/music/classics/mountain_king/mountain_king_C_drums_4b.wav",
@@ -175,12 +154,6 @@
      "pattern": "res://levels/music/patterns/harm_mountain_king.json",
      "by_hit": false,
      "tune": "mk"
-    },
-    {
-     "id": "cc_harm",
-     "pattern": "res://levels/music/patterns/harm_can_can.json",
-     "by_hit": false,
-     "tune": "cc"
     }
    ]
   },
@@ -190,9 +163,9 @@
    "gain_db": -2.0,
    "clips": [
     {
-     "id": "cc_double",
-     "file": "res://assets/audio/music/classics/can_can/can_can_L3_pluck_8b.wav",
-     "tune": "cc"
+     "id": "mk_double",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_pluck_8b.wav",
+     "tune": "mk"
     },
     {
      "id": "ybf_double",
@@ -211,6 +184,18 @@
      "pattern": "res://levels/music/patterns/your_best_friend.json",
      "by_hit": true,
      "tune": "ybf"
+    }
+   ]
+  },
+  {
+   "id": "fx",
+   "name": "事件",
+   "gain_db": 0.0,
+   "clips": [
+    {
+     "id": "mk_square",
+     "file": "res://assets/audio/music/classics/mountain_king/mountain_king_L3_square_8b.wav",
+     "tune": "mk"
     }
    ]
   },
@@ -254,7 +239,7 @@
     ],
     "lead": [
      [
-      0.12,
+      0.0,
       "ybf_pluck"
      ],
      [
@@ -413,6 +398,8 @@
     0.4
    ],
    "transition_tiers": [],
+   "carry": 0,
+   "enter_fill": false,
    "own": {
     "kiai": "",
     "hit": ""
@@ -424,49 +411,55 @@
     "beat": [
      [
       0.0,
-      "groove"
+      "break"
      ]
     ],
     "bass": [
      [
       0.0,
-      "cc_bass"
+      "mk_bass"
      ]
     ],
     "bed": [
      [
       0.0,
-      "cc_keys"
+      "mk_keys"
      ]
     ],
     "lead": [
      [
       0.0,
-      "cc_cats"
+      "mk_cats"
      ]
     ],
     "peak": [
      [
-      0.35,
-      "cc_peak"
+      0.0,
+      "mk_peak"
      ]
     ],
     "meow": [
      [
       0.0,
-      "cc_cat_drums"
+      "mk_cat_drums"
      ]
     ],
     "harm": [
      [
       0.0,
-      "cc_harm"
+      "mk_harm"
      ]
     ],
     "kiai": [
      [
+      0.35,
+      "mk_double"
+     ]
+    ],
+    "fx": [
+     [
       0.7,
-      "cc_double"
+      "mk_square"
      ]
     ]
    },
@@ -479,11 +472,11 @@
     0.7,
     1.0
    ],
-   "exit": "end_g_major",
+   "carry": 0,
    "fever_fill": false,
-   "enter": "tr_mk_to_cc",
+   "enter_fill": false,
    "own": {
-    "kiai": "cc_double",
+    "kiai": "mk_double",
     "hit": ""
    }
   }

@@ -84,7 +84,9 @@ FOUR = dict(kick=[0, 4, 8, 12], clap=[], hats=[], open_=[2, 6, 10, 14])
 rows = []
 USED = {'ode_to_joy': 'the sky level', 'your_best_friend': 'level 2, the washer', 'mountain_king': 'level 2, the earth',
         'can_can': 'level 2 (last part of the earth) and level 3 (the pizza)', 'turkish_march': 'level 3, the shooter',
-        'turkish_march_b': 'level 3, the shooter in fever'}
+        'turkish_march_b': 'level 3, the shooter in fever', 'can_can_a': 'level 3, the first half of the pizza',
+        'can_can_b': 'level 3, the pizza just before the kaleidoscope',
+        'entertainer': 'level 1, from the house opening on'}
 for key, where in USED.items():
     song = cc.SONGS[key]
     if key in cc.SPEED:

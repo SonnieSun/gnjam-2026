@@ -470,6 +470,7 @@ func _on_exit() -> void:
 func _start_finale() -> void:
 	_road.finale(finale_beats * Conductor.sec_per_beat(), not abduction_after_finale)  # 不接吸猫：镜头停在远景
 	_fill_at = song_beat() + finale_beats - 2.0
+	Music.outro()  # 音乐换成这一关写好的结尾段（小关音乐配置里的 "outro"）
 	var main := get_parent().get_parent()
 	if main and main.get("judge"):
 		main.judge.stop_notes()
