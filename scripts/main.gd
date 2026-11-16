@@ -85,6 +85,8 @@ var _index := -1
 var _current: SpinSection
 var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = 还没满）
 var _rise_pending := false  # 切关前的上扬音效还没放
+var _prelaid_index := -1    # 已经提前铺好音符的下一个小关（-1 = 没有），见 _prelay_next
+var _prelaid_at := -1.0
 var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比例（计分用）
 var _stage_clicks: Array[float] = []  # 每个小关预计要按多少下（实时显示分数用）
 var _cleared := false
@@ -292,6 +294,7 @@ func start_from(index: int) -> void:
 	hud.reset()
 	_cleared = false
 	_switch_at = -1.0
+	_prelaid_index = -1
 	Music.restart()  # 叠轨音乐回到开头的样子（没在用它时这句什么都不做）
 	Conductor.play(-lead_in_beats)
 	_enter(index, 0.0, false)
@@ -336,7 +339,16 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 	judge.bank_stage()
 	judge.begin_stage(_stage_weights[index] if index < _stage_weights.size() else 0.0,
 			_stage_clicks[index] if index < _stage_clicks.size() else 0.0)
-	var section_notes := judge.begin_section(index, def, chart.beats_per_bar, at_beat, first_note)
+	var section_notes: Array[NoteData]
+	if joined and index == _prelaid_index and is_equal_approx(at_beat, _prelaid_at):
+		# 这个小关的音符在积累条满的那一下就已经铺好、画出来了（见 _prelay_next）：接着用同一批，不重新铺
+		# （重新铺的话，换关那一拍上的音符会被换成新的一个：玩家提前一点点按掉的那一下又冒出来）
+		section_notes = _current.notes
+		while not section_notes.is_empty() and section_notes[0].beat < at_beat - 0.001:
+			section_notes.pop_front()   # 上一个小关留下的（已经过了换关那条线）
+	else:
+		section_notes = judge.begin_section(index, def, chart.beats_per_bar, at_beat, first_note)
+	_prelaid_index = -1
 	if joined:
 		_current.rejoin(def, section_notes)
 	else:
@@ -607,6 +619,30 @@ func _on_gauge_filled() -> void:
 				break
 			_switch_at += bpb
 	_rise_pending = Music.stream != null
+	_prelay_next()
+
+
+## 下一个小关是接着这一个继续的（同一个场景，joins_previous）：现在就把它的音符从换关那条小节线起铺出来，交给现在这个
+## 小关接着画。这样换关前后音符是连着的——原来要到换关那一下才铺，已经飞到一半的旧音符在那一下全部消失，
+## 新音符（还要再歇 join_rest_bars 小节）从头出现。换关那条线之前的旧音符照常留着打完。
+func _prelay_next() -> void:
+	_prelaid_index = -1
+	var next := _index + 1
+	if _current == null or not _joins(next):
+		return
+	var def := chart.sections[next]
+	var bpb := chart.beats_per_bar
+	judge._generate()   # 旧谱到换关那条线为止的音符先铺全
+	var keep: Array[NoteData] = []
+	for n in _current.notes:
+		if not n.judged and n.beat < _switch_at - 0.001:
+			keep.append(n)
+	var list := judge.begin_section(next, def, bpb, _switch_at, _switch_at + def.join_rest_bars * bpb)
+	for i in keep.size():
+		list.insert(i, keep[i])
+	_current.notes = list
+	_prelaid_index = next
+	_prelaid_at = _switch_at
 
 
 func _on_beat(beat_index: int) -> void:

@@ -78,7 +78,18 @@ func _run() -> void:
 	_check("part 1 switches so that its tune ends on a four-bar phrase line", is_zero_approx(fposmod(switch_at + 4.0 - origin, 16.0)) and switch_at > filled_at,
 			"gauge full at beat %.1f, switch at %.0f, the tune started on %.0f" % [filled_at, switch_at, origin])
 	_check("it waited (the next bar line would have cut the phrase)", switch_at - filled_at > 4.0, "%.1f beats" % (switch_at - filled_at))
+	# the notes join up: part 2's notes are already laid out from the switch on, behind part 1's, with no bar of rest
+	var joined: Array = game._current.notes.map(func(n: NoteData) -> float: return n.beat)
+	var gap := 0.0
+	for i in range(1, joined.size()):
+		if joined[i] <= switch_at + 8.0:
+			gap = maxf(gap, joined[i] - joined[i - 1])
+	_check("notes run through the switch with no gap", joined.has(switch_at) and joined.has(switch_at + 1.0) and gap <= 2.01, "largest gap %.1f beats; around the switch: %s" % [gap,
+			str(joined.filter(func(b: float) -> bool: return b >= switch_at - 4.0 and b <= switch_at + 4.0))])
+	var on_line: NoteData = game._current.notes.filter(func(n: NoteData) -> bool: return is_equal_approx(n.beat, switch_at))[0]
 	await _until(switch_at + 6.5)   # the old tune fades for a beat before it stops
+	_check("the notes laid out before the switch are the ones played after it", game.judge.notes.has(on_line) and game._current.notes.has(on_line)
+			and game._current.notes[0] == on_line, "first note of part 2 on beat %s" % game._current.notes[0].beat)
 	_check("part 2 is on, and its tune starts where part 1's phrase ended", game._index == 2 and is_equal_approx(Music.tune_origin("mk"), switch_at + 4.0)
 			and Music.tune_origin("mka") < 0.0, "mk starts on %s" % Music.tune_origin("mk"))
 
