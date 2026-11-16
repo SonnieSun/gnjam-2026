@@ -19,7 +19,7 @@ extends SpinSection
 @export var ring_fits_earth := true
 @export var ring_earth_scale := 1.08
 @export_group("蓄力")
-## 蓄力段每几拍一组、重拍在每组的第几拍（和谱面对应：h 在前两拍，s 在第 3 拍）
+## 蓄力段每几拍一组、重拍在每组的第几拍（谱面里有 s 就按谱面里第一个 s 的位置，这个数只是没有 s 时用）
 @export var charge_cycle_beats := 4.0
 @export var charge_strike_beat := 2.0
 ## 蓄到这个比例以上，重拍才按原判定涨积累条；不够只按 Good 算
@@ -41,6 +41,9 @@ extends SpinSection
 ## 超过达标数之后每多按一下，满蓄重拍的画面顶动再大多少（最多加到 mash_over_max）
 @export var mash_over_punch := 0.1
 @export var mash_over_max := 0.6
+## 连按有没有尾判。关着（默认）：连按段结束时不出判定——按够数的那一下照常立刻 Perfect，没按够就只是蓄力不满
+## （后面那一下重拍轻一点），不算 Good 也不算 Miss、不断连击。开着：段结束时没达标的按上面的规则出 Good / Miss。
+@export var mash_tail_judge := false
 ## 连按那一段比谱面上第一个 h 提前多少拍开始算、最后一个 h 之后还算多少拍
 @export var mash_lead_beats := 0.25
 @export var mash_tail_beats := 0.25
@@ -101,6 +104,7 @@ var _scroll := 0.0
 var _flash := 0.0
 var _auto_next := 0
 var _auto_release := false
+var _strike_beat := 2.0  # 这一段的重拍在每组的第几拍（见 _on_enter）
 var _zones: Array[Dictionary] = []  # 连按段：{start, end 在鼓谱一遍里的拍数, beats 那一串 h 各在第几拍, need 要按几下}
 var _pattern_len := 0.0
 var _pattern_origin := INF
@@ -148,6 +152,12 @@ func _on_enter() -> void:
 	_charge_mode = _charge_target > 0
 	_charge_target = maxi(_charge_target, 1)
 	_build_zones()
+	# 重拍在每组的第几拍：谱面里第一个 s 在哪就是哪（没有 s 就用 charge_strike_beat），挥爪的动画按它对
+	_strike_beat = charge_strike_beat
+	for d: Dictionary in def.parse_notes(Conductor.chart.beats_per_bar):
+		if int(d.sound) == NoteData.Sound.SNARE:
+			_strike_beat = fposmod(float(d.beat), charge_cycle_beats)
+			break
 	_news_on = _phase >= 1
 	if _news_on:
 		_news = 1.0
@@ -350,13 +360,16 @@ func _update_spin(local: float, _angle: float) -> void:
 			_maxed = false
 			_charge_target = zone.need
 		if not _zone_judged and song_beat() > float(_zone.end):
-			# 连按段结束了还没达标：按了一半以上算 Good，不到算 Miss
-			_judge_zone(NoteData.Result.GOOD if _charge > 0 and _charge >= _charge_target * mash_good_ratio else NoteData.Result.MISS)
+			# 连按段结束了还没达标。没有尾判：不出判定。有尾判：按了一半以上算 Good，不到算 Miss
+			if mash_tail_judge:
+				_judge_zone(NoteData.Result.GOOD if _charge > 0 and _charge >= _charge_target * mash_good_ratio else NoteData.Result.MISS)
+			else:
+				_zone_judged = true
 		_stage.set_charge(charge_ratio() + minf(charge_over() * 0.1, 0.5))
 		_pop = maxf(_pop - dt * 9.0, 0.0)
 		_max_flash = maxf(_max_flash - dt * 2.5, 0.0)
 	if _charge_mode:
-		_stage.update(dt, local, charge_cycle_beats, charge_strike_beat)
+		_stage.update(dt, local, charge_cycle_beats, _strike_beat)
 	else:
 		_stage.update(dt, local, 1.0, 0.0)
 	_news = move_toward(_news, 1.0 if _news_on else 0.0, dt * 2.5)

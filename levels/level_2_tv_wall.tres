@@ -17,7 +17,7 @@ script = ExtResource("5_kfdwl")
 title = "TV WALL"
 scene = ExtResource("6_5j17s")
 beats_per_rev = 8.0
-bars = PackedStringArray("k.......k.......", "k===========....", "k.......k.......", "k===========....", "k.......k.......", "k===========....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....")
+bars = PackedStringArray("k.......k.......", "k...k=======....", "k.......k.......", "k...k=======....", "k.......k.......", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....", "k...k=======....")
 gauge_events = PackedInt32Array()
 gauge_event_names = PackedStringArray()
 
@@ -29,6 +29,7 @@ beats_per_rev = 8.0
 bars = PackedStringArray("k...k...k...k...", "k...k...k...k...")
 chart = ExtResource("7_ek37n")
 transition = 1
+exit_on_bars = 4
 gauge_max = 60
 gauge_events = PackedInt32Array(30)
 use_gauge_events = true
@@ -57,6 +58,7 @@ bars = PackedStringArray("hhhhhhh.s.......", "hh.hhhh.s.......")
 chart = ExtResource("10_8w3o1")
 transition = 1
 joins_previous = true
+exit_on_bars = 4
 gauge_max = 45
 gauge_events = PackedInt32Array()
 use_gauge_events = true

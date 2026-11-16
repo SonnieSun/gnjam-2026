@@ -14,7 +14,10 @@ extends CanvasLayer
 ##
 ## 画面：屏幕下方一条提示（HOLD / MASH + 进度条），关卡自己画的音符照旧。
 
-## 长按可以提前多少拍松手还算按完
+## 长按有没有尾判。关着（默认）：开头那一下打中就算成，提前松手不扣（不断连击、不扣积累条）。
+## 开着：要按住到尾巴（可以提前 hold_release_grace 拍松手），松早了断连击、积累条按一次 Miss 扣。
+@export var hold_tail_judge := false
+## （开着尾判时）长按可以提前多少拍松手还算按完
 @export var hold_release_grace := 0.3
 ## 连击：平均每秒按到这么多下算 Perfect / Great；至少按 1 下算 Good，一下没按算 Miss
 @export var mash_perfect_per_sec := 5.0
@@ -134,7 +137,7 @@ func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:
 	if note != _hold:
 		return
 	_hold = null
-	if success:
+	if success or not hold_tail_judge:
 		_say("HOLD OK", SpinSection.result_color(NoteData.Result.PERFECT))
 		return
 	_say("TOO EARLY", SpinSection.result_color(NoteData.Result.MISS))

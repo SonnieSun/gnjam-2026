@@ -84,6 +84,7 @@ var chart: SongChart
 var _index := -1
 var _current: SpinSection
 var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = 还没满）
+var _rise_pending := false  # 切关前的上扬音效还没放
 var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比例（计分用）
 var _stage_clicks: Array[float] = []  # 每个小关预计要按多少下（实时显示分数用）
 var _cleared := false
@@ -104,7 +105,7 @@ func _ready() -> void:
 		chart.first_beat_offset_sec = 0.0
 		section_entered.connect(Music.set_section)
 		gauge.changed.connect(func(v: int, m: int) -> void: Music.set_progress(float(v) / maxi(m, 1)))
-		gauge.filled.connect(Music.rise_to_bar)  # 积累条满了：一声上扬音效，正好在换小关的那条小节线上放完
+		# （积累条满了的那声上扬音效在 _process 里放：要正好在换小关的那条小节线上放完，而那条线可能要等乐句线）
 	else:
 		Music.clear()  # 这一关不用叠轨音乐：别让上一关的喵谱子跟过来
 	ComicStyle.set_by_name(Levels.look())
@@ -306,6 +307,10 @@ func jump_to_phase(phase: int) -> void:
 func _process(_delta: float) -> void:
 	if not Conductor.playing:
 		return
+	# 换小关前的上扬音效：正好在换的那条小节线上放完（换的那条线可能被乐句线往后推了，所以到最后一小节才放）
+	if _rise_pending and _switch_at >= 0.0 and Conductor.song_beat >= _switch_at - chart.beats_per_bar:
+		_rise_pending = false
+		Music.rise_to_bar()
 	if _switch_at >= 0.0 and Conductor.song_beat >= _switch_at:
 		var at := _switch_at
 		_switch_at = -1.0
@@ -573,6 +578,15 @@ func _on_gauge_event(index: int, value: int) -> void:
 	gauge_event.emit(_index, index, value)
 
 
+## 第 index 个小关的音乐进来时放不放过门（音乐配置里这个小关的 changes.enter：写了专门的过门，或者没写 "fill": false）
+func _music_enters_with_fill(index: int) -> bool:
+	var sections: Array = Music.data.get("sections", [])
+	if index >= sections.size():
+		return true
+	var enter: Dictionary = (sections[index] as Dictionary).get("changes", {}).get("enter", {})
+	return str(enter.get("written", "")) != "" or bool(enter.get("fill", true))
+
+
 ## 满条了：定在下一个小节线切关（这之前剩下的几个音符照常打、照常计分，只是积累条不再动）
 func _on_gauge_filled() -> void:
 	hud.pulse_gauge(not _joins(_index + 1))  # 后面还接着同一段：只当过了一条线，不当满条
@@ -582,6 +596,17 @@ func _on_gauge_filled() -> void:
 	gauge_filled.emit(_index)
 	var bpb := chart.beats_per_bar
 	_switch_at = (floorf(Conductor.song_beat / bpb) + 1.0) * bpb
+	# 这个小关要等乐句线（SectionDef.exit_on_bars）：往后顺延到正在放的曲子的那条线，那一句唱完再换
+	var wait := chart.sections[_index].exit_on_bars
+	if wait > 0 and Music.stream != null:
+		# 要落在乐句线上的是「这首曲子停下来的那一拍」：下一个小关进来时放过门（或者这是最后一个小关），曲子在切关的
+		# 那条线上就停；不放过门的话，音乐要到切关之后的下一条小节线才换，曲子还会多唱一小节
+		var ends := 0.0 if _index + 1 >= chart.sections.size() or _music_enters_with_fill(_index + 1) else float(bpb)
+		for i in wait:
+			if Music._on_phrase_line(_switch_at + ends, wait):
+				break
+			_switch_at += bpb
+	_rise_pending = Music.stream != null
 
 
 func _on_beat(beat_index: int) -> void:

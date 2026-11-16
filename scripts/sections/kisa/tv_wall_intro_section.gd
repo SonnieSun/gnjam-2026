@@ -11,7 +11,10 @@ extends SpinSection
 @export var approach_beats := 3.0
 ## 圆圈从多远收过来（占画面高度的比例）
 @export var approach_travel_ratio := 0.45
-## 长按离尾巴不到这么多拍时松手也算成
+## 长按有没有尾判。关着（默认）：开头那一下打中就算成，按不按住到尾巴都行——到尾巴那一拍自动按完、推进一步，
+## 提前松手不会失败。开着：要按住到尾巴（可以提前 hold_release_grace 拍松手），松早了变灰失败。
+@export var hold_tail_judge := false
+## （开着尾判时）长按离尾巴不到这么多拍时松手也算成
 @export var hold_release_grace := 0.3
 ## 长按按完（可以松手了）时：判定圈闪绿光、响一声的颜色和持续时间（秒）
 @export var hold_ok_color := Color(0.35, 1.0, 0.45)
@@ -123,7 +126,8 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		_stage.hold_begin()
 		# 按住 = 洗衣机转起来：一声上扬的音效，正好在该松手的时候放完
 		Music.play_sfx("riser_1b", -11.0, hold_beats(note) * Conductor.sec_per_beat())
-		j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
+		if hold_tail_judge:
+			j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
 	else:
 		_stage.tap()
 
@@ -154,6 +158,8 @@ func _update_hold() -> void:
 	var length := hold_beats(_holding)
 	var now := minf(song_beat(), _holding.beat + length)
 	_stage.hold_update((now - _holding.beat) / maxf(length, 0.001), (now - _holding.beat) * Conductor.sec_per_beat())
+	if not hold_tail_judge and song_beat() >= _holding.beat + length:
+		_finish_hold(true)   # 没有尾判：到尾巴那一拍就算按完，不管手还在不在键上
 
 
 func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:
