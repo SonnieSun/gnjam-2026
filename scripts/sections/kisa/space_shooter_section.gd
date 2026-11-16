@@ -71,6 +71,16 @@ extends Spin3DSection
 ## 星星外光的颜色，每颗随机挑一个
 @export var star_colors: Array[Color] = [Color(0.35, 0.6, 1.0), Color(1.0, 0.45, 0.8), Color(0.7, 0.45, 1.0),
 		Color(0.3, 1.0, 0.9), Color(1.0, 0.85, 0.3), Color(0.5, 1.0, 0.5), Color(1.0, 0.55, 0.45)]
+@export_group("结尾过场")
+## 积累条到几成算这一段的音乐结束：不再出星球，还在场的星球全部爆炸（按打掉算分），猫往前飞走，
+## 黑幕落下来盖满后才把积累条顶满，让框架切到下一段（下一段开头黑幕再落出屏幕，见 space_pizza_section.gd）
+@export_range(0.5, 1.0) var outro_at := 0.95
+## 猫往前飞多少拍之后黑幕开始落
+@export var outro_fly_beats := 3.0
+## 黑幕落下来用几拍
+@export var curtain_beats := 1.5
+## 猫飞走的加速度（米/秒²）
+@export var outro_fly_accel := 60.0
 @export_group("")
 ## 猫的动作（模型自带的动画名）；一个小节做一遍
 @export var cat_animation := "ARM-CATS-Scratch|ACT-CATS-LeftPaw-Scratch"
@@ -103,6 +113,13 @@ var _auto_release := false
 var _stars: Array[Dictionary] = []
 var _star_mesh: Mesh
 var _fx_layer: Node
+var _main: Node
+var _outro_beat := -1.0  # 结尾过场从这一段第几拍开始（-1 = 还没开始）
+var _fly := 0.0          # 结尾猫往前飞了多远
+var _fly_v := 0.0
+var _filled := false
+var _curtain: CanvasLayer
+var _curtain_rect: ColorRect
 
 const STAR_SCENE := preload("res://stages/space_shooter/star/four_point_star.glb")
 const STAR_SHADER := preload("res://stages/space_shooter/star/star_glow.gdshader")
@@ -119,6 +136,7 @@ func _on_enter() -> void:
 	while n and not ("judge" in n):
 		n = n.get_parent()
 	if n:
+		_main = n
 		_judge = n.judge
 		_judge.accuracy_share = 0.0  # 这一段不按准确率给分，全部靠打星球
 		_score.stage_points = roundi(_judge.stage_max())
@@ -141,14 +159,6 @@ func _on_exit() -> void:
 			_judge.add_bonus(0, _score.take_rest_possible())
 	if _fx_layer and _fx_layer.child_entered_tree.is_connected(_on_fx_added):
 		_fx_layer.child_entered_tree.disconnect(_on_fx_added)
-	# 把镜头相对猫的位置交给下一段，它从这个机位开始移动，画面不跳
-	if camera and _posed:
-		var at := Vector3(_x, 0.0, 0.0)
-		SpaceShooterScore.handoff = {
-			"pos": camera.global_position - at,
-			"look": Vector3(_x * camera_follow + camera_side, 0.0, -look_ahead) - at,
-			"fov": camera.fov,
-		}
 
 
 func _on_fx_added(node: Node) -> void:
@@ -171,8 +181,12 @@ func _update_view(t: float) -> void:
 	_spin_age += dt
 	_flash = maxf(_flash - dt * 2.5, 0.0)
 
+	if _outro_beat < 0.0 and _main and gauge_max > 0 and gauge_value >= gauge_max * outro_at:
+		_start_outro()
 	var dir := 0.0
-	if not Engine.is_editor_hint():
+	if _outro_beat >= 0.0:
+		_update_outro(dt)
+	elif not Engine.is_editor_hint():
 		if autoplay:
 			dir = _autoplay()
 		else:
@@ -182,8 +196,9 @@ func _update_view(t: float) -> void:
 	_lean = lerpf(_lean, dir, minf(1.0, dt * 10.0))
 
 	# 披萨带着猫左右走、往移动的方向侧倾，上下轻轻浮动
-	var ride := Transform3D(Basis(Vector3.BACK, -_lean * deg_to_rad(move_bank_deg)),
-			Vector3(_x, sin(t * 1.4) * 0.08, 0.0))
+	var ride := Transform3D(Basis(Vector3.BACK, -_lean * deg_to_rad(move_bank_deg)) \
+			* Basis(Vector3.RIGHT, minf(_fly * 0.02, 0.35)),  # 飞走时机头微微抬起
+			Vector3(_x, sin(t * 1.4) * 0.08 + _fly * 0.08, -_fly))
 	_player.transform = ride * rest(_player)
 	_pizza.transform = rest(_pizza).rotated_local(Vector3.UP, t * 0.8)
 	# 猫：每次按键转一整圈（先快后慢），顺便弹一下
@@ -497,6 +512,62 @@ func _update_shards(dt: float) -> void:
 		node.scale = Vector3.ONE * (1.0 - s.age / 0.5)
 
 
+# ---- 结尾过场：星球全炸 → 猫往前飞走 → 黑幕落下 → 切下一段 ----
+
+func _start_outro() -> void:
+	_outro_beat = local_beat()
+	# 还在场的星球全部原地爆炸，按打掉算分；之后不再出音符（Judge 现成的方法）
+	for i in range(_planets.size() - 1, -1, -1):
+		_kill_planet(i)
+	if _judge:
+		_judge.stop_notes()
+	Music.play_sfx("sky_whoosh_up", -3.0)
+
+
+func _update_outro(dt: float) -> void:
+	_fly_v += outro_fly_accel * dt
+	_fly += _fly_v * dt
+	var b := local_beat() - _outro_beat - outro_fly_beats
+	if b < 0.0:
+		return
+	if _curtain == null:
+		_make_curtain()
+	var k := clampf(b / maxf(curtain_beats, 0.01), 0.0, 1.0)
+	_place_curtain(-1.0 + k * k)
+	if k >= 1.0 and _main and not _filled:
+		# 盖满了：顶满积累条，框架在下一个小节线切到下一段（切的时候还盖着）。
+		# 只顶一次：切过去之后这一段还会再跑一帧，那时的积累条已经是下一段的了
+		_filled = true
+		while not _main.gauge.full:
+			_main.gauge.apply(NoteData.Result.PERFECT)
+
+
+## 黑幕挂在最上层（盖住框架切关的白闪），挂在场景树根上，这一段被删掉后它还在，交给下一段落走
+func _make_curtain() -> void:
+	_curtain = CanvasLayer.new()
+	_curtain.layer = 100
+	_curtain_rect = ColorRect.new()
+	_curtain_rect.color = Color.BLACK
+	_curtain_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_curtain.add_child(_curtain_rect)
+	get_tree().root.add_child(_curtain)
+	_place_curtain(-1.0)
+	# 交给下一段，它一开始就让黑幕落出屏幕（框架是先让新的一段进场、再让这一段退场，所以现在就交）
+	SpaceShooterScore.handoff = {"curtain": _curtain}
+	# 保险：没接上下一段（重开、回菜单）就自己消失，不会一直黑着
+	var c := _curtain
+	get_tree().create_timer(curtain_beats * Conductor.sec_per_beat() + 6.0).timeout.connect(func() -> void:
+		if is_instance_valid(c):
+			c.queue_free())
+
+
+## at = -1 整块在屏幕上面，0 正好盖满
+func _place_curtain(at: float) -> void:
+	var size := get_viewport().get_visible_rect().size
+	_curtain_rect.size = size + Vector2(0.0, 40.0)
+	_curtain_rect.position = Vector2(0.0, at * (size.y + 40.0))
+
+
 # ---- 自动演示 ----
 
 ## 走到下一颗要打的星球下面，到拍子就按键。返回这一帧往哪边走（-1 / 0 / 1）
@@ -539,9 +610,10 @@ func _draw_overlay() -> void:
 		return
 	var size := screen_size()
 	var font := ThemeDB.fallback_font
-	# 猫身上的判定圈：每个音符一个从外面收过来的圈，收到和判定圈重合时按（先画，压在飘字下面）
-	draw_approach_rings(_overlay, hit_position(), hit_radius(), approach_beats,
-			approach_travel_ratio * size.y)
+	# 猫身上的判定圈：每个音符一个从外面收过来的圈，收到和判定圈重合时按（先画，压在飘字下面）；结尾猫飞走时不画
+	if _outro_beat < 0.0:
+		draw_approach_rings(_overlay, hit_position(), hit_radius(), approach_beats,
+				approach_travel_ratio * size.y)
 	for pop in _popups:
 		var c := _screen(pop.pos) + Vector2(-180.0, -30.0 - pop.age * 80.0)
 		var col: Color = pop.color
@@ -561,5 +633,7 @@ func _on_restore() -> void:
 	_spin_age = 99.0
 	_x = 0.0
 	_lean = 0.0
+	_fly = 0.0
+	_fly_v = 0.0
 	if _anim and _anim.has_animation(cat_animation):
 		_anim.seek(0.0, true)

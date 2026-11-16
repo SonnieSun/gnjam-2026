@@ -23,6 +23,23 @@ var _time := 0.0
 var _scroll := 0.0
 var _done_for := 0.0
 var _leaving := false
+## 快速退出版（从菜单的 Credit 按钮打开的）：一层盖在当前画面上，按任意键 / 点一下马上关掉这一层，
+## 下面的菜单（和暂停着的游戏）原样还在。片尾（游戏打完）那次不开这个，还是上面说的规则。
+var quick_exit := false
+
+const SCENE := "res://scenes/credits.tscn"
+
+
+## 在 parent 上面盖一层快速退出版的字幕，返回那一层（关掉时它自己删掉）
+static func open_overlay(parent: Node, layer := 120) -> CanvasLayer:
+	var cl := CanvasLayer.new()
+	cl.layer = layer
+	cl.process_mode = Node.PROCESS_MODE_ALWAYS  # 游戏里开的菜单是暂停状态，字幕也要能动
+	var c = load(SCENE).instantiate()
+	c.quick_exit = true
+	cl.add_child(c)
+	parent.add_child(cl)
+	return cl
 
 
 func _ready() -> void:
@@ -53,7 +70,21 @@ func _set_scroll(v: float) -> void:
 		mat.set_shader_parameter(&"scroll", v)
 
 
+## 快速退出版：任意键 / 鼠标键按下就关，事件吞掉，下面的菜单和暂停转盘（Esc）都收不到
+func _input(event: InputEvent) -> void:
+	if not quick_exit:
+		return
+	var pressed := (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton) \
+			and event.is_pressed() and not event.is_echo()
+	if pressed or event is InputEventKey or event is InputEventMouseButton:
+		get_viewport().set_input_as_handled()
+	if pressed and _time > 0.15:  # 刚打开那一下（点 Credit 的那次）不算
+		_leave()
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if quick_exit:
+		return
 	var key := event as InputEventKey
 	if key and key.pressed and not key.echo and key.physical_keycode == KEY_ESCAPE:
 		_leave()
@@ -66,6 +97,12 @@ func _leave() -> void:
 	if _leaving:
 		return
 	_leaving = true
+	if quick_exit:
+		# 快速退出版：淡出后把盖上来的那一层删掉，回到原来的菜单
+		var q := create_tween()
+		q.tween_property(self, "modulate:a", 0.0, 0.25)
+		q.tween_callback(get_parent().queue_free if get_parent() is CanvasLayer else queue_free)
+		return
 	Conductor.stop()
 	var t := create_tween()
 	t.tween_property(self, "modulate:a", 0.0, 0.5)

@@ -8,6 +8,10 @@ extends "res://scripts/sections/kisa/abduction_section.gd"
 
 ## 结尾的特写一共几拍
 @export var finale_beats := 12.0
+## 从风暴切到亮起来那一下画面全白、圈看不清：切过去时把接下来几个还没到的音符直接去掉（不算 Miss，0 = 不去）
+@export var bright_skip_notes := 3
+
+var _bright_skipped := false
 
 var _clear_at := INF
 var _sky: SkyStage
@@ -29,6 +33,28 @@ func _on_enter() -> void:
 func _on_tier(new_tier: int, _up: bool) -> void:
 	if _sky and active:
 		_sky.set_phase(maxi(new_tier, _sky.sky_phase))  # 只往前走，掉档不往回退
+		if _sky.sky_phase >= 2 and not _bright_skipped:
+			_bright_skipped = true
+			_skip_next_notes(bright_skip_notes)
+
+
+## 把接下来 count 个还没到的音符标成已处理：Judge 跳过它们（不算 Miss、不计判定），舞台也不再画
+func _skip_next_notes(count: int) -> void:
+	var now := song_beat()
+	for n in notes:
+		if count <= 0:
+			break
+		if not n.judged and n.beat > now:
+			n.judged = true
+			count -= 1
+			# 已经在光柱里往下落的圈：舞台只给判定过的音符收圈，这里直接让它淡掉（不然会停在半空）
+			var key := n.get_instance_id()
+			if _sky._rings.has(key):
+				var r: Dictionary = _sky._rings[key]
+				_sky._rings.erase(key)
+				r.hit = true
+				r.t = 0.0
+				_sky._fading.append(r)
 
 
 func _update_spin(local_beat: float, angle: float) -> void:
