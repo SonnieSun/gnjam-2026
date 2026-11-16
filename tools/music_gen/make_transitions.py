@@ -207,7 +207,7 @@ def tom(hz, gain):
     return np.stack([v + skin, v + skin], 1) * gain
 
 
-def from_stems(name, tune, first_bar, rows, chords, levels, accents, play_db=14.0):
+def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chords, play_db=14.0):
     """A transition made by THE BAND THAT IS ABOUT TO PLAY: `tune` is rendered again by the code that makes its
     stems (compose_classics.build) with len(rows) bars from `first_bar` rewritten (rows: one list of
     (step, note, steps) per bar; chords: two per bar), those bars are cut out of every stem and mixed at
@@ -248,24 +248,36 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, play_db=14.
             place(x, tom(hz, 0.5 + 0.2 * grow(st)), t2n(st * STEP), 1.0)
     f0 = first_accent - 8
     for i, hz in enumerate((220, 220, 185, 185, 147, 147, 110)):
-        place(x, tom(hz, 0.55 + 0.05 * i), t2n((f0 + i) * STEP), 1.0)
-    place(x, tom(110, 0.9), t2n((f0 + 6.5) * STEP), 1.0)
-    for st in (0, 2, 4, 6, 6.5):
-        place(x, snare(0.55 + 0.06 * st), t2n((f0 + st) * STEP), 1.0)
-    # the two accents: kick, big snare, crash, the cats shouting the note in two more octaves
-    for st, note in accents:
+        place(x, tom(hz, 0.4 + 0.03 * i), t2n((f0 + i) * STEP), 1.0)
+    for st in (0, 2, 4, 6):                                         # (no thirty-seconds at the end: the fill must not
+        place(x, snare(0.4 + 0.02 * st), t2n((f0 + st) * STEP), 1.0)   # be louder than the accents it leads to)
+    # THE TWO ACCENTS. Measured on the version before this one: the kick was the loudest thing in the attack (the
+    # pitched part 6 dB under it), the note was gone after a sixteenth (the beat's second half quieter than the
+    # fill before it), and G4 / D4 hard-cut meows open dull ("mm") and sit BELOW the hammered D5. So: no kick
+    # (the level's own is there), the drums get out of the way (one snare and a crash on each, nothing between
+    # them), and the note itself is big and lasts the whole beat: the cats' phrase-ending MIAO (the long shout,
+    # not a cut meow) an octave up and at pitch, a kitten 'mi' on its front for the bright attack, and the band
+    # hitting the chord with it: saws over three octaves, pluck and square on top.
+    for (st, note), sym in zip(accents, accent_chords):
         at, m = t2n(st * STEP), nm(note)
-        place(x, cc.KICK, at, 0.9)
-        place(x, snare(1.0), at, 1.0)
-        place(x, cc.CRASH, at, 0.45)
-        place(x, pan(sung(m + 12, 3), 0.25), at, 1.0)
-        place(x, pan(sung(m, 3), -0.25), at, 0.9)
+        dur = 4 * STEP * 0.92
+        place(x, snare(0.7), at, 1.0)
+        place(x, cc.CRASH, at, 0.4)
+        for mm, g in ((m + 12, 2.2), (m, 1.5)):
+            place(x, cc.stereo(cc.resonate(cc.shout(mm, dur), cc.lift(mm), 1.0)), at, g)
+        place(x, cc.stereo(cc.resonate(cc.mi(m + 12, 0.08), cc.lift(m + 12), 1.0)), at, 1.0)
+        notes, root = cc.chord(sym)
+        n = t2n(dur)
+        k = np.arange(n) / SR
+        v = sum(osc_supersaw(mtof(q + o), n, voices=7, detune=0.3) * g for q in notes for o, g in ((0, 1.0), (12, 0.8), (24, 0.4))) / len(notes)
+        place(x, lowpass(v, 7000) * (np.clip(k / 0.004, 0, 1) * np.exp(-k / 1.5) * np.clip((dur - k) / 0.02, 0, 1))[:, None], at, 1.5)
+        place(x, pan(cc.bass_note(mtof(root + 12), n), 0.0), at, 0.5)
+        place(x, cc.pluck(m + 24, dur), at, 1.0)
+        place(x, cc.square(m + 12, dur), at, 1.3)
+        place(x, cc.square(m, dur), at, 0.9)
     last = max(st for st, _ in accents)
-    place(x, snare(0.4), t2n((last - 2) * STEP), 1.0)               # two little steps up to the second accent
-    place(x, snare(0.55), t2n((last - 1) * STEP), 1.0)
-    for i in range(4):                                              # and the roll into the bar line
-        place(x, snare(0.5 + 0.12 * i), t2n((last + 2 + i / 2) * STEP), 1.0)
-        place(x, tom(98, 0.35 + 0.08 * i), t2n((last + 2 + i / 2) * STEP), 1.0)
+    for i in range(2):                                              # a short roll into the bar line, after the note
+        place(x, snare(0.4 + 0.15 * i), t2n((last + 3 + i / 2) * STEP), 1.0)
     # air rising through the whole thing
     k = np.arange(N) / N
     x[:N] += highpass(np.stack([noise(N), noise(N)], 1), 2500) * (k ** 2.5)[:, None] * 0.12
@@ -297,7 +309,7 @@ from_stems('tr_ccb_to_cc', 'can_can', 6,
            chords=['D', 'D', 'D7', 'G'],
            levels=[('L3_cat_kichiku', 0.0), ('L3_square_dark', -3.0), ('L3_pluck', -2.0), ('fb_L0_keys', 0.0),
                    ('L2_bass', -4.0), ('fb_L4_peak', 0.0), ('C_drums', 0.0)],
-           accents=[(24, 'G4'), (28, 'D4')])
+           accents=[(24, 'G4'), (28, 'D4')], accent_chords=['G', 'D'])
 
 
 def ending(name, sym, tonic):
