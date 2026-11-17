@@ -344,7 +344,12 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
 #   SKY[3] FEVER    (into the UFO) transition bar, then the peak layer and the kichiku lead on top
 # (playtest 2026-11-17: the first part was long and the fever came late. 480 points, about 20 a bar: the first line
 #  2.4 bars sooner, the others 2 bars sooner. Was 0.25, 0.5, 0.7, 0.85.)
-SKY = (0.15, 0.42, 0.62, 0.77)
+# (2026-11-17: the Ode is sung through once, all 16 bars A A' B A'. The bar is 533 now (levels/level_2_sky.tres,
+#  last line 505); the first two lines stay where they were in points (72, 202), SPACE comes in on the Ode's
+#  bar 9 (the B phrase) and FEVER on bar 13 (the last A'), both waiting for the 4-bar phrase line; with a perfect
+#  run the gauge crosses them in bars 7 and 11. sky_section.gd holds the finale until bar 16 is over.)
+SKY_MAX = 533
+SKY = tuple(round(v / SKY_MAX, 3) for v in (72, 202, 350, 430))
 SK = M + 'sky/sky_'
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 SETS[10] = {'title': 'SKY', 'use': True,
@@ -356,7 +361,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
                        t('ode_cat_drums', OJ + 'C_drums_16b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_16b.wav', 'kiai'),
                        pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
                        t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_16b.wav', 'event')] + FILL,
-            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'outro': 'out_into_the_ufo', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'tier_lead': {2: 4}, 'rules': {
+            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'outro': 'out_into_the_ufo', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'tier_lead': {2: 4}, 'tier_on_bars': {3: 4}, 'fever_on_bars': 4, 'rules': {
                 'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
                 'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],

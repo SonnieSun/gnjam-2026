@@ -5,6 +5,8 @@ extends "res://scripts/sections/kisa/abduction_section.gd"
 ## 阶段跟着音乐的档位走（Music.tier_changed，在小节线上，和音乐一起变）：
 ##   0 云层  1 风暴  2 亮起来（欢乐颂）  3 太空  4 飞碟出现（fever）
 ## 积累条的最后一条线（谱面里 gauge_events 的最后一个）= 结尾：不再出音符，镜头推到飞碟底下，猫被吸进去，然后过关。
+## 欢乐颂（16 小节 A A' B A'）要完整唱完一遍：太空在第 9 小节（B 句）进、fever 在第 13 小节（最后一句 A'）进（音乐配置里的 on_bars），
+## 最后一条线过了也要等第 16 小节唱完才开始结尾（等的时候积累条不再涨，不会提前满条过关）。
 
 ## 结尾的特写一共几拍
 @export var finale_beats := 12.0
@@ -20,6 +22,9 @@ var _accents: NoteAccents  # 音符的重点标记（场景里有 NoteAccents �
 var _ode_chart := false
 var _ode_at := INF  # 欢乐颂进来的那一拍（八分连打的最后一个 = 换段音符）
 var _ode_file := ""
+var _ode_origin := INF  # 欢乐颂（谱子）从哪一拍起（它的第 1 小节）
+## 欢乐颂一遍有几拍（16 小节）：结尾演出不早于它唱完的那一拍
+@export var ode_beats := 64.0
 ## 进欢乐颂之前的八分连打一共几个（最后一个是换段音符）。8 = 差半拍一小节
 @export var ode_run_notes := 8
 
@@ -29,7 +34,7 @@ var _ode_file := ""
 static func chart_phases() -> Array:
 	return [
 		{"id": "", "name": "云层、风暴", "event": 0},
-		{"id": "ode", "name": "亮起来之后（欢乐颂的旋律）", "event": 0, "at": 0.5},  # at = 从积累条的多少开始（编辑器按它放那一段的音乐）
+		{"id": "ode", "name": "亮起来之后（欢乐颂的旋律）", "event": 0, "at": 0.379},  # at = 从积累条的多少开始（编辑器按它放那一段的音乐）
 	]
 
 
@@ -87,6 +92,7 @@ func _ode_tick() -> void:
 	d.chart = load(_ode_file) as ChartPattern
 	var at := _ode_at
 	_ode_at = INF
+	_ode_origin = at
 	if main and main.get("judge") and d.chart:
 		_swap_chart(main, d, at + 0.25, at)
 
@@ -163,6 +169,10 @@ func _on_gauge_event(index: int, _value: int) -> void:
 	if main and main.get("judge"):
 		var bpb: int = Conductor.chart.beats_per_bar
 		_finale_at = ceilf((song_beat() + 2.0) / bpb) * bpb
+		if not is_inf(_ode_origin):
+			_finale_at = maxf(_finale_at, _ode_origin + ode_beats)  # 欢乐颂这一遍唱完再结尾
+		if main.get("gauge"):
+			(main.gauge as Gauge).gain_scale = 0.0  # 等的这几小节照常打，但积累条不再涨（满了就过关了）
 		main.judge.end_notes_at(_finale_at)
 		if note_accents:
 			note_accents.mark_change(_finale_at, true)
