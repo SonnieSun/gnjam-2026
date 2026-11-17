@@ -9,7 +9,6 @@
 [ext_resource type="AudioStream" uid="uid://dnh0ae3vilxvq" path="res://assets/mv/kick.wav" id="4_v86rl"]
 [ext_resource type="PackedScene" path="res://scenes/menu_view.tscn" id="5_disc_3d"]
 [ext_resource type="Shader" uid="uid://4l2vnxmigy" path="res://assets/menu/neon_arrow.gdshader" id="6_neon_arrow"]
-[ext_resource type="PackedScene" path="res://ui/volume_slider.tscn" id="7_volume"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_neon_left"]
 shader = ExtResource("6_neon_arrow")
@@ -35,17 +34,14 @@ script = ExtResource("1_mhnvy")
 [node name="MenuActions" type="CanvasLayer" parent="."]
 
 [node name="Credit" type="TextureRect" parent="MenuActions"]
-anchors_preset = 3
+anchors_preset = 1
 anchor_left = 1.0
-anchor_top = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -264.0
-offset_top = -158.0
+offset_left = -228.0
+offset_top = 14.0
 offset_right = -24.0
-offset_bottom = -78.0
+offset_bottom = 82.0
 grow_horizontal = 0
-grow_vertical = 0
 mouse_filter = 0
 tooltip_text = "CREDIT"
 texture = ExtResource("98_credit")
@@ -58,10 +54,10 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -110.0
-offset_top = -106.0
-offset_right = 110.0
-offset_bottom = -50.0
+offset_left = -150.0
+offset_top = -128.0
+offset_right = 150.0
+offset_bottom = -52.0
 grow_horizontal = 2
 grow_vertical = 0
 focus_mode = 0
@@ -69,19 +65,23 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_fonts/font = ExtResource("99_candy")
-theme_override_font_sizes/font_size = 42
+theme_override_font_sizes/font_size = 64
 text = "PLAY"
 flat = true
 
-[node name="Volume" parent="MenuActions" instance=ExtResource("7_volume")]
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 28.0
-offset_top = -150.0
-offset_right = 328.0
-offset_bottom = -66.0
-grow_vertical = 0
+[node name="Settings" type="Button" parent="MenuActions"]
+offset_left = 20.0
+offset_top = 22.0
+offset_right = 260.0
+offset_bottom = 76.0
+focus_mode = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("99_candy")
+theme_override_font_sizes/font_size = 38
+text = "SETTINGS"
+flat = true
 
 [node name="Controls" type="Label" parent="MenuActions"]
 anchors_preset = 7
@@ -89,16 +89,16 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -220.0
+offset_left = -320.0
 offset_top = -42.0
-offset_right = 220.0
+offset_right = 320.0
 offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.8, 0.74, 0.87, 1)
 theme_override_font_sizes/font_size = 16
-text = "LEFT / RIGHT  SELECT     SPACE / ENTER  PLAY"
+text = "LEFT / RIGHT  SELECT     SPACE / ENTER  PLAY     ESC  SETTINGS"
 horizontal_alignment = 1
 
 [node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=1656689015]
@@ -113,13 +113,15 @@ color = Color(0.16470589, 0.09411765, 0.2509804, 1)
 
 [node name="TextureRect" type="TextureRect" parent="BackgroundLayer/Background" unique_id=1624615005]
 self_modulate = Color(0.42, 0.42, 0.5, 1)
-layout_mode = 0
-offset_left = -2.0
-offset_top = -54.0
-offset_right = 1812.2191
-offset_bottom = 877.0
-scale = Vector2(0.6410472, 0.7107768)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("2_g3eks")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="Disc" type="Node2D" parent="." unique_id=324898137]
 unique_name_in_owner = true

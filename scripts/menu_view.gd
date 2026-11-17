@@ -17,6 +17,8 @@ extends Node2D
 var _items: Array[Dictionary] = []
 var _record_rest := Transform3D.IDENTITY
 var _labels_rest := Transform3D.IDENTITY
+var _authored_fov := -1.0
+var _authored_keep := Camera3D.KEEP_WIDTH
 
 
 func _ready() -> void:
@@ -85,6 +87,32 @@ func _match_items() -> void:
 func _process(_delta: float) -> void:
 	if is_instance_valid(disc_controller) and is_instance_valid(_record):
 		_sync_visuals()
+	if not Engine.is_editor_hint():
+		_fit_to_window()
+
+
+## 3D 布景是按 960×720（4:3）摆的。窗口更宽时，3D 画面铺满整个窗口，上下取景不变、两边多露出来，
+## 不再是中间一块 4:3、两边一条硬边。窗口更窄（竖屏）时照旧按宽度取景。
+func _fit_to_window() -> void:
+	var view := $View as SubViewportContainer
+	var cam := _stage.get_node_or_null("Camera") as Camera3D
+	var win := get_viewport_rect().size
+	if view == null or cam == null or win.x <= 0.0 or win.y <= 0.0:
+		return
+	if _authored_fov < 0.0:
+		_authored_fov = cam.fov
+		_authored_keep = cam.keep_aspect
+	view.global_position = Vector2.ZERO
+	if view.size != win:
+		view.size = win
+	var base := Vector2(960.0, 720.0)
+	if win.x / win.y > base.x / base.y and _authored_keep == Camera3D.KEEP_WIDTH:
+		# 原来按宽度给的视角，换算成同样的上下视角
+		cam.keep_aspect = Camera3D.KEEP_HEIGHT
+		cam.fov = rad_to_deg(2.0 * atan(tan(deg_to_rad(_authored_fov) / 2.0) * base.y / base.x))
+	else:
+		cam.keep_aspect = _authored_keep
+		cam.fov = _authored_fov
 
 
 func _sync_visuals() -> void:
