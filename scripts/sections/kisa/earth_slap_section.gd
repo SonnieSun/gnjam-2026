@@ -216,6 +216,26 @@ const ENDING_HOLD_BEATS := 8.0
 var ending_from := INF
 
 
+## 重拍没按也自动拍出去：只要这一下之前蓄过力（哪怕一格），或者它是结尾大长按后面的那一下，过了 Great 的窗口
+## 玩家还没按，就替玩家拍，按 Good 算（力度照蓄了多少算）。自己按准了照常拿自己的 Perfect / Great。
+## 一格都没蓄的重拍不自动拍，照常算漏。
+@export var auto_slap := true
+
+func _auto_slap() -> void:
+	var j := main_judge()
+	if not auto_slap or j == null or autoplay:
+		return
+	var now := Conductor.input_beat()
+	var late := _rules().great_window / maxf(Conductor.sec_per_beat(), 0.001)
+	for n in notes:
+		if n.beat > now:
+			break
+		if n.judged or n.free or is_charge_note(n) or n.length > 0.0 or now < n.beat + late:
+			continue
+		if _charge > 0 or absf(n.beat - (ending_from + ENDING_HOLD_BEATS)) < 0.01:
+			j.judge_free(n, NoteData.Result.GOOD)
+
+
 ## 离现在最近的还没结束的连按段：{id, start, end（全曲拍数）, beats, need}；没有连按段返回空
 func _zone_now() -> Dictionary:
 	if _zones.is_empty() or _pattern_len <= 0.0:
@@ -386,6 +406,7 @@ func _update_spin(local: float, _angle: float) -> void:
 			# 结束的大长按：蓄力跟着按住的进度涨到满
 			_charge = maxi(_charge, roundi(clampf((song_beat() - ending_from) / ENDING_HOLD_BEATS, 0.0, 1.0) * _charge_target))
 			_maxed = _charge >= _charge_target
+		_auto_slap()
 		_stage.set_charge(charge_ratio() + minf(charge_over() * 0.1, 0.5))
 		_pop = maxf(_pop - dt * 9.0, 0.0)
 		_max_flash = maxf(_max_flash - dt * 2.5, 0.0)
