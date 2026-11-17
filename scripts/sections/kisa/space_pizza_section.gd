@@ -8,13 +8,25 @@ extends "res://scripts/sections/pizza_section.gd"
 
 ## 康康舞曲在这一段有三个阶段，谱面跟着换（都在音乐换的那条小节线上换，之前铺好的音符照常打完）：
 ##   开头（另一段旋律）      大关文件里这个小关的 bars：每小节第 1、3 拍
-##   四阶下行（进度一半起）  mid_bars：每小节前两拍的四个八分音符正好是那四个往下走的音，第 4 拍再一下
-##   高潮（经典旋律，fever） peak_bars：四分音符连打，每拍一下
+##   四阶下行（进度一半起）  阶段 steps：两小节一个循环，第 1 小节的四拍就是那四个往下走的重音，第 2 小节不打
+##   高潮（经典旋律，fever） 阶段 peak：四分音符连打，每拍一下
+## 后两套是谱面文件 levels/charts/<大关>_<小关>_steps.tres / _peak.tres，配拍编辑器按 chart_phases() 列出来、能直接改；
+## 没有文件时用下面的 mid_bars / peak_bars。
 ## 每个阶段多长在大关文件里（这个小关的 gauge_events 65 / 98 + phase_gain / fever_gain）：四阶下行大约放一遍（8 小节），
 ## 高潮从过线算起大约 14 小节（等乐句线 + 两小节过门 + 经典旋律至少一遍）。
-@export var mid_bars := PackedStringArray(["k.k.k.k.....s..."])
+@export var mid_bars := PackedStringArray(["k...k...k...k...", "................"])
 @export var peak_bars := PackedStringArray(["k...s...k...s..."])
 var _next_bars := PackedStringArray()
+var _next_phase := ""
+
+
+## 这个小关里换谱子的玩法阶段（配拍编辑器读这个）
+static func chart_phases() -> Array:
+	return [
+		{"id": "", "name": "开头（康康舞曲的另一段）", "event": 0},
+		{"id": "steps", "name": "四阶下行", "event": 1},
+		{"id": "peak", "name": "高潮（经典旋律，fever）", "event": 2},
+	]
 var _next_at := INF
 
 ## 黑幕落出屏幕前再盖几秒（等新画面摆好）、落出去用几秒
@@ -48,9 +60,11 @@ func _on_change_planned(kind: String, id: int, _fill_beat: float, commit_beat: f
 		return
 	if kind == "tier" and id == 2 and not mid_bars.is_empty():
 		_next_bars = mid_bars
+		_next_phase = "steps"
 		_next_at = commit_beat
 	elif kind == "fever" and not peak_bars.is_empty():
 		_next_bars = peak_bars
+		_next_phase = "peak"
 		_next_at = commit_beat
 
 
@@ -65,14 +79,16 @@ func _chart_tick() -> void:
 		return
 	if float(main.get("_switch_at")) >= 0.0:
 		return  # 已经在收尾了（积累条满了）：不再换谱
+	var index: int = main.get("_index") if main.get("_index") != null else 0
 	var d: SectionDef = def.duplicate()
-	d.chart = null
-	d.bars = _next_bars
+	var file := "res://levels/charts/%s_%d_%s.tres" % [Levels.current_path().get_file().get_basename(), index, _next_phase]
+	d.chart = load(file) as ChartPattern if ResourceLoader.exists(file) else null
+	if d.chart == null:
+		d.bars = _next_bars
 	var keep: Array[NoteData] = []
 	for n in notes:
 		if not n.judged and n.beat < at - 0.001:
 			keep.append(n)
-	var index: int = main.get("_index") if main.get("_index") != null else 0
 	notes = main.judge.begin_section(index, d, Conductor.chart.beats_per_bar, at, at)
 	for i in keep.size():
 		notes.insert(i, keep[i])

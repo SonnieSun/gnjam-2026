@@ -18,6 +18,10 @@ var _finale_at := INF  # 结尾演出从这一拍开始（这一拍上是结束�
 var _sky: SkyStage
 var _accents: NoteAccents  # 音符的重点标记（场景里有 NoteAccents 节点才有）
 var _ode_chart := false
+var _ode_at := INF  # 欢乐颂进来的那一拍（八分连打的最后一个 = 换段音符）
+var _ode_file := ""
+## 进欢乐颂之前的八分连打一共几个（最后一个是换段音符）。8 = 差半拍一小节
+@export var ode_run_notes := 8
 
 
 ## 这个小关里换谱子的玩法阶段（配拍编辑器读这个）。"" = 开头的主谱（云层、风暴）；
@@ -40,19 +44,51 @@ func _on_change_planned(kind: String, id: int, _fill_beat: float, commit_beat: f
 	if main == null or not main.get("judge") or not ResourceLoader.exists(file):
 		return
 	_ode_chart = true
+	_ode_at = commit_beat
+	_ode_file = file
+	# 过渡：换之前的那一小节变成一串八分音符连打，看上去后面还有没完没了的八分音符——打到第 ode_run_notes 个
+	# （它正好在欢乐颂进来的那一拍上，是七彩的换段音符）谱子当场换成欢乐颂的，后面那些八分音符全没了。
+	var run_from := maxf(commit_beat - (ode_run_notes - 1) * 0.5, ceilf(song_beat() * 2.0 + 2.0) / 2.0)
 	var d: SectionDef = def.duplicate()
-	d.chart = load(file) as ChartPattern
+	d.chart = null
+	d.bars = PackedStringArray(["k.k.k.k.k.k.k.k."])
+	_swap_chart(main, d, run_from, run_from)
+
+
+## 换谱：旧谱打到 stop 为止（之前铺好的照常打），新谱的循环从 origin 算
+func _swap_chart(main: Node, d: SectionDef, stop: float, origin: float) -> void:
 	var keep: Array[NoteData] = []
 	for n in notes:
 		if n.judged:
 			continue
-		if n.beat < commit_beat - 0.001:
+		if n.beat < stop - 0.001:
 			keep.append(n)
 		elif _sky:
-			_drop_ring(n)  # 旧谱里那条小节线之后的音符不要了：已经在光柱里的圈淡掉
-	notes = main.judge.begin_section(int(main.get("_index")), d, Conductor.chart.beats_per_bar, commit_beat, commit_beat)
+			_drop_ring(n)  # 那条线之后的旧音符不要了：已经在光柱里的圈淡掉
+	if stop > origin:
+		main.judge.skip_before(stop)
+	notes = main.judge.begin_section(int(main.get("_index")), d, Conductor.chart.beats_per_bar, stop, origin)
 	for i in keep.size():
 		notes.insert(i, keep[i])  # 还没打的旧音符留在这一关的列表里，接着画
+
+
+## 八分连打打到了换段音符（或者它过去了）：谱子换成欢乐颂的旋律，从欢乐颂进来的那一拍算起
+func _ode_tick() -> void:
+	if is_inf(_ode_at) or song_beat() < _ode_at - 0.3:
+		return
+	var hit := song_beat() >= _ode_at + 0.4
+	for n in notes:
+		if absf(n.beat - _ode_at) < 0.01 and n.judged:
+			hit = true
+	if not hit:
+		return
+	var main := get_parent().get_parent()
+	var d: SectionDef = def.duplicate()
+	d.chart = load(_ode_file) as ChartPattern
+	var at := _ode_at
+	_ode_at = INF
+	if main and main.get("judge") and d.chart:
+		_swap_chart(main, d, at + 0.25, at)
 
 
 ## 一个音符不要了：它的圈要是已经在光柱里往下落，让它淡掉（舞台只给判定过的音符收圈，不管的话会停在半空）
@@ -106,6 +142,7 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	if _accents:
 		_accents.notes = own_notes()
 	super(local_beat, angle)
+	_ode_tick()
 	if song_beat() >= _finale_at + 0.05:
 		_finale_at = INF
 		_start_finale()

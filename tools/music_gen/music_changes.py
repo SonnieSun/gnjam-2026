@@ -20,6 +20,7 @@ still have the short keys in them (the hand-maintained level_1_disco.json was co
     'tier_enter': {5: 'tr_x'}               tier.5.written
     'tier_on_bars': {2: 8}                  tier.2.on_bars
     'tier_sfx': {2: 'sky_holy_hit'}         tier.2.sfx
+    'tier_lead': {2: 4}                     tier.2.lead_beats
     'fever_fill': False                     fever.fill
     'fever_enter': 'tr_x'                   fever.written
     'fever_enter_db' / '_bars' / '_replaces'    fever.db / bars / replaces
@@ -29,7 +30,7 @@ import io
 import json
 import sys
 
-SHORT = ('enter', 'enter_db', 'enter_bars', 'enter_fill', 'transition_tiers', 'tier_enter', 'tier_on_bars', 'tier_sfx', 'fever_fill', 'fever_enter',
+SHORT = ('enter', 'enter_db', 'enter_bars', 'enter_fill', 'transition_tiers', 'tier_enter', 'tier_on_bars', 'tier_sfx', 'tier_lead', 'fever_fill', 'fever_enter',
          'fever_enter_db', 'fever_enter_bars', 'fever_enter_replaces', 'fever_on_bars')
 
 
@@ -55,6 +56,8 @@ def to_changes(sec):
         t(k)['on_bars'] = int(v)
     for k, v in sec.get('tier_sfx', {}).items():
         t(k)['sfx'] = v
+    for k, v in sec.get('tier_lead', {}).items():
+        t(k)['lead_beats'] = v
     if 'fever_fill' in sec:
         fever['fill'] = bool(sec['fever_fill'])
     if sec.get('fever_enter'):

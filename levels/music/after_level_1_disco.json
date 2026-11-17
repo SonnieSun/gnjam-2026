@@ -275,7 +275,8 @@
       "sfx": "none"
      },
      "2": {
-      "sfx": "sky_holy_hit"
+      "sfx": "sky_holy_hit",
+      "lead_beats": 4
      }
     },
     "fever": {

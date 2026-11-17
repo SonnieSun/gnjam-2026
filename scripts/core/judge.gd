@@ -128,6 +128,7 @@ func begin_section(index: int, def: SectionDef, beats_per_bar: int,
 	_notes_end = INF
 	_section_notes = []
 	_generate()
+	_skip_before = -INF
 	return _section_notes
 
 
@@ -156,6 +157,14 @@ func add_note(beat: float, sound: int = NoteData.Sound.KICK) -> NoteData:
 
 
 ## 不再出新音符，还没到的也都丢掉（大关打完时用）
+## 下一次 begin_section 铺谱时，这一拍之前的音符不铺（谱面的循环照样从它给的起点算）。
+## 用在「旧谱最后一个音符还留着、新谱从同一拍算起」的时候，免得那一拍上有两个音符。只管那一次。
+var _skip_before := -INF
+
+func skip_before(beat: float) -> void:
+	_skip_before = beat
+
+
 ## 谱面打到第 beat 拍为止（这一拍上的还算）：之后已经铺出来的去掉，也不再往后铺。之前的照常打。
 var _notes_end := INF
 
@@ -179,6 +188,9 @@ func _generate() -> void:
 		var beat: float = _pattern_origin + (_pattern_k / _pattern.size()) * _pattern_len + d.beat
 		if beat > horizon or beat > _notes_end + 0.001:
 			break
+		if beat < _skip_before - 0.001:
+			_pattern_k += 1
+			continue
 		var n := NoteData.new()
 		n.beat = beat
 		n.sound = d.sound
