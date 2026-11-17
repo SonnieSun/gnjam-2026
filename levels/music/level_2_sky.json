@@ -14,8 +14,13 @@
      "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L1_groove_4b.wav"
     },
     {
-     "id": "blast",
-     "file": "res://assets/audio/music/sky/sky_blast_drums_8b.wav"
+     "id": "drive",
+     "file": "res://assets/audio/music/sky/sky_drive_drums_8b.wav"
+    },
+    {
+     "id": "doom_drums",
+     "file": "res://assets/audio/music/sky/sky_doom_drums_8b.wav",
+     "tune": "doom"
     },
     {
      "id": "groove",
@@ -33,6 +38,11 @@
      "file": "res://assets/audio/music/sky/sky_drone_8b.wav"
     },
     {
+     "id": "doom_bass",
+     "file": "res://assets/audio/music/sky/sky_doom_bass_8b.wav",
+     "tune": "doom"
+    },
+    {
      "id": "ode_bass",
      "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_L2_bass_16b.wav",
      "tune": "ode"
@@ -45,8 +55,13 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "metal",
-     "file": "res://assets/audio/music/sky/sky_metal_riff_8b.wav"
+     "id": "dream",
+     "file": "res://assets/audio/music/sky/sky_dream_gtr_8b.wav"
+    },
+    {
+     "id": "doom_riff",
+     "file": "res://assets/audio/music/sky/sky_doom_riff_8b.wav",
+     "tune": "doom"
     },
     {
      "id": "ode_keys",
@@ -73,8 +88,13 @@
    "gain_db": 0.0,
    "clips": [
     {
+     "id": "wall",
+     "file": "res://assets/audio/music/sky/sky_fuzz_wall_8b.wav"
+    },
+    {
      "id": "doom_horns",
-     "file": "res://assets/audio/music/sky/sky_doom_horns_8b.wav"
+     "file": "res://assets/audio/music/sky/sky_doom_horns_8b.wav",
+     "tune": "doom"
     },
     {
      "id": "holy_pad",
@@ -87,6 +107,11 @@
    "name": "猫鼓",
    "gain_db": 0.0,
    "clips": [
+    {
+     "id": "doom_shouts",
+     "file": "res://assets/audio/music/sky/sky_doom_shouts_8b.wav",
+     "tune": "doom"
+    },
     {
      "id": "ode_cat_drums",
      "file": "res://assets/audio/music/classics/ode_to_joy/ode_to_joy_C_drums_16b.wav",
@@ -169,8 +194,12 @@
       "half"
      ],
      [
+      0.069,
+      "drive"
+     ],
+     [
       0.135,
-      "blast"
+      "doom_drums"
      ],
      [
       0.379,
@@ -183,14 +212,22 @@
       "drone"
      ],
      [
+      0.135,
+      "doom_bass"
+     ],
+     [
       0.379,
       "ode_bass"
      ]
     ],
     "bed": [
      [
+      0.0,
+      "dream"
+     ],
+     [
       0.135,
-      "metal"
+      "doom_riff"
      ],
      [
       0.379,
@@ -205,6 +242,10 @@
     ],
     "peak": [
      [
+      0.069,
+      "wall"
+     ],
+     [
       0.135,
       "doom_horns"
      ],
@@ -218,6 +259,14 @@
      ]
     ],
     "meow": [
+     [
+      0.135,
+      "doom_shouts"
+     ],
+     [
+      0.379,
+      ""
+     ],
      [
       0.657,
       "ode_cat_drums"
@@ -235,7 +284,7 @@
       "ufo_rise"
      ],
      [
-      0.379,
+      0.135,
       ""
      ]
     ],
@@ -272,9 +321,12 @@
    "changes": {
     "tier": {
      "1": {
-      "sfx": "none"
+      "written": "tr_sky_into_doom",
+      "sfx": "none",
+      "lead_beats": 4
      },
      "2": {
+      "on_bars": 8,
       "sfx": "sky_holy_hit",
       "lead_beats": 4
      },

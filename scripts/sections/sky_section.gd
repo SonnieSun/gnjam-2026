@@ -23,6 +23,8 @@ var _ode_chart := false
 var _ode_at := INF  # 欢乐颂进来的那一拍（八分连打的最后一个 = 换段音符）
 var _ode_file := ""
 var _ode_origin := INF  # 欢乐颂（谱子）从哪一拍起（它的第 1 小节）
+var _storm_chart := false
+var _run_at := INF  # 八分连打从哪一拍起（还没换上）
 ## 欢乐颂一遍有几拍（16 小节）：结尾演出不早于它唱完的那一拍
 @export var ode_beats := 64.0
 ## 进欢乐颂之前的八分连打一共几个（最后一个是换段音符）。8 = 差半拍一小节
@@ -33,14 +35,17 @@ var _ode_origin := INF  # 欢乐颂（谱子）从哪一拍起（它的第 1 小
 ## "ode" = 亮起来之后：谱子就是欢乐颂的旋律（levels/charts/<关>_<小关>_ode.tres，tools/music_gen/make_tune_charts.py 写的）。
 static func chart_phases() -> Array:
 	return [
-		{"id": "", "name": "云层、风暴", "event": 0},
+		{"id": "", "name": "云层", "event": 0},
+		{"id": "storm", "name": "风暴（末日重金属）", "event": 0, "at": 0.135},
 		{"id": "ode", "name": "亮起来之后（欢乐颂的旋律）", "event": 0, "at": 0.379},  # at = 从积累条的多少开始（编辑器按它放那一段的音乐）
 	]
 
 
 ## 音乐排好了"亮起来"（升到第 2 档：欢乐颂从那条小节线的第 1 小节起）：谱子在同一条小节线换成欢乐颂的旋律，
 ## 所以之后每个音符都是旋律里的一个音。没有那份谱就不换，和原来一样。
-func _on_change_planned(kind: String, id: int, _fill_beat: float, commit_beat: float) -> void:
+func _on_change_planned(kind: String, id: int, fill_beat: float, commit_beat: float) -> void:
+	if active and kind == "tier" and id == 1:
+		_plan_storm(fill_beat)
 	if not active or _ode_chart or kind != "tier" or id != 2:
 		return
 	var main := get_parent().get_parent()
@@ -53,11 +58,40 @@ func _on_change_planned(kind: String, id: int, _fill_beat: float, commit_beat: f
 	_ode_file = file
 	# 过渡：换之前的那一小节变成一串八分音符连打，看上去后面还有没完没了的八分音符——打到第 ode_run_notes 个
 	# （它正好在欢乐颂进来的那一拍上，是七彩的换段音符）谱子当场换成欢乐颂的，后面那些八分音符全没了。
-	var run_from := maxf(commit_beat - (ode_run_notes - 1) * 0.5, ceilf(song_beat() * 2.0 + 2.0) / 2.0)
+	# 亮起来要等风暴循环的结尾（音乐那边 on_bars 8），可能还有好几小节：这里先记下，等到离连打还有 LOOKAHEAD_BEATS 拍
+	# （Judge 铺音符铺到这么远）才换，那时风暴谱在连打之前的音符都已经铺好了，连打的音符也有完整的提前量（_run_tick）
+	_run_at = maxf(commit_beat - (ode_run_notes - 1) * 0.5, ceilf(song_beat() * 2.0 + 2.0) / 2.0)
+
+
+func _run_tick() -> void:
+	if is_inf(_run_at) or song_beat() < _run_at - Judge.LOOKAHEAD_BEATS:
+		return
+	var main := get_parent().get_parent()
+	var run_from := maxf(_run_at, ceilf(song_beat() * 2.0 + 2.0) / 2.0)
+	_run_at = INF
+	if main == null or not main.get("judge"):
+		return
 	var d: SectionDef = def.duplicate()
 	d.chart = null
 	d.bars = PackedStringArray(["k.k.k.k.k.k.k.k."])
 	_swap_chart(main, d, run_from, run_from)
+
+
+## 音乐排好了进风暴（升到第 1 档：先一小节写好的过门 tr_sky_into_doom，再是末日重金属，从它自己的第 1 小节起）：
+## 谱子从过门那条小节线换成风暴谱（levels/charts/<关>_<小关>_storm.tres，tools/music_gen/make_sky_storm_chart.py 写的：
+## 过门那一小节 + 风暴 8 小节写了好几遍，跟着音乐的循环）。音乐那边写了 lead_beats，过门离过线至少一小节，新的音符来得及出现。
+func _plan_storm(fill_beat: float) -> void:
+	if _storm_chart:
+		return
+	var main := get_parent().get_parent()
+	var file := "res://levels/charts/%s_%d_storm.tres" % [Levels.current_path().get_file().get_basename(),
+			int(main.get("_index")) if main and main.get("_index") != null else 0]
+	if main == null or not main.get("judge") or not ResourceLoader.exists(file):
+		return
+	_storm_chart = true
+	var d: SectionDef = def.duplicate()
+	d.chart = load(file) as ChartPattern
+	_swap_chart(main, d, fill_beat, fill_beat)
 
 
 ## 换谱：旧谱打到 stop 为止（之前铺好的照常打），新谱的循环从 origin 算
@@ -148,6 +182,7 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	if _accents:
 		_accents.notes = own_notes()
 	super(local_beat, angle)
+	_run_tick()
 	_ode_tick()
 	if song_beat() >= _finale_at + 0.05:
 		_finale_at = INF

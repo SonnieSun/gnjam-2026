@@ -334,10 +334,16 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
 # turns bright and holy and the Ode to Joy starts; in space the cats take the tune over and it ends in
 # FEVER on the way into the UFO. The dark half is in C minor, the light is C major (the Ode stems).
 # Lines in gauge progress (one section for now; when the level is built its stages get the real lines):
-#   start  CLOUDS   half-time beat, the low C drone, wind with clouds rushing past. Every hit sings one
-#                   note of a rising scale
-#   SKY[0] STORM    cute death metal: the beat turns into double-kick drums (a kitten on the off-beats), a
-#                   galloping distorted riff comes in, and the doom horns with thunder over it
+#   start  CLOUDS   half-time beat, the low C drone, wind with clouds rushing past, a clean chorus guitar picking
+#                   maj7 / add9 chords (the quiet side of the user's Deftones reference). Every hit sings one note
+#                   of a rising scale
+#   BUILD  (cue)    the same chords as a wall of fuzz guitars, driving drums with tom fills
+#   SKY[0] STORM    DOOM METAL (2026-11-17, demo 10 of tools/music_gen/make_sky_metal.py): one bar of written fill
+#                   first (the wall chokes, a snare roll, three cat shouts on the quarter-note triplets), then the
+#                   'doom' tune, all its parts from their own bar 1: half-time fuzz riff, bass, drums, the doom
+#                   horns, and the cats (triplet shouts, cat #1's long low meow, stop-time 3-3-2 shouts in the
+#                   climax, 8th-note drums in its last bar). The light waits for the end of the doom loop
+#                   ('tier_on_bars' 2: 8): that last bar (8ths and triplet shouts) always leads into the Ode
 #   SKY[1] LIGHT    everything dark stops on the bar line: the 'holy hit', then the holy pad, the Ode's
 #                   chords and bass on the normal beat; now every hit sings the next note of the Ode to Joy
 #   SKY[2] SPACE    the tune plays by itself: the cats sing it, with meow drums
@@ -350,26 +356,32 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
 #  run the gauge crosses them in bars 7 and 11. sky_section.gd holds the finale until bar 16 is over.)
 SKY_MAX = 533
 SKY = tuple(round(v / SKY_MAX, 3) for v in (72, 202, 350, 430))
+SKY_BUILD = round(37 / SKY_MAX, 3)                       # the wall of guitars comes in about half way through the clouds
 SK = M + 'sky/sky_'
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 SETS[10] = {'title': 'SKY', 'use': True,
-            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), t('blast', SK + 'blast_drums_8b.wav', 'groove'), SKELETON[0],
-                       t('drone', SK + 'drone_8b.wav', 'bass'), t('metal', SK + 'metal_riff_8b.wav', 'bed'), t('ode_bass', OJ + 'L2_bass_16b.wav', 'bass'),
+            'tracks': [t('half', RV + 'Rhalf_L1_groove_4b.wav', 'groove'), t('drive', SK + 'drive_drums_8b.wav', 'groove'),
+                       t('doom_drums', SK + 'doom_drums_8b.wav', 'groove'), SKELETON[0],
+                       t('drone', SK + 'drone_8b.wav', 'bass'), t('doom_bass', SK + 'doom_bass_8b.wav', 'bass'),
+                       t('dream', SK + 'dream_gtr_8b.wav', 'bed'), t('doom_riff', SK + 'doom_riff_8b.wav', 'bed'),
+                       t('wall', SK + 'fuzz_wall_8b.wav', 'peak'), t('doom_shouts', SK + 'doom_shouts_8b.wav', 'cat'),
+                       t('ode_bass', OJ + 'L2_bass_16b.wav', 'bass'),
                        t('ode_keys', OJ + 'fb_L0_keys_16b.wav', 'bed'),
                        t('ode_cats', OJ + 'L3_cat_flow_16b.wav', 'hook'), harm('ode_harm', 'ode_to_joy'),
                        t('doom_horns', SK + 'doom_horns_8b.wav', 'peak'), t('holy_pad', SK + 'holy_pad_8b.wav', 'peak'),
                        t('ode_cat_drums', OJ + 'C_drums_16b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_16b.wav', 'kiai'),
                        pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
                        t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_16b.wav', 'event')] + FILL,
-            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'outro': 'out_into_the_ufo', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'tier_lead': {2: 4}, 'tier_on_bars': {3: 4}, 'fever_on_bars': 4, 'rules': {
-                'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
-                'metal': [[SKY[0], SKY[1]]],
-                'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
+            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'outro': 'out_into_the_ufo', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'tier_enter': {1: 'tr_sky_into_doom'}, 'tier_lead': {1: 4, 2: 4}, 'tier_on_bars': {2: 8, 3: 4}, 'fever_on_bars': 4, 'rules': {
+                'half': [[0, SKY_BUILD]], 'drive': [[SKY_BUILD, SKY[0]]], 'doom_drums': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
+                'dream': [[0, SKY[0]]], 'wall': [[SKY_BUILD, SKY[0]]],
+                'doom_riff': [[SKY[0], SKY[1]]], 'doom_bass': [[SKY[0], SKY[1]]], 'doom_shouts': [[SKY[0], SKY[1]]],
+                'drone': [[0, SKY[0]]], 'ode_bass': [[SKY[1], 1]],
                 'ode_keys': [[SKY[1], 1]],
                 'ode_cats': [[SKY[1], 1]], 'ode_harm': [[SKY[2], 1]],
                 'doom_horns': [[SKY[0], SKY[1]]], 'holy_pad': [[SKY[1], SKY[3]]],
                 'ode_cat_drums': [[SKY[2], 1]],
-                'ufo_rise': [[0, SKY[1]]],
+                'ufo_rise': [[0, SKY[0]]],                # the storm has its own cats (the shouts): no sung hits there
                 'wind': [[0, SKY[2]]], 'ode_peak': [[SKY[3], 1]]}}]}
 
 # file = the level file it goes with (levels/<name>.tres -> levels/music/<name>.json). The level list was
@@ -470,7 +482,7 @@ LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和�
 #   3. The lead may change hands (instrument -> cats, cats -> kichiku): it is handed over, never dropped.
 #   4. A stage that takes things away (a quiet ending) drops chords, drums or the peak layer and keeps the tune.
 # tools/music_gen/check_music_sets.py prints every stage of every level and flags a tune that stops.
-TUNES = ('ybf', 'mk', 'mka', 'cc', 'cca', 'ccb', 'tm', 'tmb', 'ode', 'ent')
+TUNES = ('ybf', 'mk', 'mka', 'cc', 'cca', 'ccb', 'tm', 'tmb', 'ode', 'ent', 'doom')
 LANE_GAIN = {'kiai': -2.0, 'harm': -5.0}   # kiai: stacked on the cat lead, so a little under it; harm: the backing vocals, well under the lead
 
 
