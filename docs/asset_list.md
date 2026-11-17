@@ -153,7 +153,7 @@
 
 | 素材 | 路径 | 作者 | 说明 |
 |---|---|---|---|
-| 叠轨音乐 | `levels/music/level_2_tv_wall.json` → scene1 的 skeleton、cat_band、`style_chip/`（keys、hook、peak）、events/fill，`patterns/kichiku_riff.json` | EiZi | 实际放的 |
+| 叠轨音乐 | `levels/music/level_3_tv_wall.json` → scene1 的 skeleton、cat_band、`style_chip/`（keys、hook、peak）、events/fill，`patterns/kichiku_riff.json` | EiZi | 实际放的 |
 | 按键鼓声 | `assets/fantasy/kick/snare/hat.wav`（共用） | Sonnie | |
 | 伴奏 | `assets/fantasy/backing_no_drums.ogg`（共用） | Sonnie | 被叠轨音乐替代 |
 | 蓄力 / 满了的音效 | `assets/audio/sfx/hit_meow_good_a.wav`、`clap.wav` | EiZi | 拍地球 |
@@ -202,7 +202,7 @@
 
 | 素材 | 路径 | 作者 | 说明 |
 |---|---|---|---|
-| 叠轨音乐 | `levels/music/level_3_spaceship.json` → scene1 的 skeleton、cat_band、`style_eurobeat/`（keys、hook、peak）、events/fill，`patterns/kichiku_riff.json` | EiZi | 实际放的 |
+| 叠轨音乐 | `levels/music/level_4_spaceship.json` → scene1 的 skeleton、cat_band、`style_eurobeat/`（keys、hook、peak）、events/fill，`patterns/kichiku_riff.json` | EiZi | 实际放的 |
 | 按键鼓声 | `assets/fantasy/kick/snare/hat.wav`（共用） | Sonnie | |
 | 伴奏 | `assets/fantasy/backing_no_drums.ogg`（共用） | Sonnie | 被叠轨音乐替代 |
 

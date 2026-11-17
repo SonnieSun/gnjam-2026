@@ -6,11 +6,11 @@
 [ext_resource type="Script" path="res://scripts/core/song_chart.gd" id="4_matbv"]
 [ext_resource type="Script" path="res://scripts/core/section_def.gd" id="5_kfdwl"]
 [ext_resource type="PackedScene" path="res://scenes/sections/kisa/tv_wall_intro.tscn" id="6_5j17s"]
-[ext_resource type="Resource" path="res://levels/charts/level_2_tv_wall_1.tres" id="7_ek37n"]
+[ext_resource type="Resource" path="res://levels/charts/level_3_tv_wall_1.tres" id="7_ek37n"]
 [ext_resource type="AudioStream" path="res://assets/fantasy/backing_no_drums.ogg" id="7_tyvne"]
 [ext_resource type="PackedScene" path="res://scenes/sections/kisa/earth_slap.tscn" id="8_earth"]
-[ext_resource type="Resource" path="res://levels/charts/level_2_tv_wall_2.tres" id="9_jf8ux"]
-[ext_resource type="Resource" path="res://levels/charts/level_2_tv_wall_3.tres" id="10_8w3o1"]
+[ext_resource type="Resource" path="res://levels/charts/level_3_tv_wall_2.tres" id="9_jf8ux"]
+[ext_resource type="Resource" path="res://levels/charts/level_3_tv_wall_3.tres" id="10_8w3o1"]
 
 [sub_resource type="Resource" id="Resource_h24y6"]
 script = ExtResource("5_kfdwl")

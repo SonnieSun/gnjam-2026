@@ -364,7 +364,7 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
 #   Then, from the cat_sound folder:
 #       python -I tools/make_transitions.py loops <a folder for the result>
 #   and copy <that folder>/tr_ccb_to_cc.wav to gnjam-2026/assets/audio/sfx/ (the game picks it up on the next run).
-#   If you change the NUMBER of bars, also set "bars" in levels/music/level_3_spaceship.json (section SPACE
+#   If you change the NUMBER of bars, also set "bars" in levels/music/level_4_spaceship.json (section SPACE
 #   PIZZA, "changes" -> "fever") to it, and 'fever_enter_bars' in tools/music_gen/make_music_sets.py so it
 #   survives a regenerate. "replaces" there = how many bars at the end of the descent's phrase the transition takes the
 #   place of (now 1: the transition's first bar is played instead of the phrase's last; 0 = the phrase is
@@ -472,12 +472,12 @@ print('transitions done ->', SFX)
 # Three versions before it were dropped by ear: the old kind (a pluck and one cat, one bar: a 4.6 dB hole in the
 # middle of the level), the full treatment of level 1 and the pizza (wind-up, doubled run, tom fill, accent, crash:
 # "cluttered", and wrong for a tune that tiptoes in), and a lean one with a small accent.
-# In levels/music/level_2_tv_wall.json: "changes" -> "enter" of SLAP / WARM UP, "bars": 2, "db": 14.
+# In levels/music/level_3_tv_wall.json: "changes" -> "enter" of SLAP / WARM UP, "bars": 2, "db": 14.
 from_stems('tr_ybf_to_mk', 'mountain_king', None,
            rows=[[(12, 'E4', 2), (14, 'G#4', 2)]], chords=['E7', 'E7'],
            levels=[('L3_pluck', 0.0), ('fb_L0_keys', -4.0), ('L2_bass', -4.0)],
            accents=[], accent_chords=[], play_db=14.0, band_db=-2.0, extras=(), clicks=1.6,
-           head=game_clips('level_2_tv_wall', ('ybf_bass', 'ybf_keys', 'ybf_cats', 'ybf_cat_drums'), 7))
+           head=game_clips('level_3_tv_wall', ('ybf_bass', 'ybf_keys', 'ybf_cats', 'ybf_cat_drums'), 7))
 
 
 # THE COUNT-IN: one bar of four clicks on the beats, A METRONOME (the first one higher, the way a metronome marks

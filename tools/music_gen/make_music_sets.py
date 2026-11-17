@@ -371,11 +371,11 @@ SETS[10] = {'title': 'SKY', 'use': True,
 # reordered several times; now the menu has 1 DISCO (set 6), 2 TV WALL (set 9: its sections are edited by
 # hand, so it is kept and not regenerated) and 3 SPACESHIP (set 7). A name starting with '../' is written
 # relative to levels/music: PIZZA (set 5) is parked in levels/alternates/. The sky level (set 10) is an
-# interlude: levels/interludes/after_level_1_disco.tres, played after level 1 in a run, not on the menu.
+# level 2: levels/level_2_sky.tres (was the interlude after level 1, now its own level on the menu).
 # --- level 3, SPACESHIP: the last level. The shooter has its own tune; the pizza is Can-Can ----------
 #   SPACESHIP (shooting planets)   Turkish March, the one tune not heard yet: fast, a chase. Five tiers as usual.
 #   SPACE PIZZA (the last part of the game): all Can-Can, see the comment on the section below.
-#   The lines 50% / 75% are the stage's camera cues (level_3_spaceship.tres: fx_cues grid3 0.5, kaleido 0.75).
+#   The lines 50% / 75% are the stage's camera cues (level_4_spaceship.tres: fx_cues grid3 0.5, kaleido 0.75).
 TM = M + 'classics/turkish_march/turkish_march_'
 CCA = M + 'classics/can_can_a/can_can_a_'             # Can-Can's opening strain (D major), the first half of the pizza
 CCB = M + 'classics/can_can_b/can_can_b_'             # Can-Can's second strain, "the four steps down" (D major)
@@ -448,8 +448,8 @@ SETS[7] = {'title': 'SPACESHIP', 'use': True,
                    # lands, and everything for the last stretch (a step back between them was tried and dropped)
                    'cc_peak': [[R[3], FV]], 'cc_peak_max': [[FV, 1]],
                    'cc_square': [[R[3], 1]], 'cc_double': [[R[3], 1]]}}]}
-NAMES = {6: 'level_1_disco', 9: 'level_2_tv_wall', 7: 'level_3_spaceship',
-         10: 'after_level_1_disco', 5: '../alternates/pizza_cat_level_5_music'}
+NAMES = {6: 'level_1_disco', 9: 'level_3_tv_wall', 7: 'level_4_spaceship',
+         10: 'level_2_sky', 5: '../alternates/pizza_cat_level_5_music'}
 LANES = [('beat', '节奏', 'groove'), ('bass', '低音', 'bass'), ('bed', '和声', 'bed'), ('lead', '旋律', 'hook'),
          ('peak', '高潮', 'peak'), ('meow', '猫鼓', 'cat'), ('harm', '猫和声', 'harm'), ('kiai', 'KIAI 鬼畜', 'kiai'), ('hit', '打中唱', 'hit'),
          ('fx', '事件', 'event'), ('fill', '过门', 'fill')]

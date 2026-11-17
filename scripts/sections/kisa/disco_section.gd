@@ -179,7 +179,7 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	if song_beat() >= _clear_at - 2.0 and not _curtain:
 		_curtain = true
 		var main_script: Script = load("res://scripts/main.gd")
-		if main_script.in_run and Levels.interlude_after(Levels.selected) != "":
+		if main_script.in_run and (Levels.interlude_after(Levels.selected) != "" or Levels.selected < Levels.count() - 1):
 			StageCurtain.drop(get_tree(), 1.8 * Conductor.sec_per_beat())
 	if song_beat() >= _clear_at:
 		_clear_at = INF

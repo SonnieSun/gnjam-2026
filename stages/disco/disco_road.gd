@@ -86,13 +86,13 @@ enum Phase { ROOM, UNFOLD, RUN, PLAZA, FINALE }
 @export var fly_closeup_fov := 38.0
 @export var fly_closeup_pitch := 8.0
 ## 每拍视野「顶」一下的幅度（度）
-@export var fov_punch := 4.0
+@export var fov_punch := 2.0
 ## 跑起来和广场上镜头跟拍歪头：最大歪多少度、一个来回几拍
-@export var beat_roll_degrees := 2.0
+@export var beat_roll_degrees := 1.0
 @export var beat_roll_beats := 4.0
 ## 升档时镜头踢一下：视野多拉开多少度、歪多少度、多少秒弹回来
-@export var kick_fov := 9.0
-@export var kick_roll := 5.0
+@export var kick_fov := 4.5
+@export var kick_roll := 2.5
 @export var kick_seconds := 0.45
 var _kick := 0.0
 var _kick_side := 1.0

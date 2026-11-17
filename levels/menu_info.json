@@ -1,0 +1,6 @@
+{
+	"level_1_disco": { "title": "DISCO", "stages": 1 },
+	"level_2_sky": { "title": "SKY", "stages": 1 },
+	"level_3_tv_wall": { "title": "TV WALL", "stages": 4 },
+	"level_4_spaceship": { "title": "SPACESHIP", "stages": 2 }
+}

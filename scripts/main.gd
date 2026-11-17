@@ -34,17 +34,14 @@ signal level_cleared
 @export_range(-30.0, 6.0) var phase_sound_db := -10.0
 @export_group("")
 
-## 一路连着玩：第 1 大关打完硬切到第 2 大关……一直到这一关（0 起）为止，打完它才出最终结算。
-## 之后的大关只能从 Esc 暂停转盘里选；从那里选进去的关打完也直接出结算。
-@export var flow_last_level := 2
-
 ## 一路连着玩时，前面几关的成绩（Perfect / Great / Good / Miss 个数、最大连击），最终结算时合在一起算总分
 static var run_counts := {}
 static var run_max_combo := 0
 ## 一路连着玩时，前面几关已经拿到的分和那几关的满分（左上角显示累计分、最终评级用）
 static var run_score := 0
 static var run_possible := 0.0
-## 现在是不是在一路连着玩（从第 1 关开始的）
+## 现在是不是在一路连着玩：从选的那一关一直玩到最后一关，打完最后一关才出最终结算（从中间选进来 = 跳过前面几关）。
+## 主菜单和暂停转盘选关都是一路玩；关掉它（测试脚本用）就是打完这一关直接结算
 static var in_run := true
 ## 两关之间：等玩家按一下才开始这一关
 var _waiting_to_start := false
@@ -435,7 +432,7 @@ func _clear_level() -> void:
 	# 一路连着玩：还没到最后一关就把这关成绩记下来，硬切到下一个大关
 	# （这一关后面有插曲关就先去插曲关；插曲关打完再去下一个大关）
 	var after := Levels.interlude_after(Levels.selected) if Levels.interlude == "" else ""
-	if in_run and (after != "" or Levels.selected < mini(flow_last_level, Levels.count() - 1)):
+	if in_run and (after != "" or Levels.selected < Levels.count() - 1):
 		for r in judge.counts:
 			run_counts[r] = run_counts.get(r, 0) + judge.counts[r]
 		run_max_combo = maxi(run_max_combo, judge.max_combo)
@@ -537,14 +534,19 @@ func _compute_stage_weights() -> Array[float]:
 	return out
 
 
-## 从第 1 大关重新开始一路连着玩
-static func restart_run(tree: SceneTree) -> void:
+## 开始新的一路连着玩：清掉前面累计的成绩（主菜单、暂停转盘选关时调；从哪一关开始看 Levels.selected）
+static func reset_run() -> void:
 	run_counts = {}
 	run_max_combo = 0
 	run_score = 0
 	run_possible = 0.0
 	in_run = true
 	Levels.interlude = ""
+
+
+## 从第 1 大关重新开始一路连着玩
+static func restart_run(tree: SceneTree) -> void:
+	reset_run()
 	Levels.selected = 0
 	Conductor.stop()
 	tree.change_scene_to_file(Levels.GAME_SCENE)
@@ -713,6 +715,8 @@ func _plan_ending() -> void:
 	if _index + 1 < chart.sections.size() and _index + 1 < sections.size():
 		var enter: Dictionary = (sections[_index + 1] as Dictionary).get("changes", {}).get("enter", {})
 		slot = maxi(int(enter.get("bars", 1)), 1)
+	# 小关脚本里写了 const ENDING_SLOT_BARS := 3：过渡空位至少留这么多小节（给它自己的转场演出，比如拍地球的喷火飞出）
+	slot = maxi(slot, int((_current.get_script() as Script).get_script_constant_map().get("ENDING_SLOT_BARS", 0)))
 	_switch_at = _ending_at + slot * chart.beats_per_bar
 
 

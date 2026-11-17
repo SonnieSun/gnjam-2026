@@ -32,6 +32,8 @@ extends CanvasLayer
 @export var background_fade_time := 0.3
 
 var _menu: Node
+## 转盘场景读过一次就留着，再开不用重读
+var _menu_scene: PackedScene
 var _intro: Tween
 var _closing := false
 ## 开场时记下的节点和它们在场景里的原位，退场倒放用
@@ -57,8 +59,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 func open() -> void:
-	_menu = load(Levels.MENU_SCENE).instantiate()
+	if _menu_scene == null:
+		_menu_scene = load(Levels.MENU_SCENE)
+	_menu = _menu_scene.instantiate()
 	add_child(_menu)
+	# 转盘场景里按钮那层（PLAY / CREDIT / 音量）自己是第 1 层，叠在游戏上时会被画到转盘下面，抬到转盘上面
+	var actions := _menu.get_node_or_null("MenuActions") as CanvasLayer
+	if actions:
+		actions.layer = overlay_layer + 1
 	get_tree().paused = true
 	# 转盘确认后会切场景；在那之前记下这次是不是从第 1 关开始一路连着玩
 	_menu.tree_exiting.connect(_on_menu_leaving)
@@ -234,14 +242,8 @@ func _finish_close() -> void:
 func _on_menu_leaving() -> void:
 	if _menu == null:
 		return  # 是 close() 关掉的
-	# 转盘选了关、正在切场景
-	var main_script := preload("res://scripts/main.gd")
-	Levels.interlude = ""  # 从转盘选关：不在插曲关里了
-	main_script.in_run = Levels.selected == 0
-	main_script.run_counts = {}
-	main_script.run_max_combo = 0
-	main_script.run_score = 0
-	main_script.run_possible = 0.0
+	# 转盘选了关、正在切场景：从选的这一关开始一路玩到最后一关，累计成绩从零算（转盘的 start() 也会调一次，重复调没关系）
+	preload("res://scripts/main.gd").reset_run()
 
 
 func _exit_tree() -> void:

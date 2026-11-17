@@ -4,7 +4,7 @@ choir), the transition (tr_ccb_to_cc.wav), then the famous tune in fever with th
 A one-bar transition takes the place of the last bar of the descent's phrase; a longer one comes after the phrase.
 
 How loud the level plays it and how many bars of the phrase it replaces are read from the level's music file
-(levels/music/level_3_spaceship.json, section SPACE PIZZA: "changes" -> "fever" -> "db", "replaces").
+(levels/music/level_4_spaceship.json, section SPACE PIZZA: "changes" -> "fever" -> "db", "replaces").
 
 usage: python -I preview_pizza_transition.py <tr_ccb_to_cc.wav> <game project dir> <out.wav>
 """
@@ -18,7 +18,7 @@ from audio import BAR, place, read_wav, reverb, t2n, write_wav  # noqa: E402
 
 TR, GAME, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 import json  # noqa: E402
-SEC = next(sec for sec in json.load(open(os.path.join(GAME, 'levels', 'music', 'level_3_spaceship.json'), encoding='utf-8'))['sections']
+SEC = next(sec for sec in json.load(open(os.path.join(GAME, 'levels', 'music', 'level_4_spaceship.json'), encoding='utf-8'))['sections']
            if sec['title'] == 'SPACE PIZZA')
 FEVER = SEC.get('changes', {}).get('fever', {})
 PLAY_DB = float(FEVER.get('db', -1.0))

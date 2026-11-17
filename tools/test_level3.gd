@@ -42,7 +42,7 @@ func _run() -> void:
 
 	# ---- the shooter's chart ----
 	# (no class names of the game here: naming one would compile it before the autoloads exist)
-	var chart: Resource = load("res://levels/charts/level_3_spaceship_0.tres")
+	var chart: Resource = load("res://levels/charts/level_4_spaceship_0.tres")
 	var beats: Array = chart.notes.map(func(d: Dictionary) -> float: return float(d.beat))
 	beats.sort()
 	var tune: Dictionary = Music.events.song("turkish_march")

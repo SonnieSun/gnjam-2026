@@ -7,6 +7,12 @@ extends Node
 ## 关卡脚本 EarthSlapSection 每帧调 update()，判定时调 slap() / miss()，需要时调 show_memes()。参数都在 Stage 节点的 Inspector 里。
 
 const MODEL := preload("res://assets/models/cat_earth_y2k/cat_earth_model.tscn")
+## 结尾喷火飞出用：猫贴图（512）、火焰图（256×171）、第 3 关的披萨（贴图 512）
+const CAT_TEXTURE := preload("res://stages/shared/cat/cat_basecolor_512.png")
+const FLAME := preload("res://stages/earth_slap/fx/cat_rocket_flame.png")
+const PIZZA := preload("res://stages/space_shooter/model/neapolitan_pizza.glb")
+## 飞出用的东西开场藏起来画几帧预热着色器
+const WARMUP_FRAMES := 4
 
 @export_group("镜头和灯光（照 cat_earth.tscn）")
 @export var camera_position := Vector3(7.4, 6.0, 11.5)
@@ -58,6 +64,19 @@ const MODEL := preload("res://assets/models/cat_earth_y2k/cat_earth_model.tscn")
 @export var meme_extra_half_turns := 3
 @export var meme_flip_time := 0.35
 
+@export_group("结尾：猫喷火飞出地球")
+## 飞出来的猫多高（米）、火焰多长（米）、脚下披萨多大（米）
+@export var rocket_cat_height := 1.5
+@export var flame_length := 2.6
+@export var pizza_diameter := 2.4
+## 开头镜头推近地球到多大（正交镜头的 size，越小越近），之后拉远到 rocket_final_size
+@export var rocket_close_size := 4.5
+@export var rocket_final_size := 7.5
+## 猫飞到哪停一下（镜头坐标：相对地球，x 往右、y 往上，米），最后往同一个方向冲出画面
+@export var rocket_stop := Vector2(3.0, 1.8)
+## 停下时镜头中心相对地球挪多少（镜头坐标，米）
+@export var rocket_view_center := Vector2(1.8, 1.0)
+
 var world: SubViewport
 var camera: Camera3D
 
@@ -74,6 +93,11 @@ var _earth_rest := Vector3.ZERO   # 地球球心（模型自己的坐标）：�
 var _earth_radius := 1.0          # 地球半径（米）
 var _charge := 0.0                # 关卡告诉的蓄力比例（0~1），平滑追过去
 var _charge_goal := 0.0
+var _rocket: Node3D       # 飞出来的猫（外层：位置和歪斜）
+var _rocket_cat: Node3D
+var _flame: Sprite3D
+var _pizza: Node3D
+var _rocket_p := -1.0     # 飞出放到百分之几（< 0 = 还没开始）
 
 
 func setup(host: Node2D) -> void:
@@ -153,6 +177,7 @@ func setup(host: Node2D) -> void:
 	world.add_child(camera)
 	camera.look_at(camera_target)
 	camera.current = true
+	_build_rocket()
 
 
 # ---------------- 给关卡脚本的 ----------------
@@ -224,6 +249,80 @@ func set_charge(ratio: float) -> void:
 	_charge_goal = clampf(ratio, 0.0, 1.5)
 
 
+## 结尾的喷火飞出：从最后那一下重拍开始放（之后每帧用 set_rocket() 告诉它放到百分之几）
+func start_rocket() -> void:
+	if _rocket_p < 0.0:
+		_rocket_p = 0.0
+
+
+func set_rocket(p: float) -> void:
+	if _rocket_p >= 0.0:
+		_rocket_p = clampf(p, 0.0, 1.3)  # 放满后（切关、黑幕落下的那 0.6 秒）还接着冲
+
+
+func rocket_active() -> bool:
+	return _rocket_p >= 0.0
+
+
+## 飞出用的猫、火焰、披萨开场就做好：先缩得很小藏在地球里面画几帧（网页版第一次画新材质要编着色器，
+## 不在这里编的话会卡在飞出的那一下），之后藏起来，到结尾再拿出来。材质都是共用的一份，只多 3 种。
+func _build_rocket() -> void:
+	_rocket = Node3D.new()
+	world.add_child(_rocket)
+	_rocket_cat = TvWallRoom.make_cat()
+	_rocket.add_child(_rocket_cat)
+	var box := TvWallRoom.measure(_rocket_cat)
+	_rocket_cat.scale = Vector3.ONE * rocket_cat_height / maxf(box.size.y, 0.0001)
+	_rocket_cat.position = -(_rocket_cat.transform.basis * box.get_center())
+	_rocket_cat.rotation.y = deg_to_rad(25.0)
+	var cat_mat := StandardMaterial3D.new()
+	cat_mat.albedo_texture = CAT_TEXTURE
+	cat_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for mi in _rocket_cat.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).material_override = cat_mat
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# 火焰：图里喷口在左边、尾巴往右；转成尾巴朝下，贴在猫屁股往下喷
+	_flame = Sprite3D.new()
+	_flame.texture = FLAME
+	_flame.pixel_size = flame_length / FLAME.get_width()
+	_flame.centered = false
+	_flame.offset = Vector2(-FLAME.get_width() * 0.1, -FLAME.get_height() * 0.5)  # 原点放在喷口
+	_flame.rotation_degrees = Vector3(0.0, 0.0, -90.0)
+	_flame.position = Vector3(0.0, -rocket_cat_height * 0.4, -0.3)
+	var fm := StandardMaterial3D.new()
+	fm.albedo_texture = FLAME
+	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_flame.material_override = fm
+	_flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_rocket.add_child(_flame)
+	# 披萨（第 3 关披萨猫踩的那块）：从猫脚下冒出来，稍微朝镜头翻一点好看见饼面
+	_pizza = Node3D.new()
+	_rocket.add_child(_pizza)
+	var pie := PIZZA.instantiate() as Node3D
+	_pizza.add_child(pie)
+	var pbox := TvWallRoom.measure(pie)
+	pie.scale = Vector3.ONE * pizza_diameter / maxf(maxf(pbox.size.x, pbox.size.z), 0.0001)
+	pie.position = -(pie.transform.basis * pbox.get_center())
+	for mi in pie.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_pizza.position = Vector3(0.0, -rocket_cat_height * 0.55, 0.0)
+	_pizza.rotation_degrees = Vector3(35.0, 0.0, 0.0)
+	# 预热：藏在地球球心里（在镜头里、但被地球挡住），画几帧
+	_rocket.scale = Vector3.ONE * 0.05
+	_rocket.position = _model.to_global(_earth_rest) if _earth else _model.global_position
+	_hide_rocket_after_warmup()
+
+
+func _hide_rocket_after_warmup() -> void:
+	for i in WARMUP_FRAMES:
+		await RenderingServer.frame_post_draw
+	if is_instance_valid(_rocket) and _rocket_p < 0.0:
+		_rocket.visible = false
+
+
 ## 判定圈中心在 2D 画面上的位置（相对屏幕中心）
 func focus_screen_pos() -> Vector2:
 	var at := _earth_rest + earth_offset if ring_on_earth and _earth else focus
@@ -258,15 +357,63 @@ func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float) -
 	camera.size = camera_size * (1.0 - charge_zoom * _charge)
 	camera.position = camera_position + camera.global_transform.basis * Vector3(sin(ms * 90.0), cos(ms * 110.0), 0.0) \
 			* (hit_shake * _shake + charge_shake * _charge)
-	# 纸片：出场长大、翻转、播动图
+	# 纸片：出场长大、翻转、播动图；喷火飞出时缩没
+	var gone := smoothstep(0.0, 0.15, _rocket_p) if _rocket_p >= 0.0 else 0.0
 	for c in _cards:
 		var node: Sprite3D = c.node
 		c.grow += dt * 3.0
 		var g := clampf(c.grow, 0.0, 1.0)
-		node.scale = Vector3.ONE * maxf(g * (2.0 - g), 0.01)
+		node.scale = Vector3.ONE * maxf(g * (2.0 - g) * (1.0 - gone), 0.01)
 		c.t = minf(c.t + dt / maxf(meme_flip_time, 0.01), 1.0)
 		var e := 1.0 - pow(1.0 - c.t, 3.0)
 		node.rotation.y = lerpf(c.from, c.to, e)
 		var info: Dictionary = c.info
 		if int(info.frames) > 1:
 			node.frame = int(ms * float(info.fps)) % int(info.frames)
+	if _rocket_p >= 0.0:
+		_update_rocket(ms)
+
+
+## 喷火飞出（p = 0~1）：
+##   0~0.15 镜头推近地球、地球一震，原来拍地球的猫消失；0.12~0.5 猫喷着火从地球里飞出来，镜头跟着拉远；
+##   0.45~0.62 停住站正、火变小、脚下冒出披萨；0.62~0.8 踩着披萨飘；0.8~1.2 火再点起来，踩着披萨冲出画面（1 = 切关，之后黑幕落下的那一会儿接着冲）
+func _update_rocket(ms: float) -> void:
+	var p := _rocket_p
+	var b := camera.global_transform.basis
+	var rig := _model.get_node_or_null("CatRig") as Node3D
+	if rig:
+		rig.visible = p < 0.08
+	# 镜头只平移和改大小，朝向不变：画面中心挪到地球，再跟着猫挪出去
+	var forward := -b.z
+	var earth := _model.to_global(_earth_rest) if _earth else _model.global_position
+	var on_earth := earth - forward * (earth - camera_position).dot(forward)
+	var zin := smoothstep(0.0, 0.12, p)
+	var zout := smoothstep(0.2, 0.55, p)
+	var pos := camera_position.lerp(on_earth, zin).lerp(on_earth + b * Vector3(rocket_view_center.x, rocket_view_center.y, 0.0), zout)
+	var rumble := 1.0 - smoothstep(0.05, 0.2, p)
+	pos += b * Vector3(sin(ms * 70.0), cos(ms * 83.0), 0.0) * 0.08 * rumble
+	camera.size = lerpf(lerpf(camera_size, rocket_close_size, zin), rocket_final_size, zout)
+	camera.position = pos
+	_model.scale = Vector3.ONE * (1.0 + 0.06 * rumble * absf(sin(ms * 40.0)))
+	# 猫：从地球里飞出来 → 停住 → 冲出画面
+	_rocket.visible = p >= 0.12
+	var dir := Vector3(rocket_stop.x, rocket_stop.y, 0.0)
+	var from := earth - forward * 1.0
+	var stop := earth + b * dir - forward * 3.0  # 往镜头这边一点，不被地球挡
+	var fly := 1.0 - pow(1.0 - smoothstep(0.12, 0.5, p), 2.0)
+	var dash := pow(smoothstep(0.8, 1.2, p), 2.0)
+	var settle := smoothstep(0.45, 0.62, p) * (1.0 - smoothstep(0.78, 0.86, p))
+	var bob := sin(ms * 2.2) * 0.12 * settle
+	var tilt := -atan2(rocket_stop.x, rocket_stop.y) * (1.0 - settle)  # 飞的时候头朝飞的方向，停住时站正
+	var at := from.lerp(stop, fly) + b * (dir.normalized() * dash * 14.0) + b.y * bob
+	_rocket.transform = Transform3D(b * Basis(Vector3.BACK, tilt), at)
+	_rocket.scale = Vector3.ONE * lerpf(0.25, 1.0, smoothstep(0.12, 0.3, p))
+	# 火焰：忽大忽小地抖，停住时缩小，冲出去时再喷
+	var burn := maxf(1.0 - settle, 0.0) * smoothstep(0.12, 0.16, p)
+	_flame.visible = burn > 0.02
+	_flame.scale = Vector3(1.0, 0.85 + 0.25 * sin(ms * 31.0), 1.0) * burn * (0.9 + 0.15 * sin(ms * 47.0))
+	# 披萨：停住时从脚下弹出来，之后一直踩着
+	var pop := smoothstep(0.48, 0.62, p)
+	_pizza.visible = pop > 0.0
+	_pizza.scale = Vector3.ONE * maxf(pop + sin(pop * PI) * 0.25, 0.01)
+	(_pizza.get_child(0) as Node3D).rotation.y = ms * 0.8

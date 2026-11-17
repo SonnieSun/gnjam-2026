@@ -1,5 +1,5 @@
 extends SceneTree
-## Headless check of the sky level (the interlude after level 1) against its music, the judge switched off:
+## Headless check of the sky level (level 2) against its music, the judge switched off:
 ##   - when the level turns bright (the gauge passes 50 %: Ode to Joy starts on the next bar line) the chart becomes
 ##     the tune: every note from that bar line on is a note of the melody, counted from the tune's own bar 1
 ##   - the notes before that bar line are still there, nothing is doubled
@@ -27,8 +27,8 @@ func _run() -> void:
 	Music = root.get_node("Music")
 	var main_script = load("res://scripts/main.gd")
 	main_script.in_run = false
-	Levels.selected = 0
-	Levels.interlude = "res://levels/interludes/after_level_1_disco.tres"
+	Levels.selected = 1  # 第 2 大关：天空（原来是第 1 关后面的插曲关）
+	Levels.interlude = ""
 	change_scene_to_file(Levels.GAME_SCENE)
 	await create_timer(0.6).timeout
 	var game = current_scene
@@ -86,5 +86,4 @@ func _run() -> void:
 	await create_timer(0.4).timeout
 	_check("fever at 85 %: the colour filter is on", Music.fever and fx._on and fx._rect.visible)
 	print("SKY_LEVEL_%s" % ("PASS" if _fail == 0 else "FAIL (%d)" % _fail))
-	Levels.interlude = ""
 	quit()

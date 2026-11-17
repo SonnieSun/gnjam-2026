@@ -40,7 +40,7 @@ extends SpinSection
 ## （后面那一下重拍轻一点），不算 Good 也不算 Miss、不断连击。开着：段结束时没达标的按 Judge 的 rules 出 Good / Miss。
 @export var mash_tail_judge := false
 ## 提示文字（快到连按段时显示 / 蓄满时显示）和提示的按键名
-@export var mash_text := "MASH!"
+@export var mash_text := "HIT!!!"
 @export var max_text := "MAX!"
 @export var mash_key_text := "SPACE"
 ## 连按唱鬼畜：每按一下，猫唱出现在这首曲子的下一个音（按多快唱多快，硬切），每一串连按接着唱下一小节、换一只猫；
@@ -64,7 +64,7 @@ extends SpinSection
 @export var power_sound := "orch_hit_Bb"
 @export_range(-30.0, 6.0) var power_sound_db := -6.0
 ## 蓄力不够的重拍：音乐压低几拍（0 = 不压），舞台那边只软绵绵地晃一下
-@export var low_charge_dip_beats := 1.0
+@export var low_charge_dip_beats := 0.0
 @export_group("新闻条")
 ## 新闻条高度（像素）和滚动速度（像素 / 秒）
 @export var news_height := 54.0
@@ -214,6 +214,11 @@ func _build_zones() -> void:
 const ENDING_HOLD_BEATS := 8.0
 ## 大长按从第几拍起（框架给；INF = 还没到结束）。从这里起不再有连按段。
 var ending_from := INF
+## 最后那一下拍下去之后的过渡空位留几小节（框架读这个常量，见 main.gd 的 _plan_ending）：放猫喷火飞出地球，
+## 放完框架落黑幕进下一关
+const ENDING_SLOT_BARS := 3
+## 喷火飞出放到百分之几（< 0 = 还没开始）。按拍子放，正好放满过渡空位；框架切关停了节拍时钟之后按真实时间接着放到黑幕落下
+var _rocket := -1.0
 
 
 ## 重拍没按也自动拍出去：只要这一下之前蓄过力（哪怕一格），或者它是结尾大长按后面的那一下，过了 Great 的窗口
@@ -410,15 +415,34 @@ func _update_spin(local: float, _angle: float) -> void:
 		_stage.set_charge(charge_ratio() + minf(charge_over() * 0.1, 0.5))
 		_pop = maxf(_pop - dt * 9.0, 0.0)
 		_max_flash = maxf(_max_flash - dt * 2.5, 0.0)
+	_update_rocket()
 	if _charge_mode:
 		_stage.update(dt, local, charge_cycle_beats, _strike_beat)
 	else:
 		_stage.update(dt, local, 1.0, 0.0)
-	_news = move_toward(_news, 1.0 if _news_on else 0.0, dt * 2.5)
+	_news = move_toward(_news, 1.0 if _news_on and _rocket < 0.0 else 0.0, dt * 2.5)
 	_scroll += news_speed * dt
 	_flash = maxf(_flash - dt * 2.5, 0.0)
 	_slap_text_age += dt
 	queue_redraw()
+
+
+## 最后那一下（结尾大长按后面的那一拍）一过就开始喷火飞出，放满整段过渡空位
+func _update_rocket() -> void:
+	var start := ending_from + ENDING_HOLD_BEATS
+	if _rocket < 0.0:
+		if is_inf(ending_from) or song_beat() < start:
+			return
+		_rocket = 0.0
+		_stage.start_rocket()
+		_stage.set_charge(0.0)
+	var bpb: int = Conductor.chart.beats_per_bar if Conductor.chart else 4
+	var slot_beats := float(ENDING_SLOT_BARS * bpb)
+	if Conductor.playing:
+		_rocket = maxf(_rocket, (song_beat() - start) / slot_beats)
+	else:
+		_rocket += get_process_delta_time() / maxf(slot_beats * Conductor.sec_per_beat(), 0.1)
+	_stage.set_rocket(_rocket)
 
 
 func _on_note_judged(note: NoteData, result: int) -> void:
@@ -447,7 +471,8 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 	var low := _charge_mode and _last_power < _rules().charge_min_ratio
 	_stage.slap(_last_power, low)
 	if _charge_mode:
-		_slap_text = "POWER SLAP!" if _last_power >= 0.99 else ("LOW CHARGE" if low else "SLAP!")
+		# 蓄力不够不再弹字（判定照样降级），连按时靠闪烁的 HIT!!! 催玩家
+		_slap_text = "POWER SLAP!" if _last_power >= 0.99 else "SLAP!"
 		_slap_text_age = 0.0
 		_charge = 0
 		_maxed = false
@@ -486,6 +511,11 @@ func _draw() -> void:
 				HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20)
 		return
 	if _stage == null:
+		return
+	if _rocket >= 0.0:
+		# 喷火飞出：不再画判定圈和压暗，只留新闻条退场
+		if _news > 0.0:
+			_draw_news(size)
 		return
 	var center := hit_position()
 	var radius := hit_radius()
@@ -567,7 +597,7 @@ func _draw_mash(center: Vector2, radius: float, travel: float) -> void:
 	var fs := 34
 	if _slap_text_age < 0.8:
 		label = _slap_text
-		col = Color(1.0, 0.9, 0.3) if _slap_text != "MISS" and _slap_text != "LOW CHARGE" else Color(1.0, 0.5, 0.5)
+		col = Color(1.0, 0.9, 0.3) if _slap_text != "MISS" else Color(1.0, 0.5, 0.5)
 		fs = 40 if _slap_text == "POWER SLAP!" else 30
 	elif _maxed:
 		label = "%s  %d / %d" % [max_text, _charge, _charge_target] if _charge > _charge_target else max_text
@@ -583,9 +613,11 @@ func _draw_mash(center: Vector2, radius: float, travel: float) -> void:
 		col = Color.from_hsv(fposmod(Time.get_ticks_msec() * 0.0006, 1.0), 0.5, 1.0)
 		fs = 40 + int(8.0 * _pop)
 	elif active:
+		# 连按中：HIT!!! + 计数，快速亮暗闪（约 7 次/秒），每按一下胀一下
 		label = "%s  %d / %d" % [mash_text, _charge, _charge_target]
-		col = charge_color.lerp(Color.WHITE, 0.55)
-		fs = 36 + int(8.0 * _pop)
+		var blink := int(Time.get_ticks_msec() / 70.0) % 2 == 0
+		col = Color.WHITE if blink else charge_color.lerp(Color.WHITE, 0.3)
+		fs = 40 + int(12.0 * _pop)
 	elif coming:
 		label = mash_text
 		col = Color(charge_color.lerp(Color.WHITE, 0.55), 0.6 + 0.4 * absf(sin(Time.get_ticks_msec() * 0.012)))

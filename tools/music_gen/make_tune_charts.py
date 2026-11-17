@@ -3,7 +3,7 @@ the game also uses for its music signals (levels/music/events/<tune>.json, writt
 The chart is as long as the tune's loop, and the level starts it on the beat the tune starts on, so the player
 taps the melody.
 
-  after_level_1_disco_0_ode    the sky level from the moment it turns bright: Ode to Joy, 16 bars, 62 notes
+  level_2_sky_0_ode    the sky level from the moment it turns bright: Ode to Joy, 16 bars, 62 notes
                                (quarters, the dotted figure at the end of each line, two bars with a pair of eighths)
 
 The files are ChartPattern resources (scripts/chart/chart_pattern.gd), the format both chart editors read and write.
@@ -19,7 +19,7 @@ GAME = sys.argv[1]
 K, S = 0, 1          # NoteData.Sound: kick, snare
 
 # chart file name (levels/charts/<name>.tres) -> tune (levels/music/events/<tune>.json)
-CHARTS = {'after_level_1_disco_0_ode': 'ode_to_joy'}
+CHARTS = {'level_2_sky_0_ode': 'ode_to_joy'}
 
 
 def write(name, notes, length):

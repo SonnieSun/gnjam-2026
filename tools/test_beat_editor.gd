@@ -28,7 +28,7 @@ func _run() -> void:
 	var names := []
 	for i in ed._level_pick.item_count:
 		names.append(ed._level_pick.get_item_text(i).strip_edges())
-	_check("the level list has the interlude level", ed._paths.has("res://levels/interludes/after_level_1_disco.tres"), str(names))
+	_check("the level list has the sky level", ed._paths.has("res://levels/level_2_sky.tres"), str(names))
 	var opened := 0
 	for level in ed._paths.size():
 		ed._open_level(level)
@@ -67,7 +67,7 @@ func _run() -> void:
 	_check("marks: the road has syncopation marks", cyan > 10, "%d of %d notes" % [cyan, ed.pattern.notes.size()])
 
 	# the sky level's second phase is the tune itself
-	ed._open_level(ed._paths.find("res://levels/interludes/after_level_1_disco.tres"))
+	ed._open_level(ed._paths.find("res://levels/level_2_sky.tres"))
 	ed._open_phase("ode")
 	_check("it opens on the music of the bright stage: Ode to Joy over the plain groove", Music.events.song_of(Music.playing_clip("lead")) == "ode_to_joy" and Music.playing_clip("beat") == "groove")
 	_check("the sky level's bright phase is the Ode to Joy chart", ed.pattern.notes.size() == 62 and is_equal_approx(ed.pattern.length_beats, 64.0))

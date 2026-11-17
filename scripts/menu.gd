@@ -32,12 +32,32 @@ var _disc_tween: Tween
 var _arm_tween: Tween
 
 
+## 转盘格子数跟 levels/ 里的大关数走：场景里摆的格子不够就照第一格复制，多了就删，再平均分好角度。
+## 放在 _enter_tree 里做，这样 3D 转盘（Disc3D，子节点，比这里先 _ready）读格子时已经是对的数目。
+func _enter_tree() -> void:
+	var disc := get_node("%Disc") as Node2D
+	var sectors: Array[Node2D] = []
+	for child in disc.get_children():
+		if child.name.begins_with("Sector"):
+			sectors.append(child)
+	if sectors.is_empty():
+		return
+	while sectors.size() < Levels.count():
+		var copy := sectors[0].duplicate() as Node2D
+		copy.name = "Sector%d" % (sectors.size() + 1)
+		disc.add_child(copy)
+		sectors.append(copy)
+	while sectors.size() > Levels.count():
+		disc.remove_child(sectors[-1])
+		sectors.pop_back().queue_free()
+	for i in sectors.size():
+		sectors[i].rotation = -i * TAU / sectors.size()
+
+
 func _ready() -> void:
 	for child in _disc.get_children():
 		if child.name.begins_with("Sector"):
 			_sectors.append(child)
-	if _sectors.size() != Levels.count():
-		push_warning("转盘上有 %d 格，但 levels/ 文件夹里有 %d 个大关，两边要一样多" % [_sectors.size(), Levels.count()])
 	_arm_rest = _arm.rotation
 	_head_rest = _head.position
 	_turns = Levels.selected
@@ -105,6 +125,8 @@ func start() -> void:
 	if _starting:
 		return
 	_starting = true
+	# 从选中的这一关开始一路玩到最后一关（前面的跳过），累计成绩从零算
+	preload("res://scripts/main.gd").reset_run()
 	_start_sfx.play()
 	var t := create_tween().set_parallel()
 	t.tween_property(_disc, "rotation", _disc.rotation + TAU, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)

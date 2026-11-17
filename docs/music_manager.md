@@ -408,8 +408,8 @@ Music.miss()                          # hook / peak 降 9 dB，一小节后回�
 ## 天空关（被光柱吸上天，接在第 1 关后面）
 
 设想（2026-11-16）：猫被光柱牵着在屏幕中间往上飞，穿过云层，遇到乌云和末日号角，然后突然亮起来、很神圣，响起欢乐颂；
-最后飞进太空，一个特写进 UFO。**现在已经接进一路连着玩的流程**，是一个"插曲关"：`levels/interludes/after_level_1_disco.tres`，
-音乐配置 `levels/music/after_level_1_disco.json`。第 1 关打完先到它，它打完再去第 2 关；主菜单和暂停转盘上没有它。
+最后飞进太空，一个特写进 UFO。**现在已经接进一路连着玩的流程**，原来是插曲关，2026-11-17 起是第 2 大关：`levels/level_2_sky.tres`，
+音乐配置 `levels/music/level_2_sky.json`。第 1 关打完到它，它打完去第 3 关（电视墙）；主菜单和暂停转盘上是第 2 格。
 **画面（2026-11-16 做了第一版）**：以 Kisa 的吸猫舞台为基底（玩法没变：光圈顺着光柱落到猫身上的那一拍按）。
 `stages/sky/sky_stage.gd`（继承 `AbductionStage`）+ `scripts/sections/sky_section.gd` + `scenes/sections/sky/sky.tscn`。
 猫一直在屏幕中间的光柱里，云从上往下掠过（三层，最近的一层从镜头前扫过去），打中一下速度冲一下。五个阶段跟着音乐的档位走
@@ -718,7 +718,7 @@ MIDI 的来源记在 cat_sound 的 `reference/midi_public_domain/README.md`。
 
 ## 第 3 关（SPACESHIP，最后一关）的音乐：打飞机 + 大 remix（2026-11-16）
 
-配置是 `make_music_sets.py` 的 `SETS[7]`，生成 `levels/music/level_3_spaceship.json`。全是现成的 160 BPM 循环，没有新渲染。
+配置是 `make_music_sets.py` 的 `SETS[7]`，生成 `levels/music/level_4_spaceship.json`。全是现成的 160 BPM 循环，没有新渲染。
 
 **SPACESHIP（打星球）**：土耳其进行曲（全游戏里之前没出现过的那一首，快，像追逐）。照常五档（20 / 45 / 70 / 90%）：
 半拍的鼓 + 和声 → 正常的鼓、低音、乐器旋律 → 高潮层 + 猫鼓 →（一小节过门）猫唱旋律 → FEVER：鬼畜猫旋律。
@@ -774,7 +774,7 @@ MIDI 的来源记在 cat_sound 的 `reference/midi_public_domain/README.md`。
 - 小关里写 `"fever_enter": "tr_ccb_to_cc"`：进 fever 前不放通用过门，放专门写的（只留鼓）。披萨这段是**两小节**（`"fever_enter_bars": 2`）：写了 2 小节以上的过门不占上一句，四步下行先把自己那一句唱完（它最后一小节本来就是往上跑的引子），过门从乐句线起，多出来两小节；这两小节里进度再变也不会提前换（`_fill_until`）。内容就是原曲在名旋律前面做的事（用户给的钢琴 MIDI 第 18–21 小节）：**属音连敲，然后两个重音**。第 1 小节 D D D · D D D ·；第 2 小节前半 D D D D（上面的拨弦变成十六分，通鼓从高到低滚下来，重音前空一个十六分），后半 **喵！喵！**（G、D），滚进小节线，名旋律 A C B A | D D 开始。演奏的是 **fever 的那支乐队提前两小节进来**：用渲染正式音轨的同一段代码把名旋律重新渲染一遍，只把最后两小节改成这些音，再从每条音轨里切出这两小节、按 fever 里的音量混在一起（`make_transitions.py` 的 `from_stems`），所以音色和响度和后面的大高潮完全一样。文件压低 14 dB 存，小关里 `"fever_enter_db": 14` 抬回去。`"fever_on_bars": 4`：在下行段的 4 小节线上起。两个重音第一版不明显，量出来三个原因：起音里最响的是底鼓（有音高的部分比它低 6 dB）；音一个十六分就没了（后半拍比前面的通鼓还轻）；G4、D4 的硬切猫叫开头发闷，而且比前面连敲的 D5 还低。现在：重音上不加底鼓（关卡自己的鼓在），每下只有一声军鼓和镲、两下之间什么都不敲，前面的 fill 压轻；音本身做大做长——猫用乐句结尾那种长 MIAO 喊声（不是硬切的），本位加高八度，前面叠一声 "mi" 的亮起音，乐队一起砸和弦（三个八度的锯齿波 + 拨弦 + 方波，撑满整拍）。量出来重音比 fill 响 4–5 dB，后半拍也比 fill 响。试过又放弃的一小节版：另外编的一小段（拨弦 + 一只猫 + 管弦乐 hit，像换了个声音插进来）；下行段自己的乐队把最后一小节变奏（不是大家认识的那个引子）；乐句结尾"G D A B，G！D！"（重音被跑动淹了）；军鼓滚奏接两个重音（和前面接不上）；下行段的上行加通鼓再接重音（一小节太挤）。
 - 小关里写 `"fever_reverb": 0.2`：进这个小关的 fever 时，Master 总线上慢慢（1.2 秒）加一层大厅混响（湿声 0.2），fever 结束或换关时收掉。加在 Master 上，所以打击音效也一起进大厅。想更大就调这个数；别的小关没写就没有。
 
-**自己改披萨进高潮的过门**：改 `cat_sound	ools\make_transitions.py` 里 "THE PIZZA'S TRANSITION INTO ITS FEVER" 那一块（音符、和弦、重音的写法都写在那块的注释里），然后双击 `cat_sound	ry_pizza_transition.bat`：重新渲染、放进游戏、并生成一个带前后文的试听（`deliver\previews	ransition_try\pizza_transition_in_context.wav`，用 `tools/music_gen/preview_pizza_transition.py`）。**现在用的是用户自己写的旋律**（`cat_sound/reference/midi_from_user/pizza_transition/user_transition.mid` 的第 2–3 小节），两小节：上行 G# A B C# + 属音上的 D A D A，再 D A D A + 两个都落在 G 上的重音，由 fever 的乐队演。鼓是渐快的：前面军鼓跟着旋律敲八分，第二个 D A D A 的前一个 D A 敲十六分、后一个 D A 敲三十二分（再快一倍），通鼓跟着从高到低滚下来，重音前空一个三十二分。两个重音上叠一声高两个八度的短 "mi"（喵感），镲加响。`"fever_enter_bars": 2`、`"fever_enter_replaces": 1`：过门的第一小节顶替下行段那一句的最后一小节（那一小节本来也是上行），第二小节是多出来的。`"fever_enter_replaces"` 不写时，一小节的过门顶替 1 小节，更长的不顶替、接在那一句唱完之后。两小节的"属音连敲"版留在注释里。改了小节数要同时改 `level_3_spaceship.json` 里 SPACE PIZZA 的这两个数。
+**自己改披萨进高潮的过门**：改 `cat_sound	ools\make_transitions.py` 里 "THE PIZZA'S TRANSITION INTO ITS FEVER" 那一块（音符、和弦、重音的写法都写在那块的注释里），然后双击 `cat_sound	ry_pizza_transition.bat`：重新渲染、放进游戏、并生成一个带前后文的试听（`deliver\previews	ransition_try\pizza_transition_in_context.wav`，用 `tools/music_gen/preview_pizza_transition.py`）。**现在用的是用户自己写的旋律**（`cat_sound/reference/midi_from_user/pizza_transition/user_transition.mid` 的第 2–3 小节），两小节：上行 G# A B C# + 属音上的 D A D A，再 D A D A + 两个都落在 G 上的重音，由 fever 的乐队演。鼓是渐快的：前面军鼓跟着旋律敲八分，第二个 D A D A 的前一个 D A 敲十六分、后一个 D A 敲三十二分（再快一倍），通鼓跟着从高到低滚下来，重音前空一个三十二分。两个重音上叠一声高两个八度的短 "mi"（喵感），镲加响。`"fever_enter_bars": 2`、`"fever_enter_replaces": 1`：过门的第一小节顶替下行段那一句的最后一小节（那一小节本来也是上行），第二小节是多出来的。`"fever_enter_replaces"` 不写时，一小节的过门顶替 1 小节，更长的不顶替、接在那一句唱完之后。两小节的"属音连敲"版留在注释里。改了小节数要同时改 `level_4_spaceship.json` 里 SPACE PIZZA 的这两个数。
 
 ### 大高潮那一层（fever layer）和总线限幅器
 
@@ -1026,7 +1026,7 @@ signal lead_note(beat: float, midi: int, length_beats: float)   # 旋律轨这�
 原来整关是一份 8 小节的鼓谱（关卡文件里的 `bars`）循环到底。它和欢乐颂从哪条小节线起没有关系，所以谱里带切分的那两小节落在旋律的哪一句上是碰运气。
 核对结果：云层段（半拍的鼓）每拍的音符底下是镲；风暴段（双踩）什么位置都有鼓；这两段没改。
 
-现在音乐排好亮起来（升到第 2 档，`Music.change_planned`）的时候，谱子在同一条小节线换成 `levels/charts/after_level_1_disco_0_ode.tres`：
+现在音乐排好亮起来（升到第 2 档，`Music.change_planned`）的时候，谱子在同一条小节线换成 `levels/charts/level_2_sky_0_ode.tres`：
 16 小节，62 个音符，**每个音符就是旋律的一个音**（四分音符为主，每句结尾的附点、第 10 和 11 小节的两个八分），从欢乐颂自己的第 1 小节起。
 它由 `python -I tools/music_gen/make_tune_charts.py <项目目录>` 从 `levels/music/events/ode_to_joy.json` 写出来（改了旋律先重跑 `export_music_events.py` 再跑它）。
 换谱在 `scripts/sections/sky_section.gd` 的 `_on_change_planned()`；旧谱里那条小节线之前的音符照常打完，之后的去掉（已经在光柱里的圈淡掉）。
@@ -1065,7 +1065,7 @@ signal lead_note(beat: float, midi: int, length_beats: float)   # 旋律轨这�
 - 两处的开关打开就回到原来的规则。
 
 **洗衣机的长按位置固定了。** 原来前三次长按从小节的第 1 拍起、按 2.75 拍，后面十二次是"第 1 拍点一下、第 2 拍起按 1.75 拍"。现在十五次全是后一种：
-每个长按小节都是 `k...k=======....`（第 1 拍点一下，第 2 拍按住到第 4 拍前）。在关卡文件 `levels/level_2_tv_wall.tres` 第一个小关的 `bars` 里。
+每个长按小节都是 `k...k=======....`（第 1 拍点一下，第 2 拍按住到第 4 拍前）。在关卡文件 `levels/level_3_tv_wall.tres` 第一个小关的 `bars` 里。
 
 **拍地球的连打没有尾判了**（`earth_slap_section.gd` 的 `mash_tail_judge`，默认关）。连打段结束时不出判定：按够数的那一下照常立刻 Perfect；
 没按够只是蓄力不满（后面那一下重拍轻一点、按 Good 算），不再有段尾的 Good / Miss，也不断连击。
@@ -1075,7 +1075,7 @@ signal lead_note(beat: float, midi: int, length_beats: float)   # 旋律轨这�
 `main.gd` 算的是"这首曲子停下来的那一拍"落在乐句线上：下一个小关进来不放过门时，音乐要到切关之后的下一条小节线才换，所以切关定在乐句线的前一小节。
 第二关写了两处：第一段（轻拍）4，最后一段 4（过关时那一句唱完）。最多多等 3 小节。切关前的上扬音效改成在最后一小节才放。
 
-**第三段的谱重写了**（`levels/charts/level_2_tv_wall_3.tres`）。原来两小节一轮：连打 1 下、重拍、点、点、连打 1 下、长按 2 拍——六种东西各一下，而且重拍落在碎拍鼓型没有鼓的地方。
+**第三段的谱重写了**（`levels/charts/level_3_tv_wall_3.tres`）。原来两小节一轮：连打 1 下、重拍、点、点、连打 1 下、长按 2 拍——六种东西各一下，而且重拍落在碎拍鼓型没有鼓的地方。
 现在一小节一轮，和第二段是同一个手势、连打更密，每一下都在碎拍（break）鼓型的鼓上：
 
 | 拍 | 1 | 2 – 3 | 4 |
@@ -1094,7 +1094,7 @@ signal lead_note(beat: float, midi: int, length_beats: float)   # 旋律轨这�
 
 ## 第三关的谱，和标记 / fever 画面铺到第二、三关（2026-11-17）
 
-**射击段的谱对齐到土耳其进行曲**（`levels/charts/level_3_spaceship_0.tres`，一个音符 = 一颗星球）。核对出三件事，都改了，别的音符没动：
+**射击段的谱对齐到土耳其进行曲**（`levels/charts/level_4_spaceship_0.tres`，一个音符 = 一颗星球）。核对出三件事，都改了，别的音符没动：
 - 谱是 15 小节一轮，曲子是 16 小节：每放一轮就和曲子错开一小节。补了第 16 小节（`0 2`），现在一样长。
 - 开头四小节的音符在第 2、4 拍，而开头是半拍的鼓（底鼓在第 1 拍和第 3 拍半，拍手在第 3 拍），那两拍底下没有鼓。改到第 1、3 拍。
 - 第 9 小节唯一的音符在旋律没有音的那一拍，挪到了有音的第 3 拍。
@@ -1216,5 +1216,5 @@ fever 的谱在音乐排好进 fever 的那条小节线上换过来（`disco_sec
   - 披萨段三套谱（`space_pizza_section.gd`，跟 `Music.change_planned` 在音乐换的那条线上换）：开头每小节第 1、3 拍；四阶下行（`mid_bars`）每小节前两拍四个八分音符对着那四个音、第 4 拍一下；高潮（`peak_bars`）四分音符连打。阶段长度：`gauge_events = [65, 98]`、`phase_gain = [1, 0.165, 0.1]`、`fever_gain = 0.1`——四阶下行约 8 小节，高潮从过线算起约 14 小节。
 - **洗衣机镜头晃动收了一点**：跟拍角度约 ×0.7，朋克阶段的角度倍数 1.5 → 1.3、推拉范围收窄、打中那一下的推 0.14 → 0.1，发电震动 5 → 3.5 像素。
   这一段的进度是靠"按完了几次长按"走的（一共 8 次：3 次拉镜头 + 10 台电视每次亮 2 台）。新谱的长按少了很多，自动打一遍从 23 秒变成了 74 秒。要缩短得改每次长按推进多少（`tvs_per_hold` / `zoom_holds`），还没动。
-- **地球第 3 阶段的谱**（`level_2_tv_wall_3.tres`）：原来是四拍循环 `0 | 连按 1–2 | 3`，连按一结束下一拍就是音符。现在八拍循环，对着 break 鼓点：`0`（底鼓）`1`（拍手）、连按 `2–3.5`、空一拍多、`5`（拍手）`6.5`（底鼓）`7`（拍手）。
+- **地球第 3 阶段的谱**（`level_3_tv_wall_3.tres`）：原来是四拍循环 `0 | 连按 1–2 | 3`，连按一结束下一拍就是音符。现在八拍循环，对着 break 鼓点：`0`（底鼓）`1`（拍手）、连按 `2–3.5`、空一拍多、`5`（拍手）`6.5`（底鼓）`7`（拍手）。
 

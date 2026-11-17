@@ -62,6 +62,28 @@ static func count() -> int:
 	return paths().size()
 
 
+## 主菜单转盘上显示的关名和小关数，写在 levels/menu_info.json 里（按大关文件名查），
+## 这样转盘不用为了几个字把整关的场景、模型、音乐都读进来。改了大关的名字或小关数要同步改那份配置。
+const MENU_INFO_FILE := "menu_info.json"
+static var _menu_info := {}
+
+
+## 第 index 个大关（0 起）在转盘上显示什么：{ "title": 关名, "stages": 小关数 }
+static func info(index: int) -> Dictionary:
+	var path := paths()[clampi(index, 0, count() - 1)]
+	if _menu_info.is_empty():
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path.get_base_dir().path_join(MENU_INFO_FILE)))
+		if parsed is Dictionary:
+			_menu_info = parsed
+	var key := path.get_file().get_basename()
+	if not _menu_info.has(key):
+		# 配置里没写这一关：退回去读关卡文件（慢），并提醒补上
+		push_warning("%s 里没有 %s，转盘只好读整关文件，请补上" % [MENU_INFO_FILE, key])
+		var chart := load(path) as SongChart
+		_menu_info[key] = {"title": chart.title, "stages": chart.sections.size()}
+	return _menu_info[key]
+
+
 static func _chart(index: int) -> SongChart:
 	if index == selected and interlude != "":
 		return load(interlude) as SongChart

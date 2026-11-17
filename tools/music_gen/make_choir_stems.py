@@ -158,7 +158,7 @@ def _hat(seconds, gain):
 
 
 # The climax needs dynamics of its own, or eight bars of everything is flat. Two strengths of the layer, staged
-# by the level inside the fever (levels/music/level_3_spaceship.json, the peak lane):
+# by the level inside the fever (levels/music/level_4_spaceship.json, the peak lane):
 #   entry    right after the transition: the full layer described above (what the two accents lead into)
 #   max      the last stretch: everything, the synth lead also an octave up, crashes on every other bar, hats in
 #            sixteenths, a louder backbeat, toms at the end of every four bars, a snare roll and a riser into the
