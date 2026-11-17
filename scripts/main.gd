@@ -201,7 +201,7 @@ func _wait_for_start() -> void:
 	if breath_bars > 0.0:
 		# 黑幕落走要 StageCurtain.LEAVE_SECONDS，之后再停 breath_bars 小节
 		var wait := StageCurtain.LEAVE_SECONDS + breath_bars * chart.beats_per_bar * 60.0 / chart.bpm
-		get_tree().create_timer(wait).timeout.connect(_begin_on_bar)
+		get_tree().create_timer(wait, false).timeout.connect(_begin_on_bar)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -216,7 +216,7 @@ func _begin_on_bar() -> void:
 		return
 	var left := Music.bridge_seconds_to_bar()
 	if left > 0.0:
-		get_tree().create_timer(left).timeout.connect(_begin_after_wait.bind(true))
+		get_tree().create_timer(left, false).timeout.connect(_begin_after_wait.bind(true))
 	else:
 		_begin_after_wait(true)
 
@@ -267,7 +267,7 @@ func _cozy_spin(seconds: float) -> void:
 	cat.hold_spin_time = cozy_spin_time
 	cat.set_held(true)
 	cat.spin()
-	await get_tree().create_timer(seconds).timeout
+	await get_tree().create_timer(seconds, false).timeout
 	if is_instance_valid(cat):
 		cat.set_held(false)
 		cat.hold_spin_time = was_time
@@ -450,7 +450,7 @@ func _clear_level() -> void:
 			get_tree().change_scene_to_file.call_deferred(Levels.GAME_SCENE)
 		else:
 			StageCurtain.drop(get_tree(), curtain_seconds)
-			get_tree().create_timer(curtain_seconds + 0.05).timeout.connect(
+			get_tree().create_timer(curtain_seconds + 0.05, false).timeout.connect(
 					get_tree().change_scene_to_file.bind(Levels.GAME_SCENE))
 		return
 	# 最终结算：一路连着玩的话把前面几关的成绩合进来
@@ -465,7 +465,7 @@ func _clear_level() -> void:
 		hud.result_label.next_pressed.connect(_go_credits)
 	# 结算画面停一会儿，自己接到片尾字幕（不回第 1 关）；字幕放完回主菜单
 	if credits_after_seconds > 0.0:
-		_credits_timer = get_tree().create_timer(credits_after_seconds)
+		_credits_timer = get_tree().create_timer(credits_after_seconds, false)
 		_credits_timer.timeout.connect(_go_credits)
 
 

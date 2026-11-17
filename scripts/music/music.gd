@@ -1008,6 +1008,16 @@ func _clip_file(lane_id: String, clip_id: String) -> String:
 ## 离透出来的那段音乐的下一条小节线还有几秒（没在放就是 0）。在小节线上开始数拍子，
 ## 透出来的鼓就能一直响到下一关的第一拍，和正式的音乐接上，中间不断。
 var _tease_t0 := 0
+## 暂停的那一刻：继续时 _tease_t0 往后挪，透出来的音乐的小节线不会算错（同 Conductor）
+var _paused_usec := 0
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED:
+		_paused_usec = Time.get_ticks_usec()
+	elif what == NOTIFICATION_UNPAUSED and _paused_usec > 0:
+		_tease_t0 += Time.get_ticks_usec() - _paused_usec
+		_paused_usec = 0
 
 func bridge_seconds_to_bar() -> float:
 	if not _tease.playing:

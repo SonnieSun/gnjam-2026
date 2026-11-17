@@ -174,7 +174,7 @@ func _update_spin(local_beat: float, angle: float) -> void:
 			# 猫浮起来、飞碟飞走、猫弹出屏幕；"飞走"的音效提前放，让它最响的地方落在猫起飞那一下
 			var launch := _road.fly_away(fly_away_beats * Conductor.sec_per_beat())
 			_clear_at = song_beat() + fly_away_beats
-			get_tree().create_timer(maxf(launch - 1.8, 0.0)).timeout.connect(Music.play_sfx.bind("sky_whoosh_up", -3.0))
+			get_tree().create_timer(maxf(launch - 1.8, 0.0), false).timeout.connect(Music.play_sfx.bind("sky_whoosh_up", -3.0))
 	# 猫飞出去之后、过关之前：后面还接着一关（一路连着玩）就落下黑幕，下一关开始时它接着往下落出屏幕
 	if song_beat() >= _clear_at - 2.0 and not _curtain:
 		_curtain = true

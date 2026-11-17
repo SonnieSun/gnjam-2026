@@ -1,6 +1,8 @@
 extends CanvasLayer
 ## 暂停转盘：游戏里按 Esc 把选关转盘（scenes/menu.tscn）叠在游戏上面，同时暂停游戏；再按 Esc 关掉、继续。
-## 在转盘上选一关确认（空格 / 回车 / 点击），就从那一关开头开始（转盘自己的逻辑，没改它）。
+## 转盘停在正在玩的这一关时按钮是 RESUME（回车 / 点击 = 继续）；拨到别的关再确认，就从那一关开头开始。
+## 左上角 SETTINGS 打开设置面板（暂停时也能调音量、延迟），面板开着时 Esc 只关面板。
+## 继续游戏时把转盘上翻过的关还原（Levels.selected / interlude），不然打完这一关会接错下一关。
 ## 从转盘选进去的关不算“一路连着玩”，打完直接出结算；选第 1 关则重新开始一路连着玩。
 ## main.gd 在 _ready 里挂上这个节点。
 
@@ -38,6 +40,9 @@ var _intro: Tween
 var _closing := false
 ## 开场时记下的节点和它们在场景里的原位，退场倒放用
 var _parts := {}
+## 打开时正在玩的关（继续时还原）
+var _saved_selected := 0
+var _saved_interlude := ""
 
 
 func _ready() -> void:
@@ -49,6 +54,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo or key.physical_keycode != KEY_ESCAPE:
 		return
+	if _menu and _menu.has_method("is_busy") and _menu.is_busy():
+		return  # 设置面板开着：Esc 归面板（面板自己关掉），这里不拦
 	get_viewport().set_input_as_handled()
 	if _closing:
 		return  # 退场动画还在放
@@ -61,7 +68,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func open() -> void:
 	if _menu_scene == null:
 		_menu_scene = load(Levels.MENU_SCENE)
+	_saved_selected = Levels.selected
+	_saved_interlude = Levels.interlude
 	_menu = _menu_scene.instantiate()
+	if "pause_level" in _menu:
+		_menu.pause_level = Levels.selected
+		_menu.resume_requested.connect(close)
 	add_child(_menu)
 	# 转盘场景里按钮那层（PLAY / CREDIT / 音量）自己是第 1 层，叠在游戏上时会被画到转盘下面，抬到转盘上面
 	var actions := _menu.get_node_or_null("MenuActions") as CanvasLayer
@@ -175,6 +187,8 @@ func _on_intro_done() -> void:
 func close() -> void:
 	if _closing:
 		return
+	Levels.selected = _saved_selected
+	Levels.interlude = _saved_interlude
 	if _intro:
 		_intro.kill()
 		_intro = null
@@ -229,6 +243,9 @@ func _play_outro() -> void:
 
 
 func _finish_close() -> void:
+	# 继续游戏：在转盘上翻过的关不算数
+	Levels.selected = _saved_selected
+	Levels.interlude = _saved_interlude
 	_closing = false
 	_intro = null
 	_parts = {}

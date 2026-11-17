@@ -561,7 +561,7 @@ func _make_curtain() -> void:
 	SpaceShooterScore.handoff = {"curtain": _curtain}
 	# 保险：没接上下一段（重开、回菜单）就自己消失，不会一直黑着
 	var c := _curtain
-	get_tree().create_timer(curtain_beats * Conductor.sec_per_beat() + 6.0).timeout.connect(func() -> void:
+	get_tree().create_timer(curtain_beats * Conductor.sec_per_beat() + 6.0, false).timeout.connect(func() -> void:
 		if is_instance_valid(c):
 			c.queue_free())
 

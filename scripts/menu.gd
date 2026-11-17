@@ -17,6 +17,16 @@ const PULSE_HZ := 2.0
 ## 没选中的格子暗多少（1 = 不变暗）
 @export var dim := 0.55
 
+## 暂停转盘（scripts/pause_menu.gd）用：游戏里按 Esc 叠出来的这个菜单。>= 0 时是暂停模式，值是正在玩的那一关。
+## 暂停模式下：转盘停在正在玩的那一关时，底下的按钮是 RESUME（回车 / 点击 = 继续游戏）；
+## 拨到别的关就变成 PLAY（从那一关开始）。Esc 不开设置，留给暂停转盘关掉自己。
+var pause_level := -1
+## 暂停模式下按 RESUME
+signal resume_requested
+
+const HINT_MENU := "LEFT / RIGHT  SELECT     SPACE / ENTER  PLAY     ESC  SETTINGS"
+const HINT_PAUSE := "LEFT / RIGHT  SELECT     ENTER  RESUME / PLAY     ESC  RESUME"
+
 @onready var _disc: Node2D = %Disc
 @onready var _arm: Node2D = %ArmPivot
 @onready var _head: Node2D = %Head
@@ -77,6 +87,7 @@ func _ready() -> void:
 		b.mouse_exited.connect(func() -> void:
 			if _hovered == b:
 				_hovered = null)
+	$MenuActions/Controls.text = HINT_PAUSE if pause_level >= 0 else HINT_MENU
 	_refresh()
 
 
@@ -99,6 +110,16 @@ func open_settings() -> void:
 
 func _busy() -> bool:
 	return is_instance_valid(_settings)
+
+
+## 设置面板开着（暂停转盘用它判断 Esc 该关谁）
+func is_busy() -> bool:
+	return _busy()
+
+
+## 暂停模式下，转盘停在正在玩的那一关
+func _on_resume_slot() -> bool:
+	return pause_level >= 0 and Levels.selected == pause_level
 
 
 func _process(_delta: float) -> void:
@@ -152,11 +173,17 @@ func turn(dir: int) -> void:
 	arrow.create_tween().tween_property(arrow, "scale", Vector2.ONE, 0.2)
 
 
-## 进入当前选中的大关
+## 进入当前选中的大关（暂停模式下停在正在玩的那一关 = 继续游戏）
 func start() -> void:
 	if _starting or _busy():
 		return
+	if _on_resume_slot():
+		_start_sfx.pitch_scale = 1.2
+		_start_sfx.play()
+		resume_requested.emit()
+		return
 	_starting = true
+	_start_sfx.pitch_scale = 1.0
 	# 从选中的这一关开始一路玩到最后一关（前面的跳过），累计成绩从零算
 	preload("res://scripts/main.gd").reset_run()
 	_start_sfx.play()
@@ -170,13 +197,15 @@ func _refresh() -> void:
 	for i in _sectors.size():
 		var on := i == Levels.selected
 		_sectors[i].modulate = Color.WHITE if on else Color(dim, dim, dim)
+	($MenuActions/Play as Button).text = "RESUME" if _on_resume_slot() else "PLAY"
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo() or _busy():
 		return
 	if event.is_action_pressed("ui_cancel"):
-		open_settings()
+		if pause_level < 0:  # 暂停模式下 Esc 归暂停转盘（关掉、继续游戏）
+			open_settings()
 		return
 	if event.is_action_pressed("ui_left"):
 		turn(-1)

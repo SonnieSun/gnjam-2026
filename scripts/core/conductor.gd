@@ -55,6 +55,21 @@ var _wait_start_usec := 0
 var _raw_usec := 0
 
 
+## 游戏暂停（暂停转盘）的那一刻；继续时把系统时钟的起点往后挪这么久，时间从暂停的地方接着走，
+## 不会一下子跳过暂停的那几秒（跳过去的话那几秒里的音符都会判成漏打）。音频播放器自己会跟着暂停。
+var _paused_usec := 0
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED:
+		_paused_usec = Time.get_ticks_usec()
+	elif what == NOTIFICATION_UNPAUSED and _paused_usec > 0:
+		var gap := Time.get_ticks_usec() - _paused_usec
+		_paused_usec = 0
+		_raw_usec += gap
+		_wait_start_usec += gap
+
+
 func _ready() -> void:
 	process_priority = -100  # 保证比其他节点先更新时钟
 	_player = AudioStreamPlayer.new()
