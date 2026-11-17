@@ -27,6 +27,8 @@ var _storm_chart := false
 var _run_at := INF  # 八分连打从哪一拍起（还没换上）
 ## 欢乐颂一遍有几拍（16 小节）：结尾演出不早于它唱完的那一拍
 @export var ode_beats := 64.0
+## 欢乐颂进来以后空几拍不出音符（换段音符那一拍还在；白光、神圣的和弦，给玩家喘口气）。4 = 一整小节
+@export var ode_rest_beats := 4.0
 ## 进欢乐颂之前的八分连打一共几个（最后一个是换段音符）。8 = 差半拍一小节
 @export var ode_run_notes := 8
 
@@ -129,6 +131,10 @@ func _ode_tick() -> void:
 	_ode_origin = at
 	if main and main.get("judge") and d.chart:
 		_swap_chart(main, d, at + 0.25, at)
+		for n in notes:  # 欢乐颂第一小节空出来：这几拍的音符不出（不算 Miss）
+			if not n.judged and n.beat > at + 0.01 and n.beat < at + ode_rest_beats - 0.01:
+				n.judged = true
+				_drop_ring(n)
 
 
 ## 一个音符不要了：它的圈要是已经在光柱里往下落，让它淡掉（舞台只给判定过的音符收圈，不管的话会停在半空）
@@ -231,5 +237,6 @@ func _fill_gauge_now() -> void:
 	if main == null or not main.get("gauge"):
 		return
 	var g: Gauge = main.gauge
+	g.gain_scale = 1.0  # 等欢乐颂唱完的时候积累条是停住的（gain_scale = 0）：不先放开，下面这个循环永远填不满，游戏卡死
 	while not g.full:
 		g.apply(NoteData.Result.PERFECT)

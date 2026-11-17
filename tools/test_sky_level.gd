@@ -7,7 +7,9 @@ extends SceneTree
 ##     the tune: every note from that bar line on is a note of the melody, counted from the tune's own bar 1
 ##   - the notes before the run into it are still there, the bar before it is a run of eighths, nothing is doubled
 ##   - space comes in on the tune's bar 9 and the fever on bar 13 (phrase lines), with the fever picture
-##   - the last gauge line does not end the level before the tune has been sung through once (16 bars)
+##   - the last gauge line does not end the level before the tune has been sung through once (16 bars), and the level
+##     then really clears
+##   - the Ode's first bar has no notes to play (only the rainbow note on its bar line)
 ##   - the cat in the beam bounces with the music
 ##   godot --headless -s tools/test_sky_level.gd       (about a minute, real time)
 
@@ -18,6 +20,7 @@ var _commit := -1.0
 var _storm_fill := -1.0
 var _storm_commit := -1.0
 var _space_at := -1.0
+var _cleared := false
 
 
 func _initialize() -> void:
@@ -93,8 +96,13 @@ func _run() -> void:
 			if not (int(round((b - origin) * 4.0)) % (int(song.bars) * 16)) in written:
 				off.append(b)
 	_check("from that bar line on every note is a note of the melody", off.is_empty() and after.size() >= 8, "%d notes, not in the tune: %s" % [after.size(), str(off)])
-	var want := written.filter(func(s: int) -> bool: return s < 32).map(func(s: int) -> float: return _commit + s / 4.0)
-	_check("the first two bars are the tune's first two bars, note for note", after.slice(0, want.size()) == want, str(after.slice(0, want.size())))
+	# the Ode's first bar is a rest (only the rainbow note on its bar line); from bar 2 on the notes are the tune's, note for note
+	var playable: Array = section.notes.filter(func(n: NoteData) -> bool: return not n.judged).map(func(n: NoteData) -> float: return n.beat)
+	var rest := playable.filter(func(b: float) -> bool: return b > _commit + 0.01 and b < _commit + 3.99)
+	_check("the Ode's first bar has no notes to play (only the rainbow note on its bar line)", rest.is_empty() and _commit in playable, str(rest))
+	var want := written.filter(func(s: int) -> bool: return s >= 16 and s < 32).map(func(s: int) -> float: return _commit + s / 4.0)
+	var bar2 := playable.filter(func(b: float) -> bool: return b >= _commit + 3.99 and b < _commit + 7.99)
+	_check("its bar 2 is the tune's bar 2, note for note", bar2 == want, str(bar2))
 	var run_from: float = _commit - (section.ode_run_notes - 1) * 0.5
 	var kept := want_storm.filter(func(b: float) -> bool: return b < run_from - 0.001)   # the whole storm chart up to the run
 	var still := beats.filter(func(b: float) -> bool: return b < run_from - 0.001 and b > _storm_fill - 0.001).map(func(b: float) -> float: return snappedf(b, 0.001))
@@ -146,5 +154,11 @@ func _run() -> void:
 	for i in 10:
 		game.gauge.apply(NoteData.Result.PERFECT)
 	_check("while it waits the gauge does not fill up", game.gauge.value == v and not game.gauge.full, "%d -> %d" % [v, game.gauge.value])
+	# and the level really clears after the finale (a stopped gauge once made the last fill loop forever: the game froze)
+	game.level_cleared.connect(func() -> void: _cleared = true)
+	var limit: float = minf(section._finale_at + section.finale_beats + 16.0, Conductor.song_beat + 48.0)
+	while not _cleared and Conductor.song_beat < limit:
+		await process_frame
+	_check("the level clears after the finale (no freeze)", _cleared and game.gauge.full, "gauge %d / %d" % [game.gauge.value, game.gauge.max_value])
 	print("SKY_LEVEL_%s" % ("PASS" if _fail == 0 else "FAIL (%d)" % _fail))
 	quit()
