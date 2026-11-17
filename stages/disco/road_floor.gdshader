@@ -108,3 +108,15 @@ void fragment() {
 	EMISSION = emit * fog;
 	ROUGHNESS = mix(0.6, 0.25, dance);
 }
+
+// 自己算灯光：方格地板照常受光；舞池和霓虹网格段地板本身是黑的、全靠自发光，灯光直接跳过不算（网页版省很多）
+void light() {
+	float lit = 1.0 - max(dance, grid);
+	if (lit > 0.01) {
+		float ndl = clamp(dot(NORMAL, LIGHT), 0.0, 1.0);
+		DIFFUSE_LIGHT += ndl * ATTENUATION * LIGHT_COLOR / PI * lit;
+		vec3 h = normalize(LIGHT + VIEW);
+		float spec = pow(clamp(dot(NORMAL, h), 0.0, 1.0), 24.0);
+		SPECULAR_LIGHT += spec * ndl * ATTENUATION * LIGHT_COLOR * 0.15 * lit;
+	}
+}

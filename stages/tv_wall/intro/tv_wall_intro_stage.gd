@@ -173,7 +173,7 @@ func setup(host: Node2D) -> void:
 	world = SubViewport.new()
 	world.size = Vector2i(host.get_viewport_rect().size)
 	world.own_world_3d = true
-	world.msaa_3d = Viewport.MSAA_4X
+	world.msaa_3d = Viewport.MSAA_2X
 	host.add_child(world)
 	_sprite = Sprite2D.new()
 	_sprite.texture = world.get_texture()

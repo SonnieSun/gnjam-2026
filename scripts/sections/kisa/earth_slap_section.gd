@@ -23,18 +23,12 @@ extends SpinSection
 ## 蓄力段每几拍一组、重拍在每组的第几拍（谱面里有 s 就按谱面里第一个 s 的位置，这个数只是没有 s 时用）
 @export var charge_cycle_beats := 4.0
 @export var charge_strike_beat := 2.0
-## 蓄到这个比例以上，重拍才按原判定涨积累条；不够只按 Good 算
-@export_range(0.0, 1.0) var minimum_charge_ratio := 0.5
 @export var charge_color := Color("8878ff")
 @export var charged_color := Color("79dfff")
 @export_group("连按")
 ## 连按不看节奏：连按那一段时间里随便按，没有上限，每一下都有反馈。整段连按算一次判定：
-##   按够数（达标）的那一下立刻 Perfect，之后可以接着按；
-##   到连按段结束还没达标：按了达标数的 mash_good_ratio 以上算 Good，不到算 Miss（一下没按当然也是 Miss）。
-## 要按几下（达标数）= 谱面里那一串 h 的个数 × 这个比例（向上取整）。1 = 谱面上有几个就要按几下；调小 = 手慢也能达标
-@export_range(0.2, 1.0, 0.05) var mash_need_ratio := 0.7
-## 按到达标数的多少比例以上算 Good
-@export_range(0.0, 1.0, 0.05) var mash_good_ratio := 0.5
+##   按够数（达标）的那一下立刻 Perfect，之后可以接着按；到连按段结束还没达标按比例算 Good / Miss。
+## 要按几下、算 Good 的比例、这一段从哪拍数到哪拍、蓄力够不够，都在 Judge 的 rules（JudgeRules）里调。
 ## 超过达标数之后每多按一下，MAX 那行字大几号（最大到多少号）、颜色沿色环转多少（0.13 ≈ 每下换一种明显不同的颜色）
 @export var max_grow_per_press := 4
 @export var max_grow_limit := 84
@@ -43,13 +37,8 @@ extends SpinSection
 @export var mash_over_punch := 0.1
 @export var mash_over_max := 0.6
 ## 连按有没有尾判。关着（默认）：连按段结束时不出判定——按够数的那一下照常立刻 Perfect，没按够就只是蓄力不满
-## （后面那一下重拍轻一点），不算 Good 也不算 Miss、不断连击。开着：段结束时没达标的按上面的规则出 Good / Miss。
+## （后面那一下重拍轻一点），不算 Good 也不算 Miss、不断连击。开着：段结束时没达标的按 Judge 的 rules 出 Good / Miss。
 @export var mash_tail_judge := false
-## 连按那一段比谱面上第一个 h 提前多少拍开始算、最后一个 h 之后还算多少拍
-@export var mash_lead_beats := 0.25
-@export var mash_tail_beats := 0.25
-## 重拍前留多少拍不算连按（免得连按的最后一下蹭掉重拍）
-@export var mash_guard_beats := 0.2
 ## 提示文字（快到连按段时显示 / 蓄满时显示）和提示的按键名
 @export var mash_text := "MASH!"
 @export var max_text := "MAX!"
@@ -208,11 +197,12 @@ func _build_zones() -> void:
 		if not run.is_empty():
 			# 这一串后面第一个真正要判的音符：连按段要在它之前收住
 			var next_beat := float(list[i].beat) if i < list.size() else _pattern_len + float(list[0].beat)
+			var span := _rules().mash_zone(run[0], run[-1], next_beat)
 			_zones.append({
-				"start": run[0] - mash_lead_beats,
-				"end": maxf(minf(run[-1] + mash_tail_beats, next_beat - mash_guard_beats), run[-1]),
+				"start": span.x,
+				"end": span.y,
 				"beats": run.duplicate(),
-				"need": maxi(ceili(run.size() * mash_need_ratio), 1),
+				"need": _rules().mash_count_need(run.size()),
 			})
 			run = []
 		if is_h:
@@ -336,6 +326,12 @@ func is_charge_note(note: NoteData) -> bool:
 	return _charge_mode and note != null and note.sound == NoteData.Sound.HAT
 
 
+## 判定规则：游戏里用 Judge 那份；编辑器预览没有 Judge，用默认值
+func _rules() -> JudgeRules:
+	var j := main_judge()
+	return j.rules if j else JudgeRules.new()
+
+
 ## 蓄了多少（达标 = 1，超过了也只算 1）
 func charge_ratio() -> float:
 	return clampf(float(_charge) / _charge_target, 0.0, 1.0)
@@ -350,9 +346,7 @@ func charge_over() -> int:
 func gauge_result(note: NoteData, result: int) -> int:
 	if is_charge_note(note):
 		return NoteData.Result.NONE
-	if _charge_mode and result == NoteData.Result.PERFECT and charge_ratio() < minimum_charge_ratio:
-		return NoteData.Result.GOOD
-	return result
+	return _rules().charged_result(result, charge_ratio()) if _charge_mode else result
 
 
 ## 蓄力连点不放大范围的命中特效，只有拍地球那一下放
@@ -383,9 +377,9 @@ func _update_spin(local: float, _angle: float) -> void:
 			_maxed = false
 			_charge_target = zone.need
 		if not _zone_judged and song_beat() > float(_zone.end):
-			# 连按段结束了还没达标。没有尾判：不出判定。有尾判：按了一半以上算 Good，不到算 Miss
+			# 连按段结束了还没达标。没有尾判：不出判定。有尾判：按比例算 Good / Miss
 			if mash_tail_judge:
-				_judge_zone(NoteData.Result.GOOD if _charge > 0 and _charge >= _charge_target * mash_good_ratio else NoteData.Result.MISS)
+				_judge_zone(_rules().mash_count_result(_charge, _charge_target))
 			else:
 				_zone_judged = true
 		if song_beat() >= ending_from:
@@ -429,7 +423,7 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		Music.end_fever()
 	_last_power = charge_ratio() if _charge_mode else 0.0
 	_over_at_slap = charge_over()
-	var low := _charge_mode and _last_power < minimum_charge_ratio
+	var low := _charge_mode and _last_power < _rules().charge_min_ratio
 	_stage.slap(_last_power, low)
 	if _charge_mode:
 		_slap_text = "POWER SLAP!" if _last_power >= 0.99 else ("LOW CHARGE" if low else "SLAP!")
@@ -474,7 +468,7 @@ func _draw() -> void:
 		return
 	var center := hit_position()
 	var radius := hit_radius()
-	var charged := charge_ratio() >= minimum_charge_ratio
+	var charged := charge_ratio() >= _rules().charge_min_ratio
 	var travel := approach_travel_ratio * size.y
 	# 和第 1 关一样：判定点外面压暗、判定圈预亮、空拍补虚线（音符本身就是缩圈，不再叠实线）
 	draw_focus(self, center, radius)

@@ -27,6 +27,10 @@ const MODEL := preload("res://assets/models/cat_earth_y2k/cat_earth_model.tscn")
 @export var ring_on_earth := true
 @export var earth_offset := Vector3.ZERO
 
+@export_group("省性能")
+## 地球换成 Godot 内置球的横向段数（竖向取一半）；原模型 96×48 段约 9000 三角。0 = 用原模型
+@export var earth_segments := 32
+
 @export_group("拍中反馈")
 ## 拍中时整套模型弹大多少（蓄力拍按力度放大）
 @export var hit_pulse := 0.04
@@ -76,7 +80,7 @@ func setup(host: Node2D) -> void:
 	world = SubViewport.new()
 	world.size = Vector2i(host.get_viewport_rect().size)
 	world.own_world_3d = true  # 要在带蒙皮的模型进场景树之前设好
-	world.msaa_3d = Viewport.MSAA_4X
+	world.msaa_3d = Viewport.MSAA_2X
 	host.add_child(world)
 	_sprite = Sprite2D.new()
 	_sprite.texture = world.get_texture()
@@ -139,6 +143,7 @@ func setup(host: Node2D) -> void:
 		if mesh and mesh.mesh:
 			var size := mesh.mesh.get_aabb().size * mesh.global_transform.basis.get_scale()
 			_earth_radius = maxf(size.x, maxf(size.y, size.z)) / 2.0
+			_use_low_poly_earth(mesh)
 
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -153,6 +158,25 @@ func setup(host: Node2D) -> void:
 # ---------------- 给关卡脚本的 ----------------
 
 ## 拍中一次。power 0 = 轻拍，1 = 蓄满力的重拍。weak = 蓄力不够：软绵绵的一下
+## 原地球是 UV 经纬度展开的球（球心在原点、两极沿 Z 轴），和 SphereMesh 的 UV 一样，
+## 只差一个 90° 旋转：同一个 UV 点，SphereMesh 上的方向 = EARTH_TO_SPHERE × 原方向。节点反着转回去，贴图位置不变。
+const EARTH_TO_SPHERE := Basis(Vector3(0, 0, -1), Vector3(-1, 0, 0), Vector3(0, 1, 0))
+
+
+func _use_low_poly_earth(mesh: MeshInstance3D) -> void:
+	if earth_segments <= 0:
+		return
+	var sphere := SphereMesh.new()
+	var r := mesh.mesh.get_aabb().size.x / 2.0
+	sphere.radius = r
+	sphere.height = r * 2.0
+	sphere.radial_segments = earth_segments
+	sphere.rings = maxi(earth_segments / 2, 4)
+	sphere.material = mesh.mesh.surface_get_material(0)
+	mesh.mesh = sphere  # material_override 留着不动
+	mesh.transform = mesh.transform * Transform3D(EARTH_TO_SPHERE.inverse(), Vector3.ZERO)
+
+
 func slap(power: float, weak := false) -> void:
 	_shake = (1.0 + power * 2.0) * (weak_slap if weak else 1.0)
 	_pulse = (1.0 + power * 2.0) * (weak_slap if weak else 1.0)

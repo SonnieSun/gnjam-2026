@@ -1,27 +1,23 @@
 class_name ChartInput
 extends CanvasLayer
 ## 谱面里「长按」和「连击」的通用处理：挂一个在 Judge 旁边，所有关卡都能用，关卡脚本不用知道它。
-## 只用 Judge 现成的接口（note_judged / pressed / begin_hold / judge_free 和 NoteData.free），不改判定本身。
+## 只用 Judge 的接口（note_judged / pressed / begin_hold / judge_free / rules 和 NoteData.free）。
 ##
 ## 长按（音符 length > 0，老鼓谱里音符后面接 "=" 也算）：
-##   开头那一下由 Judge 照常判；打中之后要按住到尾巴（可以提前 hold_release_grace 拍松手）。
-##   松早了：断连击，积累条按一次 Miss 扣。
+##   开头那一下由 Judge 照常判；打中之后交给 Judge.begin_hold 盯着按住。
+##   没按完：断连击，积累条按一次 Miss 扣。
 ##   关卡脚本自己处理长按的（脚本里有 _on_hold_done，比如迪斯科、洗衣机开场）这里不管，免得盯两遍。
 ##
 ## 连击（音符 mash = true，length = 连击这一段几拍；谱面编辑器里选中音符按 M）：
-##   这一段里不看节奏，只数按了几下；段尾按「平均每秒几下」出结果，交给 Judge 照常计分、算连击、涨积累条。
-##   简版，数值都在下面，之后要换算法只改这个文件。连击这一段里不要再排别的音符。
+##   这一段里不看节奏，只数按了几下；段尾交给 judge.rules.mash_result 出结果，再让 Judge 照常计分、算连击、涨积累条。
+##   连击这一段里不要再排别的音符。
 ##
+## 什么算按完、连击按多快算 Perfect，都在 Judge 的 rules（JudgeRules）里调。
 ## 画面：屏幕下方一条提示（HOLD / MASH + 进度条），关卡自己画的音符照旧。
 
 ## 长按有没有尾判。关着（默认）：开头那一下打中就算成，提前松手不扣（不断连击、不扣积累条）。
-## 开着：要按住到尾巴（可以提前 hold_release_grace 拍松手），松早了断连击、积累条按一次 Miss 扣。
+## 开着：要按完（什么算按完见 Judge 的 rules），没按完断连击、积累条按一次 Miss 扣。
 @export var hold_tail_judge := false
-## （开着尾判时）长按可以提前多少拍松手还算按完
-@export var hold_release_grace := 0.3
-## 连击：平均每秒按到这么多下算 Perfect / Great；至少按 1 下算 Good，一下没按算 Miss
-@export var mash_perfect_per_sec := 5.0
-@export var mash_great_per_sec := 3.5
 ## 屏幕下方的提示要不要画
 @export var show_prompt := true
 ## 长按 / 连击来之前提前几拍预告
@@ -107,14 +103,7 @@ func _finish_mash() -> void:
 	_mash = null
 	if not judge.notes.has(n):
 		return
-	var per_sec := _mash_count / maxf(_mash_len(n) * Conductor.sec_per_beat(), 0.001)
-	var r: int = NoteData.Result.MISS
-	if per_sec >= mash_perfect_per_sec:
-		r = NoteData.Result.PERFECT
-	elif per_sec >= mash_great_per_sec:
-		r = NoteData.Result.GREAT
-	elif _mash_count >= 1:
-		r = NoteData.Result.GOOD
+	var r := judge.rules.mash_result(_mash_count, _mash_len(n) * Conductor.sec_per_beat())
 	_say("MASH x%d" % _mash_count, SpinSection.result_color(r))
 	judge.judge_free(n, r)
 
@@ -130,7 +119,7 @@ func _on_note_judged(note: NoteData, result: int, _diff: float) -> void:
 	if _handles_holds_itself():
 		return
 	_hold = note
-	judge.begin_hold(note, note.beat + note.length, hold_release_grace, _on_hold_done.bind(note))
+	judge.begin_hold(note, note.beat + note.length, _on_hold_done.bind(note))
 
 
 func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:

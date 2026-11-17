@@ -201,7 +201,7 @@ func _ready() -> void:
 	_vp = SubViewport.new()
 	_vp.size = Vector2i(get_viewport_rect().size)
 	_vp.own_world_3d = true
-	_vp.msaa_3d = Viewport.MSAA_4X
+	_vp.msaa_3d = Viewport.MSAA_2X
 	add_child(_vp)
 	_sprite = Sprite2D.new()
 	_sprite.texture = _vp.get_texture()

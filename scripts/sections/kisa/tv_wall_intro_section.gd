@@ -15,12 +15,8 @@ extends SpinSection
 @export var approach_beats := 3.0
 ## 圆圈从多远收过来（占画面高度的比例）
 @export var approach_travel_ratio := 0.45
-## 长按有没有尾判。关着（默认）：开头那一下打中就算成，分数上松早松晚都一样，提前松手不会失败。
-## 但松手那一下照样有反馈：在尾巴附近松（前后 hold_release_grace 拍，或者一直按到尾巴）= 绿闪 + 叮一声 + 画面顶一下；
-## 松早了 = 白的小闪 + 轻轻一声，洗衣机停转。开着：要按住到尾巴，松早了变灰失败。
-@export var hold_tail_judge := false
-## （开着尾判时）长按离尾巴不到这么多拍时松手也算成
-@export var hold_release_grace := 0.3
+## 长按没有尾判：开头那一下打中就算成，分数上松早松晚都一样，提前松手不会失败。但松手那一下和打一个音符一样有反馈
+## （大字、喵声、画面顶一下）：按完了（什么算按完见 Judge 的 rules）= PERFECT，早一点 = GOOD，再早 = MISS（只是字）。
 ## 长按按完（可以松手了）时：判定圈闪绿光、响一声的颜色和持续时间（秒）
 @export var hold_ok_color := Color(0.35, 1.0, 0.45)
 @export var hold_ok_seconds := 0.6
@@ -179,8 +175,8 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 		_stage.hold_begin()
 		# 按住 = 洗衣机转起来：一声上扬的音效，正好在该松手的时候放完
 		Music.play_sfx("riser_1b", -11.0, hold_beats(note) * Conductor.sec_per_beat())
-		# 松手的时刻由 Judge 盯（和按下同一个判定时钟），有没有尾判都盯：没有尾判时只用来给反馈
-		j.begin_hold(note, note.beat + hold_beats(note), hold_release_grace, _on_hold_done.bind(note))
+		# 松手的时刻由 Judge 盯（和按下同一个判定时钟）：只用来给反馈
+		j.begin_hold(note, note.beat + hold_beats(note), _on_hold_done.bind(note))
 	else:
 		_stage.tap()
 
@@ -286,9 +282,6 @@ func _update_hold() -> void:
 
 func _on_hold_done(success: bool, release_beat: float, note: NoteData) -> void:
 	if note != _holding:
-		return
-	if hold_tail_judge:
-		_finish_hold(success)
 		return
 	# 没有尾判：分数、连击、积累条都不动，但松手那一下和打一个音符一样有判定的样子——大字、命中的喵声、画面顶一下。
 	# 尾巴附近松（或者按到尾巴）= PERFECT；早不到 0.8 拍 = GOOD；再早 = MISS（只是字，不扣东西）。

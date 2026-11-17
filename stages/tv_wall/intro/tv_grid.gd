@@ -118,7 +118,7 @@ func update(dt: float, beat_pulse: float) -> void:
 func _make_feeds() -> void:
 	for s in [[0.0, 1.0, Color(0.25, 0.75, 0.7)], [28.0, 0.8, Color(0.45, 0.55, 1.0)]]:
 		var vp := SubViewport.new()
-		vp.size = Vector2i(320, 240)
+		vp.size = Vector2i(160, 120)
 		vp.own_world_3d = true
 		vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		add_child(vp)

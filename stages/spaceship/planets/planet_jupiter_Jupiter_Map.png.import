@@ -2,24 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7c83opi3lxdd"
-path.s3tc="res://.godot/imported/vinyl_matte_vinyl_roughness.jpg-1e71a6ebe46b40058ed67ccf41f9d685.s3tc.ctex"
+uid="uid://bm3hbpnqsh6sg"
+path="res://.godot/imported/planet_jupiter_Jupiter_Map.png-2d46d0dd2237b903fa9047b06d818bd6.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "207a7cacae3f5b43074973b51b493628"
+"md5": "f5f5e2c5054098094fc461739f41a870"
 }
 
 [deps]
 
-source_file="res://assets/menu/vinyl/vinyl_matte_vinyl_roughness.jpg"
-dest_files=["res://.godot/imported/vinyl_matte_vinyl_roughness.jpg-1e71a6ebe46b40058ed67ccf41f9d685.s3tc.ctex"]
+source_file="res://stages/spaceship/planets/planet_jupiter_Jupiter_Map.png"
+dest_files=["res://.godot/imported/planet_jupiter_Jupiter_Map.png-2d46d0dd2237b903fa9047b06d818bd6.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,4 +40,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1
