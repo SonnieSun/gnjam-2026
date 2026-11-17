@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1_erph5")
-length_beats = 16.0
 notes = Array[Dictionary]([{
 "beat": 0.0,
 "sound": 0
@@ -29,7 +28,4 @@ notes = Array[Dictionary]([{
 }, {
 "beat": 14.0,
 "sound": 1
-}, {
-"beat": 14.5,
-"sound": 0
 }])
