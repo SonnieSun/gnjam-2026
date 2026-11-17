@@ -83,3 +83,4 @@
 
 - [ ] 猫 meme 图（`assets/memes/CREDITS.md`，7TV 表情没有标明授权）。
 - [ ] Your Best Friend（Undertale）只给内部试玩用，公开发布前要换掉。
+- [ ] 洗衣机开场的外星人（`stages/tv_wall/washer/alien/green_alien.fbx`）是从 ProjectSpin 拿来的 `Green Alien.fbx`，原始来源和授权没查（2026-11-18 加的）。

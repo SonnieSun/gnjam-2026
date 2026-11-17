@@ -12,6 +12,8 @@ const MACHINE := preload("res://stages/tv_wall/washer/washing_machine.tscn")
 const HEAD := preload("res://stages/tv_wall/washer/CATS_head_only.fbx")
 const CAT_TEXTURE := preload("res://stages/shared/cat/cat_basecolor_512.png")
 const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdshader")
+## 外星人（从 ProjectSpin 拿来的低模绿外星人）
+const ALIEN := preload("res://stages/tv_wall/washer/alien/green_alien.fbx")
 
 @export_group("镜头")
 @export var camera_fov := 40.0
@@ -110,6 +112,41 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 @export var fly_in_scale := 0.6
 @export var fly_in_spin_degrees := 900.0
 
+@export_group("开场：外星人")
+## 两关之间的空档里，外星人从洗衣机右后方探出脑袋左右张望；猫一开始往里飞，它吓一跳缩回去藏起来，之后不再出来
+@export var alien_enabled := true
+## 外星人多高（米，整只，从脚到触角尖）
+@export var alien_height := 0.42
+## 探头时站在哪（洗衣机坐标）：只有脑袋从机身右边缘露出来
+@export var alien_peek := Vector3(0.27, -0.1, -0.14)
+## 藏起来时在哪（完全躲在机身后面）
+@export var alien_hide := Vector3(0.2, -0.5, -0.16)
+## 探头时脑袋往外歪多少度
+@export var alien_peek_tilt := -30.0
+## 缩回去用几秒（先往上一跳再缩）
+@export var alien_hide_seconds := 0.35
+## 左右张望一个来回几秒、转多少度
+@export var alien_look_period := 2.4
+@export var alien_look_degrees := 25.0
+## 藏起来以后，音符出来之后音乐第一次升档：从换段的那一小节（过门）起再探一次头，探这么多拍又缩回去（只这一次；0 = 不探）
+@export var alien_repeek_beats := 8.0
+
+@export_group("高潮：外星人环")
+## 音乐升到这一档（这一段音乐的进度，88% = 最后一档，鬼畜双旋律进来）时，8 个外星人一个接一个蹦出来，
+## 围成一圈绕着洗衣机转（跟着拍子：alien_ring_beats 拍转一圈），每拍跳一下
+@export var alien_ring_at := 0.88
+@export var alien_ring_count := 8
+## 一只多高（米）、圈多大（离洗衣机中心多远）
+@export var alien_ring_height := 0.34
+@export var alien_ring_radius := 0.88
+## 圈的中心高度，和往镜头这边倒多少度（前面那半圈低、后面那半圈高，前面的不挡舱门）
+@export var alien_ring_y := 0.02
+@export var alien_ring_tilt := 28.0
+## 几拍转一圈
+@export var alien_ring_beats := 8.0
+## 每拍跳多高（米）
+@export var alien_ring_hop := 0.035
+
 @export_group("发电")
 ## 发电时画面震动最大多少像素
 @export var holding_shake_pixels := 3.5
@@ -160,6 +197,13 @@ var _cat_home := Vector3.ZERO
 var _flying := false
 var _landed := false
 var _hit_punch := 0.0
+var _alien: Node3D
+var _alien_body: Node3D
+var _alien_hide_t := -1.0  # 缩回去过了几秒（< 0 = 还在探头）
+var _alien_age := 0.0
+var _peeks: Array[Vector2] = []  # 换段时再探头：[从全曲第几拍, 到第几拍]
+var _ring: Array[Node3D] = []
+var _ring_t := -1.0  # 环出来多久了（秒，< 0 = 还没出来）
 var _idle := 99.0  # 玩家多久没操作了（秒）
 var _active := 0.0  # 镜头现在动几成（0 = 停在正面）
 
@@ -190,6 +234,8 @@ func setup(host: Node2D) -> void:
 	world.add_child(camera)
 	camera.current = true
 	_build_lens()
+	_build_alien()
+	_build_ring()
 	if ComicStyle.style == ComicStyle.OFF:
 		ComicStyle.set_by_name(default_look)
 	_apply_look()
@@ -270,6 +316,156 @@ func _build_machine() -> void:
 	inner.omni_range = 0.3
 	inner.light_specular = 0.0
 	_machine.add_child(inner)
+
+
+## 外星人挂在洗衣机下面（跟着洗衣机震、结尾跟着它退场）。外面一层 _alien 管位置和歪头，里面一层把模型摆正、缩到 alien_height
+func _build_alien() -> void:
+	if not alien_enabled:
+		return
+	_alien = Node3D.new()
+	_machine.add_child(_alien)
+	_alien_body = Node3D.new()
+	_alien.add_child(_alien_body)
+	_alien_body.add_child(_alien_model(alien_height, 0.0))
+	_alien.position = alien_peek
+	_alien.rotation_degrees.z = alien_peek_tilt
+	_alien.visible = false
+	if not Engine.is_editor_hint() and not Music.change_planned.is_connected(_on_music_change):
+		Music.change_planned.connect(_on_music_change)
+
+
+## 音乐定好了要升档：音符出来之后的第一次升档，从换段那一小节（过门）起外星人再探一次头。只这一次
+func _on_music_change(kind: String, _id: int, fill_beat: float, _commit_beat: float) -> void:
+	if alien_repeek_beats <= 0.0 or kind != "tier" or not _peeks.is_empty():
+		return
+	var host := get_parent() as SpinSection
+	if host == null or host.notes.is_empty() or fill_beat < host.notes[0].beat:
+		return  # 音符还没出来（开场那几小节的换段不算）
+	_peeks.append(Vector2(fill_beat, fill_beat + alien_repeek_beats))
+
+
+## 换段时再探头：第一拍探出来，最后一拍缩回去，中间跟着小节左右张望、跟着拍子点一下头
+func _update_repeek() -> void:
+	var now: float = Conductor.song_beat
+	var k := 0.0
+	var u := 0.0
+	for w in _peeks:
+		if now >= w.x and now <= w.y:  # 两次换段挨得近、窗口叠在一起：取探得最出来的那个，不在中间缩一下
+			var wu := now - w.x
+			var wk := smoothstep(0.0, 1.0, wu) * (1.0 - smoothstep(w.y - w.x - 1.0, w.y - w.x, wu))
+			if wk > k:
+				k = wk
+				u = wu
+	if k <= 0.0 or _ring_reached():
+		_alien.visible = false
+		return
+	_alien.visible = true
+	var e := 1.0 - pow(1.0 - k, 3.0)
+	_alien_body.rotation_degrees.y = sin(u * TAU / 4.0) * alien_look_degrees * e
+	_alien.position = alien_hide.lerp(alien_peek, e) + Vector3(0.0, exp(-fposmod(now, 1.0) * 6.0) * 0.012 * e, 0.0)
+	_alien.rotation_degrees.z = alien_peek_tilt * e
+
+
+## 一只外星人模型，摆正朝镜头、缩到 height 米高。origin_at = 原点放在多高（0 = 脚底，0.5 = 身子中间）
+func _alien_model(height: float, origin_at: float) -> Node3D:
+	var model := ALIEN.instantiate() as Node3D
+	model.rotation_degrees = Vector3(0.0, -90.0, 0.0)  # 模型脸朝 +X，转成朝镜头（+Z）
+	var holder := Node3D.new()
+	holder.add_child(model)
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		var mesh := mi as MeshInstance3D
+		var src := mesh.get_active_material(0) as StandardMaterial3D
+		if src:
+			var mat := src.duplicate() as StandardMaterial3D
+			mat.roughness = 0.7
+			mesh.material_override = mat
+	var box := TvWallRoom.measure(holder)
+	var k := height / maxf(box.size.y, 0.00001)
+	holder.scale = Vector3.ONE * k
+	var c := box.get_center()
+	holder.position = -Vector3(c.x, box.position.y + box.size.y * origin_at, c.z) * k
+	return holder
+
+
+## 高潮的外星人环：一开始就建好藏着（漫画滤镜换材质时它们也在里面）
+func _build_ring() -> void:
+	if not alien_enabled:
+		return
+	for i in alien_ring_count:
+		var a := Node3D.new()
+		a.add_child(_alien_model(alien_ring_height, 0.5))
+		a.visible = false
+		_machine.add_child(a)
+		_ring.append(a)
+
+
+## 音乐真的换到 alien_ring_at 那一档了没有（换档落在小节线上）；没有音乐时看积累条
+func _ring_reached() -> bool:
+	if Music.stream == null:
+		return _progress >= alien_ring_at - 0.0001
+	var sections: Array = Music.data.get("sections", [])
+	if Music.section < 0 or Music.section >= sections.size():
+		return false
+	var need := 0
+	for line in (sections[Music.section] as Dictionary).get("tiers", []):
+		if float(line) <= alien_ring_at + 0.0001:
+			need += 1
+	return need > 0 and Music.tier >= need
+
+
+func _update_ring(beat: float, dt: float) -> void:
+	if _ring.is_empty():
+		return
+	if _ring_t < 0.0:
+		if not _landed or not _ring_reached():
+			return
+		_ring_t = 0.0
+	_ring_t += dt
+	var n := _ring.size()
+	var tilt := Basis(Vector3.RIGHT, deg_to_rad(alien_ring_tilt))
+	var hop := absf(sin(beat * PI)) * alien_ring_hop
+	for i in n:
+		var a := _ring[i]
+		# 一个接一个蹦出来：先放大过头再回来
+		var t := clampf((_ring_t - i * 0.07) / 0.35, 0.0, 1.0)
+		a.visible = t > 0.0
+		var pop := 1.0 + sin(t * PI) * 0.35 if t < 1.0 else 1.0
+		a.scale = Vector3.ONE * maxf(t * pop, 0.001)
+		var ang := beat / maxf(alien_ring_beats, 0.5) * TAU + float(i) / n * TAU
+		var p := tilt * Vector3(sin(ang), 0.0, cos(ang)) * alien_ring_radius
+		# 隔一只错半拍跳
+		var h := hop if i % 2 == 0 else absf(cos(beat * PI)) * alien_ring_hop
+		a.position = Vector3(p.x, alien_ring_y + p.y + h, p.z)
+		a.rotation = Vector3(0.0, 0.0, sin(beat * PI + i) * 0.25)  # 朝着镜头，左右摇
+
+
+## 探头张望；猫开始飞进来时缩回去（先往上一跳，再沉到机身后面），藏好就不再画
+func _update_alien(dt: float) -> void:
+	if _alien == null:
+		return
+	_alien_age += dt
+	if (_landed or fly_in_beats <= 0.0) and _alien_hide_t < 0.0:
+		_update_repeek()  # 从中间跳进这一关 / 不放飞入：猫已经在里面了，开场不探头，只在换段时探
+		return
+	if _flying and _alien_hide_t < 0.0:
+		_alien_hide_t = 0.0
+	if _alien_hide_t < 0.0:
+		_alien.visible = true
+		var look := sin(_alien_age * TAU / maxf(alien_look_period, 0.1))
+		_alien_body.rotation_degrees.y = look * alien_look_degrees
+		_alien.position = alien_peek + Vector3(0.0, absf(sin(_alien_age * 3.1)) * 0.008, 0.0)
+		_alien.rotation_degrees.z = alien_peek_tilt
+		return
+	_alien_hide_t += dt
+	var t := clampf(_alien_hide_t / maxf(alien_hide_seconds, 0.01), 0.0, 1.0)
+	_alien_body.rotation_degrees.y = lerpf(_alien_body.rotation_degrees.y, 0.0, minf(1.0, dt * 20.0))
+	var jump := sin(clampf(t / 0.3, 0.0, 1.0) * PI) * 0.05  # 吓一跳
+	var e := t * t
+	_alien.position = alien_peek.lerp(alien_hide, e) + Vector3(0.0, jump, 0.0)
+	_alien.rotation_degrees.z = lerpf(alien_peek_tilt, 0.0, e)
+	_alien.visible = t < 1.0
+	if t >= 1.0:
+		_update_repeek()
 
 
 ## 镜头前的一块全屏片：发电时的画面震动（用原洗衣机关的 shader，鼓包强度一直是 0）
@@ -412,9 +608,11 @@ func update(beat: float, dt: float) -> void:
 	_release_age += dt
 	_beat_pulse = exp(-fposmod(beat, 1.0) * 5.0) if all_lit() else 0.0
 	_update_lights(dt)
-	grid.update(dt, _beat_pulse)
+	grid.update(dt, _beat_pulse, -1.0 if finale_active() else beat)  # 结尾镜头要钻进中间那台电视：那时不晃
 	_update_cat(dt)
 	_update_fly_in(beat, dt)
+	_update_alien(dt)
+	_update_ring(beat, dt)
 	_hit_punch = maxf(_hit_punch - dt * 6.0, 0.0)
 	_idle = 0.0 if _hold_progress >= 0.0 else _idle + dt
 	var want := 1.0 if idle_hold_seconds <= 0.0 or _idle < idle_hold_seconds else 0.0

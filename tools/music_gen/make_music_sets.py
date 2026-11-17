@@ -322,7 +322,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                # without a break, the drums turn into the 2-step 'break' beat, the instrument doubles the cats, and in
                # fever the square lead joins.
                {'title': 'SLAP / POWER', 'tiers': (0.35, 0.7), 'transition_tiers': (), 'fever': (0.7, 1.0), 'fever_fill': False,
-                'enter_fill': False, 'carry': 0, 'own': {'kiai': 'mk_double', 'hit': ''}, 'rules': {   # carry 0: these parts start full
+                'enter_fill': False, 'carry': 0, 'outro': 'out_earth_to_space', 'outro_drums': False,   # make_earth_to_space.py 'own': {'kiai': 'mk_double', 'hit': ''}, 'rules': {   # carry 0: these parts start full
                    # already; carried fullness would switch the extra layers on, off and on again
 
                    'break': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]], 'mk_cat_drums': [[0, 1]],
@@ -398,7 +398,7 @@ CCA = M + 'classics/can_can_a/can_can_a_'             # Can-Can's opening strain
 CCB = M + 'classics/can_can_b/can_can_b_'             # Can-Can's second strain, "the four steps down" (D major)
 TMB = M + 'classics/turkish_march_b/turkish_march_b_'   # its second section (A major), the fever of the shooter
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
-T3 = TIERS
+T3 = (0.17, 0.38, 0.58, 0.75)              # the shooter's gauge is 84 with the fever line at 63 (75%); was TIERS on a gauge of 100
 R = (0.25, 0.5, 0.625, 0.75)
 FV = 0.875                                 # inside the pizza's fever: where its layer goes from the entry one to the max
 SETS[7] = {'title': 'SPACESHIP', 'use': True,
@@ -518,7 +518,7 @@ def to_lanes(s):
             out['tiers'] = list(sec['tiers'])          # the tier lines (else every cue position is one)
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
-        for k in ('exit', 'outro', 'fever_reverb', 'carry'):
+        for k in ('exit', 'outro', 'outro_drums', 'fever_reverb', 'carry'):
             if k in sec:
                 out[k] = sec[k]
         if 'own' in sec:

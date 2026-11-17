@@ -855,6 +855,12 @@ func _outro_sfx() -> String:
 	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
 
 
+## 结尾段放的时候鼓还响不响（小关里写 "outro_drums": false = 结尾段自己带鼓，关卡的鼓也停）
+func _outro_drums() -> bool:
+	var secs: Array = data.get("sections", [])
+	return section < 0 or section >= secs.size() or bool(secs[section].get("outro_drums", true))
+
+
 ## 这个小关打完（整关过关）时的收尾音效（"" = 没有，用通用的）
 func _exit_sfx() -> String:
 	var secs: Array = data.get("sections", [])
@@ -1296,7 +1302,7 @@ func _apply_now(beat_index := -1) -> void:
 			c = _first_clip(lane.id)
 		if _force.has(lane.id):
 			c = _force[lane.id][0]
-		if muted.get(lane.id, false) or (_outro and lane.id != "beat"):
+		if muted.get(lane.id, false) or (_outro and (lane.id != "beat" or not _outro_drums())):
 			c = ""
 		var was: String = _now.get(lane.id, "")
 		if was != c:

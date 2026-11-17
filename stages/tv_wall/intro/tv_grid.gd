@@ -34,6 +34,16 @@ const TV_MODEL := preload("res://stages/tv_wall/retro_tv/retro_tv.glb")
 @export var lit_light_energy := 0.3
 ## 亮起来用几秒从白闪过渡到画面
 @export var light_up_time := 0.5
+## 跟拍的小动作有多大（1 = 正常，0 = 不动）。每台电视一种动法（见 MOVES），整面墙各动各的；全亮之后再大一点
+@export var move_amount := 0.2
+@export var move_all_lit_boost := 1.4
+
+## 小动作的种类，第 i 台电视用 MOVES[i % 7]：
+##   hop     每拍往上蹦一下            wobble  左右摇摆（一拍一边）
+##   nod     每拍往前点一下头          shimmy  每半拍左右横着抖一下
+##   twist   反拍上扭一下（左右转）    lean    跟军鼓（第 2、4 拍）斜着晃一下再弹回来
+##   flip    平时轻轻晃，每 4 小节在小节线上整台转一圈
+const MOVES := ["hop", "wobble", "nod", "shimmy", "twist", "lean", "flip"]
 
 ## 每台电视：{root, mat, light, center（屏幕中心，世界坐标）, lit, t（亮起来之后过了几秒）, flash}
 var tvs: Array[Dictionary] = []
@@ -91,11 +101,14 @@ func screen_center(i: int) -> Vector3:
 	return (tv.root as Node3D).global_transform * (tv.local_center as Vector3)
 
 
-## 每帧调用：beat_pulse 是 0~1 的跟拍脉冲（全亮之后一起跟着拍子闪）
-func update(dt: float, beat_pulse: float) -> void:
-	for tv in tvs:
+## 每帧调用：beat_pulse 是 0~1 的跟拍脉冲（全亮之后一起跟着拍子闪）；beat = 全曲第几拍（< 0 = 不跟拍动）
+func update(dt: float, beat_pulse: float, beat := -1.0) -> void:
+	var all_lit := lit_count() == tvs.size()
+	for i in tvs.size():
+		var tv: Dictionary = tvs[i]
 		if not tv.lit:
 			continue
+		_move(tv, i, beat, all_lit)
 		tv.t += dt
 		tv.flash = maxf(tv.flash - dt * 3.0, 0.0)
 		var power := clampf(tv.t / maxf(light_up_time, 0.01), 0.0, 1.0)
@@ -111,6 +124,46 @@ func update(dt: float, beat_pulse: float) -> void:
 		power *= dim
 		mat.set_shader_parameter("power", power)
 		(tv.light as OmniLight3D).light_energy = lit_light_energy * power * (1.0 + beat_pulse * 0.6) + tv.flash * 1.5
+
+
+## 一台电视的跟拍小动作：在摆好的位置 / 角度上叠一点偏移（大小按电视宽度算，大电视动得慢一点小一点）
+func _move(tv: Dictionary, i: int, beat: float, all_lit: bool) -> void:
+	var root := tv.root as Node3D
+	if beat < 0.0 or move_amount <= 0.0:
+		root.position = tv.home
+		root.rotation = tv.home_rot
+		return
+	var k := move_amount * (move_all_lit_boost if all_lit else 1.0) * clampf(tv.t / 0.6, 0.0, 1.0)  # 刚亮起来时慢慢加上
+	var w: float = (tv.size as Vector2).x
+	var hit := exp(-fposmod(beat, 1.0) * 6.0)          # 每拍一下，很快收回
+	var off := Vector3.ZERO
+	var rot := Vector3.ZERO
+	match MOVES[i % MOVES.size()]:
+		"hop":
+			off.y = hit * 0.06 * w
+		"wobble":
+			rot.z = sin(beat * PI) * deg_to_rad(5.0)
+		"nod":
+			rot.x = hit * deg_to_rad(9.0)
+		"shimmy":
+			off.x = sin(beat * TAU * 2.0) * 0.025 * w
+		"twist":
+			rot.y = exp(-fposmod(beat - 0.5, 1.0) * 6.0) * deg_to_rad(12.0) * (1.0 if int(floor(beat)) % 2 == 0 else -1.0)
+		"lean":
+			var snare := exp(-fposmod(beat - 1.0, 2.0) * 3.5)
+			rot.z = snare * deg_to_rad(8.0) * (1.0 if i % 2 == 0 else -1.0)
+			off.y = snare * 0.03 * w
+		"flip":
+			var into := fposmod(beat, 16.0)
+			if into < 1.0:
+				var e := 1.0 - pow(1.0 - into, 3.0)    # 转得快、收得稳
+				rot.z = e * TAU * (1.0 if i % 2 == 0 else -1.0)
+				off.z = sin(into * PI) * 0.6 * w / maxf(k, 0.01)  # 转的时候往前浮出来，不插进旁边的电视（不跟着 k 缩）
+			else:
+				rot.z = sin(beat * PI * 0.5) * deg_to_rad(3.0)
+	var spinning: bool = MOVES[i % MOVES.size()] == "flip" and fposmod(beat, 16.0) < 1.0
+	root.position = (tv.home as Vector3) + off * k
+	root.rotation = (tv.home_rot as Vector3) + rot * (1.0 if spinning else k)  # 整圈的转不缩小，不然转不回原位
 
 
 # ---------------- 屏幕画面：猫脸特写 ----------------
@@ -197,7 +250,7 @@ func _setup_tv(root: Node3D, color_i: int, feed: int) -> void:
 	root.add_child(light)
 	tvs.append({
 		"root": root, "mat": mat, "light": light, "local_center": local_center,
-		"screen": scr, "cover": null, "size": Vector2(box.size.x, box.size.y) * s, "home": root.position,
+		"screen": scr, "cover": null, "size": Vector2(box.size.x, box.size.y) * s, "home": root.position, "home_rot": root.rotation,
 		"lit": false, "t": 0.0, "flash": 0.0,
 	})
 	# 跟拍：每台电视用不同的节奏胀一下（正拍、反拍、每两拍、跟底鼓 / 军鼓……），整面墙错落着动

@@ -474,6 +474,8 @@
     1.0
    ],
    "carry": 0,
+   "outro": "out_earth_to_space",
+   "outro_drums": false,
    "own": {
     "kiai": "mk_double",
     "hit": ""

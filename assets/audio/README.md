@@ -94,6 +94,7 @@
 
 - "Weibliche Britisch Kurzhaar will Futter C1277 MIAUEN"，作者 PantheraLeo1359531，Wikimedia Commons，CC BY 4.0（1 号猫）
 - "Arctocephalusgazellavocal"，作者 Aubin T、Jouventin P、Charrier I，Wikimedia Commons，CC BY 4.0（海豹）
+- "Bike Bell Ding, Single, 01-01.wav"，作者 InspectorJ（www.jshaw.co.uk），freesound.org/s/484344，CC BY 4.0（sfx/star_ding.wav：拍地球结尾冲出大气层的那一声叮）
 
 其余：BigSoundBank（CC0）、Wikimedia Commons CC0 猫叫、99Sounds x Monosounds 免版税采样包，或合成；
 经典曲旋律为公有领域，Entertainer 和土耳其进行曲的音符取自 Mutopia Project 公有领域乐谱。

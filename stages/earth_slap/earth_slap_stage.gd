@@ -11,6 +11,9 @@ const MODEL := preload("res://assets/models/cat_earth_y2k/cat_earth_model.tscn")
 const CAT_TEXTURE := preload("res://stages/shared/cat/cat_basecolor_512.png")
 const FLAME := preload("res://stages/earth_slap/fx/cat_rocket_flame.png")
 const PIZZA := preload("res://stages/space_shooter/model/neapolitan_pizza.glb")
+## 结尾撞飞的 UFO（第 1 关的飞碟）、左下角的外星人记者（洗衣机关那只，ProjectSpin 来的）
+const UFO := preload("res://stages/abduction/ufo.tscn")
+const ALIEN := preload("res://stages/tv_wall/washer/alien/green_alien.fbx")
 ## 飞出用的东西开场藏起来画几帧预热着色器
 const WARMUP_FRAMES := 4
 
@@ -69,13 +72,63 @@ const WARMUP_FRAMES := 4
 @export var rocket_cat_height := 1.5
 @export var flame_length := 2.6
 @export var pizza_diameter := 2.4
-## 开头镜头推近地球到多大（正交镜头的 size，越小越近），之后拉远到 rocket_final_size
-@export var rocket_close_size := 4.5
-@export var rocket_final_size := 7.5
+## 整段结尾一共几拍（= 关卡的过渡空位 ENDING_SLOT_BARS 小节；音乐 out_earth_to_space 按同样的 4 个小节写）。一小节一个镜头：
+##   0~4   重击、停转：拍下去那一瞬间镜头就往地球上推（ease out：一下子推过去 = 冲击，再慢慢贴近），画面一震、一甩，
+##         拍地球的猫被打飞出画面；之后是休止，地球带着惯性越转越慢，第 4 拍停住、镜头也贴到最近（地球撑满画面）
+##   4~8   升空（整整一小节）：第 4 拍地球停住，猫在地球正面以几乎看不见的一个点出现，十字星一闪、转一圈、叮一声（冲出大气层）；
+##         猫斜着往右上升、朝镜头冲过来（正交镜头没有近大远小，用变大当深度），速度按指数越来越快；镜头中心追着猫、
+##         跟着拉远（比猫慢一点，猫在画面里越来越大），地球往左下让开；第 8 拍地球还大大的、被挤在画面左下角边上 = 刚升空
+##   8~12  进轨道：猫歪向右上飞出去一小段，镜头错开地球中心跟着猫、稍微拉远，地球退到画面左下（还在画面里）；
+##         飞得最快的那一拍脑袋撞上一只飘过来的 UFO（rocket_ufo_hit 拍），UFO 转着圈飞出画面，猫被撞得慢下来；
+##         停在地球右上方的近地轨道上站正，脚下弹出披萨（这一刻地球还在画面里）
+##   12~16 冲出：蹲一下（预备），火再喷起来，猫加速冲向右上、越来越小，镜头拉远追，追不上，猫出画面 = 切下一关
+@export var rocket_beats := 16.0
+## 拍下去之后镜头推到多近（第 4 拍推到；正交镜头的 size，越小越近；2.2 = 地球撑满画面）
+@export var rocket_close_size := 2.2
+## 升空这一小节猫往哪升（镜头坐标：相对地球正面，x 往右、y 往上，米）：斜一点 = 和镜头有个角度
+@export var rocket_rise_to := Vector2(0.45, 1.5)
+## 升空的指数有多陡：猫的位置按 (e^(rate·拍) - 1) 走（越大开头越慢、最后越猛）；镜头拉远用 pull_rate（更陡：前面镜头几乎不动、猫在画面里长大，最后一拍镜头猛拉远、猫在画面里的大小保持住 = 速度感）
+@export var rocket_rise_rate := 0.9
+@export var rocket_pull_rate := 1.4
+## 猫刚出现时是全身的几分之一（之后按指数长到全身）
+@export var rocket_rise_from_size := 0.04
+## 镜头跟猫时落后几拍（看的是猫这么多拍之前的位置）
+@export var rocket_cam_lag := 0.2
+## 升空这一小节最后（第 8 拍）镜头拉到多远、中心在猫的哪边（镜头坐标，米）：不拉回正常远近，地球还大大的占着画面下半，
+## 猫刚刚离开地球的轮廓（还有一点在轮廓里）
+@export var rocket_lift_size := 3.8
+@export var rocket_lift_offset := Vector2(0.35, -0.45)
+## 冲出大气层的十字星：多大（米）、闪几拍（这几拍里转一圈）、叮一声的音效（assets/audio/sfx 里的名字，"" = 不放）
+@export var rocket_star_size := 1.4
+@export var rocket_star_beats := 0.75
+@export var rocket_star_sfx := "star_ding"
+## 飞走时 / 最后冲出时镜头的远近
+@export var rocket_leave_size := 4.2
+@export var rocket_final_size := 8.4
+## 拍下去之后地球惯性转多少度（第 4 拍转停）
+@export var rocket_spin_degrees := 540.0
 ## 猫飞到哪停一下（镜头坐标：相对地球，x 往右、y 往上，米），最后往同一个方向冲出画面
-@export var rocket_stop := Vector2(3.0, 1.8)
-## 停下时镜头中心相对地球挪多少（镜头坐标，米）
-@export var rocket_view_center := Vector2(1.8, 1.0)
+@export var rocket_stop := Vector2(1.9, 2.2)
+## 进轨道时镜头中心在猫的哪边（镜头坐标，米）：地球留在画面左下角；之后冲出那一小节地球才出画面
+@export var rocket_leave_offset := Vector2(0.15, -0.7)
+## 飞出去最快的那一拍撞飞一只 UFO（之后猫才减速停下）：第几拍撞上（半拍也行，BONK 是单独的音效）、UFO 多宽（米）、撞上前它从右边飘进猫的路线用几拍
+@export var rocket_ufo_hit := 8.0
+@export var rocket_ufo_size := 1.3
+@export var rocket_ufo_drift_beats := 1.5
+## 撞上那一下的音效（assets/audio/sfx 里的名字，"" = 不放）
+@export var rocket_ufo_sfx := "ufo_bonk"
+
+@export_group("外星人记者")
+## 拍地球第二段第一下拍出去，画面左下角冒出一个拿话筒的外星人（新闻台的现场记者），跟着拍子蹦、摇头，
+## 每拍中一下吓一跳（蓄满的重拍大惊），漏了一下歪头；进 fever 时缩下去消失
+@export var reporter_enabled := true
+@export var reporter_height := 2.6
+## 离画面左边、下边多远（米，按正常远近的画面算；下边是负的 = 脚在画面外，腿被新闻条挡住）
+@export var reporter_margin := Vector2(1.7, -0.1)
+## 身子朝右（朝地球）转多少度
+@export var reporter_turn := 22.0
+## 话筒网罩在哪（按身高的比例：x 往右，y 往上；嘴前面大概在 0.5）
+@export var reporter_mic_at := Vector2(0.05, 0.5)
 
 var world: SubViewport
 var camera: Camera3D
@@ -97,7 +150,22 @@ var _rocket: Node3D       # 飞出来的猫（外层：位置和歪斜）
 var _rocket_cat: Node3D
 var _flame: Sprite3D
 var _pizza: Node3D
+var _star: Sprite3D       # 冲出大气层的十字星
+var _dinged := false
+var _bonked := false
+var _ufo: Node3D          # 停下来之前撞飞的 UFO
+var _reporter: Node3D     # 左下角的外星人记者（外层：位置和歪斜）
+var _rep_body: Node3D     # 里层：摇头
+var _rep_label: Label3D   # 头上的 ! / ?
+var _rep_state := 0       # 0 没出来，1 在，2 正在缩回去，3 走了
+var _rep_t := 0.0
+var _rep_shock := 0.0     # 吓一跳（1 = 刚吓到，慢慢落回 0）
+var _rep_power := 0.0
+var _rep_label_t := 99.0
 var _rocket_p := -1.0     # 飞出放到百分之几（< 0 = 还没开始）
+var _anim_t := 0.0        # 挥爪动画放到几秒：结尾开始后停在拍下去的那一帧
+var _rig_rest := Transform3D.IDENTITY  # 拍地球的猫原来在哪（结尾被拍飞出画面）
+var _cam_basis := Basis.IDENTITY        # 结尾开始时镜头的朝向（之后的侧倾都是在它上面转）
 
 
 func setup(host: Node2D) -> void:
@@ -178,6 +246,7 @@ func setup(host: Node2D) -> void:
 	camera.look_at(camera_target)
 	camera.current = true
 	_build_rocket()
+	_build_reporter()
 
 
 # ---------------- 给关卡脚本的 ----------------
@@ -203,6 +272,7 @@ func _use_low_poly_earth(mesh: MeshInstance3D) -> void:
 
 
 func slap(power: float, weak := false) -> void:
+	_reporter_shock(0.0 if weak else power, "?" if weak else ("!!!" if power >= 0.99 else "!"))
 	_shake = (1.0 + power * 2.0) * (weak_slap if weak else 1.0)
 	_pulse = (1.0 + power * 2.0) * (weak_slap if weak else 1.0)
 	var turn := deg_to_rad(meme_flip_degrees) * (1 + roundi(power * meme_extra_half_turns))
@@ -214,6 +284,7 @@ func slap(power: float, weak := false) -> void:
 
 func miss() -> void:
 	_shake = 0.5
+	_reporter_shock(0.0, "?!")
 
 
 ## 猫 meme 纸片出场（已经出场了再调没反应）
@@ -253,6 +324,10 @@ func set_charge(ratio: float) -> void:
 func start_rocket() -> void:
 	if _rocket_p < 0.0:
 		_rocket_p = 0.0
+		var rig := _model.get_node_or_null("CatRig") as Node3D
+		if rig:
+			_rig_rest = rig.global_transform
+		_cam_basis = camera.global_transform.basis
 
 
 func set_rocket(p: float) -> void:
@@ -310,10 +385,57 @@ func _build_rocket() -> void:
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_pizza.position = Vector3(0.0, -rocket_cat_height * 0.55, 0.0)
 	_pizza.rotation_degrees = Vector3(35.0, 0.0, 0.0)
+	# 冲出大气层的十字星（贴图现画：四道长光 + 四道短的斜光 + 中间一团亮），叠加混合、永远画在最上面
+	_star = Sprite3D.new()
+	_star.texture = _star_texture(256)
+	_star.pixel_size = 1.0 / 256.0
+	var sm := StandardMaterial3D.new()
+	sm.albedo_texture = _star.texture
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	sm.no_depth_test = true
+	sm.render_priority = 10
+	_star.material_override = sm
+	_star.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_star.scale = Vector3.ONE * 0.05  # 预热时跟着猫画几帧（很小，看不见），之后藏起来
+	world.add_child(_star)
 	# 预热：藏在地球球心里（在镜头里、但被地球挡住），画几帧
 	_rocket.scale = Vector3.ONE * 0.05
 	_rocket.position = _model.to_global(_earth_rest) if _earth else _model.global_position
+	_star.position = _rocket.position
+	# UFO：第 1 关的飞碟缩到 rocket_ufo_size 宽，预热时也跟着画几帧
+	_ufo = Node3D.new()
+	world.add_child(_ufo)
+	var saucer := UFO.instantiate() as Node3D
+	_ufo.add_child(saucer)
+	var ubox := TvWallRoom.measure(saucer)
+	saucer.scale = Vector3.ONE * rocket_ufo_size / maxf(maxf(ubox.size.x, ubox.size.z), 0.0001)
+	saucer.position = -(saucer.transform.basis * ubox.get_center())
+	for mi in saucer.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_ufo.position = _rocket.position
+	_ufo.scale = Vector3.ONE * 0.05
 	_hide_rocket_after_warmup()
+
+
+## 动画里那种十字星：横竖两道细长的光，斜着两道短的，中心一团亮，微微偏暖
+static func _star_texture(n: int) -> ImageTexture:
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	for y in n:
+		for x in n:
+			var dx := (x + 0.5) / n * 2.0 - 1.0
+			var dy := (y + 0.5) / n * 2.0 - 1.0
+			var r2 := dx * dx + dy * dy
+			var a := exp(-absf(dy) * 60.0) * pow(maxf(1.0 - absf(dx), 0.0), 2.0) 					+ exp(-absf(dx) * 60.0) * pow(maxf(1.0 - absf(dy), 0.0), 2.0)
+			var u := (dx + dy) * 0.7071
+			var v := (dx - dy) * 0.7071
+			a += 0.45 * (exp(-absf(v) * 70.0) * pow(maxf(1.0 - absf(u) * 2.2, 0.0), 2.0)
+					+ exp(-absf(u) * 70.0) * pow(maxf(1.0 - absf(v) * 2.2, 0.0), 2.0))
+			a += exp(-r2 * 40.0) * 0.9 + exp(-r2 * 6.0) * 0.25
+			a = clampf(a, 0.0, 1.0)
+			img.set_pixel(x, y, Color(1.0, 0.96, 0.82, a).lerp(Color(1, 1, 1, a), clampf(1.0 - r2 * 8.0, 0.0, 1.0)))
+	return ImageTexture.create_from_image(img)
 
 
 func _hide_rocket_after_warmup() -> void:
@@ -321,6 +443,149 @@ func _hide_rocket_after_warmup() -> void:
 		await RenderingServer.frame_post_draw
 	if is_instance_valid(_rocket) and _rocket_p < 0.0:
 		_rocket.visible = false
+		_star.visible = false
+		_ufo.visible = false
+
+
+## 外星人记者：外星人（脚在原点）+ 手里一支话筒 + 头上一个 ! / ?（永远画在最上面）
+func _build_reporter() -> void:
+	if not reporter_enabled:
+		return
+	_reporter = Node3D.new()
+	world.add_child(_reporter)
+	_rep_body = Node3D.new()
+	_reporter.add_child(_rep_body)
+	var model := ALIEN.instantiate() as Node3D
+	model.rotation_degrees = Vector3(0.0, -90.0, 0.0)  # 模型脸朝 +X，转成朝镜头
+	var holder := Node3D.new()
+	holder.add_child(model)
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		var mesh := mi as MeshInstance3D
+		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var src := mesh.get_active_material(0) as StandardMaterial3D
+		if src:
+			var mat := src.duplicate() as StandardMaterial3D
+			mat.roughness = 0.7
+			mesh.material_override = mat
+	var box := TvWallRoom.measure(holder)
+	var k := reporter_height / maxf(box.size.y, 0.00001)
+	holder.scale = Vector3.ONE * k
+	var c := box.get_center()
+	holder.position = -Vector3(c.x, box.position.y, c.z) * k
+	_rep_body.add_child(holder)
+	# 话筒：一根黑杆 + 一个灰色的网罩，斜着举在嘴边
+	var mic := Node3D.new()
+	var stick := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.04
+	cyl.bottom_radius = 0.03
+	cyl.height = 0.4
+	stick.mesh = cyl
+	var stick_mat := StandardMaterial3D.new()
+	stick_mat.albedo_color = Color(0.08, 0.08, 0.1)
+	stick_mat.roughness = 0.4
+	stick.material_override = stick_mat
+	mic.add_child(stick)
+	var ball := MeshInstance3D.new()
+	var sph := SphereMesh.new()
+	sph.radius = 0.09
+	sph.height = 0.18
+	ball.mesh = sph
+	var ball_mat := StandardMaterial3D.new()
+	ball_mat.albedo_color = Color(0.55, 0.57, 0.6)
+	ball_mat.metallic = 0.6
+	ball_mat.roughness = 0.35
+	ball.material_override = ball_mat
+	ball.position.y = 0.24
+	mic.add_child(ball)
+	# 话筒头放在下巴前面（这只外星人头大，嘴在头的下沿，大概身高的 0.44）：先定好网罩要在哪，再倒推杆子的位置
+	mic.rotation_degrees = Vector3(0.0, 0.0, 28.0)
+	mic.scale = Vector3.ONE * reporter_height / 1.8
+	var ball_at := Vector3(reporter_height * reporter_mic_at.x, reporter_height * reporter_mic_at.y, reporter_height * 0.2)
+	mic.position = ball_at - mic.transform.basis * Vector3(0.0, 0.24, 0.0)
+	_rep_body.add_child(mic)
+	_rep_label = Label3D.new()
+	_rep_label.text = "!"
+	_rep_label.font_size = 140
+	_rep_label.outline_size = 36
+	_rep_label.pixel_size = 0.005
+	_rep_label.modulate = Color(1.0, 0.86, 0.2)
+	_rep_label.outline_modulate = Color(0.08, 0.02, 0.15)
+	_rep_label.no_depth_test = true
+	_rep_label.render_priority = 5
+	_rep_label.position = Vector3(reporter_height * 0.25, reporter_height * 1.08, 0.0)
+	_rep_label.visible = false
+	_rep_body.add_child(_rep_label)
+	_reporter.visible = false
+
+
+## 外星人记者出来（已经出来过就没反应）
+func reporter_in() -> void:
+	if _reporter and _rep_state == 0:
+		_rep_state = 1
+		_rep_t = 0.0
+		_reporter.visible = true
+
+
+## 外星人记者缩回去（进 fever、结尾开始时）
+func reporter_out() -> void:
+	if _reporter and _rep_state == 1:
+		_rep_state = 2
+		_rep_t = 0.0
+
+
+## 吓一跳：power 0~1（蓄满的重拍大惊），text = 头上冒的字
+func _reporter_shock(power: float, text: String) -> void:
+	if _rep_state != 1:
+		return
+	_rep_shock = 1.0
+	_rep_power = power
+	_rep_label.text = text
+	_rep_label_t = 0.0
+
+
+## 每帧：钉在画面左下角（跟着镜头的远近和抖动走，在画面上的大小不变），冒出 / 缩回，跟拍蹦、摇头，吓一跳
+func _update_reporter(dt: float, beat: float) -> void:
+	if _reporter == null or not _reporter.visible:
+		return
+	if _rocket_p >= 0.0:
+		reporter_out()
+	_rep_t += dt
+	var rise := 1.0
+	if _rep_state == 1:
+		var e := clampf(_rep_t / 0.45, 0.0, 1.0)
+		rise = 1.0 + 2.70158 * pow(e - 1.0, 3.0) + 1.70158 * pow(e - 1.0, 2.0)   # 冒出来：弹一下
+	elif _rep_state == 2:
+		var e := clampf(_rep_t / 0.4, 0.0, 1.0)
+		rise = 1.0 + 0.25 * sin(minf(e / 0.35, 1.0) * PI) - smoothstep(0.3, 1.0, e)   # 先往上一缩脖子，再沉下去
+		if e >= 1.0:
+			_rep_state = 3
+			_reporter.visible = false
+			return
+	var cam_b := camera.global_transform.basis
+	var zoom := camera.size / camera_size
+	var half_h := camera.size / 2.0
+	var aspect := float(world.size.x) / maxf(float(world.size.y), 1.0)
+	_rep_shock = maxf(_rep_shock - dt * 2.5, 0.0)
+	var shock := _rep_shock * _rep_shock * (1.0 + 1.5 * _rep_power)
+	# 跟拍：每拍一下子换边（十分之一拍就到位，然后停住）= 一顿一顿的，不是平滑地摇
+	var frac := fposmod(beat, 1.0)
+	var side := 1.0 if posmod(floori(beat), 2) == 0 else -1.0
+	var snap := side * (2.0 * (1.0 - exp(-frac * 20.0)) - 1.0)          # 从上一边猛地甩到这一边
+	var hop := exp(-frac * 14.0) * 0.05                                 # 每拍很短地一顿
+	var dy := (rise - 1.0) * reporter_height * 1.3 + hop + 0.12 * shock
+	var at := Vector3(-half_h * aspect + reporter_margin.x * zoom, -half_h + (reporter_margin.y + dy) * zoom, -6.0)
+	var sway := deg_to_rad(2.5) * snap
+	var lean := deg_to_rad(9.0) * shock                                    # 吓得往后（往左）一仰
+	_reporter.global_transform = Transform3D(cam_b * Basis(Vector3.BACK, sway + lean) * Basis(Vector3.UP, deg_to_rad(reporter_turn)),
+			camera.position + cam_b * at)
+	_reporter.scale = Vector3.ONE * zoom * (1.0 + 0.07 * shock)
+	_rep_body.rotation.y = deg_to_rad(5.0) * -snap + deg_to_rad(5.0) * shock * sin(_rep_t * 40.0)   # 一小节摇一次头，吓到时抖
+	_rep_label_t += dt
+	_rep_label.visible = _rep_label_t < 0.7
+	if _rep_label.visible:
+		var pop := clampf(_rep_label_t / 0.12, 0.0, 1.0)
+		_rep_label.scale = Vector3.ONE * (pop * (1.0 + 0.4 * (1.0 - pop)) * (1.0 + 0.5 * _rep_power)) * (1.0 - smoothstep(0.5, 0.7, _rep_label_t))
 
 
 ## 判定圈中心在 2D 画面上的位置（相对屏幕中心）
@@ -346,8 +611,9 @@ func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float) -
 		world.size = size
 	if _animation and _clip != &"":
 		var length := _animation.get_animation(_clip).length
-		var t := fposmod((beat - strike_beat) / maxf(beats_per_swat, 0.25) * swat_seconds + contact_seconds, swat_seconds * 2.0)
-		_animation.seek(minf(t, length), true)
+		if _rocket_p < 0.0:  # 结尾：停在拍下去的那一帧（地球的转由 _update_rocket 接着转）
+			_anim_t = fposmod((beat - strike_beat) / maxf(beats_per_swat, 0.25) * swat_seconds + contact_seconds, swat_seconds * 2.0)
+		_animation.seek(minf(_anim_t, length), true)
 	_shake = maxf(_shake - dt * 8.0, 0.0)
 	_pulse = maxf(_pulse - dt * 7.0, 0.0)
 	_model.scale = Vector3.ONE * (1.0 + hit_pulse * _pulse)
@@ -370,50 +636,191 @@ func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float) -
 		var info: Dictionary = c.info
 		if int(info.frames) > 1:
 			node.frame = int(ms * float(info.fps)) % int(info.frames)
+	_update_reporter(dt, beat)
 	if _rocket_p >= 0.0:
 		_update_rocket(ms)
 
 
-## 喷火飞出（p = 0~1）：
-##   0~0.15 镜头推近地球、地球一震，原来拍地球的猫消失；0.12~0.5 猫喷着火从地球里飞出来，镜头跟着拉远；
-##   0.45~0.62 停住站正、火变小、脚下冒出披萨；0.62~0.8 踩着披萨飘；0.8~1.2 火再点起来，踩着披萨冲出画面（1 = 切关，之后黑幕落下的那一会儿接着冲）
+## 结尾的 4 个镜头（t = 拍下去之后第几拍，0~rocket_beats；切关之后黑幕落下的那一会儿 t 接着往上走），见 rocket_beats 的说明。
+## 每一段的起止都落在拍子上，和 out_earth_to_space 的小节一一对上。
+## 镜头：平移 + 远近 + 一点侧倾（转弯时往里歪，dutch）+ 很轻的手持晃动；跟猫的时候落后它一点点（看的是猫 rocket_cam_lag 拍前的位置）。
+## 猫：路径是一条按拍子算的曲线（_cat_path），身体顺着它真正的速度方向歪、速度快时顺着拉长，慢下来自己站正。
 func _update_rocket(ms: float) -> void:
-	var p := _rocket_p
-	var b := camera.global_transform.basis
-	var rig := _model.get_node_or_null("CatRig") as Node3D
-	if rig:
-		rig.visible = p < 0.08
-	# 镜头只平移和改大小，朝向不变：画面中心挪到地球，再跟着猫挪出去
+	var t := _rocket_p * rocket_beats
+	var b := _cam_basis
 	var forward := -b.z
 	var earth := _model.to_global(_earth_rest) if _earth else _model.global_position
-	var on_earth := earth - forward * (earth - camera_position).dot(forward)
-	var zin := smoothstep(0.0, 0.12, p)
-	var zout := smoothstep(0.2, 0.55, p)
-	var pos := camera_position.lerp(on_earth, zin).lerp(on_earth + b * Vector3(rocket_view_center.x, rocket_view_center.y, 0.0), zout)
-	var rumble := 1.0 - smoothstep(0.05, 0.2, p)
-	pos += b * Vector3(sin(ms * 70.0), cos(ms * 83.0), 0.0) * 0.08 * rumble
-	camera.size = lerpf(lerpf(camera_size, rocket_close_size, zin), rocket_final_size, zout)
-	camera.position = pos
-	_model.scale = Vector3.ONE * (1.0 + 0.06 * rumble * absf(sin(ms * 40.0)))
-	# 猫：从地球里飞出来 → 停住 → 冲出画面
-	_rocket.visible = p >= 0.12
-	var dir := Vector3(rocket_stop.x, rocket_stop.y, 0.0)
-	var from := earth - forward * 1.0
-	var stop := earth + b * dir - forward * 3.0  # 往镜头这边一点，不被地球挡
-	var fly := 1.0 - pow(1.0 - smoothstep(0.12, 0.5, p), 2.0)
-	var dash := pow(smoothstep(0.8, 1.2, p), 2.0)
-	var settle := smoothstep(0.45, 0.62, p) * (1.0 - smoothstep(0.78, 0.86, p))
-	var bob := sin(ms * 2.2) * 0.12 * settle
-	var tilt := -atan2(rocket_stop.x, rocket_stop.y) * (1.0 - settle)  # 飞的时候头朝飞的方向，停住时站正
-	var at := from.lerp(stop, fly) + b * (dir.normalized() * dash * 14.0) + b.y * bob
-	_rocket.transform = Transform3D(b * Basis(Vector3.BACK, tilt), at)
-	_rocket.scale = Vector3.ONE * lerpf(0.25, 1.0, smoothstep(0.12, 0.3, p))
-	# 火焰：忽大忽小地抖，停住时缩小，冲出去时再喷
-	var burn := maxf(1.0 - settle, 0.0) * smoothstep(0.12, 0.16, p)
+	var dir_n := Vector3(rocket_stop.x, rocket_stop.y, 0.0).normalized()
+
+	# ---- 地球：拍下去带着惯性转，越转越慢，第 4 拍转停（停住时轻轻回弹一下）；拍下去那一下一震 ----
+	if _earth:
+		var eu := clampf(t / 4.0, 0.0, 1.0)
+		var spin := rocket_spin_degrees * (1.0 - pow(1.0 - eu, 3.0))
+		if t > 4.0:
+			spin += 4.0 * sin((t - 4.0) * TAU * 1.5) * exp(-(t - 4.0) * 4.0)
+		_earth.rotate_object_local(Vector3.BACK, deg_to_rad(spin))
+	_model.scale = Vector3.ONE * (1.0 + 0.07 * exp(-t * 5.0) * absf(sin(ms * 40.0)))
+
+	# ---- 拍地球的猫：被拍飞出画面左上（一下子弹出去，越飞越慢 = 被打飞），边飞边翻 ----
+	var rig := _model.get_node_or_null("CatRig") as Node3D
+	if rig:
+		var kx := clampf(t / 1.25, 0.0, 1.0)
+		var k := 1.0 - pow(1.0 - kx, 2.5)
+		rig.visible = kx < 1.0
+		var away := b * (Vector3(-1.0, 0.65, 0.0).normalized() * 10.0 * k)
+		var roll := Basis(b.z, TAU * 0.9 * k)
+		rig.global_transform = Transform3D(roll * _rig_rest.basis, roll * (_rig_rest.origin - earth) + earth + away)
+
+	# ---- 飞出来的猫 ----
+	_rocket.visible = t >= 4.0
+	var ru := clampf(t - 4.0, 0.0, 4.0)                               # 升空这一小节里第几拍
+	var size := rocket_rise_from_size * pow(1.0 / rocket_rise_from_size, ru / 4.0)   # 按指数长大（= 往镜头冲过来）
+	size *= lerpf(1.0, 0.35, smoothstep(12.75, 16.0, t))              # 冲出：越来越小（往远处去）
+	var path := _cat_path(t, earth, b)
+	var vel := (_cat_path(t + 0.05, earth, b) - _cat_path(t - 0.05, earth, b)) / 0.1   # 米 / 拍
+	var vx := vel.dot(b.x)
+	var vy := vel.dot(b.y)
+	var speed := Vector2(vx, vy).length()
+	var settle := smoothstep(10.4, 11.3, t) * (1.0 - smoothstep(12.0, 12.4, t))   # 停住踩着披萨飘的那一段
+	var crouch := sin(clampf((t - 12.0) / 0.75, 0.0, 1.0) * PI)       # 冲出前蹲一下往回缩
+	var cat := path + b.y * (sin(ms * 2.2) * 0.12 * settle) - b * dir_n * 0.35 * crouch
+	var bump := _kick(t, rocket_ufo_hit)                               # 撞上 UFO 的那一下
+	# 身体：顺着速度方向歪（慢了自己站正），升空时轻轻左右摇，停住时站着晃
+	var follow_w := smoothstep(0.15, 1.2, speed)
+	var tilt := clampf(-atan2(vx, vy), -0.95, 0.95) * follow_w if speed > 0.001 else 0.0   # 最多歪 55°，不躺平
+	tilt += deg_to_rad(4.0) * sin(ms * 5.3) * smoothstep(4.0, 4.5, t) * (1.0 - smoothstep(7.5, 8.0, t))
+	tilt += deg_to_rad(6.0) * sin(ms * 2.2 + 0.8) * settle
+	# 冲出前蹲下：身子先顺着要冲的方向歪过去（蓄力）
+	tilt = lerpf(tilt, -atan2(dir_n.x, dir_n.y) * 0.6, crouch * 0.8)
+	tilt += deg_to_rad(16.0) * bump                                     # 撞到 UFO：脑袋往后一仰
+	_rocket.transform = Transform3D(b * Basis(Vector3.BACK, tilt), cat)
+	# 拉伸：快的时候顺着身子（= 顺着速度）拉长、横着变窄；踩上披萨那一下压扁；蹲下时压扁
+	var stretch := clampf(speed / maxf(size, 0.05) * 0.03, 0.0, 0.25)
+	var land := sin(clampf((t - 10.85) / 0.6, 0.0, 1.0) * PI) * 0.14
+	# 撞上 UFO：一下子压扁（脑袋顶到它），再弹回来、稍微拉长一下、再落稳（衰减的弹簧）
+	var hu := t - rocket_ufo_hit
+	var squash := 0.0
+	if hu >= -0.03:
+		squash = 0.32 * smoothstep(-0.03, 0.03, hu) * exp(-maxf(hu, 0.0) * 5.5) * cos(maxf(hu, 0.0) * TAU * 1.4)
+	var sy := (1.0 + stretch) * (1.0 - land) * (1.0 - 0.15 * crouch) * (1.0 - squash)
+	var sx := 1.0 / sqrt(maxf(sy, 0.3))
+	_rocket.scale = Vector3(sx, sy, 1.0) * maxf(size, 0.005)
+	# 火：升起来时一直喷，停住时收小，蹲完再喷得更猛
+	var burn := (1.0 - smoothstep(10.4, 11.3, t)) * smoothstep(4.0, 4.4, t) + smoothstep(12.6, 12.9, t) * 1.3
 	_flame.visible = burn > 0.02
 	_flame.scale = Vector3(1.0, 0.85 + 0.25 * sin(ms * 31.0), 1.0) * burn * (0.9 + 0.15 * sin(ms * 47.0))
 	# 披萨：停住时从脚下弹出来，之后一直踩着
-	var pop := smoothstep(0.48, 0.62, p)
+	var pop := smoothstep(10.75, 11.5, t)
 	_pizza.visible = pop > 0.0
-	_pizza.scale = Vector3.ONE * maxf(pop + sin(pop * PI) * 0.25, 0.01)
+	_pizza.scale = Vector3.ONE * maxf(pop + sin(pop * PI) * 0.3, 0.01)
 	(_pizza.get_child(0) as Node3D).rotation.y = ms * 0.8
+
+	# ---- 停下来之前撞飞一只 UFO：先从右边慢慢飘进猫要经过的地方（晃着），猫的脑袋撞上的那一拍被撞飞，
+	# 转着圈往右上飞出画面 ----
+	var hit_pos := _cat_path(rocket_ufo_hit, earth, b) + b * Vector3(0.6, 0.2, 0.0) - forward * 0.3   # 猫脑袋的右边
+	var ut := t - rocket_ufo_hit
+	_ufo.visible = ut > -rocket_ufo_drift_beats and ut < 3.0
+	if _ufo.visible:
+		var ub := b
+		var upos := hit_pos
+		if ut < 0.0:
+			var a := 1.0 - clampf(-ut / rocket_ufo_drift_beats, 0.0, 1.0)
+			upos += b * Vector3(2.6 * pow(1.0 - a, 2.0), 0.08 * sin(ms * 3.0), 0.0)
+			ub = b * Basis(Vector3.BACK, deg_to_rad(8.0) * sin(ms * 2.6)) * Basis(Vector3.RIGHT, deg_to_rad(18.0)) * Basis(Vector3.UP, ms * 2.0)
+		else:
+			var go := Vector3(1.0, 0.35, 0.0).normalized()
+			upos += b * go * (4.5 * (1.0 - exp(-ut * 1.4)) + 1.2 * ut)      # 撞飞：一下子弹开，转着圈大概一拍飞出画面
+			ub = b * Basis(Vector3.BACK, -TAU * 2.0 * (1.0 - exp(-ut * 1.8))) * Basis(Vector3.RIGHT, deg_to_rad(18.0) + ut * 4.0) \
+					* Basis(Vector3.UP, ms * 2.0 + ut * 18.0)
+		_ufo.transform = Transform3D(ub, upos)
+		_ufo.scale = Vector3.ONE * (1.0 - 0.3 * clampf(ut, 0.0, 1.0))
+	if ut >= 0.0 and not _bonked:
+		_bonked = true
+		if rocket_ufo_sfx != "" and Conductor.playing:
+			Music.play_sfx(rocket_ufo_sfx, -9.0)
+
+	# ---- 十字星：第 4 拍冲出大气层时在猫出现的地方一闪（转一圈、叮一声）；撞上 UFO 时在撞的地方再闪一下（小一点） ----
+	var st := (t - 4.0) / maxf(rocket_star_beats, 0.01)
+	var st2 := (t - rocket_ufo_hit) / 0.5
+	_star.visible = (st > 0.0 and st < 1.0) or (st2 > 0.0 and st2 < 1.0)
+	if st2 > 0.0 and st2 < 1.0:
+		_star.transform = Transform3D(b * Basis(Vector3.BACK, -PI * st2), hit_pos - forward * 0.6 - b * Vector3(0.15, 0.2, 0.0))
+		_star.scale = Vector3.ONE * rocket_star_size * 0.7 * pow(sin(PI * st2), 0.6)
+	if st > 0.0 and st < 1.0:
+		var flash := pow(sin(PI * st), 0.6)
+		_star.transform = Transform3D(b * Basis(Vector3.BACK, -TAU * st), cat - forward * 0.6)
+		_star.scale = Vector3.ONE * rocket_star_size * flash
+		if not _dinged and rocket_star_sfx != "" and Conductor.playing:
+			Music.play_sfx(rocket_star_sfx, -4.0)
+		_dinged = true
+
+	# ---- 镜头 ----
+	var lag_cat := _cat_path(t - rocket_cam_lag, earth, b)            # 跟猫时看的是它稍早一点的位置：落后一点 = 速度感
+	# 拍下去的那一瞬间就往地球上推（ease out：一下子推过去，再慢慢贴近），第 4 拍推到最近
+	var zx := clampf(t / 4.0, 0.0, 1.0)
+	var zin := 1.0 - pow(1.0 - zx, 4.0)
+	var cx := clampf(t / 2.5, 0.0, 1.0)
+	var center := camera_position.lerp(_on_view(earth), 1.0 - pow(1.0 - cx, 3.0))
+	var view := lerpf(camera_size, rocket_close_size, zin)
+	# 升空：中心追着猫、跟着拉远（指数，比猫缓），第 8 拍拉到 rocket_lift_size：地球还很大、但被挤到画面左下角边上
+	# = 猫刚离开地球。之后飞走的那一小节再拉远到 rocket_leave_size，地球滑出画面
+	var back := _expo(ru, rocket_pull_rate)
+	view = lerpf(view, rocket_lift_size, back)
+	center = center.lerp(_on_view(lag_cat + b * Vector3(rocket_lift_offset.x, rocket_lift_offset.y, 0.0)), back)
+	# 飞走：镜头错开地球中心跟着猫，往右上偏，地球滑出画面左下（和升空接着，不停顿）
+	var leave := smoothstep(8.0, 11.5, t)
+	center = center.lerp(_on_view(lag_cat + b * Vector3(rocket_leave_offset.x, rocket_leave_offset.y, 0.0)), leave)
+	view = lerpf(view, rocket_leave_size, leave)
+	# 冲出：追着冲出去的猫，追不上
+	var chase := smoothstep(12.6, 16.0, t)
+	center = center.lerp(_on_view(lag_cat), chase * 0.5)
+	view = lerpf(view, rocket_final_size, chase * chase)
+	# 重音上镜头顶一下：十字星闪（推近一点）、冲出去（拉远一点）
+	view *= 1.0 - 0.05 * _kick(t, 4.0) - 0.04 * _kick(t, rocket_ufo_hit) + 0.06 * _kick(t, 12.75)
+	# 手持感：很慢的轻微漂移（跟远近成比例）+ 拍下去那一下的震
+	var drift := Vector3(sin(ms * 1.3) * 0.6 + sin(ms * 2.9) * 0.4, sin(ms * 1.7 + 1.0) * 0.6 + sin(ms * 3.3) * 0.3, 0.0)
+	center += b * drift * 0.025 * view / camera_size
+	center += b * Vector3(sin(ms * 70.0), cos(ms * 83.0), 0.0) * 0.1 * exp(-t * 3.0)
+	# 侧倾：拍下去那一下甩一下再回正；升空时顺着猫往右上斜一点；飞走转弯时往里歪；冲出时再歪
+	var roll_deg := 5.0 * exp(-t * 2.2) * cos(t * 4.0)
+	roll_deg += -3.0 * back * (1.0 - leave)
+	roll_deg += -5.0 * sin(clampf((t - 7.6) / 3.4, 0.0, 1.0) * PI)
+	roll_deg += -6.0 * chase
+	var backdrop := _model.get_node_or_null("GalaxyBackdrop") as Node3D
+	if backdrop:
+		backdrop.scale = Vector3.ONE * lerpf(1.0, 4.0, zin)  # 星空背景放大：镜头后面挪远了也不露边（推近的时候放大，看不出来）
+	camera.global_transform = Transform3D(Basis(b.z, deg_to_rad(roll_deg)) * b, center)
+	camera.size = view
+
+
+## 猫在第 t 拍的位置（不含晃动、蹲下）：升空（指数，斜着）→ 飞走（接着升空的速度冲出去，稍微冲过头再回来）→ 冲出（越冲越快）
+func _cat_path(t: float, earth: Vector3, b: Basis) -> Vector3:
+	var forward := -b.z
+	var ru := clampf(t - 4.0, 0.0, 4.0)
+	var p := earth - forward * (_earth_radius * 1.05 + 0.8) + b * Vector3(rocket_rise_to.x, rocket_rise_to.y, 0.0) * _expo(ru, rocket_rise_rate)
+	var fx := clampf((t - 8.0) / 3.0, 0.0, 1.0)
+	# 飞走：起步接着升空的速度（不突然加速，地球慢慢滑出画面），中间加速，最后稳稳停住
+	var fly := 1.2 * (fx * fx * fx - 2.0 * fx * fx + fx) + (3.0 * fx * fx - 2.0 * fx * fx * fx)
+	p = p.lerp(earth - forward * 3.5 + b * Vector3(rocket_stop.x, rocket_stop.y, 0.0), fly)
+	var s := clampf((t - 12.75) / 3.25, 0.0, 1.3)
+	return p + b * Vector3(rocket_stop.x, rocket_stop.y, 0.0).normalized() * 22.0 * pow(s, 2.6)
+
+
+## 第 at 拍上镜头顶一下：一下子到 1，很快落回 0
+static func _kick(t: float, at: float) -> float:
+	if t < at - 0.05:
+		return 0.0
+	return exp(-maxf(t - at, 0.0) * 5.0) * smoothstep(at - 0.05, at, t)
+
+
+## 指数的进度：u 从 0 到 4 拍，返回 0~1，按 e^(rate·u) 走（开头慢，越来越快）
+static func _expo(u: float, rate: float) -> float:
+	if rate <= 0.001:
+		return clampf(u / 4.0, 0.0, 1.0)
+	return (exp(rate * clampf(u, 0.0, 4.0)) - 1.0) / (exp(rate * 4.0) - 1.0)
+
+
+## 让画面中心对准 point 的镜头位置（深度不变，只在镜头平面上挪）
+func _on_view(point: Vector3) -> Vector3:
+	var forward := -camera.global_transform.basis.z
+	return point - forward * (point - camera_position).dot(forward)

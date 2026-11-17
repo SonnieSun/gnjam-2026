@@ -28,6 +28,10 @@ static func chart_phases() -> Array:
 		{"id": "peak", "name": "高潮（经典旋律，fever）", "event": 2},
 	]
 var _next_at := INF
+## 九宫格（大关文件 fx_cues 里 0.5 那一条）等音乐真的换到四阶下行那条线才开：音乐换段要等康康舞曲第一段唱完一句（8 小节），
+## 积累条过一半时它常常还在唱第一段。INF = 还没排上
+var _grid_from := INF
+var _grid_open := false
 
 ## 黑幕落出屏幕前再盖几秒（等新画面摆好）、落出去用几秒
 @export var curtain_hold := 0.1
@@ -58,6 +62,8 @@ func _on_enter() -> void:
 func _on_change_planned(kind: String, id: int, _fill_beat: float, commit_beat: float) -> void:
 	if not active:
 		return
+	if kind == "tier" and id == 2:
+		_grid_from = commit_beat
 	if kind == "tier" and id == 2 and not mid_bars.is_empty():
 		_next_bars = mid_bars
 		_next_phase = "steps"
@@ -69,7 +75,22 @@ func _on_change_planned(kind: String, id: int, _fill_beat: float, commit_beat: f
 
 
 ## 离那条线 12 拍以内才换（判定只提前铺 16 拍）：旧谱打到那条线为止，新谱从那条线起算
+## 画面特效最多走到哪（screen_fx.gd 读）：音乐换到四阶下行之前压在九宫格那条线下面。没有音乐时不压
+func screen_fx_cap() -> float:
+	if _grid_open or Engine.is_editor_hint() or Music.stream == null:
+		return 1.0
+	for cue: Array in def.fx_cues:
+		if str(cue[1]) == "grid3":
+			return float(cue[0]) - 0.0001
+	return 1.0
+
+
 func _chart_tick() -> void:
+	if active and not _grid_open and song_beat() >= _grid_from:
+		_grid_open = true
+		var m := get_parent().get_parent() if get_parent() else null
+		if m and m.get("screen_fx"):
+			m.screen_fx.set_progress(m.gauge.value / maxf(m.gauge.max_value, 1.0))
 	if not active or is_inf(_next_at) or song_beat() < _next_at - 12.0:
 		return
 	var main := get_parent().get_parent() if get_parent() else null

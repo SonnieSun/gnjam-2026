@@ -80,6 +80,9 @@ static func chart_phases() -> Array:
 ## 积累条到几成算这一段的音乐结束：不再出星球，还在场的星球全部爆炸（按打掉算分），猫往前飞走，
 ## 黑幕落下来盖满后才把积累条顶满，让框架切到下一段（下一段开头黑幕再落出屏幕，见 space_pizza_section.gd）
 @export_range(0.5, 1.0) var outro_at := 0.95
+## 到了之后不马上走：等土耳其进行曲第二段唱完一句（这么多小节一句）再切到披萨，过场往前排，黑幕正好在句尾那条线前盖满。
+## 0 = 不等，到了就走。大关文件里这个小关的 exit_on_bars 要和它一样（框架切关时也按这个乐句线）
+@export var outro_phrase_bars := 8
 ## 猫往前飞多少拍之后黑幕开始落
 @export var outro_fly_beats := 3.0
 ## 黑幕落下来用几拍
@@ -120,6 +123,7 @@ var _star_mesh: Mesh
 var _fx_layer: Node
 var _main: Node
 var _outro_beat := -1.0  # 结尾过场从这一段第几拍开始（-1 = 还没开始）
+var _outro_line := -1.0  # 切关的那条乐句线（全曲第几拍，-1 = 还没定）
 var _fly := 0.0          # 结尾猫往前飞了多远
 var _fly_v := 0.0
 var _filled := false
@@ -186,7 +190,8 @@ func _update_view(t: float) -> void:
 	_spin_age += dt
 	_flash = maxf(_flash - dt * 2.5, 0.0)
 
-	if _outro_beat < 0.0 and _main and gauge_max > 0 and gauge_value >= gauge_max * outro_at:
+	if _outro_beat < 0.0 and _main and gauge_max > 0 and gauge_value >= gauge_max * outro_at \
+			and song_beat() >= _outro_start_beat():
 		_start_outro()
 	var dir := 0.0
 	if _outro_beat >= 0.0:
@@ -518,6 +523,26 @@ func _update_shards(dt: float) -> void:
 
 
 # ---- 结尾过场：星球全炸 → 猫往前飞走 → 黑幕落下 → 切下一段 ----
+
+## 结尾过场从全曲第几拍开始：倒推自切关那条乐句线（土耳其进行曲第二段的句尾），让黑幕在那条线前 1.5 拍盖满，
+## 框架就在那条线上切（满条后切在下一条小节线）。没音乐、不等乐句：马上开始
+func _outro_start_beat() -> float:
+	if outro_phrase_bars <= 0 or Music.stream == null:
+		return -INF
+	var lead := outro_fly_beats + curtain_beats + 1.5
+	var ending: float = _main.get("_ending_at")
+	if ending >= 0.0:
+		_outro_line = ending  # 积累条自己涨满了：框架已经定了线，按它来
+	elif _outro_line < 0.0:
+		var bpb := float(Conductor.chart.beats_per_bar) if Conductor.chart else 4.0
+		var line := (floorf((song_beat() + lead) / bpb) + 1.0) * bpb
+		for i in outro_phrase_bars:
+			if Music._on_phrase_line(line, outro_phrase_bars):
+				break
+			line += bpb
+		_outro_line = line
+	return _outro_line - lead
+
 
 func _start_outro() -> void:
 	_outro_beat = local_beat()

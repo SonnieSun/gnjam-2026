@@ -323,8 +323,11 @@ func _process(_delta: float) -> void:
 			_ending_marked = true  # 结束音符：句尾那一拍上的七彩音符（那一拍没有音符就补一个）
 			var long_note: NoteData = null
 			if _ending_hold_at >= 0.0:
-				# 先是一个七彩的大长按（通用长按：ChartInput），按完的那一拍才是结束音符（拍下去的那一下）
-				long_note = judge.add_note(_ending_hold_at)
+				# 先是一个七彩的大长按（通用长按：ChartInput），按完的那一拍才是结束音符（拍下去的那一下）。
+				# 小关脚本里写了 const ENDING_MASH := true 的是大连按：音符它自己铺，这里只给最后那一下
+				var mash: bool = (_current.get_script() as Script).get_script_constant_map().get("ENDING_MASH", false)
+				if not mash:
+					long_note = judge.add_note(_ending_hold_at)
 				if long_note:
 					long_note.length = _ending_at - _ending_hold_at
 				judge.add_note(_ending_at, NoteData.Sound.SNARE)
@@ -741,6 +744,8 @@ func _prelay_next() -> void:
 	_current.notes = list
 	_prelaid_index = next
 	_prelaid_at = _switch_at
+	if _current.has_method("prelay_next"):
+		_current.prelay_next(def, _switch_at)  # 小关自己接一下换段（比如拍地球：最后一小节换成八分连按引子）
 
 
 func _on_beat(beat_index: int) -> void:

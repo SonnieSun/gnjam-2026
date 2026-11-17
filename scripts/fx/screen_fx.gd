@@ -218,7 +218,11 @@ static func effect_at(list: Array, p: float) -> String:
 
 
 func _apply(with_flash: bool) -> void:
-	var id := effect_at(cues, _progress)
+	var p := _progress
+	# 小关可以先压着进度（写 screen_fx_cap()），比如等音乐真的换了段再切特效
+	if is_instance_valid(section) and section.has_method("screen_fx_cap"):
+		p = minf(p, section.screen_fx_cap())
+	var id := effect_at(cues, p)
 	if id == effect:
 		return
 	effect = id
