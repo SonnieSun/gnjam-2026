@@ -280,23 +280,34 @@ func _update_hold() -> void:
 	var length := hold_beats(_holding)
 	var now := minf(song_beat(), _holding.beat + length)
 	_stage.hold_update((now - _holding.beat) / maxf(length, 0.001), (now - _holding.beat) * Conductor.sec_per_beat())
-	if not hold_tail_judge and song_beat() >= _holding.beat + length:
+	if main_judge() == null and song_beat() >= _holding.beat + length:
 		_finish_hold(true)   # 没有尾判：到尾巴那一拍就算按完，不管手还在不在键上
 
 
-func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:
+func _on_hold_done(success: bool, release_beat: float, note: NoteData) -> void:
 	if note != _holding:
 		return
-	if hold_tail_judge or success:
+	if hold_tail_judge:
 		_finish_hold(success)
-		if success and _stage:
-			_stage.tap()  # 松得准：猫脸再转一下、镜头顶一下
 		return
-	# 没有尾判、松早了：不算失败，给一个小的反馈
-	_early_age = 0.0
-	Music.play_sfx("kick", -9.0)
-	_holding = null
-	_stage.hold_end(true)
+	# 没有尾判：分数、连击、积累条都不动，但松手那一下和打一个音符一样有判定的样子——大字、命中的喵声、画面顶一下。
+	# 尾巴附近松（或者按到尾巴）= PERFECT；早不到 0.8 拍 = GOOD；再早 = MISS（只是字，不扣东西）。
+	var early := note.beat + hold_beats(note) - release_beat
+	var result := NoteData.Result.PERFECT if success else (NoteData.Result.GOOD if early <= 0.8 else NoteData.Result.MISS)
+	var main := get_parent().get_parent() if get_parent() else null
+	if main and main.get("hud"):
+		main.hud.show_judgement(result, -maxf(early, 0.0) * Conductor.sec_per_beat())
+	if main and main.get("hit_meow"):
+		main.hit_meow.play(result)
+	if result == NoteData.Result.MISS:
+		_early_age = 0.0
+		_holding = null
+		_stage.hold_end(true)
+		return
+	if main and main.get("screen_fx"):
+		main.screen_fx.punch_for(result)
+	_finish_hold(true)
+	_stage.tap()  # 猫脸再转一下、镜头顶一下
 
 
 func _finish_hold(success: bool) -> void:

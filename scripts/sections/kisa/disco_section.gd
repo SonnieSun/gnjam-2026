@@ -83,6 +83,7 @@ var _road: DiscoRoad
 var _layer_gain := PackedFloat32Array()  # 每条分轨现在的音量（0~1）
 const CHART_AHEAD_BEATS := 12.0  # 提前这么多拍把下一阶段的谱交给判定（判定提前铺 16 拍）
 var _chart_at := INF  # 到这一拍换谱（见 _switch_chart_at）
+var _finale_at := INF  # 结尾演出从这一拍（小节线）开始，这一拍上是结束彩圈（见 _prepare_finale）
 var _chart_stop := 0.0
 var _chart_origin := 0.0
 var _unfold_at := INF  # 到这一拍开始拆房子（见 _begin_unfold）
@@ -151,6 +152,9 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	_stage.update(song_beat())
 	_road.update(song_beat(), own_notes())
 	_update_layers()
+	if song_beat() >= _finale_at + 0.05:
+		_finale_at = INF
+		_start_finale()
 	if song_beat() >= _chart_at:
 		_chart_at = INF
 		_switch_chart_at(_chart_stop, _chart_origin, "road")
@@ -282,7 +286,7 @@ func _on_gauge_event(index: int, _value: int) -> void:
 	elif index == 6 or index == 7:
 		_road.set_floor(index - 5)
 	elif index == 9:
-		_start_finale()
+		_prepare_finale()
 	elif index == 8:
 		# 滑到圆台这段先歇一会儿（不直接接着出音符），歇完在小节线上接着打路上那套鼓谱。
 		# 音乐在这一档有一段安静的过渡（只留猫唱旋律和低音，几小节）：水果一结束它就出，它一结束渐强的那一段进来，
@@ -621,6 +625,20 @@ func _on_exit() -> void:
 
 ## 结尾镜头开始：不再出音符（这一段只看演出），放完 finale_beats 拍后把积累条顶满，
 ## 让框架在下一个小节线切到吸猫小关。Judge 和 Gauge 是主场景里 Sonnie 的节点，这里只调它们现成的方法。
+## 结尾（飞碟来接）的预备：过了最后一条线不马上演——谱面接着打到下一条小节线（至少还有两拍），那条线上是结束彩圈，
+## 打完那一下才开始结尾演出、音乐换结尾段。原来一过线音符就全没了。
+func _prepare_finale() -> void:
+	var main := get_parent().get_parent()
+	if main == null or not main.get("judge"):
+		_start_finale()
+		return
+	var bpb: int = Conductor.chart.beats_per_bar
+	_finale_at = ceilf((song_beat() + 2.0) / bpb) * bpb
+	main.judge.end_notes_at(_finale_at)
+	if _accents:
+		_accents.mark_change(_finale_at, true)
+
+
 func _start_finale() -> void:
 	_road.finale(finale_beats * Conductor.sec_per_beat(), not abduction_after_finale)  # 不接吸猫：镜头停在远景
 	_fill_at = song_beat() + finale_beats - 2.0

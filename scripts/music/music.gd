@@ -475,6 +475,7 @@ func set_section(index: int) -> void:
 		return
 	_entered_early = -1
 	progress_override = -1.0
+	_fever_off = false
 	var changed := index != section
 	# 换小关不从"全开"一下掉到"什么都没有"：上一个小关走的时候有多满，新小关就先带着它的几成进来
 	# （过门那一小节之后），再用 CARRY_BARS 小节慢慢落回玩家在新小关里真正的进度。
@@ -797,6 +798,14 @@ func in_fever(p: float) -> bool:
 		if p + LINE_EPS >= r[0] and (p < r[1] or r[1] >= 0.999):
 			return true
 	return false
+
+
+## 小关自己把 fever 收掉（比如拍地球最后那一下拍完）：现在就结束，这个小关里不再进（换小关时恢复）
+var _fever_off := false
+
+func end_fever() -> void:
+	_fever_off = true
+	_end_fever()
 
 
 func _end_fever() -> void:
@@ -1255,6 +1264,7 @@ func _apply_now(beat_index := -1) -> void:
 		return
 	# 要进 fever：一样
 	var fever_now := use_dynamics and in_fever(eff)
+	fever_now = fever_now and not _fever_off
 	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and into_fever.fill and not _outro:
 		_fever_fill_done = true
 		_play_change(into_fever)

@@ -6,6 +6,17 @@ extends "res://scripts/sections/pizza_section.gd"
 ## 这一段一开始就让它往下落出屏幕，露出新画面（和两关之间的黑幕一样）。
 ## 黑幕在 SpaceShooterScore.handoff 里；没有（比如直接跳到这一段）就和原来的披萨猫关一样。
 
+## 康康舞曲在这一段有三个阶段，谱面跟着换（都在音乐换的那条小节线上换，之前铺好的音符照常打完）：
+##   开头（另一段旋律）      大关文件里这个小关的 bars：每小节第 1、3 拍
+##   四阶下行（进度一半起）  mid_bars：每小节前两拍的四个八分音符正好是那四个往下走的音，第 4 拍再一下
+##   高潮（经典旋律，fever） peak_bars：四分音符连打，每拍一下
+## 每个阶段多长在大关文件里（这个小关的 gauge_events 65 / 98 + phase_gain / fever_gain）：四阶下行大约放一遍（8 小节），
+## 高潮从过线算起大约 14 小节（等乐句线 + 两小节过门 + 经典旋律至少一遍）。
+@export var mid_bars := PackedStringArray(["k.k.k.k.....s..."])
+@export var peak_bars := PackedStringArray(["k...s...k...s..."])
+var _next_bars := PackedStringArray()
+var _next_at := INF
+
 ## 黑幕落出屏幕前再盖几秒（等新画面摆好）、落出去用几秒
 @export var curtain_hold := 0.1
 @export var curtain_leave := 0.9
@@ -15,6 +26,9 @@ func _on_enter() -> void:
 	super._on_enter()
 	if Engine.is_editor_hint() or camera == null:
 		return
+	if not Music.change_planned.is_connected(_on_change_planned):
+		Music.change_planned.connect(_on_change_planned)
+		get_tree().process_frame.connect(_chart_tick)
 	_beat_decor()
 	var curtain := SpaceShooterScore.handoff.get("curtain") as CanvasLayer
 	SpaceShooterScore.handoff = {}
@@ -26,6 +40,42 @@ func _on_enter() -> void:
 	tw.tween_property(rect, "position:y", get_viewport().get_visible_rect().size.y + 40.0, curtain_leave) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(curtain.queue_free)
+
+
+## 音乐排好了换阶段（预备信号）：记下在哪条线换哪套谱
+func _on_change_planned(kind: String, id: int, _fill_beat: float, commit_beat: float) -> void:
+	if not active:
+		return
+	if kind == "tier" and id == 2 and not mid_bars.is_empty():
+		_next_bars = mid_bars
+		_next_at = commit_beat
+	elif kind == "fever" and not peak_bars.is_empty():
+		_next_bars = peak_bars
+		_next_at = commit_beat
+
+
+## 离那条线 12 拍以内才换（判定只提前铺 16 拍）：旧谱打到那条线为止，新谱从那条线起算
+func _chart_tick() -> void:
+	if not active or is_inf(_next_at) or song_beat() < _next_at - 12.0:
+		return
+	var main := get_parent().get_parent() if get_parent() else null
+	var at := _next_at
+	_next_at = INF
+	if main == null or not main.get("judge") or main.get("_switch_at") == null:
+		return
+	if float(main.get("_switch_at")) >= 0.0:
+		return  # 已经在收尾了（积累条满了）：不再换谱
+	var d: SectionDef = def.duplicate()
+	d.chart = null
+	d.bars = _next_bars
+	var keep: Array[NoteData] = []
+	for n in notes:
+		if not n.judged and n.beat < at - 0.001:
+			keep.append(n)
+	var index: int = main.get("_index") if main.get("_index") != null else 0
+	notes = main.judge.begin_section(index, d, Conductor.chart.beats_per_bar, at, at)
+	for i in keep.size():
+		notes.insert(i, keep[i])
 
 
 ## 装饰跟拍（BeatFx，见 stages/shared/beat_fx）：光环的砖一块接一块胀过去；光球的芯各用各的节奏，灯跟底鼓。

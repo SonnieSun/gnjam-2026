@@ -228,8 +228,10 @@ var ending_from := INF
 
 ## 离现在最近的还没结束的连按段：{id, start, end（全曲拍数）, beats, need}；没有连按段返回空
 func _zone_now() -> Dictionary:
-	if _zones.is_empty() or _pattern_len <= 0.0 or song_beat() >= ending_from - 0.5:
+	if _zones.is_empty() or _pattern_len <= 0.0:
 		return {}
+	if song_beat() >= ending_from - approach_beats:
+		return _ending_zone()
 	if is_inf(_pattern_origin):
 		if notes.is_empty():
 			return {}
@@ -240,10 +242,23 @@ func _zone_now() -> Dictionary:
 		for i in _zones.size():
 			var z := _zones[i]
 			var base: float = _pattern_origin + l * _pattern_len
+			if base + float(z.start) >= ending_from - 0.5:
+				return _ending_zone()  # 结束的大长按之后没有连按段了：下一段就是它
 			if now <= base + float(z.end):
 				return {"id": l * _zones.size() + i, "start": base + float(z.start), "end": base + float(z.end),
 						"base": base, "beats": z.beats, "need": z.need}
 	return {}
+
+
+## 结束的大长按当成一段特别长的连按段来画：紫色的色带从外圈收进来、判定圈上的蓄力弧、大字，都和连按一样
+func _ending_zone() -> Dictionary:
+	if song_beat() > ending_from + ENDING_HOLD_BEATS:
+		return {}
+	var beats: Array = []
+	for i in int(ENDING_HOLD_BEATS):
+		beats.append(float(i))
+	return {"id": 1000000, "start": ending_from, "end": ending_from + ENDING_HOLD_BEATS, "base": ending_from,
+			"beats": beats, "need": int(ENDING_HOLD_BEATS)}
 
 
 ## 现在是不是在连按段里
@@ -376,6 +391,7 @@ func _update_spin(local: float, _angle: float) -> void:
 		if song_beat() >= ending_from:
 			# 结束的大长按：蓄力跟着按住的进度涨到满
 			_charge = maxi(_charge, roundi(clampf((song_beat() - ending_from) / ENDING_HOLD_BEATS, 0.0, 1.0) * _charge_target))
+			_maxed = _charge >= _charge_target
 		_stage.set_charge(charge_ratio() + minf(charge_over() * 0.1, 0.5))
 		_pop = maxf(_pop - dt * 9.0, 0.0)
 		_max_flash = maxf(_max_flash - dt * 2.5, 0.0)
@@ -405,6 +421,12 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 			_charge = 0
 			_maxed = false
 		return
+	if absf(note.beat - (ending_from + ENDING_HOLD_BEATS)) < 0.01:
+		# 最后那一下拍下去：白闪，fever 到此为止
+		var m := get_parent().get_parent() if get_parent() else null
+		if m and m.get("hud"):
+			m.hud.flash(Color.WHITE, 0.9, 0.3)
+		Music.end_fever()
 	_last_power = charge_ratio() if _charge_mode else 0.0
 	_over_at_slap = charge_over()
 	var low := _charge_mode and _last_power < minimum_charge_ratio
@@ -541,6 +563,10 @@ func _draw_mash(center: Vector2, radius: float, travel: float) -> void:
 			# 每多按一下：字再大一号（到上限为止），颜色换一种（沿色环转一格），按下的瞬间再额外胀一下
 			fs = mini(44 + over * max_grow_per_press, max_grow_limit) + int(10.0 * _pop)
 			col = Color.from_hsv(fposmod(charged_color.h + over * max_hue_step, 1.0), 0.75, 1.0).lerp(Color.WHITE, 0.35 * _pop)
+	elif active and int(zone.get("id", -1)) == 1000000:
+		label = "HOLD!  %d / %d" % [_charge, _charge_target]
+		col = Color.from_hsv(fposmod(Time.get_ticks_msec() * 0.0006, 1.0), 0.5, 1.0)
+		fs = 40 + int(8.0 * _pop)
 	elif active:
 		label = "%s  %d / %d" % [mash_text, _charge, _charge_target]
 		col = charge_color.lerp(Color.WHITE, 0.55)

@@ -14,6 +14,7 @@ extends "res://scripts/sections/kisa/abduction_section.gd"
 var _bright_skipped := false
 
 var _clear_at := INF
+var _finale_at := INF  # 结尾演出从这一拍开始（这一拍上是结束彩圈）
 var _sky: SkyStage
 var _accents: NoteAccents  # 音符的重点标记（场景里有 NoteAccents 节点才有）
 var _ode_chart := false
@@ -105,6 +106,9 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	if _accents:
 		_accents.notes = own_notes()
 	super(local_beat, angle)
+	if song_beat() >= _finale_at + 0.05:
+		_finale_at = INF
+		_start_finale()
 	if song_beat() >= _clear_at:
 		_clear_at = INF
 		_fill_gauge_now()
@@ -117,7 +121,19 @@ const OWN_ENDING := true
 func _on_gauge_event(index: int, _value: int) -> void:
 	if _sky == null or index < gauge_event_values.size():
 		return
-	# 最后一条线：结尾
+	# 最后一条线：结尾的预备——谱面接着打到下一条小节线（至少还有两拍），那条线上是结束彩圈，打完才开始结尾演出
+	var main := get_parent().get_parent()
+	if main and main.get("judge"):
+		var bpb: int = Conductor.chart.beats_per_bar
+		_finale_at = ceilf((song_beat() + 2.0) / bpb) * bpb
+		main.judge.end_notes_at(_finale_at)
+		if note_accents:
+			note_accents.mark_change(_finale_at, true)
+	else:
+		_start_finale()
+
+
+func _start_finale() -> void:
 	var main := get_parent().get_parent()
 	if main and main.get("judge"):
 		main.judge.stop_notes()
