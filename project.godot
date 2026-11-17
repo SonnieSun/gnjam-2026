@@ -26,6 +26,7 @@ Sfx="*res://levelkit/core/sfx.gd"
 Conductor="*res://scripts/core/conductor.gd"
 Music="*res://scripts/music/music.gd"
 Settings="*res://scripts/core/settings.gd"
+RetroScreen="*res://scripts/fx/retro_screen.gd"
 
 [display]
 
