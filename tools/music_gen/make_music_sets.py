@@ -27,6 +27,10 @@ M = 'res://assets/audio/music/'
 S1 = M + 'scene1/'
 
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from music_changes import to_changes  # noqa: E402
+
+
 def t(id_, path, group, gain=0.0):
     return {'id': id_, 'file': path, 'group': group, 'gain_db': gain}
 
@@ -288,7 +292,9 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                       pattern('ybf_by_hit', 'your_best_friend', 'hit', by_hit=True),
                       harm('ybf_harm', 'your_best_friend'), harm('mk_harm', 'mountain_king')] + FILL,
            'sections': [
-               {'title': 'TV WALL', 'tiers': W, 'transition_tiers': (), 'fever': (W[4], 1.0), 'fever_fill': False,
+               {'title': 'TV WALL', 'tiers': W, 'transition_tiers': (),
+                # no fever on the washer: the level changes scene right after it, and a fever that is cut off the
+                # moment it starts was the odd thing about the end of this part (playtest, 2026-11-17)
                 'own': {'kiai': '', 'hit': 'ybf_by_hit'}, 'rules': {
                    'half': [[0, W[1]]], 'groove': [[W[1], 1]],
                    'ybf_keys': [[0, 1]], 'ybf_bass': [[W[0], 1]],
@@ -306,7 +312,7 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                # 'mka' and 'mk' are two tune groups, so the whole tune starts from its first bar after the fill bar
                # of the section change.
                {'title': 'SLAP / WARM UP', 'tiers': (0.5,), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''},
-                'enter': 'tr_ybf_to_mk', 'rules': {
+                'enter': 'tr_ybf_to_mk', 'enter_db': 14.0, 'enter_bars': 2, 'rules': {
                    'groove': [[0, 1]], 'mka_keys': [[0, 1]], 'mka_bass': [[0, 1]], 'mka_cat_drums': [[0, 1]],
                    'mka_pluck': [[0, 0.5]], 'mka_cats': [[0.5, 1]]}},
                {'title': 'SLAP / CHARGE', 'tiers': (0.4,), 'transition_tiers': (), 'own': {'kiai': '', 'hit': ''}, 'enter_fill': False, 'carry': 0, 'rules': {
@@ -336,7 +342,9 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
 #                   chords and bass on the normal beat; now every hit sings the next note of the Ode to Joy
 #   SKY[2] SPACE    the tune plays by itself: the cats sing it, with meow drums
 #   SKY[3] FEVER    (into the UFO) transition bar, then the peak layer and the kichiku lead on top
-SKY = (0.25, 0.5, 0.7, 0.85)
+# (playtest 2026-11-17: the first part was long and the fever came late. 480 points, about 20 a bar: the first line
+#  2.4 bars sooner, the others 2 bars sooner. Was 0.25, 0.5, 0.7, 0.85.)
+SKY = (0.15, 0.42, 0.62, 0.77)
 SK = M + 'sky/sky_'
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'
 SETS[10] = {'title': 'SKY', 'use': True,
@@ -348,7 +356,7 @@ SETS[10] = {'title': 'SKY', 'use': True,
                        t('ode_cat_drums', OJ + 'C_drums_16b.wav', 'cat'), t('ode_kichiku', OJ + 'L3_cat_kichiku_16b.wav', 'kiai'),
                        pattern('ufo_rise', 'ufo_rise', 'hit', by_hit=True),
                        t('wind', SK + 'wind_8b.wav', 'event'), t('ode_peak', OJ + 'fb_L4_peak_16b.wav', 'event')] + FILL,
-            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'outro': 'out_into_the_ufo', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'rules': {
+            'sections': [{'title': 'SKY', 'exit': 'end_c_major', 'outro': 'out_into_the_ufo', 'fever_fill': False, 'own': {'hit': ''}, 'tiers': SKY, 'fever': (SKY[3], 1.0), 'tier_sfx': {1: 'none', 2: 'sky_holy_hit'}, 'tier_lead': {2: 4}, 'rules': {
                 'half': [[0, SKY[0]]], 'blast': [[SKY[0], SKY[1]]], 'groove': [[SKY[1], 1]],
                 'metal': [[SKY[0], SKY[1]]],
                 'drone': [[0, SKY[1]]], 'ode_bass': [[SKY[1], 1]],
@@ -491,21 +499,19 @@ def to_lanes(s):
         out = {'title': sec['title'], 'cues': cues}
         if 'tiers' in sec:
             out['tiers'] = list(sec['tiers'])          # the tier lines (else every cue position is one)
-        if 'transition_tiers' in sec:
-            out['transition_tiers'] = list(sec['transition_tiers'])
         if 'fever' in sec:
             out['fever'] = list(sec['fever'])
-        for k in ('exit', 'outro', 'fever_enter', 'fever_enter_db', 'fever_enter_bars', 'fever_enter_replaces', 'fever_reverb', 'carry', 'fever_on_bars', 'fever_fill', 'enter_fill'):
+        for k in ('exit', 'outro', 'fever_reverb', 'carry'):
             if k in sec:
                 out[k] = sec[k]
-        if 'tier_on_bars' in sec:                        # going up into these tiers waits for the tune's phrase line
-            out['tier_on_bars'] = {str(k): v for k, v in sec['tier_on_bars'].items()}
-        if 'enter' in sec:
-            out['enter'] = sec['enter']               # a designed one-bar transition into this section (a new tune)
         if 'own' in sec:
             out['own'] = dict(sec['own'])              # which clip of a lane is this section's own (a medley level)
-        if 'tier_sfx' in sec:
-            out['tier_sfx'] = {str(k): v for k, v in sec['tier_sfx'].items()}
+        # how the music changes on entering this section, at its tiers and into its fever: the short keys of the
+        # tables above (enter, transition_tiers, tier_on_bars, fever_enter, ...) become the one description the
+        # manager reads (music_changes.py has the table)
+        changes = to_changes(dict(sec))
+        if changes:
+            out['changes'] = changes
         sections.append(out)
     return lanes, sections
 

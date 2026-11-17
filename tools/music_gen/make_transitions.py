@@ -5,14 +5,12 @@ tune's chords and bass stop, this one-shot fills the bar, and the new tune start
 There are NO drums in these (the level's own drum loop is playing; a one-shot can start a few ms late and
 two sets of drums would flam).
 
-  <sfx>/tr_ybf_to_mk.wav   Your Best Friend (Ab major) -> Mountain King (A minor): "the smile cracks".
-                           The friendly head once on the instrument, then again a semitone up sung by a cat,
-                           hard-cut, landing on E (the dominant of A minor) over an E7 swell.
+  <sfx>/tr_ybf_to_mk.wav   Your Best Friend (Ab major) -> Mountain King (A minor), two bars: the washer's band ends
+                           its tune, then the metronome counts a bar in over E7 with the tune's pick-up.
   <sfx>/tr_mk_to_cc.wav    Mountain King (A minor) -> Can-Can (G major): "the hall bursts open". The creeping
                            head in sixteenths, running on up the scale and chromatically up to a high D over D7.
-  <sfx>/tr_disco_to_ent.wav  the disco theme (G minor) -> The Entertainer (C major), inside level 1 (a section's
-                           "tier_enter"): the rag's own introduction, the run down D E C A B G, and its pick-up D D#,
-                           the cats joining for the second half, over G7 (G is the disco's key note and C's dominant).
+  <sfx>/tr_disco_to_ent.wav  the disco theme (G minor) -> The Entertainer (C major), inside level 1: two bars cut
+                           from The Entertainer's own stems, the rag's introduction, an accent and its pick-up.
   <sfx>/tr_ccb_to_cc.wav   Can-Can's four steps down (D major) -> its famous tune (G major), the pizza going into
                            fever (a section's "fever_enter"): the famous tune's own lead-in, "G D A B, MIAO! MIAO!",
                            cut from the famous tune's stems (the fever's band, one bar early).
@@ -152,13 +150,6 @@ def render(name, lead, bass, chords, last_slide=0.0, roll=False, accents=()):
     print(f'  {name}: {len(x) / SR:.2f} s')
 
 
-# Your Best Friend (Ab) -> Mountain King (Am): the head, then the head a semitone up, landing on E
-render('tr_ybf_to_mk',
-       lead=[(0, 'C5', 2, 'i'), (2, 'C5', 1, 'i'), (3, 'C#5', 1, 'i'), (4, 'D#5', 3, 'i'),
-             (8, 'C#5', 2, 'b'), (10, 'C#5', 1, 'c'), (11, 'D5', 1, 'c'), (12, 'E5', 4, 'b')],
-       bass=[(0, 'G#1', 7), (8, 'E1', 8)],
-       chords=[(0, 'Ab', 6, 'stab'), (8, 'E7', 8, 'swell')])
-
 # Mountain King (Am) -> Can-Can (G): the creeping head in sixteenths, then on up to a high D over D7
 render('tr_mk_to_cc',
        lead=[(0, 'A4', 1, 'b'), (1, 'B4', 1, 'b'), (2, 'C5', 1, 'b'), (3, 'D5', 1, 'b'),
@@ -176,17 +167,6 @@ render('tr_tm_to_cc',
              (8, 'A4', 3, 'b'), (11, 'B5', 1, 'i'), (12, 'A5', 2, 'b'), (14, 'C#6', 1, 'i'), (15, 'E6', 1, 'i')],
        bass=[(0, 'A1', 2), (4, 'A1', 2), (8, 'A1', 2), (12, 'A1', 2), (14, 'A1', 2)],
        chords=[(0, 'A7', 4, 'stab'), (8, 'A7', 8, 'swell')], last_slide=7.0)
-
-# The disco theme (G minor) -> The Entertainer (C major), when the house opens in level 1. The rag's own
-# introduction (D E C A B G, the top octave of its three) in the game's eighths, then the pick-up the first
-# strain starts with (D D#, which lands on the tune's first E on the next bar line). The instrument plays it
-# all, the cats come in on the second half, and a snare roll announces the change: the house opening is a
-# little climax and The Entertainer comes in at full strength, sung by the cats, on the next bar line.
-render('tr_disco_to_ent',
-       lead=[(0, 'D6', 2, 'i'), (2, 'E6', 2, 'i'), (4, 'C6', 2, 'i'), (6, 'A5', 2, 'i'),
-             (8, 'B5', 2, 'b'), (10, 'G5', 2, 'b'), (12, 'D5', 2, 'b'), (14, 'D#5', 2, 'b')],
-       bass=[(0, 'G1', 6), (8, 'G1', 4), (12, 'G1', 4)],
-       chords=[(0, 'G', 4, 'stab'), (4, 'G7', 12, 'swell')], roll=True)
 
 # Can-Can: the four steps down (D major) -> the famous tune (G major), the pizza going into its fever.
 # What everybody hears in their head before the famous tune is the two accents its phrase starts with:
@@ -207,13 +187,44 @@ def tom(hz, gain):
     return np.stack([v + skin, v + skin], 1) * gain
 
 
-def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chords, play_db=16.0):
+def tick(hz, gain):
+    n = t2n(0.09)
+    k = np.arange(n) / SR
+    tone = (np.sin(2 * np.pi * hz * k) + 0.5 * np.sin(2 * np.pi * hz * 2.76 * k) * np.exp(-k / 0.008)) * np.exp(-k / 0.022)
+    click = highpass(np.stack([noise(n), noise(n)], 1), 2500) * np.exp(-k / 0.0025)[:, None] * 0.5
+    return (np.stack([tone, tone], 1) + click) * gain * np.clip(k / 0.0005, 0, 1)[:, None]
+
+
+def game_clips(level, ids, bar):
+    """One bar of clips of a level's music file as the level plays them: [(samples of that bar, dB)] for the clip
+    ids, read from the game's own files with the lane's and the clip's gain."""
+    import json
+    from audio import read_wav
+    game = os.environ.get('GAME_DIR', 'C:/Users/40389/Desktop/gnjam-2026')
+    d = json.load(open(os.path.join(game, 'levels', 'music', level + '.json'), encoding='utf-8'))
+    out = []
+    for lane in d['lanes']:
+        for c in lane['clips']:
+            if c['id'] in ids and 'file' in c:
+                w = read_wav(os.path.join(game, c['file'].replace('res://', '')))
+                out.append((w[bar * BAR_N:(bar + 1) * BAR_N], lane.get('gain_db', 0.0) + c.get('gain_db', 0.0)))
+    assert len(out) == len(ids), (ids, len(out))
+    return out
+
+
+def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chords, play_db=16.0, accent_gain=1.0, head=None, band_db=0.0,
+               extras=('double', 'fill', 'air', 'swell', 'windup'), clicks=False):
     """A transition made by THE BAND THAT IS ABOUT TO PLAY: `tune` is rendered again by the code that makes its
     stems (compose_classics.build) with len(rows) bars from `first_bar` rewritten (rows: one list of
     (step, note, steps) per bar; chords: two per bar), those bars are cut out of every stem and mixed at
-    `levels`. Drums and the accents ([(step from the start, note)]) are added on top."""
+    `levels`. Drums and the accents ([(step from the start, note)]) are added on top.
+    extras: what is piled on, each can be left out when the result is cluttered: 'double' the notes doubled an
+    octave up on the pluck, 'fill' the accelerating snare and toms, 'air' the rising noise, 'swell' the low
+    swell, 'windup' the snare over the head bar. clicks: the metronome's four ticks over the last bar."""
     n_bars = len(rows)
     song = dict(cc.SONGS[tune])
+    if tune in cc.SPEED:                                           # a tune the game plays at half speed
+        song = cc.slowed(song, cc.SPEED[tune])
     if first_bar is None:                                          # the last bars of the tune
         first_bar = len(song['chords']) // 2 - n_bars
     lo, hi = first_bar * 16, (first_bar + n_bars) * 16
@@ -230,9 +241,9 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
         x[:N] += L[layer][first_bar * BAR_N:first_bar * BAR_N + N] * 10 ** (db / 20)
     f = t2n(0.015)
     x[:f] *= np.linspace(0, 1, f)[:, None]
-    first_accent = min(st for st, _ in accents)
+    first_accent = min([st for st, _ in accents] + [n_bars * 16])
     # the hammered notes doubled an octave up on the pluck, and from the second bar in sixteenths
-    for st, pch, ln in new_notes:
+    for st, pch, ln in new_notes if 'double' in extras else []:
         st -= lo
         if st >= first_accent:
             continue
@@ -245,14 +256,15 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
     # under the snare; the very last thirty-second is left empty so the first accent lands in a hole.
     grow = lambda st: st / first_accent
     f0 = first_accent - 8
+    do_fill = 'fill' in extras and bool(accents)
     for st, _, _ in [n for row_i, row in enumerate(rows) for n in [(row_i * 16 + q[0], 0, 0) for q in row]]:
-        if st < f0:
+        if st < f0 and do_fill:
             place(x, snare(0.4 + 0.3 * grow(st)), t2n(st * STEP), 1.0)
     for st, hz in ((6, 185), (7, 147), (14, 147), (15, 110)):
-        if st < f0:
+        if st < f0 and do_fill:
             place(x, tom(hz, 0.5 + 0.2 * grow(st)), t2n(st * STEP), 1.0)
     fast = [f0 + i for i in range(4)] + [f0 + 4 + i / 2 for i in range(7)]      # 4 sixteenths, then 7 thirty-seconds
-    for i, st in enumerate(fast):
+    for i, st in enumerate(fast if do_fill else []):
         place(x, snare(0.3 + 0.025 * i), t2n(st * STEP), 1.0)
         place(x, tom((220, 220, 185, 185, 165, 165, 147, 147, 123, 110, 98)[i], 0.32 + 0.02 * i), t2n(st * STEP), 1.0)
     # THE TWO ACCENTS. Measured on the version before this one: the kick was the loudest thing in the attack (the
@@ -262,11 +274,13 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
     # them), and the note itself is big and lasts the whole beat: the cats' phrase-ending MIAO (the long shout,
     # not a cut meow) an octave up and at pitch, a kitten 'mi' on its front for the bright attack, and the band
     # hitting the chord with it: saws over three octaves, pluck and square on top.
+    band, x = x, np.zeros_like(x)                                   # the accents on their own, so they can be scaled
     for (st, note), sym in zip(accents, accent_chords):
         at, m = t2n(st * STEP), nm(note)
         dur = 4 * STEP * 0.92
-        place(x, snare(0.7), at, 1.0)
-        place(x, cc.CRASH, at, 0.85)                                # the cymbal is meant to be heard on both
+        if do_fill:
+            place(x, snare(0.7), at, 1.0)
+            place(x, cc.CRASH, at, 0.85)                            # the cymbal is meant to be heard on both
         for mm, g in ((m + 12, 2.6), (m, 1.7)):
             place(x, cc.stereo(cc.resonate(cc.shout(mm, dur), cc.lift(mm), 1.0)), at, g)
         place(x, cc.stereo(cc.resonate(cc.mi(m + 12, 0.08), cc.lift(m + 12), 1.0)), at, 1.0)
@@ -281,20 +295,44 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
         place(x, cc.pluck(m + 24, dur), at, 0.8)                    # (the synths were half as loud again: the accents
         place(x, cc.square(m + 12, dur), at, 0.7)                   # outweighed the loop they lead into)
         place(x, cc.square(m, dur), at, 0.45)
-    last = max(st for st, _ in accents)
-    for i in range(2):                                              # a short roll into the bar line, after the note
+    x = band + x * accent_gain
+    last = max([st for st, _ in accents] + [0])
+    for i in range(2 if do_fill else 0):                            # a short roll into the bar line, after the note
         place(x, snare(0.4 + 0.15 * i), t2n((last + 3 + i / 2) * STEP), 1.0)
     # air rising through the whole thing
     k = np.arange(N) / N
-    x[:N] += highpass(np.stack([noise(N), noise(N)], 1), 2500) * (k ** 2.5)[:, None] * 0.2
+    if 'air' in extras:
+        x[:N] += highpass(np.stack([noise(N), noise(N)], 1), 2500) * (k ** 2.5)[:, None] * 0.2
     # and under it the dominant's root an octave down, swelling: weight that the downbeat of the tune releases
     n_sw = t2n(first_accent * STEP)
     kk = np.arange(n_sw) / n_sw
     sw = osc_supersaw(mtof(cc.chord(chords[-2])[1]), n_sw, voices=7, detune=0.3)
-    x[:n_sw] += lowpass(sw, 900) * (kk ** 2)[:, None] * 0.5
+    if 'swell' in extras:
+        x[:n_sw] += lowpass(sw, 900) * (kk ** 2)[:, None] * 0.5
+    if clicks:                                                      # the metronome over the last bar (see count_in below)
+        for i in range(4):
+            place(x, tick(2100 if i == 0 else 1575, 1.0 if i == 0 else 0.85) * clicks, N - BAR_N + t2n(i * 4 * STEP), 1.0)
     f = t2n(0.006)
     x[N - f:N] *= np.linspace(1, 0.5, f)[:, None]
     x[N:] *= np.linspace(0.5, 0, len(x) - N)[:, None] ** 2          # only the crash and drum tails ring over
+    x = x * 10 ** (band_db / 20)                                    # the new band's bars against the level's own (see head)
+    if head:
+        # One bar in front, played by THE BAND THAT WAS PLAYING: the last bar of its loop, taken from the level's
+        # own files at the level's own gains, so the tune that was playing finishes its phrase inside the
+        # transition instead of being cut off by it. It fades in over the first beat (in the game those stems
+        # fade out over that beat: the two add up to the one band). On top of it the wind-up begins: the snare
+        # in quarters, then eighths (the bars after it go on to sixteenths and thirty-seconds), and air rising.
+        h = np.zeros((BAR_N, 2))
+        for w, db in head:
+            h += w * 10 ** (db / 20)
+        beat = BAR_N // 4
+        h[:beat] *= np.linspace(0, 1, beat)[:, None]
+        for i, st in enumerate((0, 4, 8, 10, 12, 14) if 'windup' in extras else ()):
+            place(h, snare(0.3 + 0.04 * i), t2n(st * STEP), 1.0)
+        k = np.arange(BAR_N) / BAR_N
+        h += (0.0 if 'windup' not in extras else 1.0) * highpass(np.stack([noise(BAR_N), noise(BAR_N)], 1), 2500) * (k ** 2)[:, None] * 0.12
+        x = np.concatenate([h, x])
+        n_bars += 1
     # A full band at the stems' own levels peaks far above 1.0 (in the game the stems are summed as floats), so
     # the file is written play_db lower and the level plays it that much up (the section's "fever_enter_db").
     x = x * 10 ** (-play_db / 20)
@@ -326,9 +364,9 @@ def from_stems(name, tune, first_bar, rows, chords, levels, accents, accent_chor
 #   Then, from the cat_sound folder:
 #       python -I tools/make_transitions.py loops <a folder for the result>
 #   and copy <that folder>/tr_ccb_to_cc.wav to gnjam-2026/assets/audio/sfx/ (the game picks it up on the next run).
-#   If you change the NUMBER of bars, also set "fever_enter_bars" in levels/music/level_3_spaceship.json (section
-#   SPACE PIZZA) to it, and in tools/music_gen/make_music_sets.py so it survives a regenerate.
-#   "fever_enter_replaces" there = how many bars at the end of the descent's phrase the transition takes the
+#   If you change the NUMBER of bars, also set "bars" in levels/music/level_3_spaceship.json (section SPACE
+#   PIZZA, "changes" -> "fever") to it, and 'fever_enter_bars' in tools/music_gen/make_music_sets.py so it
+#   survives a regenerate. "replaces" there = how many bars at the end of the descent's phrase the transition takes the
 #   place of (now 1: the transition's first bar is played instead of the phrase's last; 0 = the phrase is
 #   played to its end and the transition comes after it).
 #
@@ -344,6 +382,45 @@ from_stems('tr_ccb_to_cc', 'can_can', None,
            levels=[('L3_cat_kichiku', 0.0), ('L3_square_dark', -3.0), ('L3_pluck', -2.0), ('fb_L0_keys', 0.0),
                    ('L2_bass', -4.0), ('fb_L4_peak', 0.0), ('C_drums', 0.0)],
            accents=[(24, 'G4'), (28, 'G4')], accent_chords=['G', 'G'])
+
+# ================================================================================================================
+# LEVEL 1: THE DISCO THEME (G minor) -> THE ENTERTAINER (C major), when the house opens.
+# Made the way the pizza's was found to work (the first version here was the kind that did not: a pluck and one
+# cat, one bar, a plain snare roll):
+#   - THE BAND THAT IS ABOUT TO PLAY, cut from The Entertainer's own stems at the levels the level plays them at
+#     (cats in front, the square under them, chords, bass, peak layer, cat drums), arriving two bars early
+#   - a tune people know as "it is about to start": the rag's own introduction
+#   - drums that accelerate into the accent (eighths with the tune, then sixteenths, then thirty-seconds, toms
+#     running down the kit), one thirty-second of nothing before it
+#   - one big accent the cats shout (long MIAO, an octave up too, a kitten's high 'mi' on the front, a crash), and
+#     then the two notes of the tune's own pick-up as the "MIAO! MIAO!" that throws it onto the first beat
+#   bar 1            the disco theme's own band plays the LAST BAR OF ITS LOOP (from the level's files): the tune that
+#                    was playing ends its phrase here, with the snare winding up over it. (The version before this
+#                    one was The Entertainer's band for both bars: better sounds, but "the front did not connect",
+#                    the disco loop was simply cut.) The level waits for the disco loop's 4-bar line for this.
+#   bar 2, 1st half  D E C A                  The Entertainer's band: the rag's introduction, the pluck above it in
+#                                             sixteenths, the fill (sixteenths, then thirty-seconds)
+#   bar 2, beat 3    MIAO!                    the accent on G, the dominant
+#   bar 2, beat 4    D  D#                    the pick-up (the first strain starts with these two notes) -> E on the bar line
+# Notes are written in the tune's own octave (the cats sing The Entertainer an octave below it).
+# In levels/music/level_1_disco.json ("changes" -> "tier" -> "5"): "bars": 2, "replaces": 1 (bar 1 takes the place
+# of the disco loop's last bar), "on_bars": 4 (wait for that loop's phrase line), "db": 14.
+from_stems('tr_disco_to_ent', 'entertainer', None,
+           rows=[[(0, 'D5', 2), (2, 'E5', 2), (4, 'C5', 2), (6, 'A4', 2), (8, 'G5', 4), (12, 'D5', 2), (14, 'D#5', 2)]],
+           chords=['G7', 'G7'],
+           # level 1 from the house opening: the cats lead, the square 7 dB under them on the fx lane, bass stems
+           # are trimmed 4 dB when they are packaged for the game
+           levels=[('L3_cat_kichiku', 0.0), ('L3_square', -7.0), ('fb_L0_keys', 0.0), ('L2_bass', -4.0),
+                   ('fb_L4_peak', 0.0), ('C_drums', 0.0)],
+           accents=[(8, 'G4')], accent_chords=['G7'],
+           # measured in context at the pizza's settings the accent was 5.7 dB over the loop it leads into and the
+           # whole transition louder than it (there is no fever layer here to catch it: this is 25 % into level 1),
+           # so: the accent at 0.6 and The Entertainer's bar 2 dB down (band_db); the disco bar in front is at the level's
+           # own level exactly (the file is written 14 dB down and the level plays it at +14)
+           accent_gain=0.6, play_db=14.0, band_db=-2.0,
+           # what level 1 plays just before the house opens (its stage from 18.6 %), without the drum loop (that
+           # one keeps playing in the game): bar 4 of the 4-bar disco loop
+           head=game_clips('level_1_disco', ('dt_bass', 'dt_keys', 'dt_cats', 'dt_peak', 'dt_cat_drums'), 3))
 
 
 def ending(name, sym, tonic):
@@ -381,3 +458,45 @@ ending('end_g_minor', 'Gm', 'G4')      # the disco theme (level 1)
 ending('end_c_major', 'C', 'C5')       # Ode to Joy (the sky level)
 ending('end_g_major', 'G', 'G4')       # Can-Can (the end of level 2 and of level 3)
 print('transitions done ->', SFX)
+
+
+# ================================================================================================================
+# LEVEL 2: THE WASHER -> THE EARTH, Your Best Friend (Ab major) -> In the Hall of the Mountain King (A minor).
+# Two bars, which is exactly how long the notes rest when the level changes section there, so the Mountain King's
+# first beat is the earth's first note:
+#   bar 1   the washer's own band plays the LAST BAR of Your Best Friend, plain (the level's stems at the level's
+#           gains: cats, chords, bass, cat drums)
+#   bar 2   the metronome's four ticks (the count-in) over the earth's bass and chords on E7, the dominant of
+#           A minor (Ab, the key just left, is its third), and on the last beat the pluck's pick-up E G#, whose G#
+#           leads into the tune's first A
+# Three versions before it were dropped by ear: the old kind (a pluck and one cat, one bar: a 4.6 dB hole in the
+# middle of the level), the full treatment of level 1 and the pizza (wind-up, doubled run, tom fill, accent, crash:
+# "cluttered", and wrong for a tune that tiptoes in), and a lean one with a small accent.
+# In levels/music/level_2_tv_wall.json: "changes" -> "enter" of SLAP / WARM UP, "bars": 2, "db": 14.
+from_stems('tr_ybf_to_mk', 'mountain_king', None,
+           rows=[[(12, 'E4', 2), (14, 'G#4', 2)]], chords=['E7', 'E7'],
+           levels=[('L3_pluck', 0.0), ('fb_L0_keys', -4.0), ('L2_bass', -4.0)],
+           accents=[], accent_chords=[], play_db=14.0, band_db=-2.0, extras=(), clicks=1.6,
+           head=game_clips('level_2_tv_wall', ('ybf_bass', 'ybf_keys', 'ybf_cats', 'ybf_cat_drums'), 7))
+
+
+# THE COUNT-IN: one bar of four clicks on the beats, A METRONOME (the first one higher, the way a metronome marks
+# the bar). A component of the music manager (scripts/music/music.gd count_in(); a change's "count_in" plays it
+# on the first bar of the new part, or on the last bar of its transition): the level leaves that bar empty and
+# puts its first note on the next bar line, so the player gets a bar to find the beat. For that bar the manager
+# takes the level's own drums and cat drums out (20 dB down) and turns the rest down 7 dB.
+# Two versions before this one were drums ("da da da da"): a snare and toms under the full band, which measured
+# 0.1-0.4 dB over the band's own claps (inaudible), and sticks + rimshot with the drums ducked. A metronome reads
+# as "counting" at once and is not mistaken for part of the groove: a short wooden tick, most of it at 1.5-4 kHz.
+def count_in(name):
+    x = np.zeros((BAR_N + t2n(0.3), 2))
+    for i in range(4):
+        place(x, tick(2100 if i == 0 else 1575, 1.0 if i == 0 else 0.85), t2n(i * 4 * STEP), 1.0)
+    x = reverb(x, 0.25, 0.2, mix=0.04)[:len(x)]
+    write_wav(os.path.join(SFX, name + '.wav'), x, peak=0.95)
+    for d in COPIES:
+        shutil.copy(os.path.join(SFX, name + '.wav'), os.path.join(d, name + '.wav'))
+    print(f'  {name}: {len(x) / SR:.2f} s')
+
+
+count_in('count_in_4')

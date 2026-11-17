@@ -1,5 +1,7 @@
 extends Control
 ## 简单版配拍编辑器（scenes/tools/kisa/beat_editor.tscn，F6 运行）。
+## 时间线上除了谱子，还画着音乐自己的鼓点和旋律（现在选的那一段音乐里的），和每个音符在游戏里的重点标记，
+## 所以可以直接对着"这里有一下底鼓 / 拍手 / 旋律的一个音"来放音符。关卡列表里包括插曲关（天空关）。
 ## 选一关 → 选小关和音乐阶段（听到的就是游戏里那一段的叠轨音乐）→ 在时间线上点出每一下打击，给它选颜色。
 ## 存的格式和 Sonnie 的谱面编辑器一样（ChartPattern，levels/charts/<大关>_<第几个小关>.tres，挂到小关的 chart 上），
 ## 所以两个编辑器可以换着用，游戏里直接生效。
@@ -8,7 +10,7 @@ extends Control
 ##   点打击       选中，拖动 = 挪位置；拖长条的右头 = 改长度；选中后点类型 / 颜色按钮 = 改它
 ##   右键打击     删掉
 ##   点每行顶上的细条   把播放头挪过去
-##   空格 播放 / 暂停    1 / 2 / 3 点按 / 长按 / 连击    Delete 删    Ctrl+Z 撤销    Ctrl+Y 重做    Ctrl+S 保存
+##   空格 播放 / 暂停    1 / 2 / 3 点按 / 长按 / 连击    Delete 删    Ctrl+Z 撤销    Ctrl+Y 重做    Ctrl+S 保存    Esc 回主菜单
 ##
 ## 一份谱子对应一个小关（整个小关循环这一段）。小关里中途会换玩法的（比如迪斯科：房间 → 水果路 → 圆台 → 吸猫），
 ## 每个「玩法阶段」各有一份谱子（关卡脚本里的 static func chart_phases() 列出来的）。旁边「这一段里的音乐」列的是这个玩法阶段里游戏会经过的几段（名字是积累条事件的名字），只是换着听。
@@ -16,7 +18,7 @@ extends Control
 const THEME := preload("res://assets/ui/theme.tres")
 const CHARTS_DIR := "res://levels/charts/"
 const SPEEDS := {"1x": 1.0, "0.75x": 0.75, "0.5x": 0.5, "0.25x": 0.25}
-const SNAPS :={"1 拍": 1.0, "半拍": 0.5, "1/4 拍": 0.25}
+const SNAPS :={"1 拍": 1.0, "半拍": 0.5, "1/4 拍": 0.25, "1/3 拍（三连音）": 1.0 / 3.0, "1/8 拍": 0.125}
 const KIND_NAMES := ["点按", "长按", "连击"]
 const KIND_COLORS: Array[Color] = [Color(1.0, 0.85, 0.2), Color(1.0, 0.15, 0.7), Color(1.0, 0.55, 0.1)]
 ## 颜色按钮：第一个 = 默认（不写进谱子，游戏里按关卡自己的颜色）
@@ -31,7 +33,11 @@ const HEAD := 11.0
 var pattern: ChartPattern
 
 var _level := 0
+var _paths := PackedStringArray()  # 关卡列表里每一项的文件（大关 + 插曲关），_level 是这里的下标
 var _section := 0
+var _accents: NoteAccents  # 重点标记的规则（scripts/fx/note_accents.gd），只用来在时间线上预览
+var _show_music := true  # 时间线上画不画音乐的鼓点和旋律
+var _show_marks := true  # 时间线上画不画重点标记
 var _song: SongChart
 var _music_on := false
 var _phase := ""  # 现在编辑的是这个小关的哪个玩法阶段（"" = 开头的主谱）
@@ -76,9 +82,18 @@ func _ready() -> void:
 	add_child(_drums)
 	_build_ui()
 	Levels.rescan()
+	# 关卡列表：大关按顺序，每一关后面跟着它的插曲关（levels/interludes/after_<大关>.tres，比如第 1 关后面的天空关）
 	for i in Levels.count():
-		_level_pick.add_item("%d  %s" % [i + 1, Levels.paths()[i].get_file().get_basename()], i)
-	_open_level(clampi(Levels.selected, 0, Levels.count() - 1))
+		_paths.append(Levels.paths()[i])
+		_level_pick.add_item("%d  %s" % [i + 1, Levels.paths()[i].get_file().get_basename()], _paths.size() - 1)
+		var after := Levels.interlude_after(i)
+		if after != "":
+			_paths.append(after)
+			_level_pick.add_item("    ↳ %s（插曲关）" % after.get_file().get_basename(), _paths.size() - 1)
+	_accents = NoteAccents.new()   # 只用它的规则来预览重点标记（见 _draw_tl）
+	add_child(_accents)
+	var open := Levels.interlude if Levels.interlude != "" else Levels.paths()[clampi(Levels.selected, 0, Levels.count() - 1)]
+	_open_level(maxi(_paths.find(open), 0))
 
 
 func _exit_tree() -> void:
@@ -94,9 +109,9 @@ func _open_level(level: int) -> void:
 	_level = level
 	_patterns.clear()
 	_dirty.clear()
-	_song = (load(Levels.paths()[_level]) as SongChart).duplicate(true) as SongChart
+	_song = (load(_paths[_level]) as SongChart).duplicate(true) as SongChart
 	# 叠轨音乐：和游戏里一样，这一关开了就用它，BPM 也跟着它走
-	var cfg := Music.read(Music.MUSIC_DIR + Levels.paths()[_level].get_file().get_basename() + ".json")
+	var cfg := Music.read(Music.MUSIC_DIR + _paths[_level].get_file().get_basename() + ".json")
 	_music_on = cfg.get("use_in_game", false)
 	if _music_on:
 		_song.stream = Music.build(cfg)
@@ -127,7 +142,7 @@ func _key(section: int, phase: String) -> String:
 
 
 func _chart_file(section: int, phase: String) -> String:
-	var base := Levels.paths()[_level].get_file().get_basename()
+	var base := _paths[_level].get_file().get_basename()
 	return CHARTS_DIR + ("%s_%d.tres" % [base, section] if phase == "" else "%s_%d_%s.tres" % [base, section, phase])
 
 
@@ -149,7 +164,7 @@ func _pattern_for(section: int, phase: String) -> ChartPattern:
 ## 这个小关有哪些玩法阶段：小关场景的脚本里有 static func chart_phases() 就照它列，没有就只有一份主谱。
 ## at = 这个阶段从积累条的多少开始（场景根节点的 gauge_events / gauge_max_override 算出来的），用来挑该听哪一档音乐
 func _read_phases(def: SectionDef) -> Array:
-	var out := [{"id": "", "name": "整段", "at": 0.0}]
+	var out := [{"id": "", "name": "整段", "at": 0.0, "tune_offset": 0.0}]
 	_event_at.clear()
 	_event_names = def.gauge_event_names
 	if def.scene == null:
@@ -177,7 +192,9 @@ func _read_phases(def: SectionDef) -> Array:
 	for p: Dictionary in script.call("chart_phases"):
 		var e := int(p.get("event", 0))
 		var at := float(events[e - 1]) / gauge_max if e > 0 and e <= events.size() and gauge_max > 0 else 0.0
-		out.append({"id": p.id, "name": p.name, "at": at})
+		if p.has("at"):   # 阶段自己写明从积累条的多少开始（不是哪条事件线）
+			at = float(p.at)
+		out.append({"id": p.id, "name": p.name, "at": at, "tune_offset": float(p.get("tune_offset", 0.0))})
 	return out
 
 
@@ -265,7 +282,7 @@ func _open_phase(phase: String) -> void:
 	_scroll_bar.value = 0.0
 	_update_scroll()
 	var saved := phase == "" or ResourceLoader.exists(_chart_file(_section, phase))
-	_say("%s · 第 %d 个小关%s · %d BPM%s%s" % [Levels.paths()[_level].get_file().get_basename(), _section + 1,
+	_say("%s · 第 %d 个小关%s · %d BPM%s%s" % [_paths[_level].get_file().get_basename(), _section + 1,
 			(" · " + name) if _phases.size() > 1 else "", roundi(_song.bpm),
 			"" if _music_on else " · 这关没开叠轨音乐，放的是节拍器",
 			"" if saved else " · 这个阶段还没单独存过谱子，现在显示的是照抄主谱（游戏里也是这样），改了保存后才分开"])
@@ -282,13 +299,25 @@ func _set_tier(tier: int, progress: float) -> void:
 	Music.progress = progress
 	Music.effective = progress
 	Music.apply_now()
+	# 这份谱的第 0 拍在曲子的第几拍（关卡脚本 chart_phases() 里的 "tune_offset"，比如水果路的谱从 The Entertainer 的
+	# 第 2 小节起）：让曲子从那里放起，听到的和游戏里对得上，时间线上画的旋律也按它对齐
+	for tune in Music.tunes_playing():
+		Music._tunes[tune].origin = -_tune_offset()
+	_tl.queue_redraw()
+
+
+func _tune_offset() -> float:
+	for ph: Dictionary in _phases:
+		if ph.id == _phase:
+			return float(ph.get("tune_offset", 0.0))
+	return 0.0
 
 
 func _save() -> void:
 	if _dirty.is_empty():
 		_say("没有要存的改动")
 		return
-	var path: String = Levels.paths()[_level]
+	var path: String = _paths[_level]
 	DirAccess.make_dir_recursive_absolute(CHARTS_DIR)
 	var src := load(path) as SongChart
 	var err := OK
@@ -465,7 +494,7 @@ func _rows() -> int:
 
 
 func _row_h() -> float:
-	return minf(_tl.size.y - 8.0, 150.0)
+	return minf(_tl.size.y - 8.0, 200.0)
 
 
 func _ppb() -> float:
@@ -548,6 +577,9 @@ func _draw_tl() -> void:
 				_tl.draw_string(font, Vector2(x + 3.0, y + 12.0), "第 %d 小节" % (int(b / bpb) + 1),
 						HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.75))
 			b += _snap
+	if _show_music and _music_on:
+		_draw_music(L, rh)
+	var marks := _marks() if _show_marks else {}
 	for d in pattern.notes:
 		if float(d.beat) >= L:
 			continue
@@ -574,6 +606,8 @@ func _draw_tl() -> void:
 			var tail := _pos(minf(float(d.beat) + float(d.length), L - 0.0001))
 			_tl.draw_rect(Rect2(tail.x - 3.0, tail.y - HEAD, 6.0, HEAD * 2.0), col)  # 右头：拖它改长度
 		_tl.draw_circle(at, HEAD, col)
+		if marks.has(d):   # 重点标记：外面一圈它在游戏里的颜色
+			_tl.draw_arc(at, HEAD + 2.5, 0.0, TAU, 32, marks[d], 3.0, true)
 		if is_zero_approx(float(d.beat)):
 			_tl.draw_circle(_pos(L), HEAD, Color(col, 0.35))  # 循环：开头这一下也淡淡地画在最后那条线上
 		if kind == 2:
@@ -584,6 +618,69 @@ func _draw_tl() -> void:
 	var ph := _pos(minf(_beat, L - 0.0001))
 	var top := floorf(ph.y / rh) * rh
 	_tl.draw_line(Vector2(ph.x, top), Vector2(ph.x, top + rh - 4.0), Color(1.0, 0.35, 0.35), 2.0)
+
+
+## 音乐自己在放什么（现在选的这一段音乐）：上面一条是旋律的音符（越高的音画得越靠上），下面一条是鼓——
+## 底鼓（黄，鼓型里底鼓的位置，音乐里那一下不一定有声）、拍手（粉）、镲（灰的小点）。
+## 数据是 levels/music/events/ 里的（tools/music_gen/export_music_events.py），和游戏里 Music 发信号用的是同一份。
+func _draw_music(L: float, rh: float) -> void:
+	var font := get_theme_default_font()
+	var x0 := PAD - _scroll * _ppb()
+	var groove: Dictionary = Music.events.groove(Music.events.groove_of(Music.playing_clip("beat")))
+	var base := rh - 10.0
+	if not groove.is_empty():
+		for bar in ceili(L / 4.0):
+			for step: float in groove.get("hat", []) + groove.get("open_hat", []):
+				_tl.draw_circle(Vector2(x0 + (bar * 4.0 + step / 4.0) * _ppb(), base - 22.0), 1.5, Color(1, 1, 1, 0.35))
+			for step: float in groove.get("clap", []):
+				var cx := x0 + (bar * 4.0 + step / 4.0) * _ppb()
+				_tl.draw_rect(Rect2(cx - 3.0, base - 18.0, 6.0, 8.0), Color(1.0, 0.4, 0.75, 0.9))
+			for step: float in groove.get("kick", []):
+				var kx := x0 + (bar * 4.0 + step / 4.0) * _ppb()
+				_tl.draw_rect(Rect2(kx - 2.0, base - 9.0, 4.0, 9.0), Color(1.0, 0.85, 0.25, 0.9))
+		_tl.draw_string(font, Vector2(4.0, base - 6.0), "鼓", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.5))
+	var song: Dictionary = Music.events.song(Music.events.song_of(Music.playing_clip("lead")))
+	if song.is_empty():
+		return
+	var loop := float(song.bars) * 4.0
+	var lo := 200.0
+	var hi := 0.0
+	for note: Array in song.notes:
+		lo = minf(lo, float(note[1]))
+		hi = maxf(hi, float(note[1]))
+	# 谱比曲子短的时候，播放中每放一遍谱，曲子往后走一段：画的是现在这一遍底下的那一段
+	var pass_from := floorf(Conductor.song_beat / L) * L if _playing else 0.0
+	var top := RULER + 3.0
+	for note: Array in song.notes:
+		var b := fposmod(float(note[0]) / 4.0 - _tune_offset() - pass_from, loop)
+		while b < L:
+			var y := top + 22.0 * (1.0 - (float(note[1]) - lo) / maxf(hi - lo, 1.0))
+			_tl.draw_rect(Rect2(x0 + b * _ppb(), y, maxf(float(note[2]) / 4.0 * _ppb() - 2.0, 3.0), 4.0), Color(0.5, 1.0, 0.95, 0.85))
+			b += loop
+	_tl.draw_string(font, Vector2(4.0, top + 16.0), "旋律", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.5))
+
+
+## 每个音符在游戏里会是哪种重点标记（按现在选的这一段音乐的鼓型）：{音符: 颜色}。
+## 规则是 NoteAccents 默认的那套（小节线 / 落在拍手上的重音 / 一串切分的第一个）；关卡场景里把某一种关了的，这里照样显示。
+func _marks() -> Dictionary:
+	var out := {}
+	var list: Array[NoteData] = []
+	var of := {}
+	var sorted := pattern.notes.duplicate()
+	sorted.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.beat) < float(b.beat))
+	for d: Dictionary in sorted:
+		var n := NoteData.new()
+		n.beat = d.beat
+		list.append(n)
+		of[n] = d
+	_accents.notes = list
+	_accents._forget()
+	for n in list:
+		match _accents.kind_of(n):
+			NoteAccents.Kind.DOWNBEAT: out[of[n]] = _accents.downbeat_color
+			NoteAccents.Kind.ACCENT: out[of[n]] = _accents.accent_color
+			NoteAccents.Kind.SYNCOPATED: out[of[n]] = _accents.syncopated_color
+	return out
 
 
 func _tl_input(event: InputEvent) -> void:
@@ -676,9 +773,21 @@ func _input(event: InputEvent) -> void:
 		KEY_S when cmd: _save()
 		KEY_Z when cmd: _undo_step(k.shift_pressed)
 		KEY_Y when cmd: _undo_step(true)
+		KEY_ESCAPE: _leave()
 		_: handled = false
 	if handled:
 		get_viewport().set_input_as_handled()
+
+
+## Esc：回主菜单。有没存的改动时第一下只提醒，再按一下才走。
+var _leave_asked := false
+
+func _leave() -> void:
+	if not _dirty.is_empty() and not _leave_asked:
+		_leave_asked = true
+		_say("有改动还没保存：Ctrl+S 保存，或者再按一次 Esc 不保存离开")
+		return
+	get_tree().change_scene_to_file(Levels.MENU_SCENE)
 
 
 # ================================================================ 界面
@@ -788,6 +897,17 @@ func _build_ui() -> void:
 		zb.tooltip_text = "时间线放大 / 缩小（也可以 Ctrl + 滚轮）"
 		zb.pressed.connect(func() -> void: _set_zoom(_zoom * float(z[1])))
 		row2.add_child(zb)
+	for toggle: Array in [["鼓点和旋律", "_show_music", "在时间线上画出音乐自己的鼓（黄 = 底鼓的位置，粉 = 拍手，灰点 = 镲）和旋律的音符（青）。跟着上面选的那一段音乐变"],
+			["重点标记", "_show_marks", "音符外面一圈它在游戏里的标记颜色：暖白 = 小节线，粉 = 重音（落在拍手上），青 = 一串切分音的第一个"]]:
+		var cb := CheckBox.new()
+		cb.text = toggle[0]
+		cb.button_pressed = true
+		cb.focus_mode = Control.FOCUS_NONE
+		cb.tooltip_text = toggle[2]
+		cb.toggled.connect(func(on: bool) -> void:
+			set(toggle[1], on)
+			_tl.queue_redraw())
+		row2.add_child(cb)
 	var undo := Button.new()
 	undo.text = "撤销 (Ctrl+Z)"
 	undo.focus_mode = Control.FOCUS_NONE
@@ -799,7 +919,7 @@ func _build_ui() -> void:
 	save.pressed.connect(_save)
 	row2.add_child(save)
 
-	_tl.custom_minimum_size = Vector2(0, 170)
+	_tl.custom_minimum_size = Vector2(0, 220)
 	_tl.clip_contents = true
 	_tl.draw.connect(_draw_tl)
 	_tl.gui_input.connect(_tl_input)

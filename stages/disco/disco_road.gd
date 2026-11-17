@@ -190,6 +190,8 @@ var _ball_scale := 1.0
 var beat_guides := true
 var guide_every := 1.0
 var _guides: BeatGuideStrips
+## 音符的重点标记（关卡给；没有就和原来一样）：水果底下地上的圈按它换颜色、粗细，切分音多一圈
+var accents: NoteAccents
 ## 路面白圈的半径（米）
 var guide_ring_radius := 1.9
 ## 判定圈：猫脚底的绿圈（和水果底下的白圈一样大），水果的白圈滑到和它重合的那一拍按
@@ -558,7 +560,16 @@ func _update_guides(beat: float, notes: Array[NoteData]) -> void:
 			var l := BeatGuides.look(g)
 			if g.solid:
 				for n: NoteData in g.notes:
-					_guides.circle(Vector3(_lane_of(n), FLOOR_Y + 0.06, z), guide_ring_radius, l, 0.22)
+					var note_look := l
+					if accents:
+						var mark := accents.look(n, g.color)
+						if mark.kind != NoteAccents.Kind.NONE:
+							var mc: Color = (mark.color as Color).lerp(Color.WHITE, float(g.k) * float(g.k) * 0.35)
+							note_look = {"color": Color(mc, (l.color as Color).a), "width": float(l.width) * float(mark.width), "dashed": false}
+							if mark.echo:
+								_guides.circle(Vector3(_lane_of(n), FLOOR_Y + 0.06, z), guide_ring_radius * 1.3,
+										{"color": note_look.color, "width": 0.5, "dashed": false}, 0.22)
+					_guides.circle(Vector3(_lane_of(n), FLOOR_Y + 0.06, z), guide_ring_radius, note_look, 0.22)
 			else:
 				_guides.circle(Vector3(_next_lane_x(fruit_notes, g.beat), FLOOR_Y + 0.06, z), guide_ring_radius, l, 0.22)
 	_guides.finish()

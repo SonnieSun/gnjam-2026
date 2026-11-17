@@ -15,6 +15,9 @@ extends CanvasLayer
 ## 什么算按完、连击按多快算 Perfect，都在 Judge 的 rules（JudgeRules）里调。
 ## 画面：屏幕下方一条提示（HOLD / MASH + 进度条），关卡自己画的音符照旧。
 
+## 长按有没有尾判。关着（默认）：开头那一下打中就算成，提前松手不扣（不断连击、不扣积累条）。
+## 开着：要按完（什么算按完见 Judge 的 rules），没按完断连击、积累条按一次 Miss 扣。
+@export var hold_tail_judge := false
 ## 屏幕下方的提示要不要画
 @export var show_prompt := true
 ## 长按 / 连击来之前提前几拍预告
@@ -123,7 +126,7 @@ func _on_hold_done(success: bool, _release_beat: float, note: NoteData) -> void:
 	if note != _hold:
 		return
 	_hold = null
-	if success:
+	if success or not hold_tail_judge:
 		_say("HOLD OK", SpinSection.result_color(NoteData.Result.PERFECT))
 		return
 	_say("TOO EARLY", SpinSection.result_color(NoteData.Result.MISS))

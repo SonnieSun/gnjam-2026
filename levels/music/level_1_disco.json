@@ -33,12 +33,9 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "half_bass",
-     "file": "res://assets/audio/music/scene1/rhythm_variants/s1_Rhalf_L2_bass_4b.wav"
-    },
-    {
-     "id": "bass",
-     "file": "res://assets/audio/music/scene1/skeleton/s1_L2_bass_4b.wav"
+     "id": "dt_bass",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_L2_bass_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_bass",
@@ -58,8 +55,9 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "disco_keys",
-     "file": "res://assets/audio/music/scene1/style_disco/s1_B_L0_keys_4b.wav"
+     "id": "dt_keys",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_fb_L0_keys_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_keys",
@@ -74,8 +72,14 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "disco_hook",
-     "file": "res://assets/audio/music/scene1/style_disco/s1_B_L3_hook_4b.wav"
+     "id": "dt_square",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_L3_square_4b.wav",
+     "tune": "dt"
+    },
+    {
+     "id": "dt_cats",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_L3_cat_kichiku_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_cats",
@@ -90,8 +94,9 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "disco_peak",
-     "file": "res://assets/audio/music/scene1/style_disco/s1_B_L4_peak_4b.wav"
+     "id": "dt_peak",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_fb_L4_peak_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_peak",
@@ -106,8 +111,9 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "cat_drums",
-     "file": "res://assets/audio/music/scene1/cat_band/s1_C_drums_4b.wav"
+     "id": "dt_cat_drums",
+     "file": "res://assets/audio/music/classics/disco_theme_a/disco_theme_a_C_drums_4b.wav",
+     "tune": "dt"
     },
     {
      "id": "ent_cat_drums",
@@ -147,10 +153,6 @@
    "gain_db": 0.0,
    "clips": [
     {
-     "id": "ev_meow",
-     "file": "res://assets/audio/music/scene1/events/s1_X_meow_4b.wav"
-    },
-    {
      "id": "ent_square_soft",
      "file": "res://assets/audio/music/classics/entertainer/entertainer_L3_square_16b.wav",
      "tune": "ent",
@@ -174,7 +176,6 @@
   {
    "title": "DISCO",
    "exit": "end_c_major",
-   "fever_fill": false,
    "cues": {
     "beat": [
      [
@@ -190,10 +191,6 @@
       "club"
      ],
      [
-      0.581,
-      ""
-     ],
-     [
       0.651,
       "break"
      ],
@@ -205,40 +202,20 @@
     "bass": [
      [
       0.0,
-      "half_bass"
-     ],
-     [
-      0.14,
-      "bass"
+      "dt_bass"
      ],
      [
       0.256,
-      "ent_bass"
-     ],
-     [
-      0.581,
-      "ent_cat_bass"
-     ],
-     [
-      0.651,
       "ent_bass"
      ]
     ],
     "bed": [
      [
       0.047,
-      "disco_keys"
+      "dt_keys"
      ],
      [
       0.256,
-      "ent_keys"
-     ],
-     [
-      0.581,
-      ""
-     ],
-     [
-      0.651,
       "ent_keys"
      ],
      [
@@ -249,7 +226,11 @@
     "lead": [
      [
       0.093,
-      "disco_hook"
+      "dt_square"
+     ],
+     [
+      0.14,
+      "dt_cats"
      ],
      [
       0.256,
@@ -259,7 +240,7 @@
     "peak": [
      [
       0.14,
-      "disco_peak"
+      "dt_peak"
      ],
      [
       0.256,
@@ -280,19 +261,11 @@
     ],
     "meow": [
      [
-      0.14,
-      "cat_drums"
+      0.186,
+      "dt_cat_drums"
      ],
      [
       0.256,
-      "ent_cat_drums"
-     ],
-     [
-      0.581,
-      ""
-     ],
-     [
-      0.651,
       "ent_cat_drums"
      ],
      [
@@ -322,10 +295,6 @@
     ],
     "fx": [
      [
-      0.186,
-      "ev_meow"
-     ],
-     [
       0.256,
       "ent_square_soft"
      ],
@@ -347,9 +316,6 @@
     0.813953488372093,
     0.6511627906976745
    ],
-   "transition_tiers": [
-    5
-   ],
    "fever": [
     0.6511627906976745,
     0.813953488372093
@@ -358,10 +324,33 @@
     "kiai": "",
     "hit": ""
    },
-   "tier_enter": {
-    "5": "tr_disco_to_ent"
-   },
-   "outro": "out_ufo_takes_the_cat"
+   "outro": "out_ufo_takes_the_cat",
+   "changes": {
+    "tier": {
+     "5": {
+      "fill": true,
+      "written": "tr_disco_to_ent",
+      "db": 14.0,
+      "bars": 2,
+      "replaces": 1,
+      "on_bars": 4,
+      "sfx": "none",
+      "count_in": true
+     },
+     "8": {
+      "through": {
+       "bass": "ent_cat_bass",
+       "lead": "ent_cats",
+       "harm": "ent_harm"
+      },
+      "bars": 4,
+      "count_in": "before"
+     }
+    },
+    "fever": {
+     "fill": false
+    }
+   }
   }
  ]
 }

@@ -72,9 +72,9 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 ## 换角度用几拍滑过去
 @export var beat_ease_beats := 0.6
 ## 随机角度的范围（度）：左右绕、上下绕、歪头
-@export var beat_yaw_degrees := 14.0
-@export var beat_pitch_degrees := 8.0
-@export var beat_roll_degrees := 5.0
+@export var beat_yaw_degrees := 10.0
+@export var beat_pitch_degrees := 6.0
+@export var beat_roll_degrees := 3.5
 ## 随机远近（镜头距离的倍数，小于 1 = 推近）
 @export var beat_zoom_range := Vector2(0.85, 1.1)
 ## 每一拍往里推多少（0.05 = 推近 5%）
@@ -84,14 +84,14 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 ## 跟拍运镜随着进展越来越疯（进展 = 按完了几次长按 / 一共要按几次）。关掉 = 一直是上面"跟拍运镜"的强度
 @export var punk_camera := true
 ## 到最后，随机角度的幅度乘到这么多倍
-@export var punk_angle_scale := 1.5
+@export var punk_angle_scale := 1.3
 ## 到最后，远近在这个范围里一近一远地跳（镜头距离的倍数）
-@export var punk_zoom_range := Vector2(0.68, 1.3)
+@export var punk_zoom_range := Vector2(0.76, 1.22)
 ## 进展过了这两个比例，换镜头从每小节一次变成每 2 拍一次、每拍一次；换的时候也越来越"硬"（几乎是切）
 @export_range(0.0, 1.0) var punk_half_bar_at := 0.3
 @export_range(0.0, 1.0) var punk_every_beat_at := 0.7
 ## 打中、长按按完的那一下镜头猛地推近多少（占距离的比例），很快弹回去；进展越靠后推得越狠
-@export_range(0.0, 0.6) var punk_hit_zoom := 0.14
+@export_range(0.0, 0.6) var punk_hit_zoom := 0.1
 ## 规矩：玩家没在操作的时候镜头不乱动。最后一次按键 / 按住之后过了 idle_hold_seconds 秒，镜头用 idle_settle_seconds 秒
 ## 回到正面停住（角度、远近、每拍推的那一下都停），玩家再按才重新动起来。0 = 不管，一直按拍子动
 @export var idle_hold_seconds := 0.8
@@ -112,12 +112,12 @@ const LENS_SHADER := preload("res://stages/tv_wall/washer/washing_hit_lens.gdsha
 
 @export_group("发电")
 ## 发电时画面震动最大多少像素
-@export var holding_shake_pixels := 5.0
+@export var holding_shake_pixels := 3.5
 ## 发电时洗衣机机身抖多少（米）
 @export var machine_shake := 0.006
-## 前几次长按用来拉远镜头（不震动）
+## 进度分成一步一步：前几步用来拉远镜头（不震动）
 @export var zoom_holds := 3
-## 之后每次长按亮几台电视
+## 之后每一步亮几台电视
 @export var tvs_per_hold := 2
 ## 两台电视先后亮起隔几秒
 @export var light_gap := 0.18
@@ -126,8 +126,9 @@ var world: SubViewport
 var camera: Camera3D
 var _beat := 0.0
 var grid: TvGrid
-## 已经完整按完几次长按
+## 已经走了几步（一共 zoom_holds + 电视数 / tvs_per_hold 步，由 set_progress 按进度推进）
 var holds_done := 0
+var _progress := 0.0
 ## 全亮之后那次长按按完了，等关卡脚本调 start_finale()
 var finale_pending := false
 
@@ -291,10 +292,25 @@ func _build_lens() -> void:
 
 # ---------------- 给关卡脚本的 ----------------
 
-## 进展（0~1）：按完了几次长按 / 一共要按几次（拉远镜头的几次 + 把电视全点亮的几次）
+## 进展（0~1），关卡脚本每帧给（这个小关积累条的比例）
 func progress() -> float:
-	var total := zoom_holds + ceili(float(grid.count()) / maxi(tvs_per_hold, 1))
-	return clampf(float(holds_done) / maxi(total, 1), 0.0, 1.0)
+	return _progress
+
+
+func _steps() -> int:
+	return zoom_holds + ceili(float(grid.count()) / maxi(tvs_per_hold, 1))
+
+
+## 关卡脚本每帧告诉舞台进度到了几成：每过一步的线就走一步（拉远一档 / 亮几台电视），只进不退
+func set_progress(p: float) -> void:
+	_progress = clampf(p, 0.0, 1.0)
+	var total := _steps()
+	var want := mini(floori(_progress * total + 0.0001), total)
+	while holds_done < want:
+		holds_done += 1
+		if holds_done > zoom_holds:
+			_light_some()
+			_hit_punch = 1.0
 
 
 ## 单点打中：猫脸转一小段
@@ -320,23 +336,21 @@ func hold_update(progress: float, seconds: float) -> void:
 	_hold_seconds = seconds
 
 
-## 长按结束。success = 完整按完。返回这次要亮的电视序号（没有就是空的）。
-func hold_end(success: bool) -> Array[int]:
+## 长按结束。success = 完整按完。（推进不在这里：见 set_progress）
+func hold_end(success: bool) -> void:
 	_release_shake = _shake_envelope()
 	_release_age = 0.0
 	_hold_progress = -1.0
-	var lit: Array[int] = []
 	if _finale_hold:
 		_finale_hold = false
 		grid.flicker = 0.0
-		finale_pending = success
-		return lit
-	if not success:
-		return lit
-	_hit_punch = 1.0
-	holds_done += 1
-	if holds_done <= zoom_holds:
-		return lit
+	if success:
+		_hit_punch = 1.0
+
+
+## 走一步：亮 tvs_per_hold 台电视（先亮离洗衣机近的），返回这次要亮的电视序号
+func _light_some() -> Array[int]:
+	var lit: Array[int] = []
 	var left := grid.unlit()
 	for tv in _pending_lights:
 		left.erase(tv.tv)
@@ -490,9 +504,7 @@ func _update_shake() -> void:
 
 
 func _update_camera(dt: float) -> void:
-	var target := float(mini(holds_done, zoom_holds))
-	if _hold_progress >= 0.0 and holds_done < zoom_holds:
-		target += _hold_progress
+	var target := clampf(_progress * _steps(), 0.0, float(zoom_holds))  # 镜头跟着进度连续地拉远
 	_zoom = lerpf(_zoom, target, minf(1.0, dt * camera_follow))
 	if not finale_active():
 		_place_camera(_zoom)

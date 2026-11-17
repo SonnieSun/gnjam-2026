@@ -6,6 +6,10 @@
 [ext_resource type="Texture2D" path="res://assets/memes/popcat.png" id="2_pop"]
 [ext_resource type="Script" path="res://scripts/fx/meme_sprite.gd" id="3_meme"]
 [ext_resource type="Script" path="res://stages/disco/disco_decor.gd" id="decor"]
+[ext_resource type="Script" path="res://scripts/fx/music_bounce.gd" id="fx_bounce"]
+[ext_resource type="Script" path="res://scripts/fx/note_accents.gd" id="fx_accents"]
+[ext_resource type="Script" path="res://scripts/fx/count_in_display.gd" id="fx_countin"]
+[ext_resource type="Script" path="res://scripts/fx/fever_fx.gd" id="fx_fever"]
 
 [node name="DiscoSection" type="Node2D"]
 script = ExtResource("1")
@@ -38,3 +42,15 @@ script = ExtResource("y2k_swap")
 
 [node name="Decor" type="Node2D" parent="."]
 script = ExtResource("decor")
+
+[node name="CatBounce" type="Node" parent="."]
+script = ExtResource("fx_bounce")
+
+[node name="NoteAccents" type="Node" parent="."]
+script = ExtResource("fx_accents")
+
+[node name="CountInDisplay" type="CanvasLayer" parent="."]
+script = ExtResource("fx_countin")
+
+[node name="FeverFx" type="CanvasLayer" parent="."]
+script = ExtResource("fx_fever")

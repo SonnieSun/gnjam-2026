@@ -38,6 +38,18 @@ extends "res://scripts/sections/kisa/ring_section.gd"
 @export var crossfade_seconds := 1.2
 ## 拆完房子上路后，先空滑几拍才来第一个水果
 @export var road_quiet_beats := 8.0
+## 跟着音乐排的时候：猫在圆台上的第一个音符之前几小节滑到中间站好（那一小节放预备拍）
+@export var plaza_stand_bars := 1
+## 跟着音乐的切换拆房子时：新曲子进来之后过几小节出路上的第一个水果（1 = 第一小节是预备拍「大大大大」，第二小节第一拍是第一个水果）
+@export var unfold_resume_bars := 1
+## 跟着音乐的切换拆房子时，过场压短成这样（拍；不跟音乐时用 DiscoRoad 自己的 16 / 4 / 4 / 9）：
+## 一共几拍、第几拍倒第一面墙、第二面墙晚几拍、第几拍开始转镜头
+@export var sync_unfold_beats := 8.0
+@export var sync_wall_first_beat := 0.0
+@export var sync_wall_gap_beats := 2.0
+@export var sync_camera_turn_from_beat := 3.0
+## （高潮段做长：哪一段积累条涨得慢，写在关卡文件这个小关的 phase_gain / fever_gain 里，游戏里 Tab 面板的 Phases 页能改。
+##  第一关现在是：跳舞猫到拆房子 0.42、圆台渐强 0.43、fever 0.47，全打 Perfect 约 8 / 4 / 8 小节。）
 ## 水果路滑到圆台（舞台）时歇多久再出音符（秒，大概值：会对到最近的小节线上）
 @export var plaza_rest_seconds := 5.0
 
@@ -67,11 +79,21 @@ var _hold_ticks := 0  # 这次长按已经给过几次「按住满 1 拍」的�
 var _circle_pos := Vector2.ZERO
 var _road: DiscoRoad
 var _layer_gain := PackedFloat32Array()  # 每条分轨现在的音量（0~1）
+const CHART_AHEAD_BEATS := 12.0  # 提前这么多拍把下一阶段的谱交给判定（判定提前铺 16 拍）
+var _chart_at := INF  # 到这一拍换谱（见 _switch_chart_at）
+var _finale_at := INF  # 结尾演出从这一拍（小节线）开始，这一拍上是结束彩圈（见 _prepare_finale）
+var _chart_stop := 0.0
+var _chart_origin := 0.0
+var _unfold_at := INF  # 到这一拍开始拆房子（见 _begin_unfold）
+var _unfold_resume := -1.0  # 拆完之后路上第一个水果落在哪一拍
 var _fill_at := INF  # 结尾镜头放到这一拍：接着玩吸猫（或者把积累条顶满过关）
 var _clear_at := INF  # 猫飞出屏幕之后，到这一拍把积累条顶满过关
 var _curtain := false
 var _abduct: AbductionStage  # 结尾之后接着玩的吸猫舞台（嵌在迪斯科的 3D 世界里）
 var _abduct_gauge_from := 0  # 开始吸猫时积累条的值
+var _accents: NoteAccents  # 音符的重点标记（场景里有 NoteAccents 节点才有，见 scripts/fx/note_accents.gd）
+var _rainbow_layer: Node2D  # 七彩音符画在这一层上（它带着七彩的材质）
+var _rainbow_rings: Array = []  # 这一帧要画的七彩圈：[中心, 半径, 透明度, 粗细]
 
 
 func _ready() -> void:
@@ -93,6 +115,12 @@ func _ready() -> void:
 		_stage = KisaDiscoStage.new()
 		add_child(_stage)
 	_stage.setup(_spin_cat)
+	_accents = get_node_or_null("NoteAccents") as NoteAccents
+	Music.change_planned.connect(_on_change_planned)
+	if _accents:
+		_rainbow_layer = Node2D.new()
+		add_child(_rainbow_layer)
+		_rainbow_layer.draw.connect(_draw_rainbow_rings)
 	_stage.external = true  # 阶段和镜头交给积累条
 	# 房间之后的几段：拆房子、路上撞水果、圆台、结尾（场景里有 Road 节点就用它，参数能在 Inspector 调）
 	_road = get_node_or_null("Road") as DiscoRoad
@@ -100,6 +128,7 @@ func _ready() -> void:
 		_road = DiscoRoad.new()
 		add_child(_road)
 	_road.setup(_spin_cat, _stage)
+	_road.accents = _accents
 	_road.beat_guides = beat_guides and draws_own_notes()
 	_road.guide_every = guide_every
 	# 后面才出现的东西（上路的灯球、水果、猫图、发光猫、飞碟……）先在看不见的地方画几帧，免得玩到一半卡一下
@@ -123,6 +152,20 @@ func _update_spin(local_beat: float, angle: float) -> void:
 	_stage.update(song_beat())
 	_road.update(song_beat(), own_notes())
 	_update_layers()
+	if song_beat() >= _finale_at + 0.05:
+		_finale_at = INF
+		_start_finale()
+	if song_beat() >= _chart_at:
+		_chart_at = INF
+		_switch_chart_at(_chart_stop, _chart_origin, "road")
+		# 换场景的那一下要有一个七彩的换段音符：房子开始拆（过门进来）的那一拍。房间的谱到这一拍为止，
+		# 这一拍上没有音符，NoteAccents 会补一个（mark_change）。
+		if _accents:
+			_accents.mark_change(_chart_stop, true)  # 结束彩圈
+	if song_beat() >= _unfold_at:
+		var at := _unfold_at
+		_unfold_at = INF
+		_road.start(at, _unfold_resume)
 	if song_beat() >= _fill_at:
 		_fill_at = INF
 		if abduction_after_finale:
@@ -231,20 +274,105 @@ func _on_gauge_event(index: int, _value: int) -> void:
 		return
 	if index <= 4:
 		_stage.enter_stage(index)
+		if index == 3:
+			# 跳舞猫：音乐的鼓在下一条小节线从半拍换成四拍，谱子跟着换成四拍那一份（有 room4 这份谱才换）。
+			# 已经出来的音符照常打完。
+			var plan3: Dictionary = Music.planned_change()
+			var bpb3: int = Conductor.chart.beats_per_bar
+			var at := float(plan3.commit_beat) if plan3.get("kind", "") == "tier" else ceilf((song_beat() + 0.01) / bpb3) * bpb3
+			_switch_chart_at(at, at, "room4")
 	elif index == 5:
-		# 拆房子转镜头这段不出音符，让玩家歇一下；上路的第一个水果落在歇完那个小节的第 1 拍
-		var resume := _rest_until(song_beat() + _road.unfold_beats + road_quiet_beats, DiscoMusic.road_bars(), "road")
-		_road.start(song_beat(), resume)
+		_begin_unfold(index)
 	elif index == 6 or index == 7:
 		_road.set_floor(index - 5)
 	elif index == 9:
-		_start_finale()
+		_prepare_finale()
 	elif index == 8:
-		# 滑到圆台这段先歇一会儿（不直接接着出音符），歇完在小节线上接着打路上那套鼓谱
+		# 滑到圆台这段先歇一会儿（不直接接着出音符），歇完在小节线上接着打路上那套鼓谱。
+		# 音乐在这一档有一段安静的过渡（只留猫唱旋律和低音，几小节）：水果一结束它就出，它一结束渐强的那一段进来，
+		# 圆台上的第一个音符就落在那一拍上（Music.planned_change() 的 commit_beat）。音乐没排的时候和原来一样歇 plaza_rest_seconds。
 		var bpb: int = Conductor.chart.beats_per_bar
-		var rest := plaza_rest_seconds / Conductor.sec_per_beat()
-		_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars(), "plaza")
-		_road.enter_plaza(song_beat())
+		var plan: Dictionary = Music.planned_change()
+		if plan.get("kind", "") == "tier" and int(plan.get("id", -1)) == index and float(plan.commit_beat) > float(plan.fill_beat):
+			# 跟着音乐排：安静段（几小节）一半在路上、一半在圆台上——猫在安静段结束前 plaza_stand_bars 小节滑到中间站好，
+			# 那一小节音乐放预备拍（节拍器的四下），安静段一结束（渐强段进来）就是圆台上的第一个音符。
+			# 已经出现在路上的水果照常打完，不会一过线就突然没了：路上的谱只停掉还没出现的那些。
+			var first_note := float(plan.commit_beat)
+			_switch_chart_at(ceilf(song_beat() + _road.fruit_lead_beats), first_note, "plaza")
+			_road.enter_plaza(song_beat(), first_note - plaza_stand_bars * bpb)
+		else:
+			var rest := plaza_rest_seconds / Conductor.sec_per_beat()
+			_rest_until(song_beat() + rest - bpb * 0.5, DiscoMusic.road_bars(), "plaza")
+			_road.enter_plaza(song_beat())
+
+
+## 音乐排好了进 fever（圆台上，鼓换成碎拍的那条小节线）：谱子在同一条线换成 fever 那一份（有 fever 这份谱才换），
+func _on_change_planned(kind: String, _id: int, _fill_beat: float, commit_beat: float) -> void:
+	if not active or kind != "fever":
+		return
+	_switch_chart_at(commit_beat, commit_beat, "fever")
+
+
+## 拆房子上路（第 5 条线）。
+## 音乐在这一档换曲子（The Entertainer）：两小节专门写的过门，然后新曲子的第一小节是乐队的预备拍——"大大大大"
+## 四下鼓（这一档的专用音效 ent_count_in），第二小节的第一拍才是第一个水果。过场就在过门里演完，预备拍那一小节
+## 猫已经在路上跑着、第一个水果从远处过来。不在进度过线的这一下各干各的，而是按音乐排好的拍点
+## （Music.planned_change()，音乐管理器的预备信号）以「第一个水果」为准往回排，过场也压短（sync_* 那几个数）：
+##   过线（现在）          房间的音符接着打；音乐放上扬音效，等 disco 那一句唱到最后一小节
+##   过门第 1 小节的第一拍  开始拆：第一面墙倒，跳舞猫退场、星星灯升走；从这里起没有音符
+##   + 2 拍                第二面墙倒
+##   + 3 拍 ~ 过门结束      镜头转到猫背后（过门第 2 小节：The Entertainer 的乐队进来）
+##   新曲子的第一拍 - 1 拍   开始往前滑
+##   新曲子的第 1 小节       预备拍：大 大 大 大；第一个水果出现在远处
+##   新曲子的第 2 小节第一拍  第一个水果
+## 音乐没排这次切换时（这一关没用叠轨音乐，或者配置里这一档没有过门）和原来一样：马上开始拆（16 拍），拆完再歇 road_quiet_beats 拍。
+func _begin_unfold(index: int) -> void:
+	var start := song_beat()
+	var resume_from := start + _road.unfold_beats + road_quiet_beats
+	var plan: Dictionary = Music.planned_change()
+	if plan.get("kind", "") == "tier" and int(plan.get("id", -1)) == index and float(plan.commit_beat) > float(plan.fill_beat):
+		_road.unfold_beats = sync_unfold_beats
+		_road.wall_first_beat = sync_wall_first_beat
+		_road.wall_gap_beats = sync_wall_gap_beats
+		_road.camera_turn_from_beat = sync_camera_turn_from_beat
+		var first_fruit := float(plan.commit_beat) + unfold_resume_bars * Conductor.chart.beats_per_bar
+		# 过场演到倒数第 1 拍开始往前滑（DiscoRoad._run_at）；要它比第一个水果早 fruit_lead_beats 拍，水果才是从远处过来的
+		_unfold_at = maxf(start, first_fruit - _road.fruit_lead_beats - (sync_unfold_beats - 1.0))
+		_unfold_resume = first_fruit
+		# 房间的谱打到过门开头为止；路上的谱（levels/charts/<大关>_<小关>_road.tres）从第一个水果起算
+		_chart_stop = float(plan.fill_beat)
+		_chart_origin = first_fruit
+		_chart_at = _chart_stop - CHART_AHEAD_BEATS
+		return
+	_unfold_resume = _rest_until(resume_from, DiscoMusic.road_bars(), "road")
+	_unfold_at = start
+
+
+## 换成 phase 这一阶段的谱：旧谱打到第 stop 拍为止（之前已经铺好的音符照常打、照常画），新谱从第 origin 拍（小节线）起算，
+## stop 到 origin 之间没有音符（两个一样就是无缝换）。
+## （_rest_until 是「现在起歇到某一拍再出」。这个要在 stop 前 CHART_AHEAD_BEATS 拍之内调，
+## 那时旧谱到 stop 为止的音符都已经铺出来了——判定那边只提前铺 16 拍。）
+func _switch_chart_at(stop: float, origin: float, phase: String) -> void:
+	var main := get_parent().get_parent()
+	var phase_chart := _phase_chart(phase)
+	if main == null or not main.get("judge") or phase_chart == null:
+		return
+	var index: int = main.get("_index") if main.get("_index") != null else 0
+	var d: SectionDef = def.duplicate()
+	d.chart = phase_chart
+	var keep: Array[NoteData] = []
+	for n in notes:
+		if not n.judged and n.beat < stop - 0.001:
+			keep.append(n)
+	notes = main.judge.begin_section(index, d, Conductor.chart.beats_per_bar, stop, origin)
+	for i in keep.size():
+		notes.insert(i, keep[i])  # 还没打的旧音符留在这一关的列表里，接着画
+	_hold_ends.clear()
+	_holding = null
+
+
+## 这个小关自己有结尾演出：框架不用再加结束音符和过渡空位（见 main.gd 的 _plan_ending）
+const OWN_ENDING := true
 
 
 ## 积累条满了，框架会在下一个小节线切到吸猫小关。正常流程里结尾镜头早就开始了（第 9 个事件），
@@ -378,6 +506,10 @@ func _ring_radius(ahead: float, from_r: float) -> float:
 
 ## 白色判定圈 + 往里收的圈（画法同 ring_section，只是收的圈乘上 ring_alpha）
 func _draw_rings() -> void:
+	_rainbow_rings.clear()
+	if _rainbow_layer:
+		_rainbow_layer.queue_redraw()
+		_accents.notes = own_notes()
 	if def == null or _abduct:
 		return  # 吸猫那一段的光圈是 3D 的，由吸猫舞台自己画
 	var show_judge := _road == null or _road.rings_visible(song_beat())
@@ -412,9 +544,35 @@ func _draw_rings() -> void:
 		var c := guide_color(n).lerp(Color.WHITE, k * k * 0.3)
 		c.a = clampf((1.0 - t) / 0.15, 0.0, 1.0) * lerpf(ring_alpha, 1.0, pow(k, 1.5))
 		var w := lerpf(ring_width, ring_width_near, k)
+		# 重点标记：小节线 / 重音 / 切分 / 换段之前的音符换颜色、粗细，加柔光或者多一圈细圈
+		if _accents:
+			var mark := _accents.look(n, guide_color(n))
+			if mark.kind != NoteAccents.Kind.NONE:
+				c = Color((mark.color as Color).lerp(Color.WHITE, k * k * 0.3), c.a)
+				w *= float(mark.width)
+				if mark.rainbow:   # 七彩的画在带材质的那一层上
+					_rainbow_rings.append([hit_position(n), r, c.a * 0.35 * float(mark.glow), w * 2.6])
+					_rainbow_rings.append([hit_position(n), r, c.a, w])
+					continue
+				if mark.glow > 0.0:
+					_ellipse(hit_position(n), r, Color(c, c.a * 0.35 * float(mark.glow)), w * 2.6)
+				if mark.echo:
+					_ellipse(hit_position(n), r + w * 1.6 / judge_scale, Color(c, c.a * 0.7), maxf(w * 0.35, 2.0))
 		if k > 0.5:
 			_ellipse(hit_position(n), r, Color(c, c.a * (k - 0.5) * 0.6), w * 2.6)
 		_ellipse(hit_position(n), r, c, w)
+
+
+## 七彩的圈：画成白色，颜色由这一层的材质给（NoteAccents.rainbow_material）
+func _draw_rainbow_rings() -> void:
+	_rainbow_layer.material = _accents.rainbow_material(target_position(0))
+	var squash := _stage.ring_squash() if _stage else 1.0
+	for ring: Array in _rainbow_rings:
+		var pts := PackedVector2Array()
+		for i in 97:
+			var a := i * TAU / 96.0
+			pts.append((ring[0] as Vector2) + Vector2(cos(a), sin(a) * squash) * float(ring[1]) * judge_scale)
+		_rainbow_layer.draw_polyline(pts, Color(1, 1, 1, float(ring[2])), float(ring[3]), true)
 
 
 ## 按镜头透视画「平放在地上的圆」：横向半径 r × judge_scale，竖向再乘镜头压扁比例
@@ -467,6 +625,20 @@ func _on_exit() -> void:
 
 ## 结尾镜头开始：不再出音符（这一段只看演出），放完 finale_beats 拍后把积累条顶满，
 ## 让框架在下一个小节线切到吸猫小关。Judge 和 Gauge 是主场景里 Sonnie 的节点，这里只调它们现成的方法。
+## 结尾（飞碟来接）的预备：过了最后一条线不马上演——谱面接着打到下一条小节线（至少还有两拍），那条线上是结束彩圈，
+## 打完那一下才开始结尾演出、音乐换结尾段。原来一过线音符就全没了。
+func _prepare_finale() -> void:
+	var main := get_parent().get_parent()
+	if main == null or not main.get("judge"):
+		_start_finale()
+		return
+	var bpb: int = Conductor.chart.beats_per_bar
+	_finale_at = ceilf((song_beat() + 2.0) / bpb) * bpb
+	main.judge.end_notes_at(_finale_at)
+	if _accents:
+		_accents.mark_change(_finale_at, true)
+
+
 func _start_finale() -> void:
 	_road.finale(finale_beats * Conductor.sec_per_beat(), not abduction_after_finale)  # 不接吸猫：镜头停在远景
 	_fill_at = song_beat() + finale_beats - 2.0
@@ -508,11 +680,14 @@ func _leave_crossfade() -> void:
 ## 这个小关里换谱子的几个玩法阶段（配拍编辑器 scenes/tools/kisa/beat_editor.tscn 读这个，给每个阶段单独配一份谱子）。
 ## id = "" 是开头用的主谱（小关的 chart / bars）；event = 积累条第几个事件起换成这一段（见 _on_gauge_event）。
 ## 某个阶段的谱子存在 levels/charts/<大关>_<第几个小关>_<id>.tres；没有这个文件就和以前一样。
+## tune_offset = 这份谱的第 0 拍在曲子的第几拍（不写 = 0），编辑器按它放音乐、画旋律。
 static func chart_phases() -> Array:
 	return [
-		{"id": "", "name": "房间（缩圈）", "event": 0},
-		{"id": "road", "name": "水果路", "event": 5},
-		{"id": "plaza", "name": "圆台（缩圈）", "event": 8},
+		{"id": "", "name": "房间（缩圈），半拍的鼓", "event": 0},
+		{"id": "room4", "name": "房间（缩圈），四拍的鼓", "event": 3},
+		{"id": "road", "name": "水果路", "event": 5, "tune_offset": 4.0},  # 谱从 The Entertainer 的第 2 小节起（第 1 小节是预备拍）
+		{"id": "plaza", "name": "圆台（缩圈），渐强段", "event": 8},
+		{"id": "fever", "name": "圆台（缩圈），fever", "event": 8, "at": 0.652},
 		{"id": "abduct", "name": "吸猫（光圈）", "event": 9},
 	]
 

@@ -169,11 +169,11 @@
       "half"
      ],
      [
-      0.25,
+      0.15,
       "blast"
      ],
      [
-      0.5,
+      0.42,
       "groove"
      ]
     ],
@@ -183,49 +183,49 @@
       "drone"
      ],
      [
-      0.5,
+      0.42,
       "ode_bass"
      ]
     ],
     "bed": [
      [
-      0.25,
+      0.15,
       "metal"
      ],
      [
-      0.5,
+      0.42,
       "ode_keys"
      ]
     ],
     "lead": [
      [
-      0.5,
+      0.42,
       "ode_cats"
      ]
     ],
     "peak": [
      [
-      0.25,
+      0.15,
       "doom_horns"
      ],
      [
-      0.5,
+      0.42,
       "holy_pad"
      ],
      [
-      0.85,
+      0.77,
       ""
      ]
     ],
     "meow": [
      [
-      0.7,
+      0.62,
       "ode_cat_drums"
      ]
     ],
     "harm": [
      [
-      0.7,
+      0.62,
       "ode_harm"
      ]
     ],
@@ -235,7 +235,7 @@
       "ufo_rise"
      ],
      [
-      0.5,
+      0.42,
       ""
      ]
     ],
@@ -245,34 +245,43 @@
       "wind"
      ],
      [
-      0.7,
+      0.62,
       ""
      ],
      [
-      0.85,
+      0.77,
       "ode_peak"
      ]
     ]
    },
    "tiers": [
-    0.25,
-    0.5,
-    0.7,
-    0.85
+    0.15,
+    0.42,
+    0.62,
+    0.77
    ],
    "fever": [
-    0.85,
+    0.77,
     1.0
    ],
    "exit": "end_c_major",
    "outro": "out_into_the_ufo",
-   "fever_fill": false,
    "own": {
     "hit": ""
    },
-   "tier_sfx": {
-    "1": "none",
-    "2": "sky_holy_hit"
+   "changes": {
+    "tier": {
+     "1": {
+      "sfx": "none"
+     },
+     "2": {
+      "sfx": "sky_holy_hit",
+      "lead_beats": 4
+     }
+    },
+    "fever": {
+     "fill": false
+    }
    }
   }
  ]

@@ -84,6 +84,13 @@ var chart: SongChart
 var _index := -1
 var _current: SpinSection
 var _switch_at := -1.0  # 积累条满了之后，定在第几拍切关（-1 = 还没满）
+var _rise_pending := false  # 切关前的上扬音效还没放
+var _ending_at := -1.0  # 这次切关的结束音符在第几拍（-1 = 没有，见 _plan_ending）
+var _ending_marked := false
+var _ending_hold_at := -1.0  # 结束音符前面的大长按从第几拍起（-1 = 没有）
+var _ending_music := false
+var _prelaid_index := -1    # 已经提前铺好音符的下一个小关（-1 = 没有），见 _prelay_next
+var _prelaid_at := -1.0
 var _stage_weights: Array[float] = []  # 每个小关占这一大关满分的比例（计分用）
 var _stage_clicks: Array[float] = []  # 每个小关预计要按多少下（实时显示分数用）
 var _cleared := false
@@ -104,7 +111,9 @@ func _ready() -> void:
 		chart.first_beat_offset_sec = 0.0
 		section_entered.connect(Music.set_section)
 		gauge.changed.connect(func(v: int, m: int) -> void: Music.set_progress(float(v) / maxi(m, 1)))
-		gauge.filled.connect(Music.rise_to_bar)  # 积累条满了：一声上扬音效，正好在换小关的那条小节线上放完
+		# （积累条满了的那声上扬音效在 _process 里放：要正好在换小关的那条小节线上放完，而那条线可能要等乐句线）
+		Music.fever_started.connect(apply_phase_gain)
+		Music.fever_ended.connect(apply_phase_gain)
 	else:
 		Music.clear()  # 这一关不用叠轨音乐：别让上一关的喵谱子跟过来
 	ComicStyle.set_by_name(Levels.look())
@@ -291,6 +300,9 @@ func start_from(index: int) -> void:
 	hud.reset()
 	_cleared = false
 	_switch_at = -1.0
+	_ending_at = -1.0
+	_prelaid_index = -1
+	Music.restart()  # 叠轨音乐回到开头的样子（没在用它时这句什么都不做）
 	Conductor.play(-lead_in_beats)
 	_enter(index, 0.0, false)
 
@@ -305,9 +317,34 @@ func jump_to_phase(phase: int) -> void:
 func _process(_delta: float) -> void:
 	if not Conductor.playing:
 		return
+	# 换小关前的上扬音效：正好在换的那条小节线上放完（换的那条线可能被乐句线往后推了，所以到最后一小节才放）
+	if _rise_pending and _switch_at >= 0.0 and Conductor.song_beat >= _switch_at - chart.beats_per_bar:
+		_rise_pending = false
+		Music.rise_to_bar()
+	if _ending_at >= 0.0:
+		if not _ending_marked and Conductor.song_beat >= (_ending_hold_at if _ending_hold_at >= 0.0 else _ending_at) - 8.0:
+			_ending_marked = true  # 结束音符：句尾那一拍上的七彩音符（那一拍没有音符就补一个）
+			var long_note: NoteData = null
+			if _ending_hold_at >= 0.0:
+				# 先是一个七彩的大长按（通用长按：ChartInput），按完的那一拍才是结束音符（拍下去的那一下）
+				long_note = judge.add_note(_ending_hold_at)
+				if long_note:
+					long_note.length = _ending_at - _ending_hold_at
+				judge.add_note(_ending_at, NoteData.Sound.SNARE)
+			if _current and _current.note_accents:
+				_current.note_accents.mark_change(_ending_at, true)
+				if long_note:
+					_current.note_accents.mark_extra(long_note)
+			else:
+				judge.add_note(_ending_at)
+		if not _ending_music and Conductor.song_beat >= _ending_at:
+			_ending_music = true  # 过渡空位开始：下一个小关的过门音乐现在就放，空位结束时它的音乐正好进来
+			if _index + 1 < chart.sections.size() and Music.stream != null:
+				Music.enter_early(_index + 1)
 	if _switch_at >= 0.0 and Conductor.song_beat >= _switch_at:
 		var at := _switch_at
 		_switch_at = -1.0
+		_ending_at = -1.0
 		if _index + 1 < chart.sections.size():
 			_enter(_index + 1, at, true)
 		else:
@@ -330,7 +367,16 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 	judge.bank_stage()
 	judge.begin_stage(_stage_weights[index] if index < _stage_weights.size() else 0.0,
 			_stage_clicks[index] if index < _stage_clicks.size() else 0.0)
-	var section_notes := judge.begin_section(index, def, chart.beats_per_bar, at_beat, first_note)
+	var section_notes: Array[NoteData]
+	if joined and index == _prelaid_index and is_equal_approx(at_beat, _prelaid_at):
+		# 这个小关的音符在积累条满的那一下就已经铺好、画出来了（见 _prelay_next）：接着用同一批，不重新铺
+		# （重新铺的话，换关那一拍上的音符会被换成新的一个：玩家提前一点点按掉的那一下又冒出来）
+		section_notes = _current.notes
+		while not section_notes.is_empty() and section_notes[0].beat < at_beat - 0.001:
+			section_notes.pop_front()   # 上一个小关留下的（已经过了换关那条线）
+	else:
+		section_notes = judge.begin_section(index, def, chart.beats_per_bar, at_beat, first_note)
+	_prelaid_index = -1
 	if joined:
 		_current.rejoin(def, section_notes)
 	else:
@@ -351,6 +397,8 @@ func _enter(index: int, at_beat: float, animate: bool) -> void:
 	_group_gauge(index, g_max)
 	gauge.begin(g_max, g_events)
 	_current.gauge_event_values = gauge.events
+	apply_phase_gain()
+	apply_section_fx()
 	section_entered.emit(index)
 
 	if joined:
@@ -564,12 +612,46 @@ func _phase_impact() -> void:
 		Music.play_sfx(phase_sound, phase_sound_db)
 
 
+## 现在这个阶段积累条涨跌的倍数（SectionDef.phase_gain / fever_gain）：进小关、过分数线、fever 开始 / 结束、
+## 编辑面板改了数的时候各算一次
+func apply_phase_gain() -> void:
+	if _index < 0 or _index >= chart.sections.size():
+		return
+	var def := chart.sections[_index]
+	var scale := def.phase_gain[gauge.events_fired] if gauge.events_fired < def.phase_gain.size() else 1.0
+	if Music.fever and def.fever_gain > 0.0:
+		scale = def.fever_gain
+	gauge.gain_scale = scale if scale > 0.0 else 1.0
+
+
+## 把这个小关存着的节奏组件设置（SectionDef.fx）套到场景里同名的节点上
+func apply_section_fx() -> void:
+	if _current == null or _index < 0:
+		return
+	var fx: Dictionary = chart.sections[_index].fx
+	for node_name: String in fx:
+		var node := _current.get_node_or_null(node_name)
+		if node:
+			for key: String in fx[node_name]:
+				node.set(key, fx[node_name][key])
+
+
 func _on_gauge_event(index: int, value: int) -> void:
+	apply_phase_gain()
 	hud.pulse_gauge(false)
 	_phase_impact()
 	if _current:
 		_current.notify_gauge_event(index, value)
 	gauge_event.emit(_index, index, value)
+
+
+## 第 index 个小关的音乐进来时放不放过门（音乐配置里这个小关的 changes.enter：写了专门的过门，或者没写 "fill": false）
+func _music_enters_with_fill(index: int) -> bool:
+	var sections: Array = Music.data.get("sections", [])
+	if index >= sections.size():
+		return true
+	var enter: Dictionary = (sections[index] as Dictionary).get("changes", {}).get("enter", {})
+	return str(enter.get("written", "")) != "" or bool(enter.get("fill", true))
 
 
 ## 满条了：定在下一个小节线切关（这之前剩下的几个音符照常打、照常计分，只是积累条不再动）
@@ -581,6 +663,80 @@ func _on_gauge_filled() -> void:
 	gauge_filled.emit(_index)
 	var bpb := chart.beats_per_bar
 	_switch_at = (floorf(Conductor.song_beat / bpb) + 1.0) * bpb
+	# 这个小关要等乐句线（SectionDef.exit_on_bars）：往后顺延到正在放的曲子的那条线，那一句唱完再换
+	var wait := chart.sections[_index].exit_on_bars
+	if wait > 0 and Music.stream != null:
+		# 要落在乐句线上的是「这首曲子停下来的那一拍」：下一个小关进来时放过门（或者这是最后一个小关），曲子在切关的
+		# 那条线上就停；不放过门的话，音乐要到切关之后的下一条小节线才换，曲子还会多唱一小节
+		var ends := 0.0 if _wants_ending() or _index + 1 >= chart.sections.size() or _music_enters_with_fill(_index + 1) else float(bpb)
+		for i in wait:
+			if Music._on_phrase_line(_switch_at + ends, wait):
+				break
+			_switch_at += bpb
+	_plan_ending()
+	_rise_pending = Music.stream != null and _ending_at < 0.0  # 结束音符后面是过渡，不放上扬音效
+	_prelay_next()
+
+
+## 换场景的结束（下一个小关不是接着这一个的，或者这是最后一个小关），小关自己没有结尾演出的
+## （有的在脚本里写 const OWN_ENDING := true）：
+##   谱面不中途删，打到切关原来定的那条线（下一条小节线 / 乐句线）为止；那条线上是一个七彩的结束音符；
+##   之后留一段过渡空位（下一个小关的过门有几小节就留几小节，至少一小节）：现在是空的——画面留在原地、
+##   没有音符，只放下一个小关的过门音乐——以后的转场演出就放这里；空位结束才真的切关。
+func _wants_ending() -> bool:
+	if _current == null or _joins(_index + 1):
+		return false
+	var s: Script = _current.get_script()
+	return not (s and s.get_script_constant_map().get("OWN_ENDING", false))
+
+
+func _plan_ending() -> void:
+	_ending_at = -1.0
+	if not _wants_ending():
+		return
+	_ending_at = _switch_at
+	_ending_marked = false
+	_ending_music = false
+	# 小关脚本里写了 const ENDING_HOLD_BEATS := 8.0：那条线上先来一个这么长的七彩大长按，按完的那一拍才是结束音符
+	var hold := float((_current.get_script() as Script).get_script_constant_map().get("ENDING_HOLD_BEATS", 0.0))
+	_ending_hold_at = -1.0
+	if hold > 0.0:
+		_ending_hold_at = _switch_at
+		_ending_at = _switch_at + hold
+		judge.end_notes_at(_ending_hold_at - 0.01)  # 那条线上谱里原来的音符不要：整段让给大长按
+		if "ending_from" in _current:
+			_current.set("ending_from", _ending_hold_at)
+	else:
+		judge.end_notes_at(_ending_at)
+	var slot := 1
+	var sections: Array = Music.data.get("sections", [])
+	if _index + 1 < chart.sections.size() and _index + 1 < sections.size():
+		var enter: Dictionary = (sections[_index + 1] as Dictionary).get("changes", {}).get("enter", {})
+		slot = maxi(int(enter.get("bars", 1)), 1)
+	_switch_at = _ending_at + slot * chart.beats_per_bar
+
+
+## 下一个小关是接着这一个继续的（同一个场景，joins_previous）：现在就把它的音符从换关那条小节线起铺出来，交给现在这个
+## 小关接着画。这样换关前后音符是连着的——原来要到换关那一下才铺，已经飞到一半的旧音符在那一下全部消失，
+## 新音符（还要再歇 join_rest_bars 小节）从头出现。换关那条线之前的旧音符照常留着打完。
+func _prelay_next() -> void:
+	_prelaid_index = -1
+	var next := _index + 1
+	if _current == null or not _joins(next):
+		return
+	var def := chart.sections[next]
+	var bpb := chart.beats_per_bar
+	judge._generate()   # 旧谱到换关那条线为止的音符先铺全
+	var keep: Array[NoteData] = []
+	for n in _current.notes:
+		if not n.judged and n.beat < _switch_at - 0.001:
+			keep.append(n)
+	var list := judge.begin_section(next, def, bpb, _switch_at, _switch_at + def.join_rest_bars * bpb)
+	for i in keep.size():
+		list.insert(i, keep[i])
+	_current.notes = list
+	_prelaid_index = next
+	_prelaid_at = _switch_at
 
 
 func _on_beat(beat_index: int) -> void:

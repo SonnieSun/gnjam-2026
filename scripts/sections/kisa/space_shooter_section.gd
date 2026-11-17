@@ -10,6 +10,11 @@ extends Spin3DSection
 ## 进关时把 Judge.accuracy_share 设成 0，打掉星球的分用 Judge.add_bonus() 立刻加到总分上。
 ## 猫、披萨、灯光、天空都在场景 space_shooter.tscn 里摆，这里只负责让它们动和玩法。
 
+## 配拍编辑器读这个：这一段只有一份谱，它的第 0 拍在土耳其进行曲的第 2 小节（进关先空一小节，曲子从第 0 拍就起了）。
+static func chart_phases() -> Array:
+	return [{"id": "", "name": "整段", "event": 0, "tune_offset": 4.0}]
+
+
 @export_group("移动")
 ## 猫最多能往左右走多远
 @export var move_range := 7.0

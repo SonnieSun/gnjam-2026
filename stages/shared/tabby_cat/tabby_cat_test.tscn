@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dpi754h3xfslr"]
 
-[ext_resource type="Script" path="res://stages/shared/tabby_cat/tabby_cat_test.gd" id="1"]
+[ext_resource type="Script" uid="uid://dtvhjmvh4jwyk" path="res://stages/shared/tabby_cat/tabby_cat_test.gd" id="1"]
 [ext_resource type="PackedScene" path="res://stages/shared/tabby_cat/tabby_spin_cat.tscn" id="2"]
 
 [sub_resource type="Environment" id="env"]
@@ -16,28 +16,26 @@ glow_levels/4 = 1.0
 glow_levels/5 = 1.0
 glow_intensity = 0.9
 glow_bloom = 0.1
-glow_blend_mode = 1
-glow_hdr_threshold = 1.0
 
-[node name="TabbyCatTest" type="Node3D"]
+[node name="TabbyCatTest" type="Node3D" unique_id=1908023540]
 script = ExtResource("1")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=963697808]
 environment = SubResource("env")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=444766672]
 transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 3, 0)
 light_energy = 1.2
 
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1607479861]
 transform = Transform3D(1, 0, 0, 0, 0.94, 0.342, 0, -0.342, 0.94, 0, 1.6, 4.2)
 fov = 40.0
 
-[node name="TabbySpinCat" parent="." instance=ExtResource("2")]
+[node name="TabbySpinCat" parent="." unique_id=121750896 instance=ExtResource("2")]
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1082912574]
 
-[node name="Info" type="Label" parent="UI"]
+[node name="Info" type="Label" parent="UI" unique_id=1979856962]
 offset_left = 16.0
 offset_top = 12.0
 offset_right = 900.0

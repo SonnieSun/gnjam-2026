@@ -30,6 +30,10 @@ signal filled
 ## Miss 扣多少（最低扣到 0）
 @export var miss_loss := 3
 
+## 涨跌的倍数（1 = 正常）。关卡想让某一段长一点就在那一段调小：0.5 = 每一下只涨一半，这一段要打两倍那么多下。
+## 分数线、满条值都不用动，音乐按进度切换的那些点也就不用动。每进一个小关回到 1。
+var gain_scale := 1.0
+var _fraction := 0.0  # 乘了倍数之后不满 1 的零头，攒着
 var max_value := 60
 ## 这个小关的事件分数线（从小到大）
 var events := PackedInt32Array()
@@ -51,6 +55,8 @@ func begin(new_max: int = 0, new_events: Variant = null) -> void:
 	value = 0
 	events_fired = 0
 	full = false
+	gain_scale = 1.0
+	_fraction = 0.0
 	changed.emit(value, max_value)
 
 
@@ -87,12 +93,20 @@ func set_events(list: PackedInt32Array) -> void:
 func apply(result: int) -> void:
 	if full:
 		return
+	var step := 0
 	match result:
-		NoteData.Result.PERFECT: value += perfect_gain
-		NoteData.Result.GREAT: value += great_gain
-		NoteData.Result.GOOD: value += good_gain
-		NoteData.Result.MISS: value -= miss_loss
+		NoteData.Result.PERFECT: step = perfect_gain
+		NoteData.Result.GREAT: step = great_gain
+		NoteData.Result.GOOD: step = good_gain
+		NoteData.Result.MISS: step = -miss_loss
 		_: return
+	if is_equal_approx(gain_scale, 1.0):
+		value += step
+	else:
+		_fraction += step * gain_scale
+		var whole := int(_fraction)   # 往 0 取整：零头留到下一下
+		_fraction -= whole
+		value += whole
 	value = clampi(value, 0, max_value)
 	changed.emit(value, max_value)
 	while events_fired < events.size() and value >= events[events_fired]:

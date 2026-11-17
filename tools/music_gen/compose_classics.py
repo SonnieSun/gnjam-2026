@@ -792,6 +792,31 @@ SONGS['can_can_b'] = dict(
     ]),
     cat_octave=0, drum_notes=(nm('D4'), nm('A4')))
 
+# The game's own theme (level 1, the disco room; G minor, Ebmaj7 F7 Dm7 Gm7, a bar each), rendered by THIS
+# pipeline like the classics, so that level 1 opens with the same clean band as everything after it: one cat
+# singing the tune (kichiku), bass, chords, peak layer and cat drums pitched in the key (D and G). What level 1
+# had there was the old scene-1 stack (compose_disc.py): a meow loop that is not in the key (its notes fall on
+# C#, B, G#), cat drums pitched around E / F (E is not in G minor) and as loud as the hook, and four layers in
+# the same 150 Hz - 2 kHz. The two hooks are compose_disc.py's:
+#   disco_theme_a   RIFF_A, the eurobeat hook (eighths and long notes), its short notes written as full eighths
+#                   so a cat gets through the front of its meow; sung an octave below the instrument
+#   disco_theme_b   RIFF_B, the disco hook the room plays now (two bars, sixteenth syncopations), twice
+SONGS['disco_theme_a'] = dict(
+    chords=['Ebmaj7', 'Ebmaj7', 'F7', 'F7', 'Dm7', 'Dm7', 'Gm7', 'Gm7'],
+    melody=tune([
+        [(0, 'Bb5', 2), (2, 'Bb5', 2), (6, 'G5', 2), (8, 'Bb5', 2), (10, 'C6', 2), (12, 'D6', 4)],
+        [(0, 'C6', 4), (4, 'A5', 2), (6, 'F5', 2), (8, 'A5', 2), (10, 'Bb5', 2), (12, 'C6', 4)],
+        [(0, 'A5', 2), (2, 'A5', 2), (6, 'F5', 2), (8, 'D5', 2), (10, 'F5', 2), (12, 'A5', 4)],
+        [(0, 'Bb5', 2), (2, 'A5', 2), (4, 'G5', 4), (8, 'D5', 2), (10, 'G5', 2), (12, 'A5', 2), (14, 'Bb5', 2)],
+    ]),
+    cat_octave=-12, drum_notes=(nm('D4'), nm('G4')), mi_attack=True)
+_RIFF_B = [[(0, 'G4', 1), (2, 'G4', 1), (3, 'Bb4', 2), (5, 'G4', 1), (6, 'F4', 2), (8, 'G4', 2), (11, 'D4', 1), (12, 'F4', 2), (14, 'G4', 2)],
+           [(0, 'Bb4', 1), (2, 'Bb4', 1), (3, 'C5', 2), (5, 'Bb4', 1), (6, 'G4', 2), (8, 'F4', 2), (10, 'D4', 2), (12, 'F4', 1), (13, 'G4', 3)]]
+SONGS['disco_theme_b'] = dict(
+    chords=['Ebmaj7', 'Ebmaj7', 'F7', 'F7', 'Dm7', 'Dm7', 'Gm7', 'Gm7'],
+    melody=tune(_RIFF_B + _RIFF_B),
+    cat_octave=0, drum_notes=(nm('D4'), nm('G4')), mi_attack=True)
+
 # Scott Joplin, "The Entertainer" (1902, public domain): the first strain, 16 bars of 2/4, written like the
 # Turkish March (a step is one of the original sixteenths, a row is two original bars, played at half speed,
 # which is the rag's own tempo). Only the tune and the plain harmony are taken (read off the treble and bass of

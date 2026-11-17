@@ -26,6 +26,8 @@ scene = ExtResource("6_dpbs3")
 beats_per_rev = 8.0
 bars = PackedStringArray("k.......k.......", "k...k...k...k...", "k...s...k...s...", "k...s...k.k.s...")
 chart = ExtResource("6_jpxac")
+phase_gain = PackedFloat32Array(1, 1, 1, 0.42, 0.42, 1, 1, 1, 0.43, 1)
+fever_gain = 0.47
 gauge_events = PackedInt32Array()
 gauge_event_names = PackedStringArray("Stars", "Ball", "Dancers", "Drift", "Road", "Dance floor", "Grid", "Plaza", "Finale")
 

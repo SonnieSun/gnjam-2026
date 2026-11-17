@@ -167,6 +167,8 @@ var _axis := Vector3.UP  # 从地面指向飞碟
 var _beam_len := 1.0
 var _ring_mesh: TorusMesh
 var _rings := {}  # NoteData 的 id -> { node, mat }
+## 音符的重点标记（关卡给；没有就和原来一样）：小节线上的、切分音、进 fever 的那一个音符，光圈换颜色
+var accents: NoteAccents
 var _fading: Array[Dictionary] = []
 var _phase := Phase.LIFT
 var _phase_beat := 0.0
@@ -535,6 +537,9 @@ func _update_rings(beat: float, notes: Array[NoteData], approach_beats: float, d
 			var t := clampf(1.0 - ahead / approach_beats, 0.0, 1.0)
 			_place_ring(r.node, lerpf(_beam_top.y, cat_c.y, t))
 			r.mat.set_shader_parameter("alpha", smoothstep(0.0, 0.15, t))
+			if accents:
+				var mark := accents.look(n, ring_color)
+				r.mat.set_shader_parameter("color", mark.color if mark.kind != NoteAccents.Kind.NONE else ring_color)
 	# 判定过的光圈：打中往外扩散变淡，没打中往下掉变淡
 	for i in range(_fading.size() - 1, -1, -1):
 		var r: Dictionary = _fading[i]

@@ -17,8 +17,27 @@ signal lane_switched(lane: String, clip: String)
 ## 档位变了（在小节线上生效的那一刻）。new_tier = 这个小关里已经过了几条档位线，up = 是升档
 signal tier_changed(new_tier: int, up: bool)
 ## FEVER 开始 / 结束（在小节线上）。画面、得分想跟着 fever 走就接这两个。
+## 预备信号：进度刚过了一条线，这次切换已经排好了，还没发生。kind = "tier"（升到第 id 档）/ "fever"（进 fever）。
+## fill_beat = 过门从哪一拍起，commit_beat = 新的那一段从哪一拍进（都是小节线；没有过门时两个一样）。
+## 场景、谱面要和音乐的切换对上，就听这个信号按这两个拍点排自己的事，不要在进度过线的那一下各自开始。
+## 正式切换的那一下是 tier_changed / fever_started。有乐句线要等（"on_bars"）的切换，拍点是按现在在放的曲子推出来的。
+signal change_planned(kind: String, id: int, fill_beat: float, commit_beat: float)
+## 预备拍开始了（见 count_in()）：beat = 第一下落在哪一拍。画面要跟着数拍子的可以听它。
+signal count_in_started(beat: float)
 signal fever_started
 signal fever_ended
+
+# ---- 画面跟着音乐的信号（scripts/music/music_events.gd 发；说明见 docs/music_manager.md「画面跟着音乐的信号」）----
+## 节奏轨现在这套鼓型里的一下底鼓 / 拍手 / 镲。beat = 它落在第几拍（浮点；发出的那一帧节拍刚走过它）。
+## 注意：节奏轨的 loop 里只有拍手和镲，底鼓是留给玩家打的，所以 drum_kick 是"鼓型里底鼓该在的地方"，音乐本身在那一下不一定有声。
+signal drum_kick(beat: float)
+signal drum_clap(beat: float)
+signal drum_hat(beat: float, open: bool)
+## 旋律轨现在这首曲子的一个音：beat = 落在第几拍，midi = 乐器弹的音高，length_beats = 多长（拍）
+signal lead_note(beat: float, midi: int, length_beats: float)
+## 发这些信号的节点（events.lead_beats 提前量、events.log_events 打印、events.groove_of() / song() 查数据）
+var events: MusicEvents
+# ---- 画面跟着音乐的信号：到这里 ----
 
 const MUSIC_DIR := "res://levels/music/"
 const SILENT_DB := -80.0
@@ -77,6 +96,10 @@ const DIP_DB := -14.0
 ## kiai 轨上是乐器（比如 cc_double）就不让。
 const KIAI_DUCK_DB := -6.0
 var _duck_on := false
+var _plan := {}           # 排好了还没发生的那次切换（见 change_planned / planned_change）
+var _planned_for := -1    # 已经为升到第几档排过
+var _count_at := -1.0     # 到这一拍放预备拍（"count_in": "before"）
+var _count_until := -1.0  # 预备拍放到第几拍：这之前关卡的鼓让开、别的轨道压低，让那四下听得见
 var _fill_until := -1.0  # 几小节长的专门过门放到第几拍：在那之前不换（进度变了也不重新排到更早的小节线）
 var _outro := false       # 结尾段在放：除了鼓，别的轨道都停着（见 outro()）
 var _outro_wait := false  # 叫了 outro()，等下一条小节线
@@ -93,7 +116,7 @@ var _dip_on := false
 var _riser_for := -1                    # 已经为升到第几档放过上扬音效
 var _quiet_tier_change := true          # 刚换小关 / 刚开始：档位变了不放音效
 ## 过门小节：配置里有一条 id 是 "fill" 的轨道（里面放一段过门，比如 s1_X_fill）时才有。
-## 换小关时、以及升到小关里 "transition_tiers" 写的那几档时，先放一小节过门（只留节奏轨 + 过门，别的都停），
+## 换小关、进 fever、以及切换描述里写了要过门的那几档，先放一小节过门（只留节奏轨 + 过门，别的都停；见 change_spec），
 ## 下一个小节线才换成新的。所有的切换都落在小节线上。
 const FILL_LANE := "fill"
 # 过门小节里照常响的轨道：鼓、低音、和声都不停，只有旋律、高潮层、猫叫让出一小节（全停听起来像音乐断了）
@@ -142,6 +165,8 @@ func _ready() -> void:
 	fever_ended.connect(_set_fever_reverb.bind(false))
 	meow = MeowPlayer.new()
 	add_child(meow)
+	events = MusicEvents.new()   # 画面跟着音乐的信号
+	add_child(events)
 	for i in 3:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
@@ -192,7 +217,11 @@ func build(d: Dictionary) -> AudioStreamSynchronized:
 	_free_tunes()
 	_pattern_tune.clear()
 	_lane_gain.clear()
+	_count_at = -1.0
+	_count_until = -1.0
 	_fill_until = -1.0
+	_plan = {}
+	_planned_for = -1
 	_set_fever_reverb(false)
 	_outro = false
 	_outro_wait = false
@@ -373,6 +402,50 @@ func _pattern_origin(key: String) -> float:
 	return float(_tunes[tune].origin)
 
 
+## 这一大关从头重来（按 R、编辑面板跳阶段）：回到刚读进配置时的样子。不重读文件，只把状态清掉：
+## 各条轨道静音、曲子停、档位 / fever / 结尾段 / 排好的切换 / 带过来的满度都清零、还在响的结尾段和过门停掉。
+## 接着由 set_section() 排上开头该响的。
+func restart() -> void:
+	if stream == null:
+		return
+	_end_fever()
+	_set_fever_reverb(false)
+	section = -1                    # 让接下来的 set_section(0) 当成新进一个小关
+	progress = 0.0
+	progress_override = -1.0
+	effective = 0.0
+	_effective_at_beat = 0.0
+	tier = 0
+	_carry = 0.0
+	_force.clear()
+	_now.clear()
+	_pending = false
+	_outro = false
+	_outro_wait = false
+	_fill_until = -1.0
+	_plan = {}
+	_planned_for = -1
+	_riser_for = -1
+	_fill_done_for = -1
+	_fever_fill_done = false
+	_quiet_tier_change = true
+	_dip_until = -1.0
+	for i in _slot_lane.size():
+		_target[i] = 0.0
+		_level[i] = 0.0
+		_slot_stream[i].set_sync_stream_volume(_slot_index[i], SILENT_DB)
+	for tune: String in _tunes:
+		(_tunes[tune].player as AudioStreamPlayer).stop()
+		_tunes[tune].origin = INF
+	for key: String in meow.active.keys():
+		meow.set_active(key, {})
+	for p in _sfx:
+		# 只停那些几小节长的（结尾段、专门写的过门）：开场数拍子、上一关收尾和弦的尾巴照常放完
+		var playing := p.stream.resource_path.get_file() if p.playing and p.stream != null else ""
+		if playing.begins_with("out_") or playing.begins_with("tr_"):
+			p.stop()
+
+
 func clear() -> void:
 	_free_tunes()
 	_pattern_tune.clear()
@@ -396,7 +469,13 @@ func bpm() -> float:
 
 ## 进了第 index 个小关（进度从 0 开始），排到下一个边界生效
 func set_section(index: int) -> void:
+	if index == _entered_early and index == section:
+		_entered_early = -1  # 这个小关的音乐已经提前进来了（enter_early）：过门不再放一遍
+		progress_override = -1.0
+		return
+	_entered_early = -1
 	progress_override = -1.0
+	_fever_off = false
 	var changed := index != section
 	# 换小关不从"全开"一下掉到"什么都没有"：上一个小关走的时候有多满，新小关就先带着它的几成进来
 	# （过门那一小节之后），再用 CARRY_BARS 小节慢慢落回玩家在新小关里真正的进度。
@@ -407,6 +486,8 @@ func set_section(index: int) -> void:
 	progress = 0.0
 	effective = 0.0
 	_riser_for = -1
+	_planned_for = -1
+	_plan = {}
 	_fill_done_for = -1
 	_quiet_tier_change = true
 	_carry = 0.0
@@ -416,17 +497,28 @@ func set_section(index: int) -> void:
 	_queue()
 	# 换小关是在小节线上发生的：这一小节放过门，下一个小节线（上面排好的）新小关的音乐才进来
 	if changed and dynamics() and Conductor.playing and Conductor.song_beat > 1.0:
-		var enter := _enter_sfx()
-		if enter != "":
-			# 这个小关换了一首曲子，有专门写的一小节变奏过门（小关里的 "enter": "tr_ybf_to_mk"，assets/audio/sfx 里的
-			# 一次性音效，tools/music_gen/make_transitions.py 做的）：鼓照常响，上一首的和声、低音、旋律都让开，
-			# 这一小节由它把调带过去，下一条小节线新曲子进来
-			_play_fill_bar(true)
-			play_sfx(enter, ENTER_DB)
-		elif _fill_clip() != "" and bool(data.get("sections", [])[section].get("enter_fill", true)):
-			# （同一个场景里接着走的小关写 "enter_fill": false：不放过门，旋律不断，新小关的音乐在这条小节线上直接接上）
-			_play_fill_bar()
-			play_sfx("crash", -9.0)
+		var spec := change_spec("enter")
+		if spec.fill:
+			_play_change(spec)
+			if spec.bars > 1:
+				# 几小节长的专门过门：新小关的音乐等它放完才进，这之前进度再变也不提前换
+				_next_beat += float(data.get("quantize_beats", 4)) * (int(spec.bars) - 1)
+				_fill_until = _next_beat
+				_carry_from = _next_beat
+			if spec.written == "":
+				play_sfx("crash", -9.0)
+
+
+## 小关自己提前把音乐换到下一个小关：过门放在这个小关的结尾演出里（比如洗衣机钻进屏幕的那两小节），
+## 画面切过去的那一下新小关的音乐正好进来。在小节线上调；框架真正切关时再来的那次 set_section(index) 什么都不重放。
+## 调了之后到切关之前，这个小关要自己把进度按住（override_progress(0.0)），不然积累条顶满会被当成新小关的进度。
+var _entered_early := -1
+
+func enter_early(index: int) -> void:
+	if index == section or index < 0:
+		return
+	set_section(index)
+	_entered_early = index
 
 
 ## 换小关时带过来的"满的程度"（见 set_section）。只影响各条轨道响哪一段，不算档位、不触发 fever 和升降档的音效。
@@ -476,41 +568,133 @@ func set_progress(p: float) -> void:
 	_queue()
 
 
-## 这个小关升到第 t 档（1 起）时要不要先放一小节过门：小关里的 "transition_tiers"
-func _wants_fill(t: int) -> bool:
+## ---- 切换：换小关 / 升档 / 进 fever 时音乐怎么换，都用同一种描述，走同一段代码 ----
+## 小关里写 "changes": {"enter": {…}, "tier": {"5": {…}}, "fever": {…}}，每一项可以有：
+##   "fill"      true / false：先放一小节通用过门（节奏、低音、和声照常，旋律让出一小节，过门轨响）。
+##               不写：换小关（enter）和进 fever 要，升档（tier）不要。
+##               过门那一小节旋律是停的：曲子不换、只是往上加东西的地方写 false，旋律莫名其妙断一小节很怪。
+##   "written"   专门写的过门（assets/audio/sfx 里的一次性音效，tools/music_gen/make_transitions.py 做的）：
+##               有它就不放通用的，只留鼓，上一段的和声、低音、旋律都让开，这几小节交给它
+##   "through"   过门不是一个音效，而是「这几小节只响这些」：{"轨道": "片段", …}，没写的轨道都停（鼓也停）。
+##               用来做一段安静的过渡（比如只留猫唱旋律和低音），"bars" 小节之后新的一档整个进来
+##   "db"        专门过门放多响（不写 = ENTER_DB；从正式音轨里切出来的过门文件是压低了存的，在这里抬回去）
+##   "bars"      专门过门几小节（不写 = 1）
+##   "replaces"  它顶替上一句结尾的几小节（不写：1 小节的过门顶替 1 小节，更长的不顶替、接在那一句唱完之后）。
+##               只在写了 "on_bars" 时有用：等的是「过门开头 + 这几小节」落在乐句线上
+##   "on_bars"   等正在放的曲子唱到几小节一句的乐句线才换（不写 = 不等）。换曲子 / 换段落的地方用，
+##               不然新的一段会从上一句的中间唱起
+##   "sfx"       升到这一档那一下的专用音效，代替通用的镲和喵，也不送小 kiai（"none" = 什么都不放）
+##   "count_in"  预备拍，节拍器的四下（见 count_in()），玩家有一小节的时间对上拍子：
+##               true / "start" = 新的一段进来的第一小节（关卡把这一小节留空，下一小节第一拍接第一个音符）；
+##               "before" = 过门的最后一小节（新的一段的第一拍就是第一个音符）
+##   "lead_beats" 最短的预备时间：进度过线到过门开始至少隔这么多拍，离下一条小节线不够就顺延一小节（不写 = 0）。
+##               场景要在过门之前先做铺垫的切换用
+## 读出来的是补齐了默认值的一份：{fill: 到底放不放过门, written, db, bars, replaces, on_bars, sfx, lead_beats}
+const ENTER_DB := -1.0
+## 档位线、fever 的两头、各条轨道的切换点在配置里只写到小数点后三位（0.256），而积累条的分数线是整数除出来的
+## （110 / 430 = 0.25581）。积累条正好停在分数线上时，进度比写下来的线小一点点，要算过线：不然关卡那边
+## 已经触发了这个阶段（拆房子、歇着不出音符），音乐却要等玩家再打中一个才换，一直停在上一段。
+## 0.0006 > 四舍五入的最大误差 0.0005，又远小于积累条的一格（满条不到 900 格时一格 > 0.0011）。
+const LINE_EPS := 0.0006
+
+func change_spec(kind: String, t := 0) -> Dictionary:
+	var out := {"fill": false, "written": "", "through": {}, "db": ENTER_DB, "bars": 1, "replaces": 1, "on_bars": 0, "sfx": "", "lead_beats": 0.0}
 	var secs: Array = data.get("sections", [])
 	if section < 0 or section >= secs.size():
-		return false
-	for v in secs[section].get("transition_tiers", []):
-		if int(v) == t:
-			return true
-	return false
+		return out
+	var all: Dictionary = secs[section].get("changes", {})
+	var raw: Dictionary = all.get("tier", {}).get(str(t), {}) if kind == "tier" else all.get(kind, {})
+	var written := str(raw.get("written", ""))
+	if written != "" and ResourceLoader.exists(SFX_DIR + written + ".wav"):
+		out.written = written
+		out.db = float(raw.get("db", ENTER_DB))
+		out.bars = maxi(1, int(raw.get("bars", 1)))
+		out.replaces = clampi(int(raw.get("replaces", 1 if out.bars <= 1 else 0)), 0, out.bars)
+	if raw.get("through", {}) is Dictionary and not (raw.get("through", {}) as Dictionary).is_empty():
+		out.through = raw.through
+		out.bars = maxi(1, int(raw.get("bars", 1)))
+		out.replaces = clampi(int(raw.get("replaces", 0)), 0, out.bars)
+	out.fill = out.written != "" or not (out.through as Dictionary).is_empty() or (bool(raw.get("fill", kind != "tier")) and _fill_clip() != "")
+	out.on_bars = int(raw.get("on_bars", 0))
+	out.sfx = str(raw.get("sfx", ""))
+	out.lead_beats = float(raw.get("lead_beats", 0.0))
+	var ci: Variant = raw.get("count_in", "")
+	out["count_in"] = ("start" if ci else "") if ci is bool else str(ci)
+	return out
 
 
-## 进 fever 之前那一小节过门用的专门写的变奏（小关里的 "fever_enter"，没写就是 ""）
-func _fever_enter() -> String:
-	var secs: Array = data.get("sections", [])
-	if section < 0 or section >= secs.size():
-		return ""
-	var sfx_name := str(secs[section].get("fever_enter", ""))
-	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
+## 预备拍：从现在（应该正好是小节线）起的一小节里，节拍器的四下，每拍一下，第一下高一点（assets/audio/sfx/count_in_4.wav，
+## tools/music_gen/make_transitions.py 做的）。这一小节里关卡自己的鼓和猫鼓让开（COUNT_DRUMS_DB：预备拍就是这一小节的鼓），
+## 别的轨道压低 COUNT_DUCK_DB。量过：鼓照常响、乐队只压 7 dB 的话，这四下在 2.5–9 kHz 上比乐队本来就有的拍手和镲还小，听不出来。
+## 两种用法：切换描述里写 "count_in": true（升到那一档 / 进 fever 的那条小节线上自动放）；或者关卡自己在小节线上调。
+const COUNT_IN_SFX := "count_in_4"
+const COUNT_IN_DB := 6.0
+const COUNT_DUCK_DB := -7.0
+const COUNT_DRUMS_DB := -20.0
+const COUNT_DRUM_LANES := ["beat", "meow"]
+
+func count_in() -> void:
+	play_sfx(COUNT_IN_SFX, COUNT_IN_DB)
+	var q: float = data.get("quantize_beats", 4)
+	var at := roundf(Conductor.song_beat / q) * q if Conductor.playing else 0.0
+	_count_until = at + q - 0.3
+	count_in_started.emit(at)
 
 
-## 进 fever 的专门过门有几小节（小关里的 "fever_enter_bars"，不写 = 1）
-func _fever_enter_bars() -> int:
-	var secs: Array = data.get("sections", [])
-	if section < 0 or section >= secs.size() or _fever_enter() == "":
-		return 1
-	return maxi(1, int(secs[section].get("fever_enter_bars", 1)))
+## 排好了还没发生的那次切换：{kind, id, fill_beat, commit_beat}，没有就是 {}（见 change_planned）
+func planned_change() -> Dictionary:
+	return _plan
 
 
-## 过门占上一句结尾的几小节（小关里的 "fever_enter_replaces"；不写：一小节的过门占 1 小节，更长的不占、接在那一句唱完之后）
-func _fever_enter_replaces() -> int:
-	var secs: Array = data.get("sections", [])
-	var bars := _fever_enter_bars()
-	if section < 0 or section >= secs.size() or _fever_enter() == "":
-		return 1
-	return clampi(int(secs[section].get("fever_enter_replaces", 1 if bars <= 1 else 0)), 0, bars)
+## 进度刚过线、要升到第 up 档（或者进 fever）：算出过门从哪一拍起、新的一段从哪一拍进，发预备信号。
+## 写了 "lead_beats" 而离下一条小节线不够远，就顺延一小节（这是这里唯一会改动时间的地方）。
+func _plan_change(up: int) -> void:
+	var kind := "tier"
+	var spec := change_spec("tier", up)
+	if not spec.fill and in_fever(effective) and not fever and not _fever_fill_done:
+		kind = "fever"
+		spec = change_spec("fever")
+	var q: float = data.get("quantize_beats", 4)
+	var first := _next_beat
+	if first - Conductor.song_beat < float(spec.lead_beats):
+		first += q
+		_next_beat = first
+		_fill_until = first
+	var fill_beat := first
+	if spec.on_bars > 0:
+		var shift := q * int(spec.replaces) if spec.fill else 0.0
+		for i in 32:
+			if _on_phrase_line(fill_beat + shift, spec.on_bars):
+				break
+			fill_beat += q
+	var commit := fill_beat + (q * int(spec.bars) if spec.fill else 0.0)
+	_plan = {"kind": kind, "id": up if kind == "tier" else 0, "fill_beat": fill_beat, "commit_beat": commit}
+	change_planned.emit(kind, int(_plan.id), fill_beat, commit)
+
+
+## 现在起放这次切换的过门：专门写的（只留鼓 + 那个一次性音效）或者通用的那一小节
+func _play_change(spec: Dictionary) -> void:
+	if not (spec.through as Dictionary).is_empty():
+		_play_through(spec.through)
+	elif spec.written != "":
+		_play_fill_bar(true)
+		play_sfx(spec.written, spec.db)
+	else:
+		_play_fill_bar()
+
+
+## 现在起只响 map 里写的那些（{轨道: 片段}），别的轨道都停。猫谱子的轨道（猫和声）照样按格子唱。
+func _play_through(map: Dictionary) -> void:
+	for lane in data.get("lanes", []):
+		var c := str(map.get(lane.id, ""))
+		if _now.get(lane.id, "") != c:
+			lane_switched.emit(lane.id, c)
+		_now[lane.id] = c
+	for i in _slot_lane.size():
+		_target[i] = 1.0 if _now.get(_slot_lane[i], "") == _slot_clip[i] else 0.0
+	for lane in data.get("lanes", []):
+		var key := "%s/%s" % [lane.id, _now.get(lane.id, "")]
+		meow.set_active(lane.id, _patterns.get(key, {}), float(_lane_gain.get(lane.id, 0.0)), _by_hit.has(key), _pattern_origin(key))
 
 
 ## 大高潮的混响：小关里写 "fever_reverb": 0.2（湿声的量），进这个小关的 fever 时整个总线慢慢加上一层大厅混响，
@@ -557,22 +741,6 @@ func _set_fever_reverb(on: bool) -> void:
 	_reverb_tween.tween_property(_reverb, "wet", amount, 1.2 if amount > 0.0 else 0.6)
 	if amount <= 0.0:
 		_reverb_tween.tween_callback(AudioServer.set_bus_effect_enabled.bind(0, _reverb_index, false))
-
-
-## 升到这个小关的第 t 档（1 起）之前那一小节过门用的专门写的变奏（小关里的 "tier_enter"，没写就是 ""）
-func _tier_enter(t: int) -> String:
-	var secs: Array = data.get("sections", [])
-	if section < 0 or section >= secs.size():
-		return ""
-	return str(secs[section].get("tier_enter", {}).get(str(t), ""))
-
-
-## 升到这个小关的第 t 档（1 起）时放的专用音效（没写就是 ""）
-func _tier_sfx(t: int) -> String:
-	var secs: Array = data.get("sections", [])
-	if section < 0 or section >= secs.size():
-		return ""
-	return str(secs[section].get("tier_sfx", {}).get(str(t), ""))
 
 
 ## 这套配置开没开动态（升档过门、降档迟钝、乐句线切换、漏打压低、KIAI）
@@ -627,9 +795,17 @@ func fever_ranges(section_index: int) -> Array:
 ## 进度 p 在不在这个小关的 fever 段里
 func in_fever(p: float) -> bool:
 	for r: Array in fever_ranges(section):
-		if p + 0.0001 >= r[0] and (p < r[1] or r[1] >= 0.999):
+		if p + LINE_EPS >= r[0] and (p < r[1] or r[1] >= 0.999):
 			return true
 	return false
+
+
+## 小关自己把 fever 收掉（比如拍地球最后那一下拍完）：现在就结束，这个小关里不再进（换小关时恢复）
+var _fever_off := false
+
+func end_fever() -> void:
+	_fever_off = true
+	_end_fever()
 
 
 func _end_fever() -> void:
@@ -656,21 +832,9 @@ func _first_clip(lane_id: String) -> String:
 func tier_of(p: float, lines: PackedFloat32Array) -> int:
 	var k := 0
 	for line in lines:
-		if p + 0.0001 >= line:
+		if p + LINE_EPS >= line:
 			k += 1
 	return k
-
-
-## 过门轨道里的那一段（没有过门轨道返回 ""）
-## 这个小关进来时的变奏过门（"" = 没有，用通用的）
-const ENTER_DB := -1.0
-
-func _enter_sfx() -> String:
-	var secs: Array = data.get("sections", [])
-	if section < 0 or section >= secs.size():
-		return ""
-	var sfx_name := str(secs[section].get("enter", ""))
-	return sfx_name if sfx_name != "" and ResourceLoader.exists(SFX_DIR + sfx_name + ".wav") else ""
 
 
 ## 关卡的结尾演出开始（音符停了、玩家没有操作了）时由关卡调：下一条小节线起，除了鼓以外的轨道都停，
@@ -925,7 +1089,7 @@ func clip_at(section_index: int, lane: String, p: float) -> String:
 	var best := -1.0
 	for cue in secs[section_index].get("cues", {}).get(lane, []):
 		var at: float = cue[0]
-		if at <= p + 0.0001 and at >= best:
+		if at <= p + LINE_EPS and at >= best:
 			best = at
 			clip = cue[1]
 	return clip
@@ -996,6 +1160,9 @@ func _queue() -> void:
 	# 要升档了：先放一声上扬音效，正好在换的那一拍放完
 	if dynamics() and Conductor.playing and not _quiet_tier_change:
 		var up := tier_of(effective, tier_lines(section))
+		if up > tier and up != _planned_for:
+			_planned_for = up
+			_plan_change(up)
 		var left := (_next_beat - Conductor.song_beat) * Conductor.sec_per_beat()
 		if up > tier and up != _riser_for and left > 0.35:
 			_riser_for = up
@@ -1020,6 +1187,9 @@ func _on_beat(index: int) -> void:
 	var carrying := _carry > 0.0 and index % 4 == 0 and index >= int(round(_carry_from))
 	if carrying and _carry_level() <= effective:
 		_carry = 0.0
+	if _count_at >= 0.0 and index >= int(round(_count_at)):   # 过门的最后一小节：预备拍
+		_count_at = -1.0
+		count_in()
 	if index < int(round(_fill_until)):      # 几小节长的专门过门还没放完：别的事都等它放完那条小节线再办
 		if expired or carrying:
 			_pending = true
@@ -1027,13 +1197,6 @@ func _on_beat(index: int) -> void:
 		return
 	if expired or carrying or (_pending and index >= int(round(_next_beat))):
 		_apply_now(index)
-
-
-## 进 fever 前要不要先放一小节过门。过门那一小节旋律是停的：曲子不换、只是往上加东西的 fever，
-## 旋律莫名其妙断一小节很怪，这种小关写 "fever_fill": false。不写 = 要（进 fever 时换曲子 / 换段落的用它来换得干净）。
-func _fever_fill_wanted() -> bool:
-	var secs: Array = data.get("sections", [])
-	return bool(secs[section].get("fever_fill", true)) if section >= 0 and section < secs.size() else true
 
 
 ## 第 beat 拍是不是正在放的那首曲子的乐句线（每 bars 小节一句，从这首曲子起播的那条小节线数起）
@@ -1045,11 +1208,6 @@ func _on_phrase_line(beat: float, bars: int) -> bool:
 			origin = float(_tunes[tune].origin)
 			break
 	return posmod(int(round(beat - origin)), bars * 4) == 0
-
-
-func _fever_on_bars() -> int:
-	var secs: Array = data.get("sections", [])
-	return int(secs[section].get("fever_on_bars", 0)) if section >= 0 and section < secs.size() else 0
 
 
 ## 进度 p 所在的那一段 fever 是从哪开始的
@@ -1065,64 +1223,62 @@ func _apply_now(beat_index := -1) -> void:
 	_pending = false
 	var base: float = data.get("quantize_beats", 4)
 	var use_dynamics := dynamics()
-	# 进 fever 时曲子要换到另一段（比如土耳其进行曲换到 A 大调那段）的小关，写了 "fever_on_bars": 4：
-	# fever 只在乐句线上进（过门那一小节是上一句的最后一小节），不然新的一段会从句子中间唱起。没到乐句线就先按 fever 前的样子等着。
+	# 换曲子 / 换段落的切换写了 "on_bars"：只在正在放的曲子的乐句线上换，不然新的一段会从句子中间唱起。
+	# 没到乐句线就先按切换前的样子等着（进度当成还差一点没过线）。
 	var eff := effective
 	var hold := false
+	var into_fever := change_spec("fever")
 	if use_dynamics and beat_index >= 0 and not fever and in_fever(eff) and not _fever_fill_done:
-		var bars := _fever_on_bars()
-		# 有过门：过门占上一句的最后一小节，所以看的是下一条小节线；没有过门：这条小节线本身要是乐句线
-		# （"fever_enter_bars" 写了 2 小节以上的过门不占上一句：上一句唱完，过门从乐句线起，多出来这几小节）
-		var lands := beat_index + (base * _fever_enter_replaces() if _fill_clip() != "" and _fever_fill_wanted() else 0.0)
-		if bars > 0 and not _on_phrase_line(lands, bars):
+		# 过门顶替上一句结尾的几小节（"replaces"），所以要是乐句线的是那几小节之后的那条线；没有过门就是这条线本身
+		var lands := beat_index + (base * int(into_fever.replaces) if into_fever.fill else 0.0)
+		if into_fever.on_bars > 0 and not _on_phrase_line(lands, into_fever.on_bars):
 			eff = _fever_start(eff) - 0.002
 			hold = true
-	# 升到某一档时要换曲子（比如披萨段到一半，康康舞从开场的那段换到最有名的那段）：小关里写
-	# "tier_on_bars": {"2": 8}，升到第 2 档要等正在放的曲子唱完 8 小节一句才换，旋律不会被拦腰切断。
 	if use_dynamics and beat_index >= 0 and not hold:
 		var lines := tier_lines(section)
 		var up := tier_of(eff, lines)
-		var wait: Dictionary = data.get("sections", [])[section].get("tier_on_bars", {}) if section < data.get("sections", []).size() else {}
 		for t in range(tier + 1, up + 1):
-			if wait.has(str(t)) and not _on_phrase_line(beat_index, int(wait[str(t)])):
+			var up_spec := change_spec("tier", t)
+			var wait := int(up_spec.on_bars)
+			# 和进 fever 一样：过门顶替上一句结尾的几小节时，要是乐句线的是那几小节之后的那条线
+			var t_lands := beat_index + (base * int(up_spec.replaces) if up_spec.fill else 0.0)
+			# （过门已经放过的那一档不再等：过门放完的这条线就是它该进的地方）
+			if wait > 0 and t != _fill_done_for and not _on_phrase_line(t_lands, wait):
 				eff = lines[t - 1] - 0.002
 				hold = true
 				break
-	# 升到要过门的那一档：这条小节线先放一小节过门，下一条小节线才真的换
+	# 升到要过门的那一档：这条小节线先放过门，过门放完的那条小节线才真的换
 	var going_to := tier_of(eff, tier_lines(section))
-	if use_dynamics and beat_index >= 0 and going_to > tier and going_to != _fill_done_for and not _outro \
-			and _fill_clip() != "" and _wants_fill(going_to):
+	var into_tier := change_spec("tier", going_to)
+	if use_dynamics and beat_index >= 0 and going_to > tier and going_to != _fill_done_for and not _outro and into_tier.fill:
 		_fill_done_for = going_to
-		var written := _tier_enter(going_to)
-		if written != "":
-			# 这一档在小关中间换了曲子，有专门写的一小节过门（小关里的 "tier_enter": {"5": "tr_disco_to_ent"}）：
-			# 和换小关的 "enter" 一样，只留鼓，这一小节交给它
-			_play_fill_bar(true)
-			play_sfx(written, ENTER_DB)
-		else:
-			_play_fill_bar()
+		_play_change(into_tier)
 		_pending = true
-		_next_beat = beat_index + base
+		_next_beat = beat_index + base * int(into_tier.bars)
+		if into_tier.bars > 1:
+			_fill_until = _next_beat
+		_count_at = _next_beat - base if into_tier.count_in == "before" else -1.0
+		if _count_at >= 0.0 and int(round(_count_at)) == beat_index:
+			_count_at = -1.0
+			count_in()
 		return
-	# 要进 fever：也先一小节过门
+	# 要进 fever：一样
 	var fever_now := use_dynamics and in_fever(eff)
-	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and _fill_clip() != "" and _fever_fill_wanted() and not _outro:
+	fever_now = fever_now and not _fever_off
+	if fever_now and not fever and not _fever_fill_done and beat_index >= 0 and into_fever.fill and not _outro:
 		_fever_fill_done = true
-		var into_fever := _fever_enter()
-		if into_fever != "":
-			# 进 fever 换曲子 / 换段落，有专门写的一小节过门（小关里的 "fever_enter": "tr_ccb_to_cc"）：只留鼓，这一小节交给它
-			_play_fill_bar(true)
-			# 从正式音轨里切出来的过门是按音轨原来的响度做的，文件里压低了存，这里按小关写的 "fever_enter_db" 抬回去
-			play_sfx(into_fever, float(data.get("sections", [])[section].get("fever_enter_db", ENTER_DB)))
-		else:
-			_play_fill_bar()
+		_play_change(into_fever)
 		_pending = true
-		_next_beat = beat_index + base * (_fever_enter_bars() if into_fever != "" else 1)
+		_next_beat = beat_index + base * int(into_fever.bars)
 		_fill_until = _next_beat
+		_count_at = _next_beat - base if into_fever.count_in == "before" else -1.0
+		if _count_at >= 0.0 and int(round(_count_at)) == beat_index:
+			_count_at = -1.0
+			count_in()
 		return
 	# 升档：送一小节小 kiai（fever 里本来就开着，不用送）
 	if use_dynamics and beat_index >= 0 and not _quiet_tier_change and going_to > tier and not fever_now \
-			and not _force.has("kiai") and _first_clip("kiai") != "" and _tier_sfx(going_to) == "":
+			and not _force.has("kiai") and _first_clip("kiai") != "" and into_tier.sfx == "":
 		_force["kiai"] = [_first_clip("kiai"), float(beat_index) + base]
 	for lane in data.get("lanes", []):
 		var c := clip_at(section, lane.id, maxf(eff, _carry_level()))
@@ -1155,9 +1311,13 @@ func _apply_now(beat_index := -1) -> void:
 	var new_tier := tier_of(eff, tier_lines(section))
 	if use_dynamics and Conductor.playing and not _quiet_tier_change and beat_index >= 0 and not _outro:
 		if new_tier > tier:
-			# 这一档有自己的音效（小关里的 "tier_sfx": {"2": "sky_holy_hit"}）就放它，不放通用的镲和喵，也不送小 kiai
-			if _tier_sfx(new_tier) != "":
-				play_sfx(_tier_sfx(new_tier), -2.0)
+			# 这一档有自己的音效（切换描述里的 "sfx"）就放它，不放通用的镲和喵
+			var arrived := change_spec("tier", new_tier)
+			var own_sfx := str(arrived.sfx)
+			if arrived.count_in == "start":
+				count_in()
+			if own_sfx != "":
+				play_sfx(own_sfx, -2.0)
 			else:
 				play_sfx("crash", -9.0)
 				play_sfx("catness_up", -6.0)
@@ -1167,6 +1327,9 @@ func _apply_now(beat_index := -1) -> void:
 		_quiet_tier_change = false
 	if new_tier != tier:
 		tier_changed.emit(new_tier, new_tier > tier)
+	if new_tier != tier:
+		_planned_for = -1
+		_plan = {}
 	tier = new_tier
 	if hold:
 		_pending = true
@@ -1176,6 +1339,8 @@ func _apply_now(beat_index := -1) -> void:
 		if fever:
 			if Conductor.playing and beat_index >= 0:
 				play_sfx("crash", -7.0)  # 进 fever 只放一声镲（原来还有一段转圈喵，太突兀，去掉了）
+			if into_fever.count_in == "start" and Conductor.playing and beat_index >= 0:
+				count_in()
 			fever_started.emit()
 		else:
 			_fever_fill_done = false
@@ -1187,6 +1352,7 @@ func _process(delta: float) -> void:
 		return
 	var beat_sec := 60.0 / bpm()
 	var dip_now := Conductor.playing and Conductor.song_beat < _dip_until
+	var count_now := Conductor.playing and Conductor.song_beat < _count_until
 	var dip_changed := dip_now != _dip_on
 	var duck_now := "kichiku" in str(_now.get("kiai", "")) and str(_now.get("lead", "")) != ""
 	var duck_changed := duck_now != _duck_on
@@ -1204,6 +1370,8 @@ func _process(delta: float) -> void:
 			cur = minf(goal, cur + step) if goal > cur else maxf(goal, cur - step)
 			_level[i] = cur
 		var db: float = SILENT_DB if cur <= 0.0001 else linear_to_db(cur) + float(_lane_gain.get(_slot_lane[i], 0.0)) + _slot_gain[i]
+		if count_now and cur > 0.0001:
+			db += COUNT_DRUMS_DB if _slot_lane[i] in COUNT_DRUM_LANES else COUNT_DUCK_DB
 		if dip_now and dipped and cur > 0.0001:
 			db += DIP_DB
 		if duck_now and ducked and cur > 0.0001:

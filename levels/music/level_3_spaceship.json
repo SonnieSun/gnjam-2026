@@ -333,16 +333,19 @@
     0.7,
     0.9
    ],
-   "transition_tiers": [],
    "fever": [
     0.9,
     1.0
    ],
-   "fever_on_bars": 4,
-   "fever_fill": false,
    "own": {
     "kiai": "tm_kichiku",
     "hit": ""
+   },
+   "changes": {
+    "fever": {
+     "fill": false,
+     "on_bars": 4
+    }
    }
   },
   {
@@ -465,26 +468,33 @@
     0.625,
     0.75
    ],
-   "transition_tiers": [],
    "fever": [
     0.75,
     1.0
    ],
    "exit": "end_g_major",
-   "fever_enter": "tr_ccb_to_cc",
-   "fever_enter_db": 16.0,
-   "fever_enter_bars": 2,
-   "fever_enter_replaces": 1,
    "fever_reverb": 0.2,
    "carry": 0,
-   "fever_on_bars": 4,
-   "tier_on_bars": {
-    "2": 8
-   },
-   "enter": "tr_tm_to_cc",
    "own": {
     "kiai": "",
     "hit": ""
+   },
+   "changes": {
+    "enter": {
+     "written": "tr_tm_to_cc"
+    },
+    "tier": {
+     "2": {
+      "on_bars": 8
+     }
+    },
+    "fever": {
+     "written": "tr_ccb_to_cc",
+     "db": 16.0,
+     "bars": 2,
+     "replaces": 1,
+     "on_bars": 4
+    }
    }
   }
  ]

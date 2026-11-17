@@ -4,34 +4,37 @@
 
 [resource]
 script = ExtResource("1_j6r2t")
-length_beats = 60.0
+length_beats = 64.0
 notes = Array[Dictionary]([{
-"beat": 1.0,
+"beat": 0.0,
 "sound": 0
 }, {
-"beat": 3.0,
+"beat": 2.0,
 "sound": 0
 }, {
-"beat": 5.0,
+"beat": 4.0,
 "sound": 0
 }, {
-"beat": 7.0,
+"beat": 6.0,
 "sound": 0
 }, {
-"beat": 9.0,
+"beat": 8.0,
 "sound": 0
 }, {
-"beat": 11.0,
+"beat": 10.0,
 "sound": 0
 }, {
-"beat": 13.0,
+"beat": 12.0,
 "sound": 0
 }, {
-"beat": 15.0,
+"beat": 14.0,
 "sound": 0
 }, {
 "beat": 16.0,
 "sound": 1
+}, {
+"beat": 17.0,
+"sound": 0
 }, {
 "beat": 20.0,
 "sound": 1
@@ -51,7 +54,7 @@ notes = Array[Dictionary]([{
 "beat": 31.0,
 "sound": 1
 }, {
-"beat": 33.0,
+"beat": 34.0,
 "sound": 1
 }, {
 "beat": 36.0,
@@ -84,9 +87,12 @@ notes = Array[Dictionary]([{
 "beat": 60.0,
 "sound": 0
 }, {
+"beat": 60.0,
+"sound": 0
+}, {
+"beat": 62.0,
+"sound": 0
+}, {
 "beat": 62.0,
 "sound": 1
-}, {
-"beat": 17.0,
-"sound": 0
 }])

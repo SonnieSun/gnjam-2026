@@ -118,12 +118,54 @@ func begin_section(index: int, def: SectionDef, beats_per_bar: int,
 	_pattern_len = def.length_beats(beats_per_bar)
 	_pattern_origin = first_note_beat
 	_pattern_k = 0
+	_notes_end = INF
 	_section_notes = []
 	_generate()
+	_skip_before = -INF
 	return _section_notes
 
 
+## 临时加一个不在谱里的音符（比如换段音符，见 scripts/fx/note_accents.gd）：插进还没判定的音符里，按拍子排好，
+## 和谱里的音符一样判定、一样画。返回它；那一拍已经过了、或者还没铺到那么远（LOOKAHEAD_BEATS 拍以外）就不加，返回 null。
+func add_note(beat: float, sound: int = NoteData.Sound.KICK) -> NoteData:
+	_generate()
+	if beat <= Conductor.song_beat or beat > Conductor.song_beat + LOOKAHEAD_BEATS:
+		return null
+	for old in _section_notes:   # 那一拍上已经有音符了（刚铺出来的）：就用它
+		if not old.judged and absf(old.beat - beat) < 0.001:
+			return old
+	var n := NoteData.new()
+	n.beat = beat
+	n.sound = sound
+	n.section_index = _section_index
+	var i := notes.size()
+	while i > _next and notes[i - 1].beat > beat:
+		i -= 1
+	notes.insert(i, n)
+	var j := _section_notes.size()
+	while j > 0 and _section_notes[j - 1].beat > beat:
+		j -= 1
+	_section_notes.insert(j, n)
+	return n
+
+
 ## 不再出新音符，还没到的也都丢掉（大关打完时用）
+## 下一次 begin_section 铺谱时，这一拍之前的音符不铺（谱面的循环照样从它给的起点算）。
+## 用在「旧谱最后一个音符还留着、新谱从同一拍算起」的时候，免得那一拍上有两个音符。只管那一次。
+var _skip_before := -INF
+
+func skip_before(beat: float) -> void:
+	_skip_before = beat
+
+
+## 谱面打到第 beat 拍为止（这一拍上的还算）：之后已经铺出来的去掉，也不再往后铺。之前的照常打。
+var _notes_end := INF
+
+func end_notes_at(beat: float) -> void:
+	_notes_end = beat
+	_drop_notes_from(beat + 0.01)
+
+
 func stop_notes() -> void:
 	_pattern = []
 	_drop_notes_from(Conductor.song_beat)
@@ -137,8 +179,11 @@ func _generate() -> void:
 	while true:
 		var d: Dictionary = _pattern[_pattern_k % _pattern.size()]
 		var beat: float = _pattern_origin + (_pattern_k / _pattern.size()) * _pattern_len + d.beat
-		if beat > horizon:
+		if beat > horizon or beat > _notes_end + 0.001:
 			break
+		if beat < _skip_before - 0.001:
+			_pattern_k += 1
+			continue
 		var n := NoteData.new()
 		n.beat = beat
 		n.sound = d.sound

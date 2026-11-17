@@ -4,7 +4,7 @@ choir), the transition (tr_ccb_to_cc.wav), then the famous tune in fever with th
 A one-bar transition takes the place of the last bar of the descent's phrase; a longer one comes after the phrase.
 
 How loud the level plays it and how many bars of the phrase it replaces are read from the level's music file
-(levels/music/level_3_spaceship.json, section SPACE PIZZA: "fever_enter_db", "fever_enter_replaces").
+(levels/music/level_3_spaceship.json, section SPACE PIZZA: "changes" -> "fever" -> "db", "replaces").
 
 usage: python -I preview_pizza_transition.py <tr_ccb_to_cc.wav> <game project dir> <out.wav>
 """
@@ -20,7 +20,8 @@ TR, GAME, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 import json  # noqa: E402
 SEC = next(sec for sec in json.load(open(os.path.join(GAME, 'levels', 'music', 'level_3_spaceship.json'), encoding='utf-8'))['sections']
            if sec['title'] == 'SPACE PIZZA')
-PLAY_DB = float(SEC.get('fever_enter_db', -1.0))
+FEVER = SEC.get('changes', {}).get('fever', {})
+PLAY_DB = float(FEVER.get('db', -1.0))
 A = os.path.join(GAME, 'assets', 'audio')
 M = os.path.join(A, 'music')
 GROOVE = read_wav(os.path.join(M, 'scene1', 'skeleton', 's1_L1_groove_4b.wav'))
@@ -38,7 +39,7 @@ def stem(tune, part):
 
 tr = read_wav(TR)
 n_tr = max(1, int(len(tr) / B))                      # whole bars (the file has a short tail after them)
-before = 8 - int(SEC.get('fever_enter_replaces', 1 if n_tr == 1 else 0))     # bars of the descent that play before it
+before = 8 - int(FEVER.get('replaces', 1 if n_tr == 1 else 0))     # bars of the descent that play before it
 CCB = [('L3_cat_kichiku', 0), ('L3_square', -5), ('fb_L0_keys', 0), ('L2_bass', 0), ('fb_L4_peak', 0), ('C_choir', 1)]
 CC = [('L3_cat_kichiku', 0), ('L3_square_dark', -3), ('L3_pluck', -2), ('fb_L0_keys', 0), ('L2_bass', 0), ('C_drums', 0)]
 FEVER_LAYERS = ('fb_L4_peak_fever', 'fb_L4_peak_fever_max')   # entry, max: +18 dB each in the level

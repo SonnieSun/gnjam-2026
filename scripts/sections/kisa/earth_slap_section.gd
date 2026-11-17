@@ -9,17 +9,18 @@ extends SpinSection
 ## 判定用框架的 Judge（不改）。蓄力音符只攒力量、不涨积累条（用框架留的 gauge_result 钩子），重拍才涨。
 ## 美术是 moumou 的拍地球猫（见 EarthSlapStage），3D 画面和参数在 Stage 节点里。编辑器预览里不跑 3D。
 
-## 圆圈提前几拍出现
-@export var approach_beats := 1.5
-## 圆圈从多远收过来（占画面高度的比例）
-@export var approach_travel_ratio := 0.3
+## 圆圈提前几拍出现（原来 1.5：160 BPM 下只有半秒多一点，来不及看；2 拍 = 0.75 秒）
+@export var approach_beats := 2.0
+## 圆圈从多远收过来（占画面高度的比例）。原来 0.3，外圈太小、离判定圈太近；调大之后圈从更外面收进来，
+## 配合上面多出来的半拍，收的速度和原来差不多
+@export var approach_travel_ratio := 0.45
 ## 判定圈半径（占画面高度的比例）。下面 ring_fits_earth 关掉时才用这个
 @export var ring_radius_ratio := 0.1
 ## 判定圈和地球一样大（再乘下面这个倍数，1.08 = 比地球大一圈，不挡住地球）
 @export var ring_fits_earth := true
 @export var ring_earth_scale := 1.08
 @export_group("蓄力")
-## 蓄力段每几拍一组、重拍在每组的第几拍（和谱面对应：h 在前两拍，s 在第 3 拍）
+## 蓄力段每几拍一组、重拍在每组的第几拍（谱面里有 s 就按谱面里第一个 s 的位置，这个数只是没有 s 时用）
 @export var charge_cycle_beats := 4.0
 @export var charge_strike_beat := 2.0
 @export var charge_color := Color("8878ff")
@@ -35,6 +36,9 @@ extends SpinSection
 ## 超过达标数之后每多按一下，满蓄重拍的画面顶动再大多少（最多加到 mash_over_max）
 @export var mash_over_punch := 0.1
 @export var mash_over_max := 0.6
+## 连按有没有尾判。关着（默认）：连按段结束时不出判定——按够数的那一下照常立刻 Perfect，没按够就只是蓄力不满
+## （后面那一下重拍轻一点），不算 Good 也不算 Miss、不断连击。开着：段结束时没达标的按 Judge 的 rules 出 Good / Miss。
+@export var mash_tail_judge := false
 ## 提示文字（快到连按段时显示 / 蓄满时显示）和提示的按键名
 @export var mash_text := "MASH!"
 @export var max_text := "MAX!"
@@ -90,6 +94,7 @@ var _scroll := 0.0
 var _flash := 0.0
 var _auto_next := 0
 var _auto_release := false
+var _strike_beat := 2.0  # 这一段的重拍在每组的第几拍（见 _on_enter）
 var _zones: Array[Dictionary] = []  # 连按段：{start, end 在鼓谱一遍里的拍数, beats 那一串 h 各在第几拍, need 要按几下}
 var _pattern_len := 0.0
 var _pattern_origin := INF
@@ -137,6 +142,12 @@ func _on_enter() -> void:
 	_charge_mode = _charge_target > 0
 	_charge_target = maxi(_charge_target, 1)
 	_build_zones()
+	# 重拍在每组的第几拍：谱面里第一个 s 在哪就是哪（没有 s 就用 charge_strike_beat），挥爪的动画按它对
+	_strike_beat = charge_strike_beat
+	for d: Dictionary in def.parse_notes(Conductor.chart.beats_per_bar):
+		if int(d.sound) == NoteData.Sound.SNARE:
+			_strike_beat = fposmod(float(d.beat), charge_cycle_beats)
+			break
 	_news_on = _phase >= 1
 	if _news_on:
 		_news = 1.0
@@ -198,10 +209,39 @@ func _build_zones() -> void:
 			run.append(float(list[i].beat))
 
 
+## 这一关的结束（框架的 _plan_ending，见 main.gd）：积累条满了之后下一条乐句线上来一个七彩的大长按，按满这么多拍，
+## 按完的那一拍拍下去（结束音符），然后进过渡。大长按期间蓄力条跟着涨到满，所以最后那一下一定是满蓄的 POWER SLAP。
+const ENDING_HOLD_BEATS := 8.0
+## 大长按从第几拍起（框架给；INF = 还没到结束）。从这里起不再有连按段。
+var ending_from := INF
+
+
+## 重拍没按也自动拍出去：只要这一下之前蓄过力（哪怕一格），或者它是结尾大长按后面的那一下，过了 Great 的窗口
+## 玩家还没按，就替玩家拍，按 Good 算（力度照蓄了多少算）。自己按准了照常拿自己的 Perfect / Great。
+## 一格都没蓄的重拍不自动拍，照常算漏。
+@export var auto_slap := true
+
+func _auto_slap() -> void:
+	var j := main_judge()
+	if not auto_slap or j == null or autoplay:
+		return
+	var now := Conductor.input_beat()
+	var late := _rules().great_window / maxf(Conductor.sec_per_beat(), 0.001)
+	for n in notes:
+		if n.beat > now:
+			break
+		if n.judged or n.free or is_charge_note(n) or n.length > 0.0 or now < n.beat + late:
+			continue
+		if _charge > 0 or absf(n.beat - (ending_from + ENDING_HOLD_BEATS)) < 0.01:
+			j.judge_free(n, NoteData.Result.GOOD)
+
+
 ## 离现在最近的还没结束的连按段：{id, start, end（全曲拍数）, beats, need}；没有连按段返回空
 func _zone_now() -> Dictionary:
 	if _zones.is_empty() or _pattern_len <= 0.0:
 		return {}
+	if song_beat() >= ending_from - approach_beats:
+		return _ending_zone()
 	if is_inf(_pattern_origin):
 		if notes.is_empty():
 			return {}
@@ -212,10 +252,23 @@ func _zone_now() -> Dictionary:
 		for i in _zones.size():
 			var z := _zones[i]
 			var base: float = _pattern_origin + l * _pattern_len
+			if base + float(z.start) >= ending_from - 0.5:
+				return _ending_zone()  # 结束的大长按之后没有连按段了：下一段就是它
 			if now <= base + float(z.end):
 				return {"id": l * _zones.size() + i, "start": base + float(z.start), "end": base + float(z.end),
 						"base": base, "beats": z.beats, "need": z.need}
 	return {}
+
+
+## 结束的大长按当成一段特别长的连按段来画：紫色的色带从外圈收进来、判定圈上的蓄力弧、大字，都和连按一样
+func _ending_zone() -> Dictionary:
+	if song_beat() > ending_from + ENDING_HOLD_BEATS:
+		return {}
+	var beats: Array = []
+	for i in int(ENDING_HOLD_BEATS):
+		beats.append(float(i))
+	return {"id": 1000000, "start": ending_from, "end": ending_from + ENDING_HOLD_BEATS, "base": ending_from,
+			"beats": beats, "need": int(ENDING_HOLD_BEATS)}
 
 
 ## 现在是不是在连按段里
@@ -344,13 +397,21 @@ func _update_spin(local: float, _angle: float) -> void:
 			_maxed = false
 			_charge_target = zone.need
 		if not _zone_judged and song_beat() > float(_zone.end):
-			# 连按段结束了还没达标：按比例算 Good / Miss
-			_judge_zone(_rules().mash_count_result(_charge, _charge_target))
+			# 连按段结束了还没达标。没有尾判：不出判定。有尾判：按比例算 Good / Miss
+			if mash_tail_judge:
+				_judge_zone(_rules().mash_count_result(_charge, _charge_target))
+			else:
+				_zone_judged = true
+		if song_beat() >= ending_from:
+			# 结束的大长按：蓄力跟着按住的进度涨到满
+			_charge = maxi(_charge, roundi(clampf((song_beat() - ending_from) / ENDING_HOLD_BEATS, 0.0, 1.0) * _charge_target))
+			_maxed = _charge >= _charge_target
+		_auto_slap()
 		_stage.set_charge(charge_ratio() + minf(charge_over() * 0.1, 0.5))
 		_pop = maxf(_pop - dt * 9.0, 0.0)
 		_max_flash = maxf(_max_flash - dt * 2.5, 0.0)
 	if _charge_mode:
-		_stage.update(dt, local, charge_cycle_beats, charge_strike_beat)
+		_stage.update(dt, local, charge_cycle_beats, _strike_beat)
 	else:
 		_stage.update(dt, local, 1.0, 0.0)
 	_news = move_toward(_news, 1.0 if _news_on else 0.0, dt * 2.5)
@@ -375,6 +436,12 @@ func _on_note_judged(note: NoteData, result: int) -> void:
 			_charge = 0
 			_maxed = false
 		return
+	if absf(note.beat - (ending_from + ENDING_HOLD_BEATS)) < 0.01:
+		# 最后那一下拍下去：白闪，fever 到此为止
+		var m := get_parent().get_parent() if get_parent() else null
+		if m and m.get("hud"):
+			m.hud.flash(Color.WHITE, 0.9, 0.3)
+		Music.end_fever()
 	_last_power = charge_ratio() if _charge_mode else 0.0
 	_over_at_slap = charge_over()
 	var low := _charge_mode and _last_power < _rules().charge_min_ratio
@@ -443,6 +510,15 @@ func _draw() -> void:
 					10.0 if _charge_mode else 8.0, 16.0 if _charge_mode else 14.0))
 	if _charge_mode:
 		_draw_mash(center, radius, travel)
+	if song_beat() >= ending_from - approach_beats and song_beat() < ending_from + ENDING_HOLD_BEATS + 0.25:
+		# 结束的大长按：判定圈外面一大圈七彩的进度
+		var ep := clampf((song_beat() - ending_from) / ENDING_HOLD_BEATS, 0.0, 1.0)
+		var hue := fposmod(Time.get_ticks_msec() * 0.0006, 1.0)
+		var pulse := 1.0 + 0.04 * pow(1.0 - fposmod(song_beat(), 1.0), 2.0)
+		draw_arc(center, radius * 1.22 * pulse, 0.0, TAU, 96, Color(1.0, 1.0, 1.0, 0.25), 10.0)
+		if ep > 0.0:
+			draw_arc(center, radius * 1.22 * pulse, -PI / 2.0, -PI / 2.0 + TAU * ep, 96, Color.from_hsv(hue, 0.65, 1.0), 18.0)
+			draw_arc(center, radius * 1.22 * pulse, -PI / 2.0, -PI / 2.0 + TAU * ep, 96, Color.from_hsv(hue, 0.3, 1.0, 0.35), 34.0)
 	if tap_age < 0.15:
 		draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64, Color(1, 1, 1, 1.0 - tap_age / 0.15), 6.0)
 	if _news > 0.0:
@@ -502,6 +578,10 @@ func _draw_mash(center: Vector2, radius: float, travel: float) -> void:
 			# 每多按一下：字再大一号（到上限为止），颜色换一种（沿色环转一格），按下的瞬间再额外胀一下
 			fs = mini(44 + over * max_grow_per_press, max_grow_limit) + int(10.0 * _pop)
 			col = Color.from_hsv(fposmod(charged_color.h + over * max_hue_step, 1.0), 0.75, 1.0).lerp(Color.WHITE, 0.35 * _pop)
+	elif active and int(zone.get("id", -1)) == 1000000:
+		label = "HOLD!  %d / %d" % [_charge, _charge_target]
+		col = Color.from_hsv(fposmod(Time.get_ticks_msec() * 0.0006, 1.0), 0.5, 1.0)
+		fs = 40 + int(8.0 * _pop)
 	elif active:
 		label = "%s  %d / %d" % [mash_text, _charge, _charge_target]
 		col = charge_color.lerp(Color.WHITE, 0.55)
