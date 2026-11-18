@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="NoteSkin" format=3]
+
+[ext_resource type="Script" path="res://scripts/chart/note_skin.gd" id="1_skin"]
+
+[resource]
+script = ExtResource("1_skin")
+title = "末日重金属"

@@ -1,9 +1,12 @@
 [gd_resource type="Resource" script_class="ChartPattern" format=3]
 
 [ext_resource type="Script" path="res://scripts/chart/chart_pattern.gd" id="1_erph5"]
+[ext_resource type="Resource" path="res://levels/skins/doom.tres" id="2_skin"]
 
 [resource]
 script = ExtResource("1_erph5")
+skin = ExtResource("2_skin")
+skin_from_beat = 4.0
 length_beats = 196.0
 notes = Array[Dictionary]([{
 "beat": 0.0,
@@ -13,13 +16,16 @@ notes = Array[Dictionary]([{
 "sound": 1
 }, {
 "beat": 2.0,
-"sound": 1
+"sound": 1,
+"mark": 2
 }, {
 "beat": 2.666667,
-"sound": 1
+"sound": 1,
+"mark": 2
 }, {
 "beat": 3.333333,
-"sound": 1
+"sound": 1,
+"mark": 2
 }, {
 "beat": 4.0,
 "sound": 0

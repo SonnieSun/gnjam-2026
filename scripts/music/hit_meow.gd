@@ -22,7 +22,8 @@ extends Node
 	preload("res://assets/audio/sfx/hit_meow_good_b.wav"),
 	preload("res://assets/audio/sfx/hit_meow_good_c.wav"),
 ]
-@export_range(-30.0, 6.0) var volume_db := -1.0
+## （2026-11-19 重新打开时整体压低：音乐自己已经编好了，这些喵只是垫在下面的一点手感，不抢旋律）
+@export_range(-30.0, 6.0) var volume_db := -10.0
 ## 音高随机上下多少（0.03 = ±3%，大约半个半音；0 = 不变）
 @export_range(0.0, 0.2, 0.005) var pitch_random := 0.03
 ## Perfect 比 Great 高多少音高（0.06 ≈ 高一个半音，听得出“这一下更准”；0 = 一样）
@@ -34,17 +35,21 @@ extends Node
 @export var spin_sounds: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/kitten_mi.wav"),
 ]
-@export_range(-30.0, 6.0) var spin_volume_db := -4.0
+@export_range(-30.0, 6.0) var spin_volume_db := -12.0
 ## 漏打的那一声（连着打中之后第一下漏打才响）；清空 = 不放
 @export var miss_sound: AudioStream = preload("res://assets/audio/sfx/miss_meow.wav")
-@export_range(-30.0, 6.0) var miss_volume_db := -8.0
+@export_range(-30.0, 6.0) var miss_volume_db := -13.0
 ## 连击断了的那一声（断之前的连击数 >= break_min_combo 才响）；清空 = 不放
 @export var break_sound: AudioStream = preload("res://assets/audio/sfx/glitch_meow.wav")
-@export_range(-30.0, 6.0) var break_volume_db := -6.0
+@export_range(-30.0, 6.0) var break_volume_db := -11.0
 @export var break_min_combo := 10
 ## 连击到这个数以上的里程碑，送几小节的鬼畜全开（0 小节 = 不送）
+## 现在不送（2026-11-19）：每一关的音乐已经按进度编好了，连击再插一段鬼畜会打乱它
 @export var kiai_combo := 50
-@export_range(0, 16) var kiai_bars := 4
+@export_range(0, 16) var kiai_bars := 0
+## 打中唱旋律（音乐配置里 by_hit 的片段，比如天空关云层段一下一个往上走的音）。现在关着（2026-11-19）：
+## 先只留普通的打中喵，这部分以后慢慢设计；配置里的片段都还在，打开就恢复
+@export var sing_by_hit := false
 ## 同时最多几声（连打很快时前一声还没完）
 @export_range(1, 8) var voices := 4
 
@@ -75,7 +80,7 @@ func play(result: int) -> void:
 	if result == NoteData.Result.NONE:
 		return
 	_streak += 1
-	if Music.meow.sing_hit():      # 这一下由旋律来唱，不放随机的打中喵
+	if sing_by_hit and Music.meow.sing_hit():      # 这一下由旋律来唱，不放随机的打中喵
 		return
 	match result:
 		NoteData.Result.PERFECT: _play_from(perfect_sounds, "perfect", 1.0 + perfect_pitch_up)

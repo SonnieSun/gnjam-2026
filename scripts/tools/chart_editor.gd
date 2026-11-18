@@ -348,7 +348,7 @@ func _on_test_judged(note: NoteData, result: int, _diff: float) -> void:
 func _snapshot() -> Dictionary:
 	return {"notes": pattern.notes.duplicate(true), "length": pattern.length_beats, "lanes": pattern.lanes,
 			"lead": pattern.default_lead, "rev": pattern.beats_per_rev, "style": pattern.style, "use": pattern.use_style,
-		"guides": pattern.beat_guides, "every": pattern.guide_every}
+		"guides": pattern.beat_guides, "every": pattern.guide_every, "skin": pattern.skin, "skin_from": pattern.skin_from_beat}
 
 
 func _restore(s: Dictionary) -> void:
@@ -361,6 +361,8 @@ func _restore(s: Dictionary) -> void:
 	pattern.use_style = s.use
 	pattern.beat_guides = s.get("guides", true)
 	pattern.guide_every = s.get("every", 1.0)
+	pattern.skin = s.get("skin")
+	pattern.skin_from_beat = s.get("skin_from", 0.0)
 	_timeline.selected.clear()
 	_load_pattern_fields()
 	_rebuild_preview()
@@ -425,6 +427,8 @@ func _set_prop(key: String, value: Variant) -> void:
 	for d in _timeline.selected:
 		if key == "beat":
 			d.beat = clampf(float(value), 0.0, pattern.length_beats - 0.001)
+		elif key == "mark" and int(value) == 0:
+			d.erase(key)
 		elif value is float and is_equal_approx(value, float(NoteData.STYLE_DEFAULTS.get(key, INF))) \
 				or value is Color and (value as Color).a <= 0.0:
 			d.erase(key)  # 和默认值一样就不写进文件
@@ -692,12 +696,21 @@ func _build_inspector() -> Control:
 	box.add_child(guides)
 	_p_fields["beat_guides"] = guides
 	_p_spin(box, "guide_every", "虚线隔几拍一条", 0.25, 4, 0.25)
+	_p_spin(box, "skin_from_beat", "样子从第几拍起（转场音符）", 0, 256, 0.25)
 	var use := CheckBox.new()
 	use.text = "游戏里用这个表现方式"
 	use.tooltip_text = "勾上：游戏里音符按上面选的表现方式画（叠在关卡画面上），关卡自己画音符的那套关掉"
 	use.toggled.connect(func(on: bool) -> void: _set_pattern("use_style", on))
 	box.add_child(use)
 	_p_fields["use_style"] = use
+	var skin := OptionButton.new()
+	skin.tooltip_text = "这一段的样子（levels/skins/ 里的 NoteSkin）：音符的颜色、熔岩流光、画面暗角、三连音的圈。\n"\
+			+ "现在只有天空关的舞台会画；游戏里换到这份谱子时自动换上"
+	skin.item_selected.connect(func(i: int) -> void:
+		var path: String = skin.get_item_metadata(i)
+		_set_pattern("skin", load(path) if path != "" else null))
+	_row(box, "这一段的样子", skin)
+	_p_fields["skin"] = skin
 	var imp := Button.new()
 	imp.text = "从老鼓谱导入"
 	imp.tooltip_text = "把这个小关原来的鼓谱字符串（bars）转成音符，覆盖现在的谱子"
@@ -727,6 +740,13 @@ func _build_inspector() -> Control:
 	_spin(box, "glow", "发光", 0, 4, 0.1)
 	_spin(box, "pulse", "跟拍闪", 0, 4, 0.1)
 	_spin(box, "throb", "跟拍胀缩", 0, 2, 0.05)
+	var mark := OptionButton.new()
+	for s in ["自动（按这一段的样子判）", "普通", "三连音的圈"]:
+		mark.add_item(s)
+	mark.tooltip_text = "三连音的圈：断成三段、转着的金色弧，打中时三段散开。自动 = 拍子在 1/3、2/3 上的就算"
+	mark.item_selected.connect(func(i: int) -> void: _set_prop("mark", i))
+	_row(box, "记号", mark)
+	_fields["mark"] = mark
 	_color_default.text = "默认颜色（按音色）"
 	_color_default.toggled.connect(func(on: bool) -> void:
 		_set_prop("color", Color(0, 0, 0, 0) if on else _color_pick.color))
@@ -794,10 +814,32 @@ func _load_pattern_fields() -> void:
 			(ctl as SpinBox).value = float(pattern.get(key))
 		elif ctl is CheckBox:
 			(ctl as CheckBox).button_pressed = bool(pattern.get(key))
+		elif ctl is OptionButton and key == "skin":
+			_fill_skins(ctl as OptionButton)
 	for i in _style_pick.item_count:
 		if _style_pick.get_item_metadata(i) == pattern.style:
 			_style_pick.select(i)
 	_loading = false
+
+
+## 「这一段的样子」的下拉：无 + levels/skins/ 里的每一个，选中现在挂着的
+func _fill_skins(pick: OptionButton) -> void:
+	pick.clear()
+	pick.add_item("无")
+	pick.set_item_metadata(0, "")
+	var dir := DirAccess.open("res://levels/skins")
+	if dir:
+		for f in dir.get_files():
+			if not f.ends_with(".tres"):
+				continue
+			var path := "res://levels/skins/" + f
+			var res := load(path) as NoteSkin
+			pick.add_item(res.title if res and res.title != "" else f.get_basename())
+			pick.set_item_metadata(pick.item_count - 1, path)
+			if pattern.skin and pattern.skin.resource_path == path:
+				pick.select(pick.item_count - 1)
+	if pattern.skin == null:
+		pick.select(0)
 
 
 func _set_status(text: String) -> void:

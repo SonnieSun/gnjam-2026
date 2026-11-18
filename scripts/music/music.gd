@@ -131,6 +131,8 @@ const FEVER_LANES := ["kiai", "hit"]
 var fever := false
 var _fever_fill_done := false
 var _sfx: Array[AudioStreamPlayer] = []
+## 结尾段自己一个播放器：几小节长，放的时候关卡还在放别的音效（重拍、叮、撞）——用公共的那几个会被后来的顶掉
+var _outro_player: AudioStreamPlayer
 var _sfx_next := 0
 
 ## 关与关之间的过门（一路连着玩）。Music 是自动加载，换场景不会被清掉，所以它能从上一关响到下一关：
@@ -167,10 +169,12 @@ func _ready() -> void:
 	add_child(meow)
 	events = MusicEvents.new()   # 画面跟着音乐的信号
 	add_child(events)
-	for i in 3:
+	for i in 6:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_sfx.append(p)
+	_outro_player = AudioStreamPlayer.new()
+	add_child(_outro_player)
 	_bridge = AudioStreamPlayer.new()
 	add_child(_bridge)
 	_tease = AudioStreamPlayer.new()
@@ -439,6 +443,7 @@ func restart() -> void:
 		_tunes[tune].origin = INF
 	for key: String in meow.active.keys():
 		meow.set_active(key, {})
+	_outro_player.stop()
 	for p in _sfx:
 		# 只停那些几小节长的（结尾段、专门写的过门）：开场数拍子、上一关收尾和弦的尾巴照常放完
 		var playing := p.stream.resource_path.get_file() if p.playing and p.stream != null else ""
@@ -861,6 +866,12 @@ func _outro_drums() -> bool:
 	return section < 0 or section >= secs.size() or bool(secs[section].get("outro_drums", true))
 
 
+## 小关写了 "exit": "none"：过关时不放收尾和弦和镲（结尾段自己已经收好了）
+func _exit_none() -> bool:
+	var secs: Array = data.get("sections", [])
+	return section >= 0 and section < secs.size() and str(secs[section].get("exit", "")) == "none"
+
+
 ## 这个小关打完（整关过关）时的收尾音效（"" = 没有，用通用的）
 func _exit_sfx() -> String:
 	var secs: Array = data.get("sections", [])
@@ -958,8 +969,9 @@ func bridge_out() -> void:
 	# 过关的一声，转场不至于一下子空掉。这个小关有自己的收尾（"exit": "end_g_major"，曲子的调上的一个收束和弦 +
 	# 猫的一声 MIAO，tools/music_gen/make_transitions.py 做的）就放它，没有就放通用的
 	var ending := _exit_sfx()
-	play_sfx(ending if ending != "" else "level_clear", -1.0 if ending != "" else -4.0)
-	play_sfx("crash", -8.0)
+	if not _exit_none():   # "exit": "none" = 这个小关的结尾段自己收了尾（比如拍地球转场最后那个 A），不再叠一声
+		play_sfx(ending if ending != "" else "level_clear", -1.0 if ending != "" else -4.0)
+		play_sfx("crash", -8.0)
 	_tease_stop(0.0)
 	_bridge.stream = load(BRIDGE_LOOP)
 	_bridge.volume_db = BRIDGE_DB
@@ -1191,7 +1203,10 @@ func _on_beat(index: int) -> void:
 		_outro_wait = false
 		_outro = true
 		_force.clear()
-		play_sfx(_outro_sfx(), ENTER_DB)
+		_outro_player.stream = load(SFX_DIR + _outro_sfx() + ".wav")
+		_outro_player.volume_db = ENTER_DB
+		_outro_player.pitch_scale = 1.0
+		_outro_player.play()
 		_apply_now(index)
 		return
 	var expired := false

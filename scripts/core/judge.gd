@@ -109,12 +109,19 @@ func reset(_from_beat: float = 0.0) -> void:
 ## 开始一个小关：从 first_note_beat 起把它的鼓谱一遍遍循环铺下去（只提前铺 LOOKAHEAD_BEATS 拍）。
 ## 上一个小关在 start_beat 之后还没到的音符会被丢掉。
 ## 返回这个小关的音符列表——之后新铺出来的音符会不断加到这同一个列表里。
+## 现在这一段谱子的样子（ChartPattern.skin），铺出来的音符都带上
+var _skin: NoteSkin
+var _skin_from := 0.0  # 谱子里第几拍起才带样子（ChartPattern.skin_from_beat）
+
+
 func begin_section(index: int, def: SectionDef, beats_per_bar: int,
 		start_beat: float, first_note_beat: float) -> Array[NoteData]:
 	_drop_notes_from(start_beat)
 	cancel_hold()
 	_section_index = index
 	_pattern = def.parse_notes(beats_per_bar)
+	_skin = def.chart.skin if def.chart else null
+	_skin_from = def.chart.skin_from_beat if def.chart else 0.0
 	_pattern_len = def.length_beats(beats_per_bar)
 	_pattern_origin = first_note_beat
 	_pattern_k = 0
@@ -138,6 +145,7 @@ func add_note(beat: float, sound: int = NoteData.Sound.KICK) -> NoteData:
 	n.beat = beat
 	n.sound = sound
 	n.section_index = _section_index
+	n.skin = _skin
 	var i := notes.size()
 	while i > _next and notes[i - 1].beat > beat:
 		i -= 1
@@ -189,6 +197,7 @@ func _generate() -> void:
 		n.sound = d.sound
 		n.section_index = _section_index
 		n.apply_props(d)  # 谱面编辑器里给的表现属性（不影响判定）
+		n.skin = _skin if d.beat >= _skin_from - 0.001 else null
 		notes.append(n)
 		_section_notes.append(n)
 		_pattern_k += 1

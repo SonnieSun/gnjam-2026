@@ -74,7 +74,7 @@ func _run_tick() -> void:
 	if main == null or not main.get("judge"):
 		return
 	var d: SectionDef = def.duplicate()
-	d.chart = null
+	d.chart = null  # 八分连打不带样子：快进欢乐颂时圈变回普通的
 	d.bars = PackedStringArray(["k.k.k.k.k.k.k.k."])
 	_swap_chart(main, d, run_from, run_from)
 

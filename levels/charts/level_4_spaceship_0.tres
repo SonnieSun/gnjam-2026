@@ -87,12 +87,6 @@ notes = Array[Dictionary]([{
 "beat": 60.0,
 "sound": 0
 }, {
-"beat": 60.0,
-"sound": 0
-}, {
 "beat": 62.0,
 "sound": 0
-}, {
-"beat": 62.0,
-"sound": 1
 }])

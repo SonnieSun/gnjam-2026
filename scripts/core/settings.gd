@@ -1,5 +1,5 @@
 extends Node
-## 玩家设置（autoload 名：Settings）：音量（总 / 音乐 / 音效）、全屏。存在 user://settings.cfg，
+## 玩家设置（autoload 名：Settings）：音量（总 / 音乐 / 音效）、全屏、原生像素。存在 user://settings.cfg，
 ## 和延迟校准（Conductor 的 [latency] 一节）放在同一个文件里，互相不覆盖。
 ## 设置面板在 ui/settings_panel.tscn（主菜单的 SETTINGS 打开它）。
 ##
@@ -19,6 +19,8 @@ const VOLUME_BUSES: Array[StringName] = [&"Master", MUSIC_BUS, SFX_BUS]
 ## 音量（0 ~ 1 线性，0 = 静音）
 var volumes := {&"Master": 1.0, MUSIC_BUS: 1.0, SFX_BUS: 1.0}
 var fullscreen := false
+## 原生像素：整个画面按 360 线的方像素显示（RetroScreen 做的，见 scripts/fx/retro_screen.gd）。默认开
+var native_pixels := true
 ## 结算画面里音乐弱化到多少
 const DUCK_DB := -9.0
 const DUCK_CUTOFF := 1100.0
@@ -49,9 +51,24 @@ func get_volume(bus: StringName) -> float:
 	return volumes.get(bus, 1.0)
 
 
+## 音乐总线在设置的音量上再临时加 db（负数 = 压低；0 = 还原）。不改设置、不存盘。
+## 片尾字幕用它把游戏里的音乐淡出，再在同一条总线上放片尾曲。
+func music_trim(db: float) -> void:
+	var i := AudioServer.get_bus_index(MUSIC_BUS)
+	if i >= 0:
+		AudioServer.set_bus_volume_db(i, linear_to_db(maxf(float(volumes[MUSIC_BUS]), 0.0001)) + db)
+
+
 func set_fullscreen(on: bool) -> void:
 	fullscreen = on
 	_apply_window()
+	save()
+	changed.emit()
+
+
+func set_native_pixels(on: bool) -> void:
+	native_pixels = on
+	_apply_pixels()
 	save()
 	changed.emit()
 
@@ -76,6 +93,7 @@ func apply() -> void:
 	for bus in VOLUME_BUSES:
 		_apply_volume(bus)
 	_apply_window()
+	_apply_pixels()
 
 
 func save() -> void:
@@ -84,6 +102,7 @@ func save() -> void:
 	for bus in VOLUME_BUSES:
 		cfg.set_value("audio", String(bus).to_lower(), volumes[bus])
 	cfg.set_value("video", "fullscreen", fullscreen)
+	cfg.set_value("video", "native_pixels", native_pixels)
 	cfg.save(PATH)
 
 
@@ -94,6 +113,7 @@ func _load() -> void:
 	for bus in VOLUME_BUSES:
 		volumes[bus] = clampf(float(cfg.get_value("audio", String(bus).to_lower(), 1.0)), 0.0, 1.0)
 	fullscreen = bool(cfg.get_value("video", "fullscreen", false))
+	native_pixels = bool(cfg.get_value("video", "native_pixels", true))
 
 
 func _apply_volume(bus: StringName) -> void:
@@ -111,6 +131,13 @@ func _apply_window() -> void:
 	var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
 	if DisplayServer.window_get_mode() != want:
 		DisplayServer.window_set_mode(want)
+
+
+## RetroScreen 在 Settings 后面才加载：启动时它自己来读 native_pixels，这里只管之后的切换
+func _apply_pixels() -> void:
+	var retro := get_node_or_null(^"/root/RetroScreen")
+	if retro and retro.is_node_ready():
+		retro.set_native(native_pixels)
 
 
 ## 把音乐「弱化」到背景里（结算画面用）：Music 总线压低、削掉高频。on = false 恢复。不动玩家设的音量

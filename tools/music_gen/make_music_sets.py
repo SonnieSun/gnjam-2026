@@ -322,7 +322,8 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
                # without a break, the drums turn into the 2-step 'break' beat, the instrument doubles the cats, and in
                # fever the square lead joins.
                {'title': 'SLAP / POWER', 'tiers': (0.35, 0.7), 'transition_tiers': (), 'fever': (0.7, 1.0), 'fever_fill': False,
-                'enter_fill': False, 'carry': 0, 'outro': 'out_earth_to_space', 'outro_drums': False,   # make_earth_to_space.py 'own': {'kiai': 'mk_double', 'hit': ''}, 'rules': {   # carry 0: these parts start full
+                'enter_fill': False, 'carry': 0, 'outro': 'out_earth_to_space', 'outro_drums': False, 'exit': 'none',   # make_earth_to_space.py
+                'own': {'kiai': 'mk_double', 'hit': ''}, 'rules': {   # carry 0: these parts start full
                    # already; carried fullness would switch the extra layers on, off and on again
 
                    'break': [[0, 1]], 'mk_keys': [[0, 1]], 'mk_bass': [[0, 1]], 'mk_cat_drums': [[0, 1]],

@@ -3,6 +3,7 @@ extends CanvasLayer
 ## 设置面板：盖在当前画面上，改的东西马上生效并存盘（见 scripts/core/settings.gd）。
 ##   MASTER / MUSIC / SFX  三条音量
 ##   FULLSCREEN            全屏开关（网页版没有这一项）
+##   PIXELS                原生像素开关（整个画面按 360 线的方像素显示）
 ##   OFFSET                判定延迟（毫秒），和校准界面测的是同一个值
 ##   CALIBRATE             进延迟校准界面（测完回主菜单）
 ##   BACK                  关掉（Esc 也行）
@@ -26,6 +27,7 @@ const DIM := Color(0.68, 0.62, 0.75)
 var _panel: PanelContainer
 var _first: Control
 var _fullscreen_btn: Button
+var _pixels_btn: Button
 var _offset_slider: HSlider
 var _offset_value: Label
 var _closing := false
@@ -130,6 +132,17 @@ func _build() -> void:
 		list.add_child(_row("FULLSCREEN", _fullscreen_btn, null))
 		focusables.append(_fullscreen_btn)
 
+	_pixels_btn = _button("")
+	_pixels_btn.toggle_mode = true
+	_pixels_btn.button_pressed = Settings.native_pixels
+	_pixels_btn.toggled.connect(func(on: bool) -> void:
+		Settings.set_native_pixels(on)
+		_sync_pixels())
+	_pixels_btn.custom_minimum_size.x = 150
+	_sync_pixels()
+	list.add_child(_row("PIXELS", _pixels_btn, null))
+	focusables.append(_pixels_btn)
+
 	_offset_slider = _slider(-OFFSET_RANGE, OFFSET_RANGE, OFFSET_STEP, Settings.get_input_offset_ms())
 	_offset_value = _value_label("")
 	_offset_slider.value_changed.connect(func(v: float) -> void:
@@ -178,6 +191,10 @@ func _calibrate() -> void:
 
 func _sync_fullscreen() -> void:
 	_fullscreen_btn.text = "ON" if Settings.fullscreen else "OFF"
+
+
+func _sync_pixels() -> void:
+	_pixels_btn.text = "ON" if Settings.native_pixels else "OFF"
 
 
 func _sync_offset() -> void:

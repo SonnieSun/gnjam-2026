@@ -30,6 +30,16 @@ const WARMUP_FRAMES := 4
 ## 原动画一轮 4 秒里挥两次爪，一次 2 秒；这是第一次碰到地球的时刻（秒）
 @export var contact_seconds := 29.0 / 24.0
 @export var swat_seconds := 2.0
+## 蓄力连按的段落（update 的 gated = true）：猫的挥爪不跟拍子走，跟玩家走——平时爪子抬在碰到地球前这么多秒
+## （动画自己的时间）的姿势等着，玩家真的拍出去（slap()）才挥下去，挥完抬起另一只爪接着等。不拍就一直抬着。
+## 原动画碰到前 14~4 帧爪子都是抬稳的，0.25 秒 = 前 6 帧
+@export var charge_hold_seconds := 0.25
+## 拍出去之后收爪、再抬起来放多快（1 = 和按拍子挥时一样快；大一点，下一串连按开始前就抬好了）
+@export var charge_recover_speed := 1.3
+## 蓄力时猫自己抖多少（米）：蓄得越多越久抖得越厉害（蓄满 = 这么多，多按到头是它的 2 倍多），看着像在使劲
+@export var charge_cat_shake := 0.03
+## 蓄力时猫身子跟着歪多少度（同样按蓄力放大）
+@export var charge_cat_tilt := 2.0
 ## 判定圈画在哪（模型自己的坐标，moumou 场景里的 Focus 标记）。下面 ring_on_earth 关掉时才用这个
 @export var focus := Vector3(1.11, 1.21, 0.56)
 ## 判定圈套在地球上（圆心 = 地球球心）；earth_offset 是在球心基础上再挪多少（模型自己的坐标，米）
@@ -117,6 +127,8 @@ const WARMUP_FRAMES := 4
 @export var rocket_ufo_drift_beats := 1.5
 ## 撞上那一下的音效（assets/audio/sfx 里的名字，"" = 不放）
 @export var rocket_ufo_sfx := "ufo_bonk"
+## 撞上 UFO 时和 bonk 一起响的一小下爆炸/破坏（留空就只有 bonk）
+@export var rocket_break_sfx := "ufo_break"
 
 @export_group("外星人记者")
 ## 拍地球第二段第一下拍出去，画面左下角冒出一个拿话筒的外星人（新闻台的现场记者），跟着拍子蹦、摇头，
@@ -164,6 +176,14 @@ var _rep_power := 0.0
 var _rep_label_t := 99.0
 var _rocket_p := -1.0     # 飞出放到百分之几（< 0 = 还没开始）
 var _anim_t := 0.0        # 挥爪动画放到几秒：结尾开始后停在拍下去的那一帧
+var _cat_t := -1.0        # 蓄力段里猫的动画放到几秒（< 0 = 还没进蓄力段）
+var _cat_stop := 0.0      # 放到这里停住（下一只爪抬好的姿势）
+var _slaps := 0           # 蓄力段里拍出去了几下：两只爪轮着来
+var _gated := false
+var _rig: Node3D          # 猫（CatRig）：蓄力时抖它
+var _rig_home := Transform3D.IDENTITY
+var _cat_tracks: Array[Dictionary] = []  # 动画里猫骨头的轨道 {"track", "type", "bone"}：蓄力停住时只改猫，地球和星星照转
+var _skeleton: Skeleton3D
 var _rig_rest := Transform3D.IDENTITY  # 拍地球的猫原来在哪（结尾被拍飞出画面）
 var _cam_basis := Basis.IDENTITY        # 结尾开始时镜头的朝向（之后的侧倾都是在它上面转）
 
@@ -228,6 +248,10 @@ func setup(host: Node2D) -> void:
 			_animation.play(_clip)
 			_animation.pause()
 			_animation.seek(contact_seconds, true)
+			_collect_cat_tracks()
+	_rig = _model.get_node_or_null("CatRig") as Node3D
+	if _rig:
+		_rig_home = _rig.transform
 	_earth = _model.find_child("EarthSpin", true, false) as Node3D
 	if _earth:
 		_earth_rest = _model.to_local(_earth.global_position)
@@ -272,6 +296,12 @@ func _use_low_poly_earth(mesh: MeshInstance3D) -> void:
 
 
 func slap(power: float, weak := false) -> void:
+	if _gated:
+		# 蓄力段：这一下真的拍出去了——从碰到地球前一帧放起，挥完接着抬另一只爪
+		var contact := contact_seconds + (_slaps % 2) * swat_seconds
+		_slaps += 1
+		_cat_t = contact - 1.0 / 24.0
+		_cat_stop = contact + swat_seconds - charge_hold_seconds
 	_reporter_shock(0.0 if weak else power, "?" if weak else ("!!!" if power >= 0.99 else "!"))
 	_shake = (1.0 + power * 2.0) * (weak_slap if weak else 1.0)
 	_pulse = (1.0 + power * 2.0) * (weak_slap if weak else 1.0)
@@ -326,6 +356,7 @@ func start_rocket() -> void:
 		_rocket_p = 0.0
 		var rig := _model.get_node_or_null("CatRig") as Node3D
 		if rig:
+			rig.transform = _rig_home  # 蓄力的抖动先归位
 			_rig_rest = rig.global_transform
 		_cam_basis = camera.global_transform.basis
 
@@ -605,7 +636,8 @@ func earth_screen_radius() -> float:
 # ---------------- 每帧 ----------------
 
 ## beat = 这个小关里的拍数；每 beats_per_swat 拍挥一次爪，碰到地球落在每轮的第 strike_beat 拍
-func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float) -> void:
+## gated = 蓄力连按的段落：猫抬着爪子等，玩家拍出去才挥（见 charge_hold_seconds）
+func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float, gated := false) -> void:
 	var size := Vector2i(world.get_parent().get_viewport_rect().size)
 	if world.size != size:
 		world.size = size
@@ -614,6 +646,14 @@ func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float) -
 		if _rocket_p < 0.0:  # 结尾：停在拍下去的那一帧（地球的转由 _update_rocket 接着转）
 			_anim_t = fposmod((beat - strike_beat) / maxf(beats_per_swat, 0.25) * swat_seconds + contact_seconds, swat_seconds * 2.0)
 		_animation.seek(minf(_anim_t, length), true)
+		_gated = gated
+		if gated:
+			if _cat_t < 0.0:  # 刚进蓄力段：抬着爪子等
+				_cat_t = contact_seconds - charge_hold_seconds
+				_cat_stop = _cat_t
+			var rate := swat_seconds / maxf(beats_per_swat * Conductor.sec_per_beat(), 0.1) * charge_recover_speed
+			_cat_t = minf(_cat_t + dt * rate, _cat_stop)
+			_pose_cat(fposmod(_cat_t, swat_seconds * 2.0))
 	_shake = maxf(_shake - dt * 8.0, 0.0)
 	_pulse = maxf(_pulse - dt * 7.0, 0.0)
 	_model.scale = Vector3.ONE * (1.0 + hit_pulse * _pulse)
@@ -623,6 +663,12 @@ func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float) -
 	camera.size = camera_size * (1.0 - charge_zoom * _charge)
 	camera.position = camera_position + camera.global_transform.basis * Vector3(sin(ms * 90.0), cos(ms * 110.0), 0.0) \
 			* (hit_shake * _shake + charge_shake * _charge)
+	if _rig and _rocket_p < 0.0:
+		# 猫自己使劲：蓄得越多抖得越厉害（平方：前面几下只是微微颤，快蓄满才抖起来），身子跟着歪
+		var effort := _charge * _charge
+		var jitter := Vector3(sin(ms * 71.0) + sin(ms * 113.0), sin(ms * 89.0) + sin(ms * 131.0), sin(ms * 97.0)) * 0.5
+		var lean := Basis(Vector3.FORWARD, deg_to_rad(charge_cat_tilt) * effort * sin(ms * 83.0))
+		_rig.transform = _rig_home.translated(jitter * charge_cat_shake * effort) * Transform3D(lean, Vector3.ZERO)
 	# 纸片：出场长大、翻转、播动图；喷火飞出时缩没
 	var gone := smoothstep(0.0, 0.15, _rocket_p) if _rocket_p >= 0.0 else 0.0
 	for c in _cards:
@@ -639,6 +685,35 @@ func update(dt: float, beat: float, beats_per_swat: float, strike_beat: float) -
 	_update_reporter(dt, beat)
 	if _rocket_p >= 0.0:
 		_update_rocket(ms)
+
+
+## 只把猫的骨头摆到动画第 t 秒的样子（地球、星星不动：它们刚按拍子 seek 过）
+func _pose_cat(t: float) -> void:
+	if _skeleton == null:
+		return
+	var anim := _animation.get_animation(_clip)
+	for c in _cat_tracks:
+		match int(c.type):
+			Animation.TYPE_ROTATION_3D: _skeleton.set_bone_pose_rotation(c.bone, anim.rotation_track_interpolate(c.track, t))
+			Animation.TYPE_POSITION_3D: _skeleton.set_bone_pose_position(c.bone, anim.position_track_interpolate(c.track, t))
+			Animation.TYPE_SCALE_3D: _skeleton.set_bone_pose_scale(c.bone, anim.scale_track_interpolate(c.track, t))
+
+
+func _collect_cat_tracks() -> void:
+	_cat_tracks.clear()
+	var anim := _animation.get_animation(_clip)
+	var base := _animation.get_node_or_null(_animation.root_node)
+	for i in anim.get_track_count():
+		var path := anim.track_get_path(i)
+		if path.get_subname_count() == 0 or base == null:
+			continue
+		var sk := base.get_node_or_null(NodePath(str(path.get_concatenated_names()))) as Skeleton3D
+		if sk == null:
+			continue
+		var bone := sk.find_bone(path.get_concatenated_subnames())
+		if bone >= 0:
+			_skeleton = sk
+			_cat_tracks.append({"track": i, "type": anim.track_get_type(i), "bone": bone})
 
 
 ## 结尾的 4 个镜头（t = 拍下去之后第几拍，0~rocket_beats；切关之后黑幕落下的那一会儿 t 接着往上走），见 rocket_beats 的说明。
@@ -737,7 +812,9 @@ func _update_rocket(ms: float) -> void:
 	if ut >= 0.0 and not _bonked:
 		_bonked = true
 		if rocket_ufo_sfx != "" and Conductor.playing:
-			Music.play_sfx(rocket_ufo_sfx, -9.0)
+			Music.play_sfx(rocket_ufo_sfx, -2.0)    # 转场音乐这时还在响（第 3 小节重拍正压在这一下上），太轻会被盖住
+		if rocket_break_sfx != "" and Conductor.playing:
+			Music.play_sfx(rocket_break_sfx, -4.0)
 
 	# ---- 十字星：第 4 拍冲出大气层时在猫出现的地方一闪（转一圈、叮一声）；撞上 UFO 时在撞的地方再闪一下（小一点） ----
 	var st := (t - 4.0) / maxf(rocket_star_beats, 0.01)

@@ -13,6 +13,9 @@
     bar 6  Ab           stop-time: the three hits
     bar 7  G            3-3-2 again, the band running
     bar 8  G            straight 8ths into the Ode (the chart's own 8th run lands here too)
+The chart carries the doom look (levels/skins/doom.tres, scripts/chart/note_skin.gd) from beat 4 on (skin_from_beat):
+the fill bar keeps the plain look (its three shouts are marked as triplets), and the doom bar 1 downbeat is the
+transition note: on its beat, hit or not, the look switches on with an impact.
 Sounds: 0 kick, 1 snare. scripts/sections/sky_section.gd swaps it in (_on_change_planned, tier 1).
 
 usage: python -I make_sky_storm_chart.py <godot project dir>
@@ -23,7 +26,7 @@ import sys
 G = sys.argv[1]
 T = 2.0 / 3.0          # a quarter-note triplet, in beats
 
-INTO = [(0, 0), (1, 1), (2, 1), (2 + T, 1), (2 + 2 * T, 1)]
+INTO = [(0, 0), (1, 1), (2, 1, 2), (2 + T, 1, 2), (2 + 2 * T, 1, 2)]   # third value 2 = NoteData.Mark.TRIPLET
 STORM = [
     (0, 0), (2, 1),
     (4, 0), (6, 1),
@@ -36,10 +39,14 @@ STORM = [
 
 
 def write(name, length, notes):
-    body = ', '.join('{\n"beat": %s,\n"sound": %d\n}' % (repr(round(float(b), 6)), s) for b, s in notes)
+    body = ', '.join('{\n"beat": %s,\n"sound": %d%s\n}' % (repr(round(float(n[0]), 6)), n[1],
+                                                       ',\n"mark": %d' % n[2] if len(n) > 2 else '') for n in notes)
     text = ('[gd_resource type="Resource" script_class="ChartPattern" format=3]\n\n'
-            '[ext_resource type="Script" path="res://scripts/chart/chart_pattern.gd" id="1_erph5"]\n\n'
+            '[ext_resource type="Script" path="res://scripts/chart/chart_pattern.gd" id="1_erph5"]\n'
+            '[ext_resource type="Resource" path="res://levels/skins/doom.tres" id="2_skin"]\n\n'
             '[resource]\nscript = ExtResource("1_erph5")\n'
+            'skin = ExtResource("2_skin")\n'
+            'skin_from_beat = 4.0\n'
             f'length_beats = {float(length)}\n'
             f'notes = Array[Dictionary]([{body}])\n')
     path = os.path.join(G, 'levels', 'charts', name + '.tres')

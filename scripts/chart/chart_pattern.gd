@@ -11,6 +11,7 @@ extends Resource
 ##   其余是表现属性，见 NoteData.STYLE_DEFAULTS（没写的用默认值）：
 ##   length 长按几拍  lead 提前几拍出现  lane 轨道  color 颜色  size 大小
 ##   rot 初始角度  spin 自转速度  glow 发光  pulse 跟拍闪  throb 跟拍胀缩
+##   mark 记号（NoteData.Mark：0 自动 / 1 普通 / 2 三连音）
 
 ## 循环一遍多少拍
 @export var length_beats := 16.0
@@ -29,6 +30,11 @@ extends Resource
 @export var beat_guides := true
 ## 虚线隔几拍一条（1 = 每拍，0.5 = 每半拍）
 @export var guide_every := 1.0
+## 这一段的样子（scripts/chart/note_skin.gd）：这份谱子铺出来的音符都带着它，画音符的地方按它画。空 = 没有
+@export var skin: NoteSkin
+## 样子从这份谱子的第几拍起才用（之前的音符还是原来的样子）。第一个带样子的音符就是「转场音符」：
+## 到了那一拍（打没打中都算）样子整个换上，舞台放一下冲击的特效
+@export var skin_from_beat := 0.0
 @export var notes: Array[Dictionary] = []
 
 

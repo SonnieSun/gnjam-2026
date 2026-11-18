@@ -539,7 +539,7 @@ func _update_spin(local: float, _angle: float) -> void:
 		_max_flash = maxf(_max_flash - dt * 2.5, 0.0)
 	_update_rocket()
 	if _charge_mode:
-		_stage.update(dt, local, charge_cycle_beats, _strike_beat)
+		_stage.update(dt, local, charge_cycle_beats, _strike_beat, true)  # 蓄力段：猫抬着爪子等，拍出去才挥
 	else:
 		_stage.update(dt, local, 1.0, 0.0)
 	_news = move_toward(_news, 1.0 if _news_on and _rocket < 0.0 else 0.0, dt * 2.5)

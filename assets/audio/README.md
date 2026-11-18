@@ -32,6 +32,10 @@
 都是 8 小节；`bridge_wait`（4 小节）是两关之间等待时放的循环。`sfx/` 里配套的一次性音效：`sky_whoosh_up`（猫飞走）、
 `sky_holy_hit`（亮起来的那一下）、`count_in`（开始前数一小节）。由 `tools/music_gen/make_sky.py` 生成。
 
+## `music/ending/`：片尾曲
+
+`ending_cancan_slow`：慢版康康舞曲（猫唱，34 秒，只放一遍不循环，最后一个音在 26.66 秒），片尾字幕 `scenes/credits.tscn` 放它。由 `tools/music_gen/make_ending_song.py` 生成。
+
 ## `meows/runtime/`：游戏里按格子触发的喵
 
 每只阵容里的猫一个 `meow_<编号>.wav`（原音高、共鸣烤进去、响度统一）和一个 `tick_<编号>.wav`（只有开头 70 毫秒的"mi"），

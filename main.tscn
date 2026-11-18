@@ -74,7 +74,6 @@ script = ExtResource("4")
 
 [node name="HitMeow" type="Node" parent="." unique_id=1730452196]
 script = ExtResource("7_hitmeow")
-enabled = false
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1679597583]
 layer = 2

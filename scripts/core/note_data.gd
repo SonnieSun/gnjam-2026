@@ -7,6 +7,8 @@ extends RefCounted
 enum Result { NONE, PERFECT, GOOD, MISS, GREAT }
 ## 这个音符是哪种鼓（玩家按下时发出的声音）
 enum Sound { KICK, SNARE, HAT }
+## 记号（谱面编辑器里按音符改）：AUTO = 按这一段的样子（NoteSkin）的规则判，PLAIN = 普通，TRIPLET = 四拍三连的圈
+enum Mark { AUTO, PLAIN, TRIPLET }
 
 var beat := 0.0
 var section_index := 0
@@ -40,11 +42,15 @@ var spin := 0.0
 var glow := 0.0
 var pulse := 0.0
 var throb := 0.0
+## 记号（Mark）
+var mark := 0
+## 这个音符所在那一段谱子的样子（ChartPattern.skin，Judge 铺音符时给；null = 没有，和原来一样）
+var skin: NoteSkin
 
 ## 表现属性的名字和默认值（谱面文件里没写的就用这个）
 const STYLE_DEFAULTS := {
 	"length": 0.0, "lead": 0.0, "lane": 0, "color": Color(0, 0, 0, 0), "size": 1.0,
-	"rot": 0.0, "spin": 0.0, "glow": 0.0, "pulse": 0.0, "throb": 0.0, "mash": false,
+	"rot": 0.0, "spin": 0.0, "glow": 0.0, "pulse": 0.0, "throb": 0.0, "mash": false, "mark": 0,
 }
 
 

@@ -321,6 +321,8 @@ func _process(_delta: float) -> void:
 		_rise_pending = false
 		Music.rise_to_bar()
 	if _ending_at >= 0.0:
+		if not _ending_marked and _current and (_current.get_script() as Script).get_script_constant_map().get("ENDING_NO_NOTE", false):
+			_ending_marked = true  # 小关脚本里写了 const ENDING_NO_NOTE := true：那条线上画面已经盖住了（射击关的黑幕），不补结束音符
 		if not _ending_marked and Conductor.song_beat >= (_ending_hold_at if _ending_hold_at >= 0.0 else _ending_at) - 8.0:
 			_ending_marked = true  # 结束音符：句尾那一拍上的七彩音符（那一拍没有音符就补一个）
 			var long_note: NoteData = null

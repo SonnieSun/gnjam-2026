@@ -4,6 +4,7 @@
 [ext_resource type="Shader" path="res://assets/shaders/credits_stars.gdshader" id="2_stars"]
 [ext_resource type="Shader" path="res://assets/shaders/credits_crawl.gdshader" id="3_crawl"]
 [ext_resource type="Texture2D" path="res://assets/credits/mao_mao.png" id="4_cat"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/ending/ending_cancan_slow.wav" id="5_song"]
 
 [sub_resource type="ShaderMaterial" id="mat_stars"]
 shader = ExtResource("2_stars")
@@ -14,6 +15,12 @@ shader = ExtResource("3_crawl")
 [sub_resource type="LabelSettings" id="ls_title"]
 font_size = 128
 font_color = Color(1, 0.84, 0.2, 1)
+
+[sub_resource type="LabelSettings" id="ls_prompt"]
+font_size = 28
+font_color = Color(1, 0.84, 0.2, 1)
+outline_size = 6
+outline_color = Color(0, 0, 0.02, 1)
 
 [sub_resource type="LabelSettings" id="ls_name"]
 font_size = 104
@@ -27,6 +34,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
+ending_song = ExtResource("5_song")
 
 [node name="Stars" type="ColorRect" parent="."]
 material = SubResource("mat_stars")
@@ -114,3 +122,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 expand_mode = 1
+
+[node name="Prompt" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -78.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "PRESS SPACE TO END THE GAME"
+label_settings = SubResource("ls_prompt")
+horizontal_alignment = 1
+vertical_alignment = 1

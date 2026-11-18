@@ -32,6 +32,8 @@ RetroScreen="*res://scripts/fx/retro_screen.gd"
 
 window/size/viewport_width=960
 window/size/viewport_height=720
+window/size/resizable=false
+window/size/sharp_corners=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
@@ -51,3 +53,4 @@ levels_folder="res://levels"
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+anti_aliasing/screen_space_roughness_limiter/enabled=false
