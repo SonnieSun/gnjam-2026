@@ -20,6 +20,10 @@ uniform float spin = 0.0;
 uniform float mirror : hint_range(0.0, 1.0) = 0.0;
 // 上下镜像的浓度（和左右镜像一起开 = 四向对称）
 uniform float mirror_y : hint_range(0.0, 1.0) = 0.0;
+// 镜像时把画面往两边挪多少（占屏幕宽 / 高的比例）。0 = 对称轴穿过画面正中间——主角在正中间时几乎看不出镜像；
+// 0.25 = 画面正中间的东西落在每一半的正中间：一左一右（或一上一下）两个互为镜像的主角
+uniform float mirror_shift = 0.0;
+uniform float mirror_shift_y = 0.0;
 // 竖着切成几条（1 = 不切）：每一条里都是画面正中间那一条，原大小；两边的条左右翻过来、推近一点，像几台机位并排
 uniform float panels = 1.0;
 // 红蓝错位的距离（占屏幕宽度的比例）
@@ -50,8 +54,8 @@ void fragment() {
 	vec2 uv = SCREEN_UV;
 	float aspect = SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
 	uv = (uv - 0.5) / zoom + 0.5;
-	uv.x = mix(uv.x, 0.5 - abs(uv.x - 0.5), mirror);
-	uv.y = mix(uv.y, 0.5 - abs(uv.y - 0.5), mirror_y);
+	uv.x = mix(uv.x, 0.5 + mirror_shift - abs(uv.x - 0.5), mirror);
+	uv.y = mix(uv.y, 0.5 + mirror_shift_y - abs(uv.y - 0.5), mirror_y);
 	float panel_line = 0.0;
 	if (panels > 1.5) {
 		float n = floor(panels + 0.5);

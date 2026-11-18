@@ -24,6 +24,10 @@ const EFFECTS := {
 	"kaleido12": {"label": "Kaleido 12 (fine)", "color": Color("d44fff"), "kaleido": 1.0, "segments": 12.0, "ring_spacing": 0.3, "kaleido_zoom": 2.4},
 	"mirror": {"label": "Mirror", "color": Color("86ffa3"), "mirror": 1.0},
 	"mirror_v": {"label": "Mirror (top / bottom)", "color": Color("5fe0c0"), "mirror_y": 1.0},
+	# 双胞胎：镜像的同时把画面往两边挪开，正中间的主角变成一左一右（一上一下）两个，互为镜像。
+	# 挪开是过渡过去的：切进来那一下看着还是一个，然后分成两个
+	"twin": {"label": "Twins (left / right)", "color": Color("a8ff7a"), "mirror": 1.0, "mirror_shift": 0.25},
+	"twin_v": {"label": "Twins (top / bottom)", "color": Color("7affd0"), "mirror_y": 1.0, "mirror_shift_y": 0.25},
 	"mirror4": {"label": "Mirror x4", "color": Color("3fd0a0"), "mirror": 1.0, "mirror_y": 1.0},
 	"strips3": {"label": "3 Strips", "color": Color("9fb4ff"), "panels": 3.0},
 	"strips5": {"label": "5 Strips", "color": Color("7f8cff"), "panels": 5.0},
@@ -31,7 +35,7 @@ const EFFECTS := {
 	"zoom": {"label": "Zoom In", "color": Color("ff9a3c"), "zoom": 1.45},
 	"invert": {"label": "Invert", "color": Color("b38cff"), "invert": 1.0},
 }
-const NEUTRAL := {"tiles": 1.0, "kaleido": 0.0, "mirror": 0.0, "mirror_y": 0.0, "panels": 1.0, "rgb_split": 0.0, "zoom": 1.0, "invert": 0.0,
+const NEUTRAL := {"tiles": 1.0, "kaleido": 0.0, "mirror": 0.0, "mirror_y": 0.0, "mirror_shift": 0.0, "mirror_shift_y": 0.0, "panels": 1.0, "rgb_split": 0.0, "zoom": 1.0, "invert": 0.0,
 		"segments": 6.0, "ring_spacing": 0.42, "kaleido_zoom": 1.7}
 ## 这几个值不过渡，直接跳过去（中间值是切到一半的花瓣 / 半条；镜像过渡到一半是一片横着拉长的画面）
 const SNAP := ["panels", "segments", "ring_spacing", "kaleido_zoom", "mirror", "mirror_y"]

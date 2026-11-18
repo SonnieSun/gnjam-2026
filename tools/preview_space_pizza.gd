@@ -1,11 +1,13 @@
 extends SceneTree
 ## 看 SPACE PIZZA 一整段：自动打（每个音符到点按一下，结尾连按每个八分按一下），每换一个镜头截一张图，
 ## 打印每个镜头的名字、拍数、套的特效，以及三套谱面从哪一拍起、那首曲子从哪一拍起。要开窗口跑：
-##   godot --path . --script res://tools/preview_space_pizza.gd -- <输出目录> [fast]
+##   godot --path . --script res://tools/preview_space_pizza.gd -- <输出目录> [fast] [intro]
 ## fast = 开头直接把积累条拨到 45%（少等开头那一段）。不写输出目录就存到 user://。
+## intro = 只看开头那一段（音乐换到四阶下行就停）。
 
 var _out := "user://"
 var _fast := false
+var _intro_only := false
 var _n := 0
 
 
@@ -14,6 +16,7 @@ func _initialize() -> void:
 	if not args.is_empty():
 		_out = args[0].trim_suffix("/") + "/"
 	_fast = args.has("fast")
+	_intro_only = args.has("intro")
 	call_deferred("_run")
 
 
@@ -84,6 +87,8 @@ func _run() -> void:
 		elif mid_at >= 0.0 and Conductor.song_beat >= mid_at:
 			mid_at = -1.0
 			await _shot("pizza_%02d_%s_%s_b.png" % [_n, sec._mode, shot.get("id", "x")])
+		if _intro_only and _n > 1 and sec._mode != "intro":
+			break
 		if game._cleared and done_at < 0:
 			done_at = Time.get_ticks_msec()
 		if done_at >= 0 and Time.get_ticks_msec() - done_at > 3000:

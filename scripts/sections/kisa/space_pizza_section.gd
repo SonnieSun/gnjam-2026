@@ -65,12 +65,14 @@ var _warp_dist := 0.0    # 虫洞里已经冲了多远
 ##   speed 往前飞的速度（米 / 秒）
 ## 读谱的规矩：打音符的镜头都正对着判定环（在猫的正前方或正后方，最多偏二十来度），判定环始终是屏幕中间的一个正圆；
 ## 镜头只做推拉、变焦、歪头打滚这些不改变圆环形状的动作。花样靠全屏特效：镜像、竖条分屏、九宫格、几种万花筒。
-## 开头：长镜头、慢，梦一样地飘。
+## 开头：长镜头、慢，梦一样地飘。猫一直在画面正中间，对称轴穿过正中间的镜像看不出来，所以这里用的是
+## 「双胞胎」：猫分成一左一右两只（第二个镜头）、一正一倒两只（第三个镜头，像水里的倒影），判定圈跟着各有一个。
+## 全打准的话开头只有 8 小节左右，所以这两个镜头各 2 小节、排在前面，保证都能看到。
 const INTRO := [
 	{"id": "open", "bars": 4, "speed": 9.0},
-	{"id": "pull", "bars": 4, "fx": "mirror", "speed": 9.0},
+	{"id": "pull", "bars": 2, "fx": "twin", "speed": 9.0},
+	{"id": "far", "bars": 2, "fx": "twin_v", "speed": 10.0},
 	{"id": "swing", "bars": 4, "blend": 2.0, "speed": 10.0},
-	{"id": "chase", "bars": 4, "fx": "mirror_v", "speed": 10.0},
 ]
 ## 四阶下行：两小节一切，和「四下重音 + 一串八分」的句子对上。
 const STEPS := [
@@ -317,6 +319,9 @@ func _shot_pose(id: String, u: float, t: float, f: Vector3) -> Dictionary:
 		"pull":  # 反过来：往后退、视角收窄，背景往里收
 			var d := lerpf(6.5, 13.0, e)
 			return {"pos": f + Vector3(0.0, 0.2, d), "look": f, "roll": sin(t * 0.5) * 0.04, "fov": _fov_for(d)}
+		"far":  # 正面远景，慢慢推近：判定环只占画面高度的三分之一左右，上下分成两半时每一半都装得下
+			var d := lerpf(15.0, 12.5, e)
+			return {"pos": f + Vector3(sin(t * 0.4) * 0.3, 0.2, d), "look": f, "roll": 0.0, "fov": base_fov}
 		"swing":  # 正面，像钟摆一样左右荡（每小节一个来回的一半），带一点歪头
 			var a := sin(u * float(_shot.bars) * PI) * 0.32
 			return {"pos": f + Vector3(sin(a) * 9.0, 0.4, cos(a) * 9.0), "look": f, "roll": -a * 0.6, "fov": 50.0}
