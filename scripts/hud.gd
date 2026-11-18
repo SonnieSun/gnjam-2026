@@ -247,6 +247,9 @@ func flash(color: Color = Color.WHITE, strength: float = 0.8, seconds: float = 0
 
 
 func reset() -> void:
+	if is_instance_valid(_stamp):
+		_stamp.queue_free()
+	_stamp = null
 	judge_label.text = ""
 	judgement_art.clear()
 	result_label.visible = false
@@ -335,4 +338,54 @@ func show_result(judge: Judge) -> void:
 	judgement_art.clear()
 	judge_label.visible = false
 	milestone_label.clear()
+	move_child(result_label, -1)  # 盖在积累条、分数这些上面
 	result_label.show_result(judge)
+	# 最后一下的大字：结算弹进来时飞到结算标题的位置、缩成标题那么大，再把位置让给标题（同一句 ALL CLEAR）
+	if is_instance_valid(_stamp):
+		var s := _stamp
+		_stamp = null
+		var view := get_viewport().get_visible_rect().size
+		var title_y := view.y / 2.0 - 360.0 + 67.0  # 结算标题的中线（ui/result_widget.tscn：Panel 居中 960×720，Title 在 22～112）
+		var t := s.create_tween().set_parallel()
+		t.tween_property(s, "position:y", title_y - s.size.y / 2.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.tween_property(s, "scale", Vector2.ONE * (76.0 / 124.0), 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.tween_property(s, "rotation", 0.0, 0.22)
+		t.chain().tween_property(s, "modulate:a", 0.0, 0.12)
+		t.chain().tween_callback(s.queue_free)
+
+
+## 整个游戏的最后一下（最后一关的七彩结束音符那一拍）：画面中间砸下一个大字，停到结算弹进来（show_result）
+const CANDY := preload("res://assets/fonts/candy_gem/CandyGem.fnt")
+var _stamp: Label
+
+func final_pop(text: String) -> void:
+	if is_instance_valid(_stamp):
+		_stamp.queue_free()
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_override("font", CANDY)
+	l.add_theme_font_size_override("font_size", 124)
+	l.add_theme_color_override("font_color", Color(1.0, 0.92, 1.0))
+	l.add_theme_color_override("font_outline_color", Color(0.45, 0.05, 0.6))
+	l.add_theme_constant_override("outline_size", 22)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(l)
+	var view := get_viewport().get_visible_rect().size
+	l.size = Vector2(view.x, 200.0)
+	l.position = Vector2(0.0, view.y * 0.42 - 100.0)
+	l.pivot_offset = l.size / 2.0
+	l.scale = Vector2.ONE * 3.2
+	l.modulate.a = 0.0
+	l.rotation = deg_to_rad(-8.0)
+	var t := l.create_tween().set_parallel()
+	t.tween_property(l, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.tween_property(l, "modulate:a", 1.0, 0.08)
+	t.tween_property(l, "rotation", deg_to_rad(-4.0), 0.16)
+	# 砸下来之后轻轻弹一下、再慢慢变大一点，停着等结算
+	t.chain().tween_property(l, "scale", Vector2.ONE * 1.1, 0.08)
+	t.chain().tween_property(l, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.chain().tween_property(l, "scale", Vector2.ONE * 1.06, 1.6)
+	_stamp = l
+	flash(Color.WHITE, 0.9, 0.5)

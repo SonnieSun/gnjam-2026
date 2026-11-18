@@ -22,7 +22,9 @@ signal level_cleared
 ## 开始前的预备拍数（音乐响起之前先空走几拍）
 @export var lead_in_beats := 4.0
 ## 最后一关打完，结算画面停几秒之后自动接片尾字幕（期间按任意键马上去；0 = 不自动，等玩家按键）
-@export var credits_after_seconds := 6.0
+@export var credits_after_seconds := 0.0
+## 整个游戏最后一下砸下来的大字（CandyGem 字体只有字母和数字），结算弹进来时它飞上去变成结算的标题；单独玩前面几关时是 LEVEL CLEAR
+@export var final_pop_text := "ALL CLEAR"
 @export_group("阶段触发的大反馈")
 ## 积累条涨过一条分数线（进了新阶段）/ 涨满时：画面顶一大下（1 = 一次 Perfect 那么大；0 = 不顶）
 @export var phase_punch := 2.0
@@ -341,6 +343,8 @@ func _process(_delta: float) -> void:
 			_ending_music = true  # 过渡空位开始：下一个小关的过门音乐现在就放，空位结束时它的音乐正好进来
 			if _index + 1 < chart.sections.size() and Music.stream != null:
 				Music.enter_early(_index + 1)
+			elif _is_final_clear():
+				_final_pop()
 	if _switch_at >= 0.0 and Conductor.song_beat >= _switch_at:
 		var at := _switch_at
 		_switch_at = -1.0
@@ -478,6 +482,25 @@ func _restart_from_result() -> void:
 		_credits_timer.timeout.disconnect(_go_credits)
 	_credits_timer = null
 	start_from(0)
+
+
+## 打完这一个小关就是最终结算（最后一关的最后一个小关；没在一路连着玩时，每一关的最后一个小关都是）
+func _is_final_clear() -> bool:
+	if _index + 1 < chart.sections.size():
+		return false
+	var after := Levels.interlude_after(Levels.selected) if Levels.interlude == "" else ""
+	return not (in_run and (after != "" or Levels.selected < Levels.count() - 1))
+
+
+## 整个游戏的最后一下（七彩结束音符那一拍）：音乐不收（康康舞曲接着循环），画面上砸一个大字、白闪、顶一大下，
+## 镲 + 一声长 MIAO（G 调，和康康 fever 同调）。一小节后 _clear_level 弹出结算
+func _final_pop() -> void:
+	if editing:
+		return
+	screen_fx.punch(phase_punch * 1.8)
+	hud.final_pop(final_pop_text if Levels.selected == Levels.count() - 1 else "LEVEL CLEAR")
+	Music.play_sfx("crash", -2.0)
+	Music.play_sfx("meow_long_06_G5", -3.0)
 
 
 ## 去片尾字幕（scenes/credits.tscn）。音乐不停，接着在字幕下面放
@@ -807,7 +830,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if key.physical_keycode == KEY_ESCAPE:
 		return  # Esc 归暂停转盘管（scripts/pause_menu.gd）
 	if _cleared and hud.result_label.visible:
-		# 最终结算画面：R 重打这一关；别的键都不管，只有 NEXT 去片尾字幕（点按钮，或打击键按两下；不按也会自己去，见 _clear_level）
+		# 最终结算画面：R 重打这一关；别的键都不管，只有 NEXT 去片尾字幕（点按钮，或打击键按两下；credits_after_seconds > 0 时不按也会自己去）
 		if key.physical_keycode == KEY_R and not _credits_going:
 			_restart_from_result()
 		return

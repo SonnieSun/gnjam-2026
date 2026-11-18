@@ -19,6 +19,13 @@ const VOLUME_BUSES: Array[StringName] = [&"Master", MUSIC_BUS, SFX_BUS]
 ## 音量（0 ~ 1 线性，0 = 静音）
 var volumes := {&"Master": 1.0, MUSIC_BUS: 1.0, SFX_BUS: 1.0}
 var fullscreen := false
+## 结算画面里音乐弱化到多少
+const DUCK_DB := -9.0
+const DUCK_CUTOFF := 1100.0
+var _duck := 0.0
+var _duck_amp: AudioEffectAmplify
+var _duck_lp: AudioEffectLowPassFilter
+var _duck_tween: Tween
 
 
 func _ready() -> void:
@@ -104,6 +111,37 @@ func _apply_window() -> void:
 	var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
 	if DisplayServer.window_get_mode() != want:
 		DisplayServer.window_set_mode(want)
+
+
+## 把音乐「弱化」到背景里（结算画面用）：Music 总线压低、削掉高频。on = false 恢复。不动玩家设的音量
+func duck_music(on: bool, seconds := 0.8) -> void:
+	var i := AudioServer.get_bus_index(MUSIC_BUS)
+	if i < 0:
+		return
+	if _duck_amp == null:
+		_duck_amp = AudioEffectAmplify.new()
+		_duck_lp = AudioEffectLowPassFilter.new()
+		AudioServer.add_bus_effect(i, _duck_lp)
+		AudioServer.add_bus_effect(i, _duck_amp)
+		_set_duck(0.0)
+	if _duck_tween:
+		_duck_tween.kill()
+	_duck_tween = create_tween()
+	_duck_tween.tween_method(_set_duck, _duck, 1.0 if on else 0.0, maxf(seconds, 0.01))
+
+
+## 音乐弱化了多少（0 = 没有，1 = 压到 DUCK_DB、削到 DUCK_CUTOFF）
+func _set_duck(k: float) -> void:
+	_duck = k
+	if _duck_amp == null:
+		return
+	_duck_amp.volume_db = DUCK_DB * k
+	_duck_lp.cutoff_hz = 20000.0 * pow(DUCK_CUTOFF / 20000.0, k)
+	var i := AudioServer.get_bus_index(MUSIC_BUS)
+	for e in AudioServer.get_bus_effect_count(i):
+		var fx := AudioServer.get_bus_effect(i, e)
+		if fx == _duck_amp or fx == _duck_lp:
+			AudioServer.set_bus_effect_enabled(i, e, k > 0.001)
 
 
 func _ensure_bus(bus: StringName) -> void:
