@@ -38,8 +38,8 @@ var _run_at := INF  # 八分连打从哪一拍起（还没换上）
 static func chart_phases() -> Array:
 	return [
 		{"id": "", "name": "云层", "event": 0},
-		{"id": "storm", "name": "风暴（末日重金属）", "event": 0, "at": 0.135},
-		{"id": "ode", "name": "亮起来之后（欢乐颂的旋律）", "event": 0, "at": 0.379},  # at = 从积累条的多少开始（编辑器按它放那一段的音乐）
+		{"id": "storm", "name": "风暴（末日重金属）", "event": 0, "at": 0.107},
+		{"id": "ode", "name": "亮起来之后（欢乐颂的旋律）", "event": 0, "at": 0.508},  # at = 从积累条的多少开始（编辑器按它放那一段的音乐）
 	]
 
 

@@ -354,8 +354,11 @@ SETS[9] = {'title': 'TV WALL', 'use': True,
 #  last line 505); the first two lines stay where they were in points (72, 202), SPACE comes in on the Ode's
 #  bar 9 (the B phrase) and FEVER on bar 13 (the last A'), both waiting for the 4-bar phrase line; with a perfect
 #  run the gauge crosses them in bars 7 and 11. sky_section.gd holds the finale until bar 16 is over.)
-SKY_MAX = 533
-SKY = tuple(round(v / SKY_MAX, 3) for v in (72, 202, 350, 430))
+# (2026-11-19, the user: the doom climax is great but too short. The storm gets 140 more points, one more loop
+#  of the doom chart: 72 -> 342 = two 8-bar doom loops with a perfect run (the light still waits for the end of a
+#  loop). Everything after it moves by the same 140: the bar is 673, the last line 645.)
+SKY_MAX = 673
+SKY = tuple(round(v / SKY_MAX, 3) for v in (72, 342, 490, 570))
 SKY_BUILD = round(37 / SKY_MAX, 3)                       # the wall of guitars comes in about half way through the clouds
 SK = M + 'sky/sky_'
 OJ = M + 'classics/ode_to_joy/ode_to_joy_'

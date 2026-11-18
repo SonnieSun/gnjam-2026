@@ -13,9 +13,9 @@ script = ExtResource("5_n61dv")
 title = "SKY"
 scene = ExtResource("6_woq7x")
 beats_per_rev = 8.0
-gauge_max = 533
+gauge_max = 673
 bars = PackedStringArray("k.......s.......", "k...s...k...s...", "k...s...k...s...", "k...s...k.s.s...", "k...s...k...s...", "k...s...k...s...", "k...s...k.s.k.s.", "k.......s.......")
-gauge_events = PackedInt32Array(505)
+gauge_events = PackedInt32Array(645)
 use_gauge_events = true
 
 [resource]
