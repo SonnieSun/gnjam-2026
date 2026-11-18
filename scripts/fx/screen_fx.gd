@@ -18,12 +18,23 @@ const EFFECTS := {
 	"grid3": {"label": "3x3 Grid", "color": Color("4f9dff"), "tiles": 3.0},
 	"grid4": {"label": "4x4 Grid", "color": Color("3a6bd8"), "tiles": 4.0},
 	"kaleido": {"label": "Kaleidoscope", "color": Color("ff5d8f"), "kaleido": 1.0},
+	# 万花筒的几种变体：第一圈几瓣（segments）、一圈和下一圈隔多远（ring_spacing）、每片里看到多大范围（kaleido_zoom）
+	"kaleido4": {"label": "Kaleido 4 (big petals)", "color": Color("ff7d6b"), "kaleido": 1.0, "segments": 4.0, "ring_spacing": 0.5, "kaleido_zoom": 1.5},
+	"kaleido8": {"label": "Kaleido 8", "color": Color("ff4fb8"), "kaleido": 1.0, "segments": 8.0, "ring_spacing": 0.36, "kaleido_zoom": 2.0},
+	"kaleido12": {"label": "Kaleido 12 (fine)", "color": Color("d44fff"), "kaleido": 1.0, "segments": 12.0, "ring_spacing": 0.3, "kaleido_zoom": 2.4},
 	"mirror": {"label": "Mirror", "color": Color("86ffa3"), "mirror": 1.0},
+	"mirror_v": {"label": "Mirror (top / bottom)", "color": Color("5fe0c0"), "mirror_y": 1.0},
+	"mirror4": {"label": "Mirror x4", "color": Color("3fd0a0"), "mirror": 1.0, "mirror_y": 1.0},
+	"strips3": {"label": "3 Strips", "color": Color("9fb4ff"), "panels": 3.0},
+	"strips5": {"label": "5 Strips", "color": Color("7f8cff"), "panels": 5.0},
 	"rgb": {"label": "RGB Split", "color": Color("ffd23f"), "rgb_split": 0.012},
 	"zoom": {"label": "Zoom In", "color": Color("ff9a3c"), "zoom": 1.45},
 	"invert": {"label": "Invert", "color": Color("b38cff"), "invert": 1.0},
 }
-const NEUTRAL := {"tiles": 1.0, "kaleido": 0.0, "mirror": 0.0, "rgb_split": 0.0, "zoom": 1.0, "invert": 0.0}
+const NEUTRAL := {"tiles": 1.0, "kaleido": 0.0, "mirror": 0.0, "mirror_y": 0.0, "panels": 1.0, "rgb_split": 0.0, "zoom": 1.0, "invert": 0.0,
+		"segments": 6.0, "ring_spacing": 0.42, "kaleido_zoom": 1.7}
+## 这几个值不过渡，直接跳过去（中间值是切到一半的花瓣 / 半条；镜像过渡到一半是一片横着拉长的画面）
+const SNAP := ["panels", "segments", "ring_spacing", "kaleido_zoom", "mirror", "mirror_y"]
 const SHADER := preload("res://assets/shaders/screen_fx.gdshader")
 
 ## 换特效时过渡得多快（越大越快）
@@ -177,10 +188,15 @@ func punch_for(result: int) -> void:
 		NoteData.Result.GOOD: punch(punch_good)
 
 
+## 现在套着的是不是万花筒（哪一种都算）
+func is_kaleido() -> bool:
+	return float(EFFECTS[effect].get("kaleido", 0.0)) > 0.5
+
+
 ## 现在套着的特效是不是把画面切碎了（万花筒，或者 3×3、5×5 这种正中间是一整格的宫格），
 ## 需要在特效上面另画一套判定圈和命中特效
 func covers() -> bool:
-	if effect == "kaleido":
+	if is_kaleido():
 		return true
 	var tiles := int(EFFECTS[effect].get("tiles", 1))
 	return top_rings_in_grid and tiles >= 3 and tiles % 2 == 1
@@ -189,14 +205,14 @@ func covers() -> bool:
 ## 特效上面那套判定圈的圆心（屏幕坐标）和半径（像素）
 func top_center() -> Vector2:
 	var size := _rect.get_viewport_rect().size
-	if effect == "kaleido" or not is_instance_valid(section):
+	if is_kaleido() or not is_instance_valid(section):
 		return size / 2.0
 	return size / 2.0 + section.hit_position() / maxf(_now.tiles, 1.0)
 
 
 func top_radius() -> float:
 	var size := _rect.get_viewport_rect().size
-	if effect == "kaleido" or not is_instance_valid(section):
+	if is_kaleido() or not is_instance_valid(section):
 		return top_ring_ratio * size.y
 	return section.hit_radius() / maxf(_now.tiles, 1.0)
 
@@ -247,7 +263,12 @@ func _process(delta: float) -> void:
 		active = true
 	for key: String in NEUTRAL:
 		var to: float = goal.get(key, NEUTRAL[key])
-		_now[key] = lerpf(_now[key], to, minf(1.0, delta * blend_speed))
+		if key in SNAP:
+			# 万花筒的形状：只在万花筒几乎看不见的时候换（从一种万花筒直接切到另一种就是硬切）
+			if key in ["panels", "mirror", "mirror_y"] or _now.kaleido < 0.05 or float(goal.get("kaleido", 0.0)) > 0.5:
+				_now[key] = to
+		else:
+			_now[key] = lerpf(_now[key], to, minf(1.0, delta * blend_speed))
 		if absf(_now[key] - to) < 0.002:
 			_now[key] = to
 		if absf(_now[key] - NEUTRAL[key]) > 0.0005:

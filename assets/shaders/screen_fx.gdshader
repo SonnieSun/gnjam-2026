@@ -18,6 +18,10 @@ uniform float kaleido_zoom = 1.7;
 uniform float spin = 0.0;
 // 左右镜像的浓度
 uniform float mirror : hint_range(0.0, 1.0) = 0.0;
+// 上下镜像的浓度（和左右镜像一起开 = 四向对称）
+uniform float mirror_y : hint_range(0.0, 1.0) = 0.0;
+// 竖着切成几条（1 = 不切）：每一条里都是画面正中间那一条，原大小；两边的条左右翻过来、推近一点，像几台机位并排
+uniform float panels = 1.0;
 // 红蓝错位的距离（占屏幕宽度的比例）
 uniform float rgb_split = 0.0;
 // 推近：1 = 原样，1.4 = 放大到 1.4 倍
@@ -47,6 +51,24 @@ void fragment() {
 	float aspect = SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
 	uv = (uv - 0.5) / zoom + 0.5;
 	uv.x = mix(uv.x, 0.5 - abs(uv.x - 0.5), mirror);
+	uv.y = mix(uv.y, 0.5 - abs(uv.y - 0.5), mirror_y);
+	float panel_line = 0.0;
+	if (panels > 1.5) {
+		float n = floor(panels + 0.5);
+		float idx = floor(uv.x * n);
+		float px = fract(uv.x * n);
+		float off = idx - (n - 1.0) * 0.5;          // 离正中间那一条几条远（0 = 正中间）
+		panel_line = 1.0 - smoothstep(0.0, 0.02, min(px, 1.0 - px));
+		if (abs(off) > 0.25) {
+			if (mod(abs(off), 2.0) > 0.5) {
+				px = 1.0 - px;
+			}
+			float z = 1.0 + 0.35 * abs(off);
+			px = (px - 0.5) / z + 0.5;
+			uv.y = (uv.y - 0.5) / z + 0.5;
+		}
+		uv.x = (px - 0.5) / n + 0.5;
+	}
 	// 宫格：以屏幕中心为基准缩小，铺满
 	// 奇数格（3×3）屏幕正中间是一整格；偶数格（2×2、4×4）要错开半格，
 	// 不然屏幕中心落在接缝上，四周各露出半格。中间值平滑过渡。
@@ -76,6 +98,7 @@ void fragment() {
 		}
 		col = mix(col, sample_rgb(local * kaleido_zoom / vec2(aspect, 1.0) + 0.5), kaleido);
 	}
+	col = mix(col, vec3(0.02, 0.01, 0.08), panel_line * (1.0 - kaleido));
 	col = mix(col, 1.0 - col, invert);
 	col = max(mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, saturation), vec3(0.0));
 	COLOR = vec4(col + flash, 1.0);

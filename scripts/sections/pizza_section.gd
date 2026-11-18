@@ -79,7 +79,7 @@ func _camera_pose(_p: float, t: float) -> Dictionary:
 func _update_view(t: float) -> void:
 	var dt := 0.0 if _last_t < 0.0 else minf(t - _last_t, 0.05)
 	_last_t = t
-	_phase = 2 if screen_fx == "kaleido" else 0
+	_phase = 2 if screen_fx.begins_with("kaleido") else 0
 	_turn = clampf(progress() / turn_until, 0.0, 1.0)
 
 	# 往前飞：猫和披萨不动，别的东西往后退（-z），退到身后就绕回前面
