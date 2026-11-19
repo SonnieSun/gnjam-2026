@@ -112,9 +112,9 @@ const SEQS := {"intro": INTRO, "steps": STEPS, "peak": PEAK,
 @export var note_travel_ratio := 0.32
 ## 同时最多画几圈（下一个要打的 + 后面几个）
 @export var note_show_max := 4
-## 下一个要打的那一圈多粗（像素）；后面那几圈的不透明度（第二圈是这个值，第三圈一半，第四圈三分之一）
+## 圈到判定圈时多粗（像素；刚出现时是它的一半多一点）、刚出现时的不透明度
 @export var note_next_width := 18.0
-@export var note_later_alpha := 0.55
+@export var note_far_alpha := 0.6
 ## 时钟圈：半径是判定圈的几倍（0 = 不画）、音符的点多大（像素）
 @export var clock_ratio := 0.82
 @export var clock_dot := 8.0
@@ -562,7 +562,7 @@ func _draw_overlay() -> void:
 ## 缩圈音符（这一关自己的画法，为了在一堆镜头和特效里还读得出来）：
 ##   · 音符统一画成 2D 缩圈——不管镜头在猫前面还是后面、远还是近，都是从外往里收，提前的拍数也一样
 ##     （3D 圆环在背后机位是从小变大，近机位又来不及看，和 2D 的圈叠在一起像两条轨道；现在不画了，见 ring3d_alpha）
-##   · 下一个要打的那一圈：粗、不透明、带深色描边和柔光；再后面的几圈又细又淡，越往后越淡，最多画 note_show_max 圈
+##   · 每一圈都从同一个距离、提前同样的拍数出现，一出现就看得清，越近越粗越亮；下一个要打的多一圈深色描边和柔光。最多画 note_show_max 圈
 ##   · 空拍的虚线圈不画了（圈太多）
 ##   · 判定圈里面另有一圈时钟（_draw_clock）：圈被切断、看不全的时候看它
 ##   · 结尾连按的八分不画圈（不用对拍子，只管按），只留最后那一下的圈
@@ -580,17 +580,17 @@ func _draw_notes(ci: CanvasItem, center: Vector2, radius: float, lead: float, tr
 		var n := list[i]
 		var k := clampf(beats_until(n) / lead, 0.0, 1.0)
 		var r := radius + k * travel
+		# 每一圈的粗细、深浅只看它离判定圈多远（刚出现就看得见，越近越粗越亮），和它排第几个没关系：
+		# 这样密的音符和疏的音符都是从同一个距离、提前同样的拍数出现。下一个要打的只多一圈深色描边和柔光
+		var look := approach_ring_look(k, guide_color(n), note_far_alpha, note_next_width * 0.55, note_next_width)
+		look.color.a = lerpf(note_far_alpha, 1.0, pow(1.0 - k, 1.5))  # 不要基类那段淡入：一出现就是这个深浅
 		if i == 0:
-			var look := approach_ring_look(k, guide_color(n), 0.9, note_next_width * 0.75, note_next_width)
-			BeatGuides.draw_ring(ci, center, r, {"color": Color(0.03, 0.01, 0.1, 0.55 * look.color.a), "width": 1.0, "dashed": false},
+			BeatGuides.draw_ring(ci, center, r, {"color": Color(0.03, 0.01, 0.1, 0.55), "width": 1.0, "dashed": false},
 					float(look.width) + 7.0, squash, scale_x)
-			look.glow = maxf(float(look.glow), 0.25 * look.color.a)
-			draw_approach_ring(ci, center, r, look, squash, scale_x)
+			look.glow = maxf(float(look.glow), 0.25)
 		else:
-			var look := approach_ring_look(k, guide_color(n), 0.5, 4.0, 6.0)
-			look.color.a *= note_later_alpha / float(i)
 			look.glow = 0.0
-			draw_approach_ring(ci, center, r, look, squash, scale_x)
+		draw_approach_ring(ci, center, r, look, squash, scale_x)
 
 
 ## 判定圈里面的时钟圈（缩圈之外的第二个提示，缩圈被屏幕边、分屏切断时看它）：
