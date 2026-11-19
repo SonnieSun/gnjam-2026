@@ -202,6 +202,9 @@ func is_kaleido() -> bool:
 func covers() -> bool:
 	if is_kaleido():
 		return true
+	# 小关可以自己点名（写 wants_top_rings(特效名)）：比如镜像会把圈上的指针、文字对折掉的关
+	if is_instance_valid(section) and section.has_method("wants_top_rings") and section.wants_top_rings(effect):
+		return true
 	if float(EFFECTS[effect].get("panels", 1.0)) > 1.5:
 		return true  # 竖条分屏：判定圈比一条宽，会被切断，上面补一套完整的（正中间那一条是原大小，位置对得上）
 	var tiles := int(EFFECTS[effect].get("tiles", 1))

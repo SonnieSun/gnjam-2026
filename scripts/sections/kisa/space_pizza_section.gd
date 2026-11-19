@@ -550,8 +550,8 @@ func _draw_overlay() -> void:
 		var sq := _ring_squash()
 		draw_focus(_overlay, hit_position(), hit_radius(), sq[0])
 		draw_lit_target(_overlay, hit_position(), hit_radius(), Color(1, 1, 1, 0.9), 3.0, sq[0], sq[1])
-		# 竖条分屏时圈由特效层在最上面画一套完整的（这一层的会被条切断），这里就不画了
-		if not _fx_now.begins_with("strips"):
+		# 竖条分屏、对称轴穿过正中间的镜像：圈和时钟由特效层在最上面画一套完整的（这一层的会被切断 / 对折），这里就不画了
+		if not _fx_now.begins_with("strips") and not wants_top_rings(_fx_now):
 			_draw_notes(_overlay, hit_position(), hit_radius(), note_lead_beats, note_travel_ratio * screen_size().y, sq[0], sq[1])
 		if tap_age < 0.15:
 			_overlay.draw_arc(hit_position(), hit_radius() * (1.0 + tap_age), 0.0, TAU, 64,
@@ -632,6 +632,12 @@ func _draw_clock(ci: CanvasItem, center: Vector2, radius: float, squash := 1.0, 
 	ci.draw_line(at.call(now, r - 14.0), at.call(now, r + 14.0), Color(0.03, 0.01, 0.1, 0.8), 9.0, true)
 	ci.draw_line(at.call(now, r - 13.0), at.call(now, r + 13.0), Color.WHITE, 5.0, true)
 	ci.draw_circle(at.call(now, r), clock_dot * 0.8, Color.WHITE)
+
+
+## 特效层问：套着这个特效时要不要在特效上面另画一套圈。对称轴穿过正中间的镜像会把时钟对折
+## （半边指针倒着走），所以要；「双胞胎」里两只猫各有一个完整的圈，不用
+func wants_top_rings(fx: String) -> bool:
+	return fx in ["mirror", "mirror_v", "mirror4"]
 
 
 ## 九宫格 / 万花筒时特效层在最上面画的那一套缩圈也用同一种画法（特效层调的是这个函数）
