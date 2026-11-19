@@ -202,6 +202,8 @@ func is_kaleido() -> bool:
 func covers() -> bool:
 	if is_kaleido():
 		return true
+	if float(EFFECTS[effect].get("panels", 1.0)) > 1.5:
+		return true  # 竖条分屏：判定圈比一条宽，会被切断，上面补一套完整的（正中间那一条是原大小，位置对得上）
 	var tiles := int(EFFECTS[effect].get("tiles", 1))
 	return top_rings_in_grid and tiles >= 3 and tiles % 2 == 1
 

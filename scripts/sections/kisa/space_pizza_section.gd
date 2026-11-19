@@ -13,15 +13,15 @@ extends "res://scripts/sections/pizza_section.gd"
 
 ## 康康舞曲在这一段有三个阶段，谱面跟着换（都在音乐换的那条小节线上换，之前铺好的音符照常打完）：
 ##   开头（另一段旋律）      大关文件里这个小关的 bars：四小节一句，都在底鼓上
-##   四阶下行（进度一半起）  阶段 steps：一小节四下重音（旋律的四个往下走的音），下一小节跟旋律跑一小串八分
-##   高潮（经典旋律，fever） 阶段 peak：跟经典旋律的节奏（哒哒哒 哒 哒），句尾三下重拍
+##   四阶下行（进度一半起）  阶段 steps：一小节四下重音（旋律的四个往下走的音），下一小节换成军鼓、句尾留空
+##   高潮（经典旋律，fever） 阶段 peak：一拍一下踩着底鼓走，每小节最后一拍换军鼓，句尾三下重拍后留空
+## 后两套全是四分音符，没有八分连打：这一关镜头和特效很花，谱子要简单、一眼看得出来。
 ## 后两套是谱面文件 levels/charts/<大关>_<小关>_steps.tres / _peak.tres，配拍编辑器按 chart_phases() 列出来、能直接改；
 ## 没有文件时用下面的 mid_bars / peak_bars。
 ## 每个阶段多长在大关文件里（这个小关的 gauge_events 65 / 98 + phase_gain / fever_gain）：四阶下行大约放一遍（8 小节），
 ## 高潮从过线算起大约 14 小节。谱子变密了要把对应的 gain 按比例调小，阶段长度才不变。
-@export var mid_bars := PackedStringArray(["k...k...k...k...", "s.s.s...k.......", "k...k...k...k...", "s.s.s.s.k......."])
-@export var peak_bars := PackedStringArray(["k.k.k...s...k...", "k.k.k...s...k...", "k.k.k.k.s...s...", "k.k.k...s.......",
-		"k.k.k...s...k...", "k.k.k...s...k...", "k.k.k.k.s...s...", "k...k...k......."])
+@export var mid_bars := PackedStringArray(["k...k...k...k...", "s...s...k.......", "k...k...k...k...", "s...s...s...k..."])
+@export var peak_bars := PackedStringArray(["k...k...k...s...", "k...k...k...s...", "k...k...k...k...", "s...s...s.......", "k...k...k...s...", "k...k...k...s...", "k...k...k...k...", "k...k...k......."])
 var _next_bars := PackedStringArray()
 var _next_phase := ""
 var _next_at := INF
@@ -106,6 +106,20 @@ const SEQS := {"intro": INTRO, "steps": STEPS, "peak": PEAK,
 ## 2D 判定圈最小 / 最大多大（占屏幕高度的比例）。镜头拉远时 3D 判定环变小，2D 这圈跟着它，但不小于 / 大于这两个值
 @export var ring_ratio_min := 0.08
 @export var ring_ratio_max := 0.32
+@export_group("缩圈音符")
+## 缩圈提前几拍出现、从离判定圈多远收过来（占屏幕高度的比例）
+@export var note_lead_beats := 2.0
+@export var note_travel_ratio := 0.32
+## 同时最多画几圈（下一个要打的 + 后面几个）
+@export var note_show_max := 4
+## 下一个要打的那一圈多粗（像素）；后面那几圈的不透明度（第二圈是这个值，第三圈一半，第四圈三分之一）
+@export var note_next_width := 18.0
+@export var note_later_alpha := 0.55
+## 时钟圈：半径是判定圈的几倍（0 = 不画）、音符的点多大（像素）
+@export var clock_ratio := 0.82
+@export var clock_dot := 8.0
+## 3D 圆环的不透明度。0 = 不画：画面上只有 2D 缩圈这一套圈（两套一起出现时方向、速度都不一样，很乱）
+@export var ring3d_alpha := 0.0
 @export_group("")
 
 var _mode := ""
@@ -418,6 +432,9 @@ func _update_view(t: float) -> void:
 		var bu := clampf((song_beat() - ending_from - ENDING_HOLD_BEATS) / 4.0, 0.0, 1.0)
 		fly_speed = lerpf(70.0, 10.0, bu)
 	super._update_view(t)
+	if ring3d_alpha <= 0.0:
+		for ring: Node3D in _rings.get_children():
+			ring.visible = false
 	_update_warp(t, dt)
 
 
@@ -533,12 +550,104 @@ func _draw_overlay() -> void:
 		var sq := _ring_squash()
 		draw_focus(_overlay, hit_position(), hit_radius(), sq[0])
 		draw_lit_target(_overlay, hit_position(), hit_radius(), Color(1, 1, 1, 0.9), 3.0, sq[0], sq[1])
-		draw_target_guides(_overlay, hit_position(), hit_radius(), 0.32 * screen_size().y, ring_beats,
-				Callable(), sq[0], sq[1], false)
+		# 竖条分屏时圈由特效层在最上面画一套完整的（这一层的会被条切断），这里就不画了
+		if not _fx_now.begins_with("strips"):
+			_draw_notes(_overlay, hit_position(), hit_radius(), note_lead_beats, note_travel_ratio * screen_size().y, sq[0], sq[1])
 		if tap_age < 0.15:
 			_overlay.draw_arc(hit_position(), hit_radius() * (1.0 + tap_age), 0.0, TAU, 64,
 					Color(1, 1, 1, 1.0 - tap_age / 0.15), 6.0)
 	_draw_mash()
+
+
+## 缩圈音符（这一关自己的画法，为了在一堆镜头和特效里还读得出来）：
+##   · 音符统一画成 2D 缩圈——不管镜头在猫前面还是后面、远还是近，都是从外往里收，提前的拍数也一样
+##     （3D 圆环在背后机位是从小变大，近机位又来不及看，和 2D 的圈叠在一起像两条轨道；现在不画了，见 ring3d_alpha）
+##   · 下一个要打的那一圈：粗、不透明、带深色描边和柔光；再后面的几圈又细又淡，越往后越淡，最多画 note_show_max 圈
+##   · 空拍的虚线圈不画了（圈太多）
+##   · 判定圈里面另有一圈时钟（_draw_clock）：圈被切断、看不全的时候看它
+##   · 结尾连按的八分不画圈（不用对拍子，只管按），只留最后那一下的圈
+func _draw_notes(ci: CanvasItem, center: Vector2, radius: float, lead: float, travel: float, squash := 1.0, scale_x := 1.0) -> void:
+	var list: Array[NoteData] = []
+	for n in own_notes():
+		if n.judged or n.free:
+			continue
+		if beats_until(n) > lead or list.size() >= note_show_max:
+			break
+		list.append(n)
+	if clock_ratio > 0.0:
+		_draw_clock(ci, center, radius, squash, scale_x)
+	for i in range(list.size() - 1, -1, -1):  # 远的先画，下一个要打的画在最上面
+		var n := list[i]
+		var k := clampf(beats_until(n) / lead, 0.0, 1.0)
+		var r := radius + k * travel
+		if i == 0:
+			var look := approach_ring_look(k, guide_color(n), 0.9, note_next_width * 0.75, note_next_width)
+			BeatGuides.draw_ring(ci, center, r, {"color": Color(0.03, 0.01, 0.1, 0.55 * look.color.a), "width": 1.0, "dashed": false},
+					float(look.width) + 7.0, squash, scale_x)
+			look.glow = maxf(float(look.glow), 0.25 * look.color.a)
+			draw_approach_ring(ci, center, r, look, squash, scale_x)
+		else:
+			var look := approach_ring_look(k, guide_color(n), 0.5, 4.0, 6.0)
+			look.color.a *= note_later_alpha / float(i)
+			look.glow = 0.0
+			draw_approach_ring(ci, center, r, look, squash, scale_x)
+
+
+## 判定圈里面的时钟圈（缩圈之外的第二个提示，缩圈被屏幕边、分屏切断时看它）：
+## 判定圈往里一点有一圈细表盘，一个白色指针一小节（4 拍）顺时针转一圈，12 点是小节线。
+## 接下来不到一小节里的音符是表盘上的点（和音符同色，下一个要打的最大）；指针扫到点的那一下就是该按的时候。
+## 表盘大小、位置都不变，一眼能看到这一小节的节奏。
+func _draw_clock(ci: CanvasItem, center: Vector2, radius: float, squash := 1.0, scale_x := 1.0) -> void:
+	var r := radius * clock_ratio
+	var now := song_beat()
+	var at := func(beat: float, rr: float) -> Vector2:
+		var ang := -PI / 2.0 + fposmod(beat, 4.0) / 4.0 * TAU
+		return center + Vector2(cos(ang) * rr * scale_x, sin(ang) * rr * scale_x * squash)
+	# 表盘：一圈细线 + 四拍的刻度
+	BeatGuides.draw_ring(ci, center, r, {"color": Color(0.03, 0.01, 0.1, 0.45), "width": 1.0, "dashed": false}, 7.0, squash, scale_x)
+	BeatGuides.draw_ring(ci, center, r, {"color": Color(1, 1, 1, 0.5), "width": 1.0, "dashed": false}, 2.5, squash, scale_x)
+	for b in 4:
+		ci.draw_line(at.call(float(b), r - 7.0), at.call(float(b), r + 7.0), Color(1, 1, 1, 0.7), 3.0, true)
+	# 音符的点（远的先画）
+	var dots: Array[NoteData] = []
+	for n in own_notes():
+		if n.judged or n.free:
+			continue
+		if beats_until(n) > 3.6:
+			break
+		dots.append(n)
+	for i in range(dots.size() - 1, -1, -1):
+		var n := dots[i]
+		var pos: Vector2 = at.call(n.beat, r)
+		var size := clock_dot * (1.5 if i == 0 else 1.0)
+		ci.draw_circle(pos, size + 3.0, Color(0.03, 0.01, 0.1, 0.8))
+		ci.draw_circle(pos, size, guide_color(n))
+		if i == 0:
+			ci.draw_arc(pos, size + 5.0, 0.0, TAU, 24, Color(1, 1, 1, 0.9), 2.5, true)
+	# 指针：身后拖一小段尾巴，头上一个白点 + 一道横穿表盘的短线
+	var tail := PackedVector2Array()
+	for i in 13:
+		tail.append(at.call(now - 0.5 + 0.5 * i / 12.0, r))
+	ci.draw_polyline(tail, Color(1, 1, 1, 0.55), 5.0, true)
+	ci.draw_line(at.call(now, r - 14.0), at.call(now, r + 14.0), Color(0.03, 0.01, 0.1, 0.8), 9.0, true)
+	ci.draw_line(at.call(now, r - 13.0), at.call(now, r + 13.0), Color.WHITE, 5.0, true)
+	ci.draw_circle(at.call(now, r), clock_dot * 0.8, Color.WHITE)
+
+
+## 九宫格 / 万花筒时特效层在最上面画的那一套缩圈也用同一种画法（特效层调的是这个函数）
+func draw_approach_rings(ci: CanvasItem, center: Vector2, radius: float, _approach_beats: float, travel: float) -> void:
+	draw_focus(ci, center, radius)
+	draw_lit_target(ci, center, radius, Color(1, 1, 1, 0.9))
+	_draw_notes(ci, center, radius, note_lead_beats, travel)
+	if tap_age < 0.15:
+		ci.draw_arc(center, radius * (1.0 + tap_age), 0.0, TAU, 64, Color(1, 1, 1, 1.0 - tap_age / 0.15), 8.0)
+
+
+## 3D 圆环要画的话（ring3d_alpha > 0）只当纵深装饰：很淡、不发光（读谱看 2D 缩圈）
+func _style_ring(ring: Node3D, look: Dictionary) -> void:
+	look.color.a *= ring3d_alpha
+	look.glow = 0.0
+	super._style_ring(ring, look)
 
 
 func _draw_mash() -> void:
