@@ -206,11 +206,46 @@ def hat(open_=False, gain=1.0):
 SHOUT_LEAD, SHOUT_TOP, SHOUT_MI = cc.cat_sample(13), cc.cat_sample(6), cc.cat_sample(8)
 
 
-def cat_shout(midi, seconds, gang=True, fixed=False):
+# The take in the game (2026-11-19, the user's picks, takes 13-37): the long scream is meow-01 (C, held long), the cats
+# +2.5 dB; bar 4's (and bar 8's) triplet shouts sung from the user's recording (long_2); from the stop bar's beat 4 a
+# legato run of 8ths made from the front of the recording's opening meows, shout-processed (mid), kept well under the
+# shouts, ending on its long falling meow. Every SKY_* variable below can still be set to render the other takes
+# (an env value overrides its default here; set it to '' to switch a feature off).
+_SAMPLES = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'samples')
+SKY_DEFAULTS = {
+    'SKY_SHOUT_SAMPLE': os.path.join(_SAMPLES, 'user_41290960471', 'long_2.wav'),
+    'SKY_LOW_SAMPLE': os.path.join(_SAMPLES, 'user_meow01', 'meow-01.wav'),
+    'SKY_LOW_SCREAM': 'c', 'SKY_LOW_LONG': '1', 'SKY_SHOUT_DB': '2.5',
+    'SKY_RUN_DIR': os.path.join(_SAMPLES, 'user_41290960471'),
+    'SKY_RUN_STYLE': 'roll', 'SKY_RUN_ROLL': '8', 'SKY_RUN_FIT': 'keep', 'SKY_RUN_LOW': 'quiet', 'SKY_RUN_END': 'long',
+    'SKY_RUN_EDGE': 'mid', 'SKY_RUN_LEGATO': '1',
+}
+
+
+def sky_opt(key, fallback=''):
+    return os.environ.get(key, SKY_DEFAULTS.get(key, fallback))
+
+
+# Take 31 (the user: the shouts and the run don't sound alike): SKY_SHOUT_SAMPLE = a wav to sing every shout from
+# (the user's recording) instead of the library cats, through the same shout chain
+SHOUT_SAMPLE = sky_opt('SKY_SHOUT_SAMPLE')
+if SHOUT_SAMPLE:
+    _ss = read_wav(SHOUT_SAMPLE)
+    _ss = _ss.mean(axis=1) if _ss.ndim == 2 else _ss
+    SHOUT_SRC = highpass(np.stack([_ss, _ss], 1), 100)[:, 0] / np.max(np.abs(_ss))
+
+
+def cat_shout(midi, seconds, gang=True, fixed=False, own=False):
     """A rock shout: the cats' phrase-ending MIAO at the note, doubled, pitch-FX ringing, a little distortion
     so it sits on top of fuzz guitars, and a short kitten 'mi' on the front so it bites."""
     m = cc.lift(midi)
-    if fixed:
+    if SHOUT_SAMPLE and own:                              # take 32: only the shouts marked own (the triplets)
+        sec = max(seconds, 0.3)
+        lead = cc.resonate(cc.sing_miao(SHOUT_SRC, m, sec, keep=0.4), m, 0.8)
+        low = cc.resonate(cc.sing_miao(SHOUT_SRC, m - 12, sec, keep=0.4), m - 12, 0.8)
+        hi = cc.sing_miao(SHOUT_SRC, m + 12, max(seconds * 0.8, 0.3), keep=0.4)
+        tick = cc.mi(midi + 12, 0.06)
+    elif fixed:
         lead = cc.resonate(cc.sing_miao(SHOUT_LEAD, m, max(seconds, 0.3), keep=0.4), m, 0.8)
         low = lead
         hi = cc.sing_miao(SHOUT_TOP, m + 12, max(seconds * 0.8, 0.3), keep=0.4)
@@ -533,6 +568,45 @@ def cat_scream(midi, seconds):
 # stretched, a touch of pitch FX so the note reads, a little saturation and room.
 LOW_CAT_ID = int(os.environ.get('SKY_LOW_CAT', 1))       # SKY_LOW_CAT=2 / 3 to try the other low cats
 LOW_CAT = cc.cat_sample(LOW_CAT_ID)
+# Take 13 (the user, 2026-11-19: make the long scream from their own meow, Desktop/meow-01.mp3, its own pitch about C5,
+# a loud held 'miaaa' of about 1 s). SKY_LOW_SAMPLE = a wav (44.1 kHz mono) to sing the long note instead of cat #1;
+# SKY_LOW_SCREAM = how it screams:
+#   a  natural: sung at C5 (near its own pitch), the vowel stretched to the bar, a light drive, a quiet growl an octave down
+#   b  heavy: the same, driven hard, the growl an octave down loud and a sub-growl two octaves down
+#   c  low: sung at C4 (where the long meow was), the growl under it, driven
+LOW_SAMPLE = sky_opt('SKY_LOW_SAMPLE')
+if LOW_SAMPLE:
+    _ls = read_wav(LOW_SAMPLE)
+    _ls = _ls.mean(axis=1) if _ls.ndim == 2 else _ls
+    LOW_CAT = highpass(np.stack([_ls, _ls], 1), 100)[:, 0] / np.max(np.abs(_ls))
+SCREAM = sky_opt('SKY_LOW_SCREAM')
+# Take 14 (the user: hold the scream longer): SKY_LOW_LONG=1 lets each long note run on until the next shout:
+# bar 1's into the empty bar 2 (1.9 bars), bar 3's up to bar 4's triplets (1.45 bars); bar 5's stays (the stop follows)
+LOW_LONG = sky_opt('SKY_LOW_LONG') == '1'
+# Take 16 (the user: after the two 3-3-2 shouts, the run of short meows from their recording as a drum-like lead-in):
+# SKY_RUN_DIR = a folder with run_01.wav ... (the opening run of samples/user_41290960471, cut by hand). Bar 7's
+# held third shout gives way to the run's first RUN_N meows as straight 8ths from its beat 4, getting louder, up to
+# bar 8's climbing triplets.
+RUN_DIR = sky_opt('SKY_RUN_DIR')
+RUN_N = 6
+# Take 17 (the user: the run can't be heard at all): SKY_RUN_STYLE loud = much louder, little drive, more bite;
+# up = the same, each meow doubled an octave up (at its own pitch, about C4, it sits right in the guitars)
+RUN_STYLE = sky_opt('SKY_RUN_STYLE')
+# Take 18 (the user: the run straight after the two shouts, played out, not too loud): SKY_RUN_FIT
+#   take 19 (the user: still a bar late; in with the fast drums, and compare keeping the triplets): the run starts on
+#   the stop bar's (bar 6) beat 4, right after its two held shouts, in place of its third; all 9 meows as 8ths at
+#   full length across bar 7 (whose 3-3-2 shouts it replaces), the long 9th from bar 7's beat 4 into bar 8
+#   keep  bar 8's climbing triplets stay
+#   all   bar 8's triplets give way to the held last meow
+RUN_FIT = sky_opt('SKY_RUN_FIT')
+# Take 21 (the user: too dry, keep the real cat sound, no need to sit on the kicks): SKY_RUN_STYLE=natural: the
+# recorded run as it is (run_all.wav, its own timing), no cutting, layering or drive; a light presence lift only.
+# With SKY_RUN_FIT=all the whole run, bar 8's triplets give way to its long last meow; keep = meows 1-8 (the run cut
+# before the 9th), the triplets stay.
+# Take 20 (the user: softer and crisper, no blur, like kick / bass, really on the 8th kicks): SKY_RUN_STYLE=tight:
+# no octave layer, each meow dry and cut short (half an 8th, a fast decay; the last a quarter), its attack put
+# exactly on the 8th, a little low body, quieter
+LOW_BARS = {0: 1.9, 2: 1.45} if LOW_LONG else {}
 
 
 # How soft the long meow is (the user: #1 is the one, but a little too sharp). SKY_LOW_SOFT 0 = take 5 as it was;
@@ -552,6 +626,8 @@ def warp(v, semis):
 def long_low(midi, seconds, shape=''):
     """shape: '' held; 'fall' falls off at the end (down a minor third over the last third, like the guitar's bend);
     'scoop' comes up into the note from a semitone below, then a slow vibrato."""
+    if SCREAM:
+        return scream(midi, seconds, shape)
     cut, fx, sat, gain = _SOFT
     v = cc.sing_miao(LOW_CAT, midi, seconds, keep=0.3)
     if fx:
@@ -570,6 +646,308 @@ def long_low(midi, seconds, shape=''):
     return reverb(x * gain, 1.4, 0.45, mix=0.22)
 
 
+def scream(midi, seconds, shape=''):
+    """Take 13: the long note as a scream (see SCREAM above). The note is written as C4 / D4 (midi 60 / 62);
+    a and b sing it an octave up, at the sample's own height."""
+    up = 12 if SCREAM in ('a', 'b') else 0
+    m = midi + up
+    v = cc.sing_miao(LOW_CAT, m, seconds, keep=0.45)
+    k = np.arange(len(v) + t2n(0.5)) / SR
+    bend = 0.35 * np.sin(2 * np.pi * 6.0 * k) * np.clip((k - 0.4) / 0.5, 0, 1)  # vibrato that opens up as it holds
+    if shape == 'scoop':
+        bend = bend - 1.0 * np.clip(1 - k / 0.18, 0, 1) ** 2
+    elif shape == 'fall':
+        bend = bend - 3.0 * np.clip((k - seconds * 0.62) / (seconds * 0.38), 0, 1) ** 2
+    v = warp(v, bend)
+    v = v * 0.22 / (np.sqrt(np.mean(v ** 2)) + 1e-9)
+    growl = {'a': 0.3, 'b': 0.75, 'c': 0.6}[SCREAM]
+    g = cc.sing_miao(LOW_CAT, m - 12, seconds, keep=0.45)
+    g = warp(g, bend)
+    g = g * 0.22 / (np.sqrt(np.mean(g ** 2)) + 1e-9)
+    # the growl: rough, an amplitude flutter at about 40 Hz (a throat rattle), only its lows and mids
+    g = g * (1.0 + 0.6 * np.sin(2 * np.pi * 41.0 * np.arange(len(g)) / SR))
+    g = lowpass(np.stack([g, g], 1), 2200, order=4)[:, 0]
+    parts = [(v, 1.0), (g, growl)]
+    if SCREAM == 'b':
+        sub = cc.sing_miao(LOW_CAT, m - 24, seconds, keep=0.45)
+        sub = sub * 0.22 / (np.sqrt(np.mean(sub ** 2)) + 1e-9)
+        parts.append((lowpass(np.stack([sub, sub], 1), 900, order=4)[:, 0], 0.5))
+    y = np.zeros(max(len(p) for p, _ in parts))
+    for p, w in parts:
+        y[: len(p)] += p * w
+    x = cc.stereo(y) * 1.4
+    drive = {'a': 1.6, 'b': 3.2, 'c': 2.4}[SCREAM]
+    x = softclip(x * drive, 1.0) / np.sqrt(drive)
+    x = x + 0.6 * bandpass(x, 1200, 3500)       # the scream's bite
+    x = lowpass(x, 7000, order=4)                # no fizz on top
+    return reverb(x, 1.6, 0.5, mix=0.25)
+
+
+# Take 22 (the user: good; process it a little, and try it shorter): SKY_RUN_SQUEEZE = how much of its own length the
+# run keeps (0.65 = all 9 meows done before bar 8's triplets; use with SKY_RUN_FIT=keep). Only the gaps shrink: each
+# meow is its own cut (run_01 ... run_09) at its own sound, placed at its onset in the run times the squeeze and cut at
+# the next one. Light processing: the low rumble off, the meows brought closer in level, a touch of saturation.
+RUN_SQUEEZE = float(sky_opt('SKY_RUN_SQUEEZE') or 0)
+# Take 23 (the user: 0.8, but drop the long last meow, and some distortion like the shouts): SKY_RUN_DROP=1 keeps meows
+# 1-8 (bar 8's triplets stay); SKY_RUN_DRIVE=shout drives the run the way cat_shout drives the shouts.
+RUN_DROP = sky_opt('SKY_RUN_DROP') == '1'
+RUN_DRIVE = sky_opt('SKY_RUN_DRIVE')
+# Take 24 (the user: still not enough kick, not metal enough): SKY_RUN_METAL kick = a metal click-kick on every
+# meow's attack (the run becomes a double-kick roll with the cats on it), the meows driven harder; chug = that, and a
+# short palm-muted power chord of the bar's root under each meow. Take 25 (the user: a little weaker): kicks ~4 dB
+# down, the chugs and the meows' drive and level down a little
+RUN_METAL = sky_opt('SKY_RUN_METAL')
+RUN_ONSETS = (0.0, 0.24, 0.54, 0.85, 1.15, 1.46, 1.86, 2.18, 2.50)   # where run_01 ... run_09 were cut from run_all
+
+
+# Take 26 (the user: the source is too soft as it is; make it drum-like little rapid notes): SKY_RUN_STYLE=roll: a fill
+# of meow hits from the stop bar's beat 4 up to bar 8's triplets, speeding up: 8ths, then 16ths from bar 7's beat 3.
+# Each hit is the front ('mi') of the run's meows in turn (so the pitch still moves like the recording), a sharp attack
+# with a little click, a fast decay, driven; building. SKY_RUN_METAL=kick also puts a soft kick under the 8th hits.
+# Take 27 (the user: no 16ths): SKY_RUN_ROLL=8 keeps it all in 8ths, up to bar 8's triplets
+ROLL = ([0.5 * i for i in range(14)] if sky_opt('SKY_RUN_ROLL') == '8'
+        else [0.0, 0.5, 1.0, 1.5, 2.0, 2.5] + [3.0 + 0.25 * i for i in range(16)])   # beats after the stop bar's beat 4
+
+
+# Take 29 (the user: a bit too round): SKY_RUN_EDGE=1: no low body, a harder clip and a little bitcrush grit, more bite,
+# a shorter decay (the long last meow gets the same edge)
+RUN_EDGE = sky_opt('SKY_RUN_EDGE') == '1'
+# take 31: SKY_RUN_EDGE=shout puts each hit (and the long last meow) through the shouts' own chain instead (cat_shout:
+# pitch-FX ringing at the meow's pitch, an octave below and above doubled in, the same bite and clip)
+RUN_SHOUTY = sky_opt('SKY_RUN_EDGE') == 'shout'
+# take 32 (the user: after that the cat is gone): SKY_RUN_EDGE=light: the shouts' finish only: a little pitch FX,
+# no octave below, a quiet octave above, the same bite and clip; the meow stays the meow
+RUN_LIGHT = sky_opt('SKY_RUN_EDGE') in ('light', 'mid')
+# take 34 (the user: don't swap in a shout; make the whole run more shout-like): SKY_RUN_EDGE=mid: between light and
+# the full chain: more pitch FX, a quiet octave below, a louder octave above, driven harder into the clip
+RUN_MID = sky_opt('SKY_RUN_EDGE') == 'mid'
+# take 36 (the user: each meow cut too much apart; joined up like the recording is more cat): SKY_RUN_LEGATO=1: each
+# meow sounds on until the next one, a short crossfade between them, no fast decay
+RUN_LEGATO = sky_opt('SKY_RUN_LEGATO') == '1'
+
+
+def shout_light(v):
+    import slicer
+    midi = slicer.detect_midi(v, 150, 1500) or 61.0
+    lead = cc.resonate(v, midi, 0.55 if RUN_MID else 0.3)
+    hi = resample(np.stack([v, v], 1), 2.0)[:, 0]
+    x = cc.stereo(lead)
+    if RUN_MID:
+        low = resample(np.stack([v, v], 1), 0.5)[:, 0][: len(v)]
+        x[: len(low)] += cc.stereo(low, -0.4)[: len(x)] * 0.3
+    x[: len(hi)] += cc.stereo(hi, 0.4)[: len(x)] * (0.3 if RUN_MID else 0.2)
+    x = (x + (0.3 if RUN_MID else 0.5) * bandpass(x, 1800, 4500)) * (2.0 if RUN_MID else 1.4)
+    x = softclip(x, 1.6)
+    # take 35 (the user: right direction, but it jumps out too much): the mid run's bite softer, its top rolled off
+    # take 37 (the user: less presence still): legato rolls off from 4.5 kHz
+    return lowpass(x, 4500 if RUN_LEGATO else 6000, order=2) if RUN_MID else x
+
+
+def shoutify(v):
+    import slicer
+    midi = slicer.detect_midi(v, 150, 1500) or 61.0
+    lead = cc.resonate(v, midi, 0.8)
+    low = cc.resonate(resample(np.stack([v, v], 1), 0.5)[:, 0][: len(v)], midi - 12, 0.8)
+    hi = resample(np.stack([v, v], 1), 2.0)[:, 0]
+    x = cc.stereo(lead)
+    x[: len(low)] += cc.stereo(low, -0.4)[: len(x)] * 0.7
+    x[: len(hi)] += cc.stereo(hi, 0.4)[: len(x)] * 0.4
+    x = (x + 0.5 * bandpass(x, 1800, 4500)) * 1.4
+    return softclip(x, 1.6)
+
+
+def edge(y):
+    y = y + 1.0 * bandpass(y, 2000, 5500)
+    y = highpass(y, 250)
+    y = np.clip(y * 4.0, -0.6, 0.6) / 0.6                  # hard clip: square-ish, raspy
+    y = np.round(y * 24) / 24                              # a little bitcrush grit
+    return lowpass(y, 8000, order=4) * 0.6
+
+
+def roll_hit(v, length):
+    env = np.abs(v)
+    on = int(np.argmax(env > 0.3 * env.max()))
+    v = v[max(on - t2n(0.003), 0):][: t2n(length)].copy()
+    k = np.arange(len(v)) / SR
+    v *= np.exp(-k / (length * (0.22 if RUN_EDGE else 0.35))) * np.clip(k / 0.002, 0, 1)
+    v = v * 0.22 / (np.sqrt(np.mean(v ** 2)) + 1e-9)
+    c = t2n(0.006)                                          # the click: a little bright noise on the attack
+    v[:c] += highpass(np.stack([noise(c)] * 2, 1), 3000)[:, 0] * np.exp(-np.arange(c) / SR / 0.0015) * 0.6
+    if RUN_SHOUTY or RUN_LIGHT:
+        y = shout_light(v) if RUN_LIGHT else shoutify(v)
+        n = len(v)
+        if RUN_LEGATO:
+            y = y[:n].copy()
+            f = min(t2n(0.025), n // 2)
+            y[-f:] *= np.linspace(1, 0, f)[:, None]
+            return y
+        y = y[:n] * np.exp(-np.arange(n) / SR / (length * 0.35))[:, None]
+        return y
+    y = cc.stereo(v)
+    if RUN_EDGE:
+        return edge(y)
+    y = y + 0.5 * bandpass(y, 1800, 4500) + 0.4 * lowpass(y, 350, order=2)
+    return softclip(y * 2.6, 1.6) / 1.6
+
+
+# Take 28 (the user: ok; a little lower, and the last hit the long meow from the run's end): SKY_RUN_LOW = quiet (3 dB
+# down) or pitch (the hits 3 semitones down); SKY_RUN_END=long: the last hit is run_09 (the long falling meow), driven
+# like the hits but held, and bar 8's triplets give way to it
+RUN_LOW = sky_opt('SKY_RUN_LOW')
+RUN_END = sky_opt('SKY_RUN_END')
+
+
+def run_roll(x, bar, beat):
+    runs = []
+    for j in range(9):
+        v = read_wav(os.path.join(RUN_DIR, 'run_%02d.wav' % (j + 1)))
+        v = v.mean(axis=1) if v.ndim == 2 else v
+        if RUN_LOW == 'pitch':
+            v = resample(np.stack([v, v], 1), 2 ** (-3 / 12))[:, 0]   # 3 semitones down (a little longer)
+        runs.append(v)
+    quiet = 10 ** ((-6.0 if RUN_EDGE or RUN_SHOUTY or RUN_LIGHT else -3) / 20) if RUN_LOW == 'quiet' else 1.0   # the edgy hits sound denser; take 30: 1.5 dB more down
+    for i, b in enumerate(ROLL):
+        nxt = ROLL[i + 1] if i + 1 < len(ROLL) else b + 0.25
+        length = (nxt - b) * BAR / 4 * (1.0 if RUN_LEGATO else 0.85) + (0.025 if RUN_LEGATO else 0.0)
+        pos = at(bar, beat + b)
+        if RUN_END == 'shout' and i == len(ROLL) - 1:
+            # take 33 (the user: the last long note wants that shouted feel): a real shout (the triplets' kind: sung
+            # from SKY_SHOUT_SAMPLE through the shout chain), G4, held about a second, falling ~5 semitones at its end
+            y = cat_shout(67, 1.0, own=True)
+            u = np.arange(len(y) + t2n(0.3)) / max(len(y), 1)
+            bend = -5.0 * np.clip((u - 0.45) / 0.55, 0, 1) ** 1.5
+            y = np.stack([warp(y[:, 0], bend), warp(y[:, 1], bend)], 1)
+            f = t2n(0.08)
+            y[-f:] *= np.linspace(1, 0, f)[:, None]
+            place(x, y, pos, 0.9)
+        elif RUN_END == 'long' and i == len(ROLL) - 1:
+            v = runs[8]
+            env = np.abs(v)
+            v = v[max(int(np.argmax(env > 0.3 * env.max())) - t2n(0.003), 0):].copy()
+            # take 30 (the user: the last long meow goes down): it falls about 5 semitones toward its end
+            u = np.arange(len(v) + t2n(0.3)) / max(len(v), 1)
+            v = warp(v, -5.0 * np.clip(u, 0, 1) ** 1.5)
+            f = t2n(0.06)
+            v[-f:] *= np.linspace(1, 0, f)
+            v = v * 0.22 / (np.sqrt(np.mean(v ** 2)) + 1e-9)
+            y = cc.stereo(v)
+            if RUN_LIGHT:
+                y = shout_light(v)
+            elif RUN_SHOUTY:
+                y = shoutify(v)
+            elif RUN_EDGE:
+                y = edge(y)
+            else:
+                y = y + 0.5 * bandpass(y, 1800, 4500) + 0.3 * lowpass(y, 350, order=2)
+                y = softclip(y * 2.6, 1.6) / 1.6
+            place(x, y, pos, 1.6 * quiet * (0.65 if RUN_MID else 1.0) * (0.7 if RUN_LEGATO else 1.0))
+        else:
+            y = roll_hit(runs[i % 8], length)
+            place(x, y, pos, (1.1 + (0.45 if RUN_LOW == 'quiet' else 0.9) * i / (len(ROLL) - 1)) * quiet
+                  * (1.6 if RUN_MID else 2.5 if RUN_LIGHT else 1.0) * (0.32 if RUN_LEGATO else 1.0))   # take 35: mid ~2.5 dB down; legato ~7 dB down (it's fuller)   # quiet: never over the shouts; the light hits come out ~8 dB softer
+        if RUN_METAL == 'kick' and (b * 2) % 1 == 0:
+            place(x, KICK_CLICK, pos, 0.6)
+
+
+def run_squeezed(x, bar, beat):
+    starts = [o * RUN_SQUEEZE for o in RUN_ONSETS[: 8 if RUN_DROP else 9]]
+    room_end = (8 - bar) * BAR - beat * BAR / 4 - BAR / 2 if RUN_FIT == 'keep' else None   # keep: done by bar 8 beat 3
+    y = np.zeros(t2n(4.0))
+    for j, st in enumerate(starts):
+        v = read_wav(os.path.join(RUN_DIR, 'run_%02d.wav' % (j + 1)))
+        v = v.mean(axis=1) if v.ndim == 2 else v
+        end = starts[j + 1] + 0.02 if j + 1 < len(starts) else (room_end if room_end else st + len(v) / SR)
+        v = v[: t2n(max(end - st, 0.05))].copy()
+        f = t2n(0.02)
+        v[-f:] *= np.linspace(1, 0, f)
+        r = np.sqrt(np.mean(v ** 2)) + 1e-9
+        v = v * (0.15 / r) ** 0.6                          # closer in level (not all the way)
+        y[t2n(st): t2n(st) + len(v)] += v
+    y = y[: t2n(starts[-1]) + t2n(1.2)]
+    y = highpass(np.stack([y, y], 1), 180)[:, 0]
+    if RUN_DRIVE == 'shout':
+        y = y * 0.22 / (np.sqrt(np.mean(y[y != 0] ** 2)) + 1e-9)
+        z = cc.stereo(y)
+        z = (z + 0.5 * bandpass(z, 1800, 4500)) * 1.4      # as cat_shout: bite, then driven
+        z = softclip(z * (2.8 if RUN_METAL else 2.2), 1.6) / 1.6
+        z = lowpass(z, 7500, order=4)
+        z = z * 0.22 / (np.sqrt(np.mean(z[np.abs(z[:, 0]) > 1e-6] ** 2)) + 1e-9)
+        place(x, z, at(bar, beat), 1.8 if RUN_METAL else 2.2)
+        if RUN_METAL:
+            for j, st in enumerate(starts):
+                pos = at(bar, beat) + t2n(st)
+                place(x, KICK_CLICK, pos, 0.65 + 0.2 * j / max(len(starts) - 1, 1))   # take 25: softer
+                if RUN_METAL == 'chug':
+                    b_abs = (pos / BAR_N)
+                    root = CLIMAX_ROOTS[min(max(int(b_abs) - 4, 0), 3)]
+                    place(x, heavy(power(root, octave=False), 0.16, mute=0.07), pos, 0.2)
+        return
+    y = np.tanh(y * 2.0) / 2.0                             # a touch of saturation
+    y = y * 0.22 / (np.sqrt(np.mean(y[y != 0] ** 2)) + 1e-9)
+    z = cc.stereo(y)
+    z = z + 0.3 * bandpass(z, 1500, 4000)
+    place(x, z, at(bar, beat), 2.2)
+
+
+def run_natural(x, bar, beat):
+    v = read_wav(os.path.join(RUN_DIR, 'run_all.wav'))
+    v = v.mean(axis=1) if v.ndim == 2 else v
+    if RUN_FIT == 'keep':
+        v = v[: t2n(2.46)].copy()                          # up to the end of the 8th meow
+        f = t2n(0.04)
+        v[-f:] *= np.linspace(1, 0, f)
+    v = v * 0.22 / (np.sqrt(np.mean(v ** 2)) + 1e-9)
+    y = cc.stereo(v)
+    y = y + 0.3 * bandpass(y, 1500, 4000)
+    place(x, y, at(bar, beat), 2.4)
+
+
+def run_in(x, bar, beat):
+    """Take 16: the recorded run of short meows as straight 8ths, each cut to an 8th, louder step by step, a little
+    drive and bite like the shouts."""
+    eighth = BAR / 8
+    n = 9 if RUN_FIT else RUN_N
+    for j in range(n):
+        v = read_wav(os.path.join(RUN_DIR, 'run_%02d.wav' % (j + 1)))
+        v = v.mean(axis=1) if v.ndim == 2 else v
+        if RUN_STYLE == 'tight':
+            env = np.abs(v)
+            on = int(np.argmax(env > 0.3 * env.max()))     # the attack: put it on the 8th
+            v = v[max(on - t2n(0.004), 0):].copy()
+            room = BAR / 4 if j == 8 else eighth * 0.55
+            v = v[: t2n(room)].copy()
+            k = np.arange(len(v)) / SR
+            v *= np.exp(-k / (room * 0.45))
+        elif RUN_FIT:
+            room = (BAR * 1.25 if RUN_FIT == 'all' else BAR / 4 * 3.0) if j == 8 else eighth * 1.6   # played out; the last held
+            v = v[: t2n(room)].copy()
+        else:
+            v = v[: t2n(eighth * 0.92)].copy()
+        f = t2n(0.012)
+        v[-f:] *= np.linspace(1, 0, f)
+        v = v * 0.22 / (np.sqrt(np.mean(v ** 2)) + 1e-9)
+        if RUN_STYLE == 'up':
+            import slicer
+            mid = slicer.detect_midi(v, 200, 1500) or 61.0
+            hi = cc.sing_miao(v, mid + 12, len(v) / SR, keep=0.6)[: len(v)]
+            hi = hi * 0.22 / (np.sqrt(np.mean(hi ** 2)) + 1e-9)
+            v = v * 0.8 + hi * 0.9
+        y = cc.stereo(v) * 1.4
+        if RUN_STYLE == 'tight':
+            y = y + 0.6 * lowpass(y, 400, order=2)          # a little body, like a kick / bass
+            y = y + 0.4 * bandpass(y, 2000, 5000)           # and a clean click on top
+            gain = 0.9 + 0.4 * j / max(n - 1, 1)
+        elif RUN_STYLE:
+            y = softclip(y * 1.3, 1.0)
+            y = y + 1.0 * bandpass(y, 1400, 4500)
+            gain = (1.3 + 0.6 * j / max(n - 1, 1)) if RUN_FIT else (2.4 + 1.2 * j / max(RUN_N - 1, 1))
+        else:
+            y = softclip(y * 2.0, 1.0) / np.sqrt(2.0)
+            y = y + 0.5 * bandpass(y, 1500, 4000)
+            gain = 0.55 + 0.45 * j / max(RUN_N - 1, 1)
+        place(x, y, at(bar, beat + 0.5 * j), gain)
+
+
 def cats(name):
     """Take 3 (the user: too many messy meows; keep the quarter-note-triplet shouts, do 3-3-2 with that feel).
     Only the clean rock shout, few and in phrases: bar 4 and bar 8 three shouts on the quarter-note triplets of
@@ -577,17 +955,17 @@ def cats(name):
     the next: 3, 3 and 2 eighths), bar 6 left to the guitars."""
     x = np.zeros((N + t2n(3.0), 2))
     for j in range(3):                                    # bar 4: three triplet shouts, G
-        place(x, cat_shout(67, BAR / 4 * TRIP * 0.95), at(3, 2 + j * TRIP), 0.9)
+        place(x, cat_shout(67, BAR / 4 * TRIP * 0.95, own=True), at(3, 2 + j * TRIP), 0.9)
     # take 5: each set of triplets runs straight into a long low meow on the next downbeat (bar 1 answers the
     # triplets of the bar before the storm, and the ones of bar 8 when the loop comes round; bar 5 answers bar 4)
     for bar in (0, 4):
-        place(x, long_low(60, BAR * 0.95), at(bar), 0.9)
+        place(x, long_low(60, BAR * LOW_BARS.get(bar, 0.95)), at(bar), 0.9)
         place(x, cat_shout(67, BAR / 4 * TRIP * 0.95, fixed=True), at(bar), 0.9)   # take 6: a shout on its front (G4, fixed cats)
     # take 7: the long meow once more on the second eight-count (storm bar 3), on its own. (Bar 7, the second
     # eight-count after the bar-5 one, has the 3-3-2 shouts, so it gets none.)
     # take 8 (the user: a little variation on the repeat): SKY_LOW_AGAIN = third (sings Eb4), fall, scoop; '' = the same
     again = os.environ.get('SKY_LOW_AGAIN', 'scoop')       # the user picked the scoop
-    place(x, long_low(63 if again == 'third' else 60, BAR * 0.95, again if again in ('fall', 'scoop') else ''), at(2), 0.9)
+    place(x, long_low(63 if again == 'third' else 60, BAR * LOW_BARS.get(2, 0.95), again if again in ('fall', 'scoop') else ''), at(2), 0.9)
     if STOP_BARS:                                         # take 9: short shouts with the band's hits
         for bar, m in zip(STOP_BARS, (60, 62)):            # take 10: under them, the soft long meow (C4 on Ab, D4 on G)
             place(x, long_low(m, BAR * 0.95, 'scoop'), at(bar), 0.55)
@@ -598,15 +976,42 @@ def cats(name):
                     sec = length * BAR / 4 * 0.85
                 else:
                     sec = BAR / 4 * (0.9 if held else TRIP * 0.95)
+                if held and RUN_DIR and not RUN_FIT:
+                    continue                              # take 16: the run takes its place
+                if RUN_DIR and RUN_FIT and ((bar in STOP_BARS and i == len(shouts) - 1) or bar not in STOP_BARS):
+                    continue                              # take 19: the run from the stop bar's beat 4 replaces these
                 place(x, cat_shout(m, sec), at(bar, b), 0.95)
+        if RUN_DIR:
+            if RUN_STYLE == 'roll':
+                run_roll(x, min(SHOUTS), 3.0)              # take 26
+            elif RUN_STYLE == 'natural' and RUN_SQUEEZE:
+                run_squeezed(x, min(SHOUTS), 3.0)          # take 22
+            elif RUN_STYLE == 'natural':
+                run_natural(x, min(SHOUTS), 3.0)           # take 21
+            elif RUN_FIT:
+                run_in(x, min(SHOUTS), 3.0)                # take 19: one bar earlier, into the running 8ths
+            else:
+                run_in(x, max(SHOUTS), 3.0)
     else:
         for bar, shouts in SHOUTS.items():                 # the long shouts on the climax's accents
             for b, length, m in shouts:
                 place(x, cat_shout(m, length * BAR / 4 * 0.92), at(bar, b), 0.9)
     for j, m in enumerate((67, 68, 71)):                  # bar 8: the triplets again, climbing G Ab B into the C of the light
-        place(x, cat_shout(m, BAR / 4 * TRIP * 0.95), at(7, 2 + j * TRIP), 0.9 + 0.05 * j)
-    save_loop(name, x, 0.075)
+        if RUN_DIR and (RUN_FIT == 'all' or RUN_END in ('long', 'shout')):
+            break                                         # take 18: the run's held last meow instead
+        place(x, cat_shout(m, BAR / 4 * TRIP * 0.95, own=True), at(7, 2 + j * TRIP), 0.9 + 0.05 * j)
+    # take 15 (the user: the cats a little more noticeable): SKY_SHOUT_DB raises the whole cat track by that many dB
+    # and lifts its presence (1.5-4 kHz) so the meows read over the guitars
+    up = float(sky_opt('SKY_SHOUT_DB') or 0)
+    if up:
+        x = x + 0.35 * bandpass(x, 1500, 4000)
+    save_loop(name, x, 0.075 * 10 ** (up / 20))
 
 
-cats('sky_doom_shouts' + SUFFIX + ''.join('_' + k.lower() + os.environ[k] for k in ('SKY_LOW_CAT', 'SKY_LOW_SOFT', 'SKY_LOW_AGAIN') if k in os.environ))
+def _tag(k, v):
+    return '_' + k[4:].lower() + (os.path.basename(v).split('.')[0] if os.sep in v or '/' in v else v)
+
+
+cats('sky_doom_shouts' + SUFFIX + ''.join(_tag(k, os.environ[k]) for k in sorted(os.environ)
+                                          if k.startswith('SKY_') and k not in ('SKY_ACCENTS', 'SKY_CLIMAX')))
 print('sky metal done ->', OUT)
