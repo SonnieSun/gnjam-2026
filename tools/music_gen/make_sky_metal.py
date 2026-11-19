@@ -215,10 +215,13 @@ _SAMPLES = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'sampl
 SKY_DEFAULTS = {
     'SKY_SHOUT_SAMPLE': os.path.join(_SAMPLES, 'user_41290960471', 'long_2.wav'),
     'SKY_LOW_SAMPLE': os.path.join(_SAMPLES, 'user_meow01', 'meow-01.wav'),
-    'SKY_LOW_SCREAM': 'c', 'SKY_LOW_LONG': '1', 'SKY_SHOUT_DB': '2.5',
+    'SKY_LOW_SCREAM': 'c', 'SKY_LOW_LONG': '1', 'SKY_SHOUT_DB': '5.4',   # 2.5, +2.9 to keep the rest where it was under the louder screams (take 38)
     'SKY_RUN_DIR': os.path.join(_SAMPLES, 'user_41290960471'),
     'SKY_RUN_STYLE': 'roll', 'SKY_RUN_ROLL': '8', 'SKY_RUN_FIT': 'keep', 'SKY_RUN_LOW': 'quiet', 'SKY_RUN_END': 'long',
     'SKY_RUN_EDGE': 'mid', 'SKY_RUN_LEGATO': '1',
+    # take 38 (the user, in the game: the scream isn't clear enough; the player's drum hits land on it): the long
+    # screams of bars 1, 3 and 5 this many dB up inside the cat track
+    'SKY_LOW_UP': '3.5',
 }
 
 
@@ -607,6 +610,7 @@ RUN_FIT = sky_opt('SKY_RUN_FIT')
 # no octave layer, each meow dry and cut short (half an 8th, a fast decay; the last a quarter), its attack put
 # exactly on the 8th, a little low body, quieter
 LOW_BARS = {0: 1.9, 2: 1.45} if LOW_LONG else {}
+LOW_UP = 10 ** (float(sky_opt('SKY_LOW_UP') or 0) / 20)
 
 
 # How soft the long meow is (the user: #1 is the one, but a little too sharp). SKY_LOW_SOFT 0 = take 5 as it was;
@@ -959,13 +963,13 @@ def cats(name):
     # take 5: each set of triplets runs straight into a long low meow on the next downbeat (bar 1 answers the
     # triplets of the bar before the storm, and the ones of bar 8 when the loop comes round; bar 5 answers bar 4)
     for bar in (0, 4):
-        place(x, long_low(60, BAR * LOW_BARS.get(bar, 0.95)), at(bar), 0.9)
+        place(x, long_low(60, BAR * LOW_BARS.get(bar, 0.95)), at(bar), 0.9 * LOW_UP)
         place(x, cat_shout(67, BAR / 4 * TRIP * 0.95, fixed=True), at(bar), 0.9)   # take 6: a shout on its front (G4, fixed cats)
     # take 7: the long meow once more on the second eight-count (storm bar 3), on its own. (Bar 7, the second
     # eight-count after the bar-5 one, has the 3-3-2 shouts, so it gets none.)
     # take 8 (the user: a little variation on the repeat): SKY_LOW_AGAIN = third (sings Eb4), fall, scoop; '' = the same
     again = os.environ.get('SKY_LOW_AGAIN', 'scoop')       # the user picked the scoop
-    place(x, long_low(63 if again == 'third' else 60, BAR * LOW_BARS.get(2, 0.95), again if again in ('fall', 'scoop') else ''), at(2), 0.9)
+    place(x, long_low(63 if again == 'third' else 60, BAR * LOW_BARS.get(2, 0.95), again if again in ('fall', 'scoop') else ''), at(2), 0.9 * LOW_UP)
     if STOP_BARS:                                         # take 9: short shouts with the band's hits
         for bar, m in zip(STOP_BARS, (60, 62)):            # take 10: under them, the soft long meow (C4 on Ab, D4 on G)
             place(x, long_low(m, BAR * 0.95, 'scoop'), at(bar), 0.55)
